@@ -79,8 +79,11 @@ async function ejecutarFuente(fuente, { estado, ajustes, env, ahora, opciones, c
   const inicio = performance.now();
   const ctx = crearCtx(fuente.id);
   try {
-    if (!fuente.urls?.length) throw new Error('La fuente no declara sus urls: no se puede comprobar robots.txt');
-    await comprobarRobots(ctx, fuente.urls);
+    // El buzón lee un correo propio por IMAP: no es una web y no tiene robots.txt.
+    if (fuente.modo !== 'buzon') {
+      if (!fuente.urls?.length) throw new Error('La fuente no declara sus urls: no se puede comprobar robots.txt');
+      await comprobarRobots(ctx, fuente.urls);
+    }
     const resultado = await fuente.obtener(ctx);
     const { nuevas, total } = fusionar(estado, fuente.id, resultado, ahora);
     estado.fuentes[fuente.id] = {

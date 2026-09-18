@@ -44,14 +44,27 @@ GitHub Actions (cada 30 min)
 | Bajada en vigilados | Cuando algo de tu lista baja del último precio avisado |
 | Fuente caída | Si una web lleva más de 24 h fallando (una vez al día) |
 
+Los emails salen desde el **Gmail dedicado** (el mismo que lee el buzón de newsletters).
 Para activarlos, guarda estos tres **secretos** en el repo. Cada comando te pide el valor,
 que nunca queda escrito en ningún archivo:
 
 ```bash
-gh secret set SMTP_USER   # tu dirección de Gmail
-gh secret set SMTP_PASS   # contraseña de aplicación de Gmail (myaccount.google.com/apppasswords)
-gh secret set EMAIL_TO    # dónde quieres recibir los emails
+gh secret set GMAIL_USER           # el Gmail dedicado, p. ej. escapadasfinde.jordi@gmail.com
+gh secret set GMAIL_APP_PASSWORD   # su contraseña de aplicación (myaccount.google.com/apppasswords)
+gh secret set EMAIL_TO             # dónde quieres recibir los avisos (tu email de siempre)
 ```
+
+(Si prefieres enviar desde otra cuenta, `SMTP_USER` y `SMTP_PASS` tienen prioridad).
+
+## Buzón de newsletters
+
+Con esos mismos secretos, cada ejecución lee los emails de los últimos 3 días del Gmail
+dedicado y convierte las newsletters de viajes en ofertas. No marca nada como leído y
+nunca publica los enlaces personales: los resuelve y se queda solo con la página final
+del comercio. Suscribe ese Gmail a las newsletters que quieras: Booking, Groupon,
+Voyage Privé, Travelzoo, Weekendesk, Atrápalo, Rusticae, Paradores, Vueling, easyJet,
+Wizz Air, Volotea, Ryanair, Iberia Express, Renfe, Ouigo, iryo, Secret Flying,
+Jack's Flight Club, y las alertas de precio de Google Flights, Skyscanner y KAYAK.
 
 Para comprobar que llegan: en GitHub, **Actions → Vigilar ofertas → Run workflow** y
 marca «Enviar un email de prueba».

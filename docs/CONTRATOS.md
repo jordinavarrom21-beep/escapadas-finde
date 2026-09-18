@@ -124,7 +124,7 @@ export default {
 - Si la fuente falla del todo, lanza un error con un mensaje claro en español.
 - Si `requiere` contiene variables que no están en `ctx.env`, el orquestador no la
   ejecuta y la marca como `desactivada`, indicando qué falta.
-- Antes de ejecutarla, el orquestador llama a `comprobarRobots(ctx, fuente.urls)`. Si alguna
+- Antes de ejecutarla (salvo las de `modo: 'buzon'`, que leen un correo propio por IMAP), el orquestador llama a `comprobarRobots(ctx, fuente.urls)`. Si alguna
   ruta está prohibida (`ErrorRobots`), la fuente queda `bloqueada` con el motivo y no se
   ejecuta. Las páginas extra con parámetros (paginación, filtros) también van en `urls`.
 - `ajustes.fuentes[id]` puede llevar `activa: false` y un `motivo` (se muestra en el panel).

@@ -231,6 +231,14 @@ describe('escanear', () => {
     ]);
   });
 
+  test('el buzón no necesita urls ni robots.txt', async () => {
+    const buzon = fuente('buzon', async () => ({ ofertas: [] }), { modo: 'buzon', urls: [] });
+    const { salida } = await escanear({
+      ajustes, fuentes: [buzon], http: sinRed, ahora: AHORA, env: {}, modulos, opciones: { sinEmails: true }, log: () => {},
+    });
+    assert.equal(salida.ofertas.fuentes[0].estado, 'ok');
+  });
+
   test('urlPanel', () => {
     assert.equal(urlPanel({ panelUrl: null }, { GITHUB_REPOSITORY: 'jordi/escapadas-finde' }), 'https://jordi.github.io/escapadas-finde/');
     assert.equal(urlPanel({ panelUrl: 'https://x.es/' }, {}), 'https://x.es/');
