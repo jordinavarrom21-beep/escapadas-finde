@@ -1,0 +1,119 @@
+# 🧳 Escapadas Finde
+
+Vigilante 24/7 de **vuelos y escapadas de fin de semana desde Barcelona**. Cada
+30 minutos revisa varias webs de ofertas, las clasifica por temática, calcula
+el tiempo en coche, detecta puentes y te las enseña en un panel web (también
+desde el móvil). Además te avisa por email.
+
+Funciona gratis en GitHub Actions, así que **no hace falta tener el PC encendido**.
+
+## Cómo funciona
+
+```
+GitHub Actions (cada 30 min)
+  └─ npm run escanear
+       ├─ fuentes      Buscounchollo, Viajeros Piratas, Holidayguru, Nomolesten,
+       │               Chollometro, Fly4free… (comprobando antes su robots.txt)
+       ├─ enriquecer   temáticas · festivos y puentes · geolocalización · tiempo en coche
+       │               · enlaces a Booking/Trivago/Google Flights… · puntuación de chollo
+       ├─ historial    evolución de precios (mínimo diario)
+       └─ emails       resumen del viernes · chollazos · bajadas en tus vigilados
+  ├─ guarda data/ en la rama «datos» (así el historial de main no crece)
+  └─ publica site/ en GitHub Pages → tu panel
+```
+
+## El panel
+
+`https://<tu-usuario>.github.io/escapadas-finde/`
+
+- **Este finde**: lo mejor para este fin de semana y el siguiente, más el próximo puente.
+- **Vuelos**: por finde o puente, aeropuerto, horario ideal y precio.
+- **Escapadas**: filtros por temática (spa, romántico, rural, playa, gastronomía,
+  familia, ciudad, aventura, parques, eventos, mascotas, alojamientos singulares),
+  precio, noches, régimen, transporte y fuente. Incluye un **buscador por ubicación**:
+  «cerca de Girona a menos de 1 h en coche».
+- **Mapa**, **calendario** de los próximos findes, **historial de precios**, **vigilados**
+  y **estado de las fuentes**.
+
+## Emails
+
+| Email | Cuándo |
+|---|---|
+| Resumen del finde | Los viernes a partir de las 8:00 (hora de Madrid), una vez |
+| Chollazos | Nada más aparecer un chollo excepcional (como mucho 3 alertas al día) |
+| Bajada en vigilados | Cuando algo de tu lista baja del último precio avisado |
+| Fuente caída | Si una web lleva más de 24 h fallando (una vez al día) |
+
+Para activarlos, guarda estos tres **secretos** en el repo. Cada comando te pide el valor,
+que nunca queda escrito en ningún archivo:
+
+```bash
+gh secret set SMTP_USER   # tu dirección de Gmail
+gh secret set SMTP_PASS   # contraseña de aplicación de Gmail (myaccount.google.com/apppasswords)
+gh secret set EMAIL_TO    # dónde quieres recibir los emails
+```
+
+Para comprobar que llegan: en GitHub, **Actions → Vigilar ofertas → Run workflow** y
+marca «Enviar un email de prueba».
+
+## Configuración
+
+Todo se cambia editando archivos del repo (se puede hacer desde la web de GitHub, también en el móvil).
+
+**`config/ajustes.json`**
+- `origen`: desde dónde calculas el tiempo en coche (por defecto, Barcelona).
+- `vuelos.aeropuertos`, `vuelos.findes`, `vuelos.horarioIdeal` (salida del viernes a partir
+  de las 15:00 y vuelta del domingo a partir de las 16:00).
+- `puentes.festivosLocales`: añade aquí los festivos de tu municipio. Por ejemplo, La Mercè
+  ya viene puesta para Barcelona; quítala si no es festivo para ti.
+- `fuentes.<id>`: `activa`, `intervaloMin`.
+- `emails.chollazos`: umbrales (vuelo de ida y vuelta ≤ 30 €, escapada ≤ 25 € por persona y noche…).
+
+**`config/vigilados.json`**: tu lista de deseos. Ejemplos:
+
+```json
+{ "nombre": "Oporto en avión", "texto": "oporto", "tipo": "vuelo", "precioMax": 60 }
+{ "nombre": "Spa a menos de 2 h", "tema": "spa", "cocheMaxMin": 120, "precioMax": 70 }
+{ "nombre": "Casa rural cerca de Olot", "tema": "rural", "cerca": { "lat": 42.18, "lon": 2.49, "radioKm": 40 } }
+```
+
+Campos disponibles: `texto`, `tipo` (vuelo, escapada, hotel, paquete), `tema`, `fuente`,
+`aeropuerto`, `precioMax`, `cocheMaxMin`, `cerca` y `puente: true`.
+
+## Comandos (en tu PC)
+
+```bash
+npm install              # una vez
+npm test                 # todos los tests (sin red)
+npm run escanear         # escaneo real; --forzar ignora los intervalos, --solo=<fuente>, --sin-emails
+npm run panel            # sirve el panel en http://localhost:8080 (tras escanear)
+npm run email:prueba     # sin SMTP guarda los emails en data/emails-prueba/ para verlos
+```
+
+## Fuentes y uso justo
+
+Antes de consultar una web, se comprueba que su **robots.txt** lo permite. Si no lo
+permite, la fuente queda «bloqueada» y no se toca. Además se espacian las peticiones y
+nunca se intenta saltar un captcha ni una protección anti-bot.
+
+Por eso **Ryanair está desactivada**: su robots.txt prohíbe `/api`. Los vuelos con fecha
+llegarán por vías legítimas (Travelpayouts, SerpApi o las alertas por email). Trivago y
+Booking solo aparecen como enlaces con destino y fechas ya puestos, porque no permiten leer
+sus resultados.
+
+### Añadir una fuente nueva
+
+1. Crea `src/fuentes/<id>.js` siguiendo `docs/CONTRATOS.md`: `id`, `nombre`, `web`, `modo`
+   (feed, api, html, navegador, afiliado o buzon), `requiere` (secretos necesarios),
+   `urls` y `obtener(ctx)`.
+2. Añádela a `src/fuentes/index.js` y a `config/ajustes.json`.
+3. Tests en `test/<id>.test.js` con fixtures reales.
+
+## Solución de problemas
+
+- **Una fuente sale en rojo**: el panel (pestaña Fuentes) muestra el error. Si una web
+  cambia su diseño, hay que ajustar su lector. Las demás siguen funcionando.
+- **No llegan emails**: revisa los tres secretos y lanza el workflow con «email de prueba».
+- **El cron se ha parado**: GitHub desactiva los crons tras 60 días sin actividad. El
+  workflow lo reactiva solo, pero puedes hacerlo a mano en Actions → Enable workflow.
+- **Empezar de cero**: borra la rama `datos` en GitHub. El siguiente escaneo la vuelve a crear.

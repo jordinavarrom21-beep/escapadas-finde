@@ -1,0 +1,17 @@
+{
+  "name": "Escapadas Finde",
+  "short_name": "Escapadas",
+  "description": "Vuelos y escapadas de fin de semana desde Barcelona, revisados cada 30 minutos.",
+  "lang": "es",
+  "dir": "ltr",
+  "start_url": "./#/finde",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f6f8",
+  "theme_color": "#0f766e",
+  "categories": ["travel"],
+  "icons": [
+    { "src": "icono.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icono.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

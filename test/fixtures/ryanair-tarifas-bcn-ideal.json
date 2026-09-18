@@ -1,0 +1,377 @@
+{
+  "arrivalAirportCategories": null,
+  "fares": [
+    {
+      "outbound": {
+        "departureAirport": {
+          "countryName": "España",
+          "iataCode": "BCN",
+          "name": "Barcelona",
+          "seoName": "barcelona",
+          "city": {
+            "name": "Barcelona",
+            "code": "BARCELONA",
+            "countryCode": "es"
+          }
+        },
+        "arrivalAirport": {
+          "countryName": "Italia",
+          "iataCode": "CIA",
+          "name": "Roma Ciampino",
+          "seoName": "rome-ciampino",
+          "city": {
+            "name": "Roma",
+            "code": "ROME",
+            "countryCode": "it"
+          }
+        },
+        "departureDate": "2026-10-16T16:35:00",
+        "arrivalDate": "2026-10-16T18:25:00",
+        "price": {
+          "value": 19.99,
+          "valueMainUnit": "19",
+          "valueFractionalUnit": "99",
+          "currencyCode": "EUR",
+          "currencySymbol": "€"
+        },
+        "flightKey": "FR~9658~ ~~BCN~10/16/2026 16:35~CIA~10/16/2026 18:25~~",
+        "flightNumber": "FR9658",
+        "previousPrice": {
+          "value": 24.99,
+          "valueMainUnit": "24",
+          "valueFractionalUnit": "99",
+          "currencyCode": "EUR",
+          "currencySymbol": "€"
+        },
+        "priceUpdated": 1789721340000
+      },
+      "inbound": {
+        "departureAirport": {
+          "countryName": "Italia",
+          "iataCode": "CIA",
+          "name": "Roma Ciampino",
+          "seoName": "rome-ciampino",
+          "city": {
+            "name": "Roma",
+            "code": "ROME",
+            "countryCode": "it"
+          }
+        },
+        "arrivalAirport": {
+          "countryName": "España",
+          "iataCode": "BCN",
+          "name": "Barcelona",
+          "seoName": "barcelona",
+          "city": {
+            "name": "Barcelona",
+            "code": "BARCELONA",
+            "countryCode": "es"
+          }
+        },
+        "departureDate": "2026-10-18T19:05:00",
+        "arrivalDate": "2026-10-18T20:55:00",
+        "price": {
+          "value": 24.99,
+          "valueMainUnit": "24",
+          "valueFractionalUnit": "99",
+          "currencyCode": "EUR",
+          "currencySymbol": "€"
+        },
+        "flightKey": "FR~9659~ ~~CIA~10/18/2026 19:05~BCN~10/18/2026 20:55~~",
+        "flightNumber": "FR9659",
+        "previousPrice": {
+          "value": 27.99,
+          "valueMainUnit": "27",
+          "valueFractionalUnit": "99",
+          "currencyCode": "EUR",
+          "currencySymbol": "€"
+        },
+        "priceUpdated": 1789721340000
+      },
+      "summary": {
+        "price": {
+          "value": 44.98,
+          "valueMainUnit": "44",
+          "valueFractionalUnit": "98",
+          "currencyCode": "EUR",
+          "currencySymbol": "€"
+        },
+        "previousPrice": {
+          "value": 52.98,
+          "valueMainUnit": "52",
+          "valueFractionalUnit": "98",
+          "currencyCode": "EUR",
+          "currencySymbol": "€"
+        },
+        "newRoute": false,
+        "tripDurationDays": 2
+      }
+    },
+    {
+      "outbound": {
+        "departureAirport": {
+          "countryName": "España",
+          "iataCode": "BCN",
+          "name": "Barcelona",
+          "seoName": "barcelona",
+          "city": {
+            "name": "Barcelona",
+            "code": "BARCELONA",
+            "countryCode": "es"
+          }
+        },
+        "arrivalAirport": {
+          "countryName": "Bélgica",
+          "iataCode": "CRL",
+          "name": "Bruselas Charleroi",
+          "seoName": "brussels-charleroi",
+          "city": {
+            "name": "Bruselas",
+            "code": "BRUSSELS",
+            "countryCode": "be"
+          }
+        },
+        "departureDate": "2026-10-16T20:50:00",
+        "arrivalDate": "2026-10-16T22:55:00",
+        "price": {
+          "value": 27.99,
+          "valueMainUnit": "27",
+          "valueFractionalUnit": "99",
+          "currencyCode": "EUR",
+          "currencySymbol": "€"
+        },
+        "flightKey": "FR~2764~ ~~BCN~10/16/2026 20:50~CRL~10/16/2026 22:55~~",
+        "flightNumber": "FR2764",
+        "previousPrice": null,
+        "priceUpdated": 1789721340000
+      },
+      "inbound": {
+        "departureAirport": {
+          "countryName": "Bélgica",
+          "iataCode": "CRL",
+          "name": "Bruselas Charleroi",
+          "seoName": "brussels-charleroi",
+          "city": {
+            "name": "Bruselas",
+            "code": "BRUSSELS",
+            "countryCode": "be"
+          }
+        },
+        "arrivalAirport": {
+          "countryName": "España",
+          "iataCode": "BCN",
+          "name": "Barcelona",
+          "seoName": "barcelona",
+          "city": {
+            "name": "Barcelona",
+            "code": "BARCELONA",
+            "countryCode": "es"
+          }
+        },
+        "departureDate": "2026-10-18T16:25:00",
+        "arrivalDate": "2026-10-18T18:30:00",
+        "price": {
+          "value": 27.99,
+          "valueMainUnit": "27",
+          "valueFractionalUnit": "99",
+          "currencyCode": "EUR",
+          "currencySymbol": "€"
+        },
+        "flightKey": "FR~2765~ ~~CRL~10/18/2026 16:25~BCN~10/18/2026 18:30~~",
+        "flightNumber": "FR2765",
+        "previousPrice": null,
+        "priceUpdated": 1789721340000
+      },
+      "summary": {
+        "price": {
+          "value": 55.98,
+          "valueMainUnit": "55",
+          "valueFractionalUnit": "98",
+          "currencyCode": "EUR",
+          "currencySymbol": "€"
+        },
+        "previousPrice": null,
+        "newRoute": false,
+        "tripDurationDays": 2
+      }
+    },
+    {
+      "outbound": {
+        "departureAirport": {
+          "countryName": "España",
+          "iataCode": "BCN",
+          "name": "Barcelona",
+          "seoName": "barcelona",
+          "city": {
+            "name": "Barcelona",
+            "code": "BARCELONA",
+            "countryCode": "es"
+          }
+        },
+        "arrivalAirport": {
+          "countryName": "Italia",
+          "iataCode": "BGY",
+          "name": "Milán Bérgamo",
+          "seoName": "milan-bergamo",
+          "city": {
+            "name": "Milán",
+            "code": "MILAN",
+            "countryCode": "it"
+          }
+        },
+        "departureDate": "2026-10-16T17:20:00",
+        "arrivalDate": "2026-10-16T19:00:00",
+        "price": {
+          "value": 44.99,
+          "valueMainUnit": "44",
+          "valueFractionalUnit": "99",
+          "currencyCode": "EUR",
+          "currencySymbol": "€"
+        },
+        "flightKey": "FR~4836~ ~~BCN~10/16/2026 17:20~BGY~10/16/2026 19:00~~",
+        "flightNumber": "FR4836",
+        "previousPrice": null,
+        "priceUpdated": 1789721340000
+      },
+      "inbound": {
+        "departureAirport": {
+          "countryName": "Italia",
+          "iataCode": "BGY",
+          "name": "Milán Bérgamo",
+          "seoName": "milan-bergamo",
+          "city": {
+            "name": "Milán",
+            "code": "MILAN",
+            "countryCode": "it"
+          }
+        },
+        "arrivalAirport": {
+          "countryName": "España",
+          "iataCode": "BCN",
+          "name": "Barcelona",
+          "seoName": "barcelona",
+          "city": {
+            "name": "Barcelona",
+            "code": "BARCELONA",
+            "countryCode": "es"
+          }
+        },
+        "departureDate": "2026-10-18T21:40:00",
+        "arrivalDate": "2026-10-18T23:20:00",
+        "price": {
+          "value": 17.99,
+          "valueMainUnit": "17",
+          "valueFractionalUnit": "99",
+          "currencyCode": "EUR",
+          "currencySymbol": "€"
+        },
+        "flightKey": "FR~4833~ ~~BGY~10/18/2026 21:40~BCN~10/18/2026 23:20~~",
+        "flightNumber": "FR4833",
+        "previousPrice": null,
+        "priceUpdated": 1789721340000
+      },
+      "summary": {
+        "price": {
+          "value": 62.98,
+          "valueMainUnit": "62",
+          "valueFractionalUnit": "98",
+          "currencyCode": "EUR",
+          "currencySymbol": "€"
+        },
+        "previousPrice": null,
+        "newRoute": false,
+        "tripDurationDays": 2
+      }
+    },
+    {
+      "outbound": {
+        "departureAirport": {
+          "countryName": "España",
+          "iataCode": "BCN",
+          "name": "Barcelona",
+          "seoName": "barcelona",
+          "city": {
+            "name": "Barcelona",
+            "code": "BARCELONA",
+            "countryCode": "es"
+          }
+        },
+        "arrivalAirport": {
+          "countryName": "Portugal",
+          "iataCode": "OPO",
+          "name": "Oporto",
+          "seoName": "porto",
+          "city": {
+            "name": "Oporto",
+            "code": "PORTO",
+            "countryCode": "pt"
+          }
+        },
+        "departureDate": "2026-10-16T23:40:00",
+        "arrivalDate": "2026-10-17T00:55:00",
+        "price": {
+          "value": 30.99,
+          "valueMainUnit": "30",
+          "valueFractionalUnit": "99",
+          "currencyCode": "EUR",
+          "currencySymbol": "€"
+        },
+        "flightKey": "FR~8394~ ~~BCN~10/16/2026 23:40~OPO~10/17/2026 00:55~~",
+        "flightNumber": "FR8394",
+        "previousPrice": null,
+        "priceUpdated": 1789721340000
+      },
+      "inbound": {
+        "departureAirport": {
+          "countryName": "Portugal",
+          "iataCode": "OPO",
+          "name": "Oporto",
+          "seoName": "porto",
+          "city": {
+            "name": "Oporto",
+            "code": "PORTO",
+            "countryCode": "pt"
+          }
+        },
+        "arrivalAirport": {
+          "countryName": "España",
+          "iataCode": "BCN",
+          "name": "Barcelona",
+          "seoName": "barcelona",
+          "city": {
+            "name": "Barcelona",
+            "code": "BARCELONA",
+            "countryCode": "es"
+          }
+        },
+        "departureDate": "2026-10-18T17:10:00",
+        "arrivalDate": "2026-10-18T20:00:00",
+        "price": {
+          "value": 45.99,
+          "valueMainUnit": "45",
+          "valueFractionalUnit": "99",
+          "currencyCode": "EUR",
+          "currencySymbol": "€"
+        },
+        "flightKey": "FR~8397~ ~~OPO~10/18/2026 17:10~BCN~10/18/2026 20:00~~",
+        "flightNumber": "FR8397",
+        "previousPrice": null,
+        "priceUpdated": 1789721340000
+      },
+      "summary": {
+        "price": {
+          "value": 76.98,
+          "valueMainUnit": "76",
+          "valueFractionalUnit": "98",
+          "currencyCode": "EUR",
+          "currencySymbol": "€"
+        },
+        "previousPrice": null,
+        "newRoute": false,
+        "tripDurationDays": 2
+      }
+    }
+  ],
+  "nextPage": null,
+  "size": 4
+}

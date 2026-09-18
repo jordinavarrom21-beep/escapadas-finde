@@ -1,0 +1,57 @@
+User-agent: *
+Disallow: /avisos
+
+Disallow: /*?destino=/*
+Disallow: /*?destino=*
+Disallow: /?destino=/*
+Disallow: /?destino=*
+
+Disallow: /*roomdesc/*
+
+
+
+Disallow: /?pagina=*
+Disallow: /?pagina=/*
+Disallow: /*?pagina=*
+Disallow: /*?pagina=/*
+
+
+Disallow: /*aviso*
+Disallow: /*conocenos*
+
+
+Disallow: /admin
+Disallow: /test
+Disallow: /stats
+Disallow: /royalslider
+Disallow: /library
+
+
+Disallow: /application
+Disallow: /*?data*
+Disallow: /*?data/*
+Disallow: /*?date1*
+Disallow: /*?date1/*
+Disallow: /*?date*
+Disallow: /*?date/*
+
+Disallow: /?date1*
+Disallow: /?date1/*
+Disallow: /?data*
+Disallow: /?data/*
+Disallow: /?date*
+Disallow: /?date/*
+
+Disallow: /*?openform*
+Disallow: /*?openform/*
+Disallow: /?openform*
+Disallow: /?openform/*
+
+Disallow: /*?hotel_ids*
+Disallow: /*?hotel_ids/*
+Disallow: /?hotel_ids*
+Disallow: /?hotel_ids/*
+
+Disallow: /maps/index
+
+Sitemap: https://nomolesten.com/sitemapindex.xml

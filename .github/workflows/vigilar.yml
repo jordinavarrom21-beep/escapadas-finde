@@ -1,0 +1,109 @@
+# Vigila las ofertas cada 30 minutos, guarda el estado en la rama «datos»,
+# publica el panel en GitHub Pages y envía los emails que tocan.
+name: Vigilar ofertas
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+    inputs:
+      forzar:
+        description: Consultar todas las fuentes aunque no les toque
+        type: boolean
+        default: false
+      email_prueba:
+        description: Enviar un email de prueba a EMAIL_TO
+        type: boolean
+        default: false
+  push:
+    branches: [main]
+    paths:
+      - 'site/**'
+      - 'src/**'
+      - 'config/**'
+      - 'package*.json'
+      - '.github/workflows/vigilar.yml'
+
+permissions:
+  contents: write   # guardar la rama «datos»
+  pages: write      # publicar el panel
+  id-token: write   # requerido por deploy-pages
+  actions: write    # mantener activo el cron
+
+concurrency:
+  group: vigilar
+  cancel-in-progress: false
+
+jobs:
+  vigilar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: github-pages
+      url: ${{ steps.despliegue.outputs.page_url }}
+    env:
+      SMTP_USER: ${{ secrets.SMTP_USER }}
+      SMTP_PASS: ${{ secrets.SMTP_PASS }}
+      EMAIL_TO: ${{ secrets.EMAIL_TO }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Recuperar los datos guardados
+        run: |
+          if git ls-remote --exit-code --heads origin datos > /dev/null; then
+            git fetch --depth=1 origin datos
+            git checkout FETCH_HEAD -- data
+          else
+            echo "Primera ejecución: todavía no existe la rama «datos»"
+          fi
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+      - run: npm test
+
+      - name: Escanear ofertas
+        id: escaneo
+        run: npm run escanear -- ${{ inputs.forzar && '--forzar' || '' }}
+
+      - name: Email de prueba
+        if: inputs.email_prueba
+        run: npm run email:prueba
+
+      - name: Guardar los datos en la rama «datos»
+        if: ${{ !cancelled() && steps.escaneo.conclusion != 'skipped' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          rm -rf data/emails-prueba
+          directorio="$(mktemp -d)"
+          cp -r data "$directorio/"
+          cd "$directorio"
+          git init -q -b datos
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data
+          git commit -q -m "Datos del $(date -u +'%Y-%m-%d %H:%M') UTC"
+          git push -q --force "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" datos
+
+      - uses: actions/configure-pages@v6
+        if: ${{ !cancelled() && steps.escaneo.conclusion != 'skipped' }}
+
+      - uses: actions/upload-pages-artifact@v5
+        if: ${{ !cancelled() && steps.escaneo.conclusion != 'skipped' }}
+        with:
+          path: site
+
+      - id: despliegue
+        if: ${{ !cancelled() && steps.escaneo.conclusion != 'skipped' }}
+        uses: actions/deploy-pages@v5
+
+      # GitHub desactiva los crons de los repos sin actividad en 60 días.
+      - name: Mantener vivo el cron
+        if: github.event_name == 'schedule'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/${GITHUB_REPOSITORY}/actions/workflows/vigilar.yml/enable"

@@ -1,0 +1,7 @@
+{
+  "vigilados": [
+    { "nombre": "Oporto en avión", "texto": "oporto", "tipo": "vuelo", "precioMax": 60 },
+    { "nombre": "Roma en avión", "texto": "roma", "tipo": "vuelo", "precioMax": 60 },
+    { "nombre": "Spa a menos de 2 h en coche", "tema": "spa", "cocheMaxMin": 120, "precioMax": 70 }
+  ]
+}

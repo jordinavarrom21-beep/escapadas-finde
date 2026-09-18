@@ -1,0 +1,22 @@
+{
+  "name": "escapadas-finde",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Vigilante 24/7 de vuelos y escapadas de fin de semana desde Barcelona",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "escanear": "node src/escanear.js",
+    "escanear:forzar": "node src/escanear.js --forzar",
+    "panel": "node scripts/servir.js",
+    "email:prueba": "node src/emails/prueba.js",
+    "test": "node --test \"test/**/*.test.js\""
+  },
+  "dependencies": {
+    "cheerio": "^1.2.0",
+    "fast-xml-parser": "^5.11.1",
+    "nodemailer": "^10.0.10"
+  }
+}

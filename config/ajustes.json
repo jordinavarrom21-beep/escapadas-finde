@@ -1,0 +1,53 @@
+{
+  "origen": { "nombre": "Barcelona", "lat": 41.3874, "lon": 2.1686 },
+  "panelUrl": null,
+  "retencionDias": 10,
+  "vuelos": {
+    "aeropuertos": ["BCN", "GRO", "REU"],
+    "findes": 10,
+    "precioMax": 150,
+    "patrones": [
+      { "id": "vie-dom", "nombre": "Viernes a domingo", "salida": 0, "vuelta": 2 }
+    ],
+    "horarioIdeal": {
+      "salidaDesde": "15:00",
+      "vueltaDesde": "16:00",
+      "aeropuertos": ["BCN"]
+    },
+    "pausaEntrePeticionesMs": 1500
+  },
+  "puentes": {
+    "comunidad": "ES-CT",
+    "festivosLocales": [
+      { "fecha": "2026-09-24", "nombre": "La Mercè (Barcelona)" }
+    ],
+    "buscarVuelos": true
+  },
+  "coche": {
+    "maxKmLineaRecta": 1200,
+    "velocidadMediaKmh": 80,
+    "consumoL100km": 6.5,
+    "precioLitro": 1.55
+  },
+  "fuentes": {
+    "ryanair": { "activa": false, "motivo": "Su robots.txt prohíbe /api (comprobado el 18/09/2026)", "intervaloMin": 240 },
+    "buscounchollo": { "activa": true, "intervaloMin": 60 },
+    "viajerospiratas": { "activa": true, "intervaloMin": 30 },
+    "holidayguru": { "activa": true, "intervaloMin": 60 },
+    "nomolesten": { "activa": true, "intervaloMin": 360 },
+    "fly4free": { "activa": true, "intervaloMin": 60 },
+    "chollometro": { "activa": true, "intervaloMin": 30 }
+  },
+  "emails": {
+    "resumen": { "activo": true, "diaSemana": 5, "hora": 8 },
+    "chollazos": {
+      "activo": true,
+      "maxPorDia": 3,
+      "vueloMax": 30,
+      "escapadaNocheMax": 25,
+      "puntuacionMin": 85
+    },
+    "vigilados": { "activo": true },
+    "fuenteCaidaHoras": 24
+  }
+}

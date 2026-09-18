@@ -1,0 +1,59 @@
+{
+  "vigilados": [
+    {
+      "nombre": "Oporto en avión",
+      "texto": "oporto",
+      "tipo": "vuelo",
+      "precioMax": 60,
+      "coincidencias": [
+        "travelpayouts:BCN-OPO:2026-10-16:2026-10-18",
+        "travelpayouts:BCN-OPO:2026-10-16:2026-10-18:ideal"
+      ]
+    },
+    {
+      "nombre": "Roma en avión",
+      "texto": "roma",
+      "tipo": "vuelo",
+      "precioMax": 60,
+      "coincidencias": [
+        "travelpayouts:BCN-CIA:2026-11-06:2026-11-08",
+        "travelpayouts:BCN-CIA:2026-11-06:2026-11-08:ideal",
+        "travelpayouts:BCN-CIA:2026-10-30:2026-11-01",
+        "travelpayouts:BCN-FCO:2026-10-23:2026-10-25",
+        "travelpayouts:BCN-FCO:2026-10-02:2026-10-04",
+        "travelpayouts:BCN-FCO:2026-10-16:2026-10-18"
+      ]
+    },
+    {
+      "nombre": "Spa a menos de 2 h en coche",
+      "tema": "spa",
+      "cocheMaxMin": 120,
+      "precioMax": 70,
+      "coincidencias": [
+        "buscounchollo:escapada-termal-en-caldes-de-montbui-1-n"
+      ]
+    },
+    {
+      "nombre": "Puentes cerca de casa",
+      "cerca": {
+        "lat": 41.3874,
+        "lon": 2.1686,
+        "radioKm": 300
+      },
+      "puente": true,
+      "coincidencias": [
+        "viajerospiratas:delta-del-ebro-en-el-puente-de-la-merce-",
+        "holidayguru:zaragoza-en-las-fiestas-del-pilar-2-noch"
+      ]
+    },
+    {
+      "nombre": "Chollos a Londres",
+      "texto": "londres",
+      "precioMax": 50,
+      "coincidencias": [
+        "chollometro:vuelos-barcelona-londres-octubre",
+        "travelpayouts:BCN-STN:2026-11-13:2026-11-15"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,198 @@
+[
+  {
+    "code": "BCN",
+    "name": "Barcelona",
+    "seoName": "barcelona",
+    "aliases": [],
+    "base": true,
+    "city": {
+      "name": "Barcelona",
+      "code": "BARCELONA"
+    },
+    "region": {
+      "name": "Cataluña",
+      "code": "CATALONIA"
+    },
+    "country": {
+      "code": "es",
+      "iso3code": "ESP",
+      "name": "España",
+      "currency": "EUR",
+      "defaultAirportCode": "MAD",
+      "schengen": true
+    },
+    "coordinates": {
+      "latitude": 41.2971,
+      "longitude": 2.07846
+    },
+    "timeZone": "Europe/Madrid"
+  },
+  {
+    "code": "BGY",
+    "name": "Milán Bérgamo",
+    "seoName": "milan-bergamo",
+    "aliases": [],
+    "base": true,
+    "city": {
+      "name": "Milán",
+      "code": "MILAN"
+    },
+    "region": {
+      "name": "Lombardía",
+      "code": "LOMBARDY"
+    },
+    "country": {
+      "code": "it",
+      "iso3code": "ITA",
+      "name": "Italia",
+      "currency": "EUR",
+      "defaultAirportCode": "FCO",
+      "schengen": true
+    },
+    "coordinates": {
+      "latitude": 45.6739,
+      "longitude": 9.70417
+    },
+    "timeZone": "Europe/Rome"
+  },
+  {
+    "code": "CIA",
+    "name": "Roma Ciampino",
+    "seoName": "rome-ciampino",
+    "aliases": [],
+    "base": true,
+    "city": {
+      "name": "Roma",
+      "code": "ROME"
+    },
+    "region": {
+      "name": "Lacio",
+      "code": "LAZIO"
+    },
+    "country": {
+      "code": "it",
+      "iso3code": "ITA",
+      "name": "Italia",
+      "currency": "EUR",
+      "defaultAirportCode": "FCO",
+      "schengen": true
+    },
+    "coordinates": {
+      "latitude": 41.7994,
+      "longitude": 12.5949
+    },
+    "timeZone": "Europe/Rome"
+  },
+  {
+    "code": "CRL",
+    "name": "Bruselas Charleroi",
+    "seoName": "brussels-charleroi",
+    "aliases": [],
+    "base": true,
+    "city": {
+      "name": "Bruselas",
+      "code": "BRUSSELS"
+    },
+    "region": {
+      "name": "Valonia",
+      "code": "WALLONIA"
+    },
+    "country": {
+      "code": "be",
+      "iso3code": "BEL",
+      "name": "Bélgica",
+      "currency": "EUR",
+      "defaultAirportCode": "CRL",
+      "schengen": true
+    },
+    "coordinates": {
+      "latitude": 50.4592,
+      "longitude": 4.45382
+    },
+    "timeZone": "Europe/Brussels"
+  },
+  {
+    "code": "GRO",
+    "name": "Girona",
+    "seoName": "girona",
+    "aliases": [],
+    "base": true,
+    "city": {
+      "name": "Girona",
+      "code": "GIRONA"
+    },
+    "region": {
+      "name": "Cataluña",
+      "code": "CATALONIA"
+    },
+    "country": {
+      "code": "es",
+      "iso3code": "ESP",
+      "name": "España",
+      "currency": "EUR",
+      "defaultAirportCode": "MAD",
+      "schengen": true
+    },
+    "coordinates": {
+      "latitude": 41.901,
+      "longitude": 2.7605
+    },
+    "timeZone": "Europe/Madrid"
+  },
+  {
+    "code": "OPO",
+    "name": "Oporto",
+    "seoName": "porto",
+    "aliases": [],
+    "base": true,
+    "city": {
+      "name": "Oporto",
+      "code": "PORTO"
+    },
+    "region": {
+      "name": "Norte de Portugal",
+      "code": "NORTHERN_PORTUGAL"
+    },
+    "country": {
+      "code": "pt",
+      "iso3code": "PRT",
+      "name": "Portugal",
+      "currency": "EUR",
+      "defaultAirportCode": "LIS",
+      "schengen": true
+    },
+    "coordinates": {
+      "latitude": 41.2481,
+      "longitude": -8.68139
+    },
+    "timeZone": "Europe/Lisbon"
+  },
+  {
+    "code": "REU",
+    "name": "Reus",
+    "seoName": "reus",
+    "aliases": [],
+    "base": true,
+    "city": {
+      "name": "Reus",
+      "code": "REUS"
+    },
+    "region": {
+      "name": "Cataluña",
+      "code": "CATALONIA"
+    },
+    "country": {
+      "code": "es",
+      "iso3code": "ESP",
+      "name": "España",
+      "currency": "EUR",
+      "defaultAirportCode": "MAD",
+      "schengen": true
+    },
+    "coordinates": {
+      "latitude": 41.1474,
+      "longitude": 1.16717
+    },
+    "timeZone": "Europe/Madrid"
+  }
+]

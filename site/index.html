@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Escapadas Finde</title>
+  <meta name="description" content="Vuelos y escapadas de fin de semana desde Barcelona, revisados cada 30 minutos.">
+  <meta name="theme-color" content="#0f766e" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0d1117" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icono.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icono.svg">
+  <script>
+    try {
+      const tema = localStorage.getItem('escapadas:tema');
+      if (tema === 'claro' || tema === 'oscuro') document.documentElement.dataset.theme = tema === 'claro' ? 'light' : 'dark';
+    } catch {}
+  </script>
+  <link rel="stylesheet" href="css/estilos.css">
+  <link rel="modulepreload" href="js/filtros.js">
+  <link rel="modulepreload" href="js/vistas.js">
+  <link rel="modulepreload" href="js/plantillas.js">
+  <script type="module" src="js/app.js"></script>
+</head>
+<body>
+  <a class="saltar" href="#principal">Saltar al contenido</a>
+
+  <header class="cabecera">
+    <div class="contenedor cabecera__fila">
+      <a class="marca" href="#/finde">
+        <img src="icono.svg" alt="" width="34" height="34">
+        <span>Escapadas Finde</span>
+      </a>
+      <div class="cabecera__acciones">
+        <a id="estado-fuentes" class="estado-fuentes" href="#/fuentes" aria-label="Estado de las fuentes">
+          <span class="punto" aria-hidden="true"></span><span class="estado-fuentes__texto" aria-hidden="true">…</span>
+        </a>
+        <button id="cambiar-tema" class="boton-icono" type="button" aria-label="Cambiar el modo de color">🌙</button>
+      </div>
+    </div>
+    <div class="contenedor cabecera__info">
+      <p id="cuenta-atras" class="pastilla"></p>
+      <p id="aviso-puente" class="pastilla pastilla--puente" hidden></p>
+      <p id="actualizado" class="cabecera__actualizado"></p>
+    </div>
+    <form id="buscador" class="contenedor buscador" role="search">
+      <label class="sr" for="q">Buscar en todas las ofertas</label>
+      <input id="q" name="q" type="search" placeholder="Buscar destino, hotel, región…" autocomplete="off" enterkeyhint="search">
+      <button class="boton boton--primario" type="submit">Buscar</button>
+    </form>
+  </header>
+
+  <nav class="navegacion" aria-label="Secciones">
+    <ul class="contenedor">
+      <li><a href="#/finde" data-vista="finde">🗓️ Este finde</a></li>
+      <li><a href="#/vuelos" data-vista="vuelos">✈️ Vuelos</a></li>
+      <li><a href="#/escapadas" data-vista="escapadas">🏡 Escapadas</a></li>
+      <li><a href="#/mapa" data-vista="mapa">🗺️ Mapa</a></li>
+      <li><a href="#/calendario" data-vista="calendario">📅 Calendario</a></li>
+      <li><a href="#/vigilados" data-vista="vigilados">👀 Vigilados</a></li>
+      <li><a href="#/fuentes" data-vista="fuentes">📡 Fuentes</a></li>
+    </ul>
+  </nav>
+
+  <div id="novedades" class="contenedor novedades" hidden></div>
+
+  <main id="principal" class="contenedor" tabindex="-1">
+    <p class="cargando" role="status">Cargando ofertas…</p>
+  </main>
+
+  <footer class="pie contenedor">
+    <p>Ofertas de webs de terceros revisadas cada 30 minutos; confirma siempre precio y condiciones en la web original.
+      Mapa © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> ·
+      Búsqueda de lugares con <a href="https://photon.komoot.io" target="_blank" rel="noopener noreferrer">Photon</a>.</p>
+  </footer>
+
+  <dialog id="ficha" class="ficha" aria-labelledby="ficha-titulo">
+    <div class="ficha__caja">
+      <div class="ficha__barra">
+        <button type="button" class="boton-icono" data-cerrar-ficha aria-label="Cerrar la ficha">✕</button>
+      </div>
+      <div class="ficha__contenido"></div>
+    </div>
+  </dialog>
+
+  <div id="aviso" class="sr" role="status" aria-live="polite"></div>
+</body>
+</html>

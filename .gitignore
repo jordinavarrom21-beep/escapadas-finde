@@ -1,0 +1,7 @@
+node_modules/
+# Estado generado: vive en la rama «datos», no en main
+data/
+# Datos del panel: se generan en cada escaneo y se publican con GitHub Pages
+site/data/
+*.log
+.env
