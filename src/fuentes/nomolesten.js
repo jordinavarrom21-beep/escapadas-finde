@@ -104,6 +104,7 @@ function ofertaDe(dato, pagina) {
     unidad: 'noche',
     noches: fechas.salida && fechas.vuelta ? diasEntre(fechas.salida, fechas.vuelta) : null,
     regimen: regimenDe(dato.desayuno, incluye),
+    valoracion: valoracionDe(dato),
     temas: pagina?.temas ?? [],
     transporte: lugar?.pais === 'España' ? 'coche' : null,
     lugar,
@@ -160,6 +161,14 @@ function precioDe(dato, adultos) {
     precioAnterior,
     descuento: precioAnterior ? Math.round((1 - dato.precio / precioAnterior) * 100) : null,
   };
+}
+
+/** La tarjeta enseña la nota sobre 10 y, al lado, el número de opiniones: «9.4 (37)». */
+function valoracionDe(dato) {
+  if (!/^\d+(\.\d+)?$/.test(dato.valoracion) || !/^\d+$/.test(dato.opiniones)) return null;
+  const nota = Number(dato.valoracion);
+  const n = Number(dato.opiniones);
+  return nota > 0 && n > 0 ? { nota, n } : null;
 }
 
 function regimenDe(desayuno, incluye) {

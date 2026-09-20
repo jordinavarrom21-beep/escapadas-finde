@@ -116,6 +116,7 @@ function ofertaDe(casa) {
     precioTexto: precio == null ? '' : `${NUMERO.format(precio)} € por persona y noche (aprox.)`,
     unidad: precio == null ? null : 'pp/noche',
     regimen: completa ? 'solo-alojamiento' : null,
+    valoracion: valoracionDe(casa.review),
     temas: ['rural'],
     lugar: {
       nombre: limpiar(casa.village?.name) || casa.province.name,
@@ -135,6 +136,13 @@ const euros = (importe) =>
   Number.isFinite(importe?.amount) && importe.amount > 0 && (importe.currency ?? 'EUR') === 'EUR' ? importe.amount / 100 : null;
 
 const limpiar = (texto) => String(texto ?? '').replace(/\s+/g, ' ').trim();
+
+/** Escapada Rural puntúa sobre 5 estrellas; el contrato pide la nota sobre 10. */
+function valoracionDe(review) {
+  const n = review?.numReviews ?? 0;
+  const estrellas = review?.score ?? 0;
+  return n > 0 && estrellas > 0 ? { nota: Number((estrellas * 2).toFixed(1)), n } : null;
+}
 
 function coordenada(texto) {
   const numero = Number.parseFloat(texto);

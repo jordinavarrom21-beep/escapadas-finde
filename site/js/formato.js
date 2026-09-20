@@ -26,6 +26,43 @@ export const ETIQUETAS_TRANSPORTE = { avion: '✈️ Avión', coche: '🚗 Coche
 
 export const ETIQUETAS_TIPO = { vuelo: 'Vuelo', escapada: 'Escapada', hotel: 'Hotel', paquete: 'Paquete' };
 
+export const ETIQUETAS_ALOJAMIENTO = {
+  hotel: '🏨 Hotel',
+  'casa-rural': '🏡 Casa rural',
+  camping: '⛺ Camping',
+  apartamento: '🏢 Apartamento',
+  parador: '🏰 Parador',
+  balneario: '♨️ Balneario',
+  hostal: '🛏️ Hostal',
+};
+
+/** Emoji del código de tiempo de Open-Meteo (WMO). */
+export function emojiTiempo(codigo) {
+  if (!Number.isFinite(codigo)) return '';
+  if (codigo === 0) return '☀️';
+  if (codigo <= 2) return '🌤️';
+  if (codigo === 3) return '☁️';
+  if (codigo <= 48) return '🌫️';
+  if (codigo <= 67) return '🌧️';
+  if (codigo <= 77) return '❄️';
+  if (codigo <= 82) return '🌦️';
+  if (codigo <= 86) return '🌨️';
+  return '⛈️';
+}
+
+/** 21 → «21°». */
+export const grados = (valor) => (Number.isFinite(valor) ? `${Math.round(valor)}°` : '');
+
+/** 8.6 → «8,6». */
+export const nota = (valor) => (Number.isFinite(valor) ? valor.toLocaleString('es-ES', { maximumFractionDigits: 1 }) : '');
+
+/** ['a', 'b', 'c'] → «a, b y c». */
+export function enumerar(partes) {
+  const lista = partes.filter(Boolean);
+  if (lista.length <= 1) return lista.join('');
+  return `${lista.slice(0, -1).join(', ')} y ${lista.at(-1)}`;
+}
+
 /** 59 → «59 €» · 19.98 → «19,98 €» · null → «—». */
 export function euros(valor) {
   if (typeof valor !== 'number' || !Number.isFinite(valor)) return '—';

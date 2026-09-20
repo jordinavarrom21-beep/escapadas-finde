@@ -94,6 +94,8 @@ function ofertaDe(dato) {
     precioTexto: precio == null ? '' : `${dato.precioTexto}${plazas ? ` (alojamiento para ${plazas} personas)` : ''}`,
     unidad: precio == null ? null : 'noche',
     regimen: /desayuno/i.test(tipoAlojamiento) ? 'desayuno' : null,
+    // La nota que publica Holidu ya está sobre 10.
+    valoracion: dato.nota > 0 && dato.opiniones > 0 ? { nota: dato.nota, n: dato.opiniones } : null,
     temas: ['rural', ...(dato.distintivos.some((d) => /famil/i.test(d)) ? ['familia'] : [])],
     lugar: dato.localidad
       ? { nombre: dato.localidad, region: provinciaDe(dato.destino), pais: 'España', codigoPais: 'ES', lat: null, lon: null, iata: null }

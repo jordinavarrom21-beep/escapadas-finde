@@ -11,12 +11,17 @@ import { performance } from 'node:perf_hooks';
 import { Cache } from './cache.js';
 import { cargarJson, estadoInicial, fusionar, guardarJson, podar } from './almacen.js';
 import { FUENTES } from './fuentes/index.js';
-import { TEMAS } from './modelo.js';
+import { TEMAS, completarOferta } from './modelo.js';
 import { aplicarClasificacion } from './enriquecer/temas.js';
+import { aplicarAlojamiento } from './enriquecer/alojamiento.js';
 import { enlacesPara } from './enriquecer/enlaces.js';
 import { asignarFechas, calcularPuentes, obtenerFestivos } from './enriquecer/festivos.js';
-import { calcularCoche, geolocalizar } from './enriquecer/geo.js';
-import { puntuar } from './enriquecer/puntuacion.js';
+import { calcularCoche, calcularCosteCoche, geolocalizar } from './enriquecer/geo.js';
+import { calcularReferencia } from './enriquecer/referencia.js';
+import { marcarEquivalentes } from './enriquecer/duplicados.js';
+import { anadirTiempo } from './enriquecer/tiempo.js';
+import { anadirEventos } from './enriquecer/eventos.js';
+import { precioPorPersonaNoche, puntuar } from './enriquecer/puntuacion.js';
 import { compactar, registrarPrecios, seriesPara } from './historial.js';
 import { cargarVigilados, coincide } from './vigilados.js';
 import { procesarEmails } from './emails/decidir.js';
@@ -43,8 +48,10 @@ const CADUCIDAD_CACHE_MS = 200 * 24 * 60 * 60 * 1000;
 
 /** Módulos que usa el escaneo; los tests pueden sustituir cualquiera. */
 export const MODULOS = {
-  obtenerFestivos, calcularPuentes, asignarFechas, aplicarClasificacion, geolocalizar, calcularCoche,
-  enlacesPara, registrarPrecios, compactar, seriesPara, puntuar, procesarEmails, crearTransporte, enviarEmail,
+  obtenerFestivos, calcularPuentes, asignarFechas, aplicarClasificacion, aplicarAlojamiento,
+  geolocalizar, calcularCoche, calcularCosteCoche, calcularReferencia, marcarEquivalentes,
+  anadirTiempo, anadirEventos, enlacesPara, registrarPrecios, compactar, seriesPara, puntuar,
+  procesarEmails, crearTransporte, enviarEmail,
 };
 
 /** URL del panel: la de los ajustes o la de GitHub Pages del repo. */
@@ -143,13 +150,22 @@ export async function escanear({
   await Promise.all(fuentes.map((fuente) => ejecutarFuente(fuente, { estado, ajustes, env, ahora, opciones, crearCtx })));
   const podadas = podar(estado, ahora, { retencionDias: ajustes.retencionDias });
 
+  // Se completan por si vienen de un estado guardado antes de añadir campos nuevos.
+  for (const [id, oferta] of Object.entries(estado.ofertas)) estado.ofertas[id] = completarOferta(oferta);
   const ofertas = Object.values(estado.ofertas);
   for (const oferta of ofertas) {
     m.aplicarClasificacion(oferta);
+    m.aplicarAlojamiento(oferta);
+    oferta.precioNoche = precioPorPersonaNoche(oferta);
     Object.assign(oferta.fechas, m.asignarFechas(oferta, findes, puentes));
   }
   await m.geolocalizar(ofertas, crearCtx('geo'));
   await m.calcularCoche(ofertas, crearCtx('coche'));
+  await m.calcularCosteCoche(ofertas, crearCtx('coche'));
+  m.calcularReferencia(ofertas);
+  m.marcarEquivalentes(ofertas);
+  await m.anadirTiempo(ofertas, { ...crearCtx('tiempo'), findes, puentes });
+  await m.anadirEventos(ofertas, { ...crearCtx('eventos'), findes, puentes });
   for (const oferta of ofertas) oferta.enlaces = m.enlacesPara(oferta, { origen: ajustes.origen, ahora });
   m.registrarPrecios(historial, ofertas, ahora);
   m.compactar(historial, ahora, { idsVivos: ofertas.map((o) => o.id) });

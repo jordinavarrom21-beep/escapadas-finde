@@ -59,7 +59,20 @@ export function validarOferta(o) {
  * @param {Partial<import('./modelo.js').Oferta>} datos
  */
 export function crearOferta(datos) {
-  const oferta = {
+  const oferta = completarOferta(datos);
+  oferta.temas = [...new Set(oferta.temas)];
+  const errores = validarOferta(oferta);
+  if (errores.length) throw new TypeError(`Oferta ${oferta.id ?? '(sin id)'} no válida: ${errores.join('; ')}`);
+  return oferta;
+}
+
+/**
+ * Rellena los campos que falten con sus valores por defecto, sin validar. Se usa
+ * también con las ofertas guardadas antes de añadir un campo nuevo al modelo.
+ * @param {Partial<Oferta>} datos
+ */
+export function completarOferta(datos) {
+  return {
     id: null,
     fuente: null,
     tipo: 'escapada',
@@ -102,10 +115,6 @@ export function crearOferta(datos) {
     ...datos,
     fechas: { salida: null, vuelta: null, findeId: null, puenteId: null, ...datos.fechas },
   };
-  oferta.temas = [...new Set(oferta.temas)];
-  const errores = validarOferta(oferta);
-  if (errores.length) throw new TypeError(`Oferta ${oferta.id ?? '(sin id)'} no válida: ${errores.join('; ')}`);
-  return oferta;
 }
 
 /**

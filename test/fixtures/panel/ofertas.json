@@ -5,6 +5,7 @@
     "lat": 41.3874,
     "lon": 2.1686
   },
+  "viajeros": 2,
   "aeropuertos": [
     "BCN",
     "GRO",
@@ -372,7 +373,40 @@
         "vuelta": "2026-10-18",
         "findeId": "2026-10-16",
         "puenteId": null
-      }
+      },
+      "alojamiento": "hotel",
+      "precioNoche": 24.75,
+      "chollazo": true,
+      "valoracion": null,
+      "referencia": null,
+      "equivalentes": [
+        {
+          "fuente": "nomolesten",
+          "precio": 120,
+          "unidad": "noche",
+          "url": "https://www.nomolesten.com/hoteles/hotel-boutique-con-piscina-en-sitges"
+        }
+      ],
+      "costeCoche": {
+        "eur": 8.87,
+        "litros": 5.72
+      },
+      "tiempo": {
+        "dia": "2026-10-16",
+        "maxC": 23,
+        "minC": 13,
+        "lluviaPct": 65,
+        "codigo": 61,
+        "texto": "Lluvia ligera"
+      },
+      "eventos": [
+        {
+          "nombre": "Festival de Cine Fantástico",
+          "fecha": "2026-10-08",
+          "url": "https://sitgesfilmfestival.com/",
+          "municipio": "Sitges"
+        }
+      ]
     },
     {
       "id": "chollometro:lloret-de-mar-hotel-con-parque-acuatico-",
@@ -436,7 +470,29 @@
         "vuelta": null,
         "findeId": null,
         "puenteId": null
-      }
+      },
+      "alojamiento": "apartamento",
+      "precioNoche": 19.5,
+      "chollazo": true,
+      "valoracion": {
+        "nota": 8.2,
+        "n": 266
+      },
+      "referencia": null,
+      "equivalentes": [],
+      "costeCoche": {
+        "eur": 17.13,
+        "litros": 11.05
+      },
+      "tiempo": {
+        "dia": "2026-09-19",
+        "maxC": 21,
+        "minC": 14,
+        "lluviaPct": 0,
+        "codigo": 0,
+        "texto": "Despejado"
+      },
+      "eventos": []
     },
     {
       "id": "chollometro:val-d-aran-hotel-con-spa-2-noches-a-58-p",
@@ -506,7 +562,33 @@
         "vuelta": null,
         "findeId": null,
         "puenteId": null
-      }
+      },
+      "alojamiento": "hotel",
+      "precioNoche": 29,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": null,
+      "equivalentes": [
+        {
+          "fuente": "rusticae",
+          "precio": 72,
+          "unidad": "pp",
+          "url": "https://www.rusticae.es/hoteles/val-daran"
+        }
+      ],
+      "costeCoche": {
+        "eur": 47.76,
+        "litros": 30.81
+      },
+      "tiempo": {
+        "dia": "2026-09-19",
+        "maxC": 24,
+        "minC": 12,
+        "lluviaPct": 0,
+        "codigo": 0,
+        "texto": "Despejado"
+      },
+      "eventos": []
     },
     {
       "id": "travelpayouts:BCN-CIA:2026-11-06:2026-11-08",
@@ -597,7 +679,16 @@
         "vuelta": "2026-11-08T10:20:00",
         "findeId": "2026-11-06",
         "puenteId": null
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": true,
+      "valoracion": null,
+      "referencia": null,
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "chollometro:besalu-casa-rural-para-6-personas-por-18",
@@ -666,7 +757,40 @@
         "vuelta": null,
         "findeId": null,
         "puenteId": null
-      }
+      },
+      "alojamiento": "casa-rural",
+      "precioNoche": 45,
+      "chollazo": false,
+      "valoracion": {
+        "nota": 8,
+        "n": 57
+      },
+      "referencia": {
+        "mediana": 276.92,
+        "ahorroPct": 35,
+        "grupo": "rural · 2 noches",
+        "n": 7
+      },
+      "equivalentes": [],
+      "costeCoche": {
+        "eur": 25.79,
+        "litros": 16.64
+      },
+      "tiempo": null,
+      "eventos": [
+        {
+          "nombre": "Mercat medieval de Besalú",
+          "fecha": "2026-09-19",
+          "url": "https://www.besalu.cat/agenda",
+          "municipio": "Besalú"
+        },
+        {
+          "nombre": "Fira de l’embotit",
+          "fecha": "2026-09-20",
+          "url": "https://www.besalu.cat/agenda",
+          "municipio": "Besalú"
+        }
+      ]
     },
     {
       "id": "fly4free:error-tarifa-bcn-atenas",
@@ -731,7 +855,21 @@
         "vuelta": null,
         "findeId": null,
         "puenteId": null
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": {
+        "mediana": 47.54,
+        "ahorroPct": 39,
+        "grupo": "vuelos a Grecia",
+        "n": 9
+      },
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "chollometro:1587342",
@@ -795,7 +933,16 @@
         "vuelta": null,
         "findeId": null,
         "puenteId": null
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": null,
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "travelpayouts:BCN-SVQ:2026-11-13:2026-11-15",
@@ -886,7 +1033,16 @@
         "vuelta": "2026-11-15T07:05:00",
         "findeId": "2026-11-13",
         "puenteId": null
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": null,
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "travelpayouts:BCN-CIA:2026-11-06:2026-11-08:ideal",
@@ -977,7 +1133,16 @@
         "vuelta": "2026-11-08T22:05:00",
         "findeId": "2026-11-06",
         "puenteId": null
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": null,
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "travelpayouts:BCN-CIA:2026-10-30:2026-11-01",
@@ -1068,7 +1233,21 @@
         "vuelta": "2026-11-01T18:15:00",
         "findeId": "2026-10-30",
         "puenteId": null
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": {
+        "mediana": 57.11,
+        "ahorroPct": 30,
+        "grupo": "vuelos a Italia",
+        "n": 10
+      },
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "viajerospiratas:delta-del-ebro-en-el-puente-de-la-merce-",
@@ -1134,7 +1313,33 @@
         "vuelta": "2026-09-27",
         "findeId": "2026-09-25",
         "puenteId": "puente-2026-09-24"
-      }
+      },
+      "alojamiento": "casa-rural",
+      "precioNoche": 32.67,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": null,
+      "equivalentes": [],
+      "costeCoche": {
+        "eur": 36.87,
+        "litros": 23.79
+      },
+      "tiempo": {
+        "dia": "2026-09-24",
+        "maxC": 23,
+        "minC": 12,
+        "lluviaPct": 65,
+        "codigo": 61,
+        "texto": "Lluvia ligera"
+      },
+      "eventos": [
+        {
+          "nombre": "Jornadas del arroz",
+          "fecha": "2026-09-26",
+          "url": "https://www.deltebre.cat/agenda",
+          "municipio": "Deltebre"
+        }
+      ]
     },
     {
       "id": "viajerospiratas:vuelos-bolonia-32",
@@ -1199,7 +1404,21 @@
         "vuelta": null,
         "findeId": null,
         "puenteId": null
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": {
+        "mediana": 38.55,
+        "ahorroPct": 17,
+        "grupo": "vuelos a Italia",
+        "n": 19
+      },
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "buscounchollo:peniscola-2-noches-en-hotel-con-spa-y-me",
@@ -1262,7 +1481,29 @@
         "vuelta": null,
         "findeId": null,
         "puenteId": null
-      }
+      },
+      "alojamiento": "hotel",
+      "precioNoche": 52.5,
+      "chollazo": false,
+      "valoracion": {
+        "nota": 7.6,
+        "n": 487
+      },
+      "referencia": null,
+      "equivalentes": [
+        {
+          "fuente": "weekendesk",
+          "precio": 118,
+          "unidad": "pp",
+          "url": "https://www.weekendesk.es/escapada/peniscola-spa"
+        }
+      ],
+      "costeCoche": {
+        "eur": 48.36,
+        "litros": 31.2
+      },
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "buscounchollo:morella-2-noches-con-desayuno-y-menu-de-",
@@ -1329,7 +1570,34 @@
         "vuelta": null,
         "findeId": null,
         "puenteId": null
-      }
+      },
+      "alojamiento": "hotel",
+      "precioNoche": 42.5,
+      "chollazo": false,
+      "valoracion": {
+        "nota": 8.1,
+        "n": 362
+      },
+      "referencia": {
+        "mediana": 137.1,
+        "ahorroPct": 38,
+        "grupo": "gastronomia · 2 noches",
+        "n": 42
+      },
+      "equivalentes": [],
+      "costeCoche": {
+        "eur": 53.8,
+        "litros": 34.71
+      },
+      "tiempo": {
+        "dia": "2026-09-19",
+        "maxC": 24,
+        "minC": 11,
+        "lluviaPct": 45,
+        "codigo": 80,
+        "texto": "Chubascos"
+      },
+      "eventos": []
     },
     {
       "id": "fly4free:barcelona-marrakech-24",
@@ -1393,7 +1661,16 @@
         "vuelta": null,
         "findeId": null,
         "puenteId": null
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": null,
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "viajerospiratas:bilbao-2-noches-en-hotel-4-junto-al-gugg",
@@ -1454,7 +1731,42 @@
         "vuelta": null,
         "findeId": null,
         "puenteId": null
-      }
+      },
+      "alojamiento": "hotel",
+      "precioNoche": 39.5,
+      "chollazo": false,
+      "valoracion": {
+        "nota": 7.3,
+        "n": 319
+      },
+      "referencia": null,
+      "equivalentes": [
+        {
+          "fuente": "atrapalo",
+          "precio": 86,
+          "unidad": "pp",
+          "url": "https://www.atrapalo.com/viajes/bilbao-guggenheim"
+        },
+        {
+          "fuente": "weekendesk",
+          "precio": 95,
+          "unidad": "pp",
+          "url": "https://www.weekendesk.es/escapada/bilbao"
+        }
+      ],
+      "costeCoche": {
+        "eur": 120.9,
+        "litros": 78
+      },
+      "tiempo": {
+        "dia": "2026-09-19",
+        "maxC": 17,
+        "minC": 14,
+        "lluviaPct": 65,
+        "codigo": 61,
+        "texto": "Lluvia ligera"
+      },
+      "eventos": []
     },
     {
       "id": "travelpayouts:BCN-NAP:2026-10-23:2026-10-25",
@@ -1546,7 +1858,21 @@
         "vuelta": "2026-10-25T13:45:00",
         "findeId": "2026-10-23",
         "puenteId": null
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": {
+        "mediana": 37.61,
+        "ahorroPct": 7,
+        "grupo": "vuelos a Italia",
+        "n": 10
+      },
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "buscounchollo:tossa-de-mar-2-noches-frente-al-mar-con-",
@@ -1608,7 +1934,29 @@
         "vuelta": null,
         "findeId": null,
         "puenteId": null
-      }
+      },
+      "alojamiento": "hotel",
+      "precioNoche": 59.5,
+      "chollazo": false,
+      "valoracion": {
+        "nota": 9.6,
+        "n": 62
+      },
+      "referencia": null,
+      "equivalentes": [],
+      "costeCoche": {
+        "eur": 18.94,
+        "litros": 12.22
+      },
+      "tiempo": {
+        "dia": "2026-09-19",
+        "maxC": 28,
+        "minC": 11,
+        "lluviaPct": 0,
+        "codigo": 0,
+        "texto": "Despejado"
+      },
+      "eventos": []
     },
     {
       "id": "holidayguru:zaragoza-en-las-fiestas-del-pilar-2-noch",
@@ -1670,7 +2018,48 @@
         "vuelta": "2026-10-12",
         "findeId": "2026-10-09",
         "puenteId": "puente-2026-10-10"
-      }
+      },
+      "alojamiento": "hotel",
+      "precioNoche": 44.5,
+      "chollazo": false,
+      "valoracion": {
+        "nota": 7.3,
+        "n": 431
+      },
+      "referencia": null,
+      "equivalentes": [],
+      "costeCoche": {
+        "eur": 66.09,
+        "litros": 42.64
+      },
+      "tiempo": {
+        "dia": "2026-10-10",
+        "maxC": 17,
+        "minC": 11,
+        "lluviaPct": 65,
+        "codigo": 61,
+        "texto": "Lluvia ligera"
+      },
+      "eventos": [
+        {
+          "nombre": "Ofrenda de Flores a la Virgen del Pilar",
+          "fecha": "2026-10-12",
+          "url": "https://www.zaragoza.es/fiestas-del-pilar",
+          "municipio": "Zaragoza"
+        },
+        {
+          "nombre": "Conciertos del Pilar",
+          "fecha": "2026-10-10",
+          "url": "https://www.zaragoza.es/fiestas-del-pilar",
+          "municipio": "Zaragoza"
+        },
+        {
+          "nombre": "Feria taurina",
+          "fecha": "2026-10-11",
+          "url": "https://www.zaragoza.es/fiestas-del-pilar",
+          "municipio": "Zaragoza"
+        }
+      ]
     },
     {
       "id": "viajerospiratas:vuelos-tenerife-41",
@@ -1735,7 +2124,16 @@
         "vuelta": null,
         "findeId": null,
         "puenteId": null
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": null,
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "holidayguru:mallorca-en-ferry-3-noches-en-hotel-barc",
@@ -1798,7 +2196,26 @@
         "vuelta": null,
         "findeId": null,
         "puenteId": null
-      }
+      },
+      "alojamiento": "hotel",
+      "precioNoche": 49.67,
+      "chollazo": false,
+      "valoracion": {
+        "nota": 7.3,
+        "n": 493
+      },
+      "referencia": null,
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": {
+        "dia": "2026-09-19",
+        "maxC": 24,
+        "minC": 14,
+        "lluviaPct": 65,
+        "codigo": 61,
+        "texto": "Lluvia ligera"
+      },
+      "eventos": []
     },
     {
       "id": "holidayguru:valencia-2-noches-junto-a-la-ciudad-de-l",
@@ -1860,7 +2277,29 @@
         "vuelta": null,
         "findeId": null,
         "puenteId": null
-      }
+      },
+      "alojamiento": "hotel",
+      "precioNoche": 34.5,
+      "chollazo": false,
+      "valoracion": {
+        "nota": 6.8,
+        "n": 346
+      },
+      "referencia": null,
+      "equivalentes": [],
+      "costeCoche": {
+        "eur": 78.18,
+        "litros": 50.44
+      },
+      "tiempo": {
+        "dia": "2026-09-19",
+        "maxC": 26,
+        "minC": 11,
+        "lluviaPct": 0,
+        "codigo": 0,
+        "texto": "Despejado"
+      },
+      "eventos": []
     },
     {
       "id": "chollometro:montserrat-noche-en-el-hotel-del-monaste",
@@ -1929,7 +2368,34 @@
         "vuelta": null,
         "findeId": null,
         "puenteId": null
-      }
+      },
+      "alojamiento": "hotel",
+      "precioNoche": 65,
+      "chollazo": false,
+      "valoracion": {
+        "nota": 8.2,
+        "n": 153
+      },
+      "referencia": {
+        "mediana": 74.71,
+        "ahorroPct": 13,
+        "grupo": "rural · 1 noches",
+        "n": 43
+      },
+      "equivalentes": [],
+      "costeCoche": {
+        "eur": 9.27,
+        "litros": 5.98
+      },
+      "tiempo": {
+        "dia": "2026-09-19",
+        "maxC": 28,
+        "minC": 13,
+        "lluviaPct": 80,
+        "codigo": 95,
+        "texto": "Tormenta"
+      },
+      "eventos": []
     },
     {
       "id": "travelpayouts:BCN-BVA:2026-09-18:2026-09-20",
@@ -2021,7 +2487,16 @@
         "vuelta": "2026-09-20T10:20:00",
         "findeId": "2026-09-18",
         "puenteId": null
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": null,
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "buscounchollo:la-cerdanya-con-tu-perro-2-noches-en-hot",
@@ -2089,7 +2564,27 @@
         "vuelta": null,
         "findeId": null,
         "puenteId": null
-      }
+      },
+      "alojamiento": "hotel",
+      "precioNoche": 46,
+      "chollazo": false,
+      "valoracion": {
+        "nota": 6.9,
+        "n": 254
+      },
+      "referencia": {
+        "mediana": 143.75,
+        "ahorroPct": 36,
+        "grupo": "mascotas · 2 noches",
+        "n": 39
+      },
+      "equivalentes": [],
+      "costeCoche": {
+        "eur": 30.43,
+        "litros": 19.63
+      },
+      "tiempo": null,
+      "eventos": []
     },
     {
       "imagen": null,
@@ -2152,7 +2647,16 @@
           "etiqueta": "Alojamiento en Londres (Booking)",
           "url": "https://www.booking.com/searchresults.es.html?ss=Londres&group_adults=2"
         }
-      ]
+      ],
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": null,
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "buscounchollo:sant-hilari-sacalm-balneario-con-pension",
@@ -2213,7 +2717,29 @@
         "vuelta": null,
         "findeId": null,
         "puenteId": null
-      }
+      },
+      "alojamiento": "balneario",
+      "precioNoche": 64.5,
+      "chollazo": false,
+      "valoracion": {
+        "nota": 9,
+        "n": 439
+      },
+      "referencia": null,
+      "equivalentes": [],
+      "costeCoche": {
+        "eur": 15.92,
+        "litros": 10.27
+      },
+      "tiempo": {
+        "dia": "2026-09-19",
+        "maxC": 24,
+        "minC": 14,
+        "lluviaPct": 65,
+        "codigo": 61,
+        "texto": "Lluvia ligera"
+      },
+      "eventos": []
     },
     {
       "id": "travelpayouts:BCN-STN:2026-09-18:2026-09-20",
@@ -2304,7 +2830,16 @@
         "vuelta": "2026-09-20T16:30:00",
         "findeId": "2026-09-18",
         "puenteId": null
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": null,
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "travelpayouts:BCN-STN:2026-11-13:2026-11-15",
@@ -2395,7 +2930,16 @@
         "vuelta": "2026-11-15T18:15:00",
         "findeId": "2026-11-13",
         "puenteId": null
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": null,
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "travelpayouts:BCN-OPO:2026-10-16:2026-10-18",
@@ -2486,7 +3030,21 @@
         "vuelta": "2026-10-18T07:05:00",
         "findeId": "2026-10-16",
         "puenteId": null
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": {
+        "mediana": 55.38,
+        "ahorroPct": 26,
+        "grupo": "vuelos a Portugal",
+        "n": 9
+      },
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "viajerospiratas:girona-hotel-boutique-en-el-barri-vell",
@@ -2548,7 +3106,41 @@
         "vuelta": null,
         "findeId": null,
         "puenteId": null
-      }
+      },
+      "alojamiento": "hotel",
+      "precioNoche": 45,
+      "chollazo": false,
+      "valoracion": {
+        "nota": 9.4,
+        "n": 129
+      },
+      "referencia": {
+        "mediana": 71.43,
+        "ahorroPct": 37,
+        "grupo": "ciudad · 1 noches",
+        "n": 49
+      },
+      "equivalentes": [],
+      "costeCoche": {
+        "eur": 22.17,
+        "litros": 14.3
+      },
+      "tiempo": {
+        "dia": "2026-09-19",
+        "maxC": 22,
+        "minC": 11,
+        "lluviaPct": 80,
+        "codigo": 95,
+        "texto": "Tormenta"
+      },
+      "eventos": [
+        {
+          "nombre": "Girona Temps de Flors (preestreno)",
+          "fecha": "2026-09-19",
+          "url": "https://www.gironatempsdeflors.cat/",
+          "municipio": "Girona"
+        }
+      ]
     },
     {
       "id": "travelpayouts:BCN-SVQ:2026-09-25:2026-09-27",
@@ -2639,7 +3231,21 @@
         "vuelta": "2026-09-27T20:40:00",
         "findeId": "2026-09-25",
         "puenteId": "puente-2026-09-24"
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": {
+        "mediana": 58.49,
+        "ahorroPct": 6,
+        "grupo": "vuelos a España",
+        "n": 27
+      },
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "holidayguru:menorca-vuelo-3-noches-en-ciutadella",
@@ -2702,7 +3308,26 @@
         "vuelta": null,
         "findeId": null,
         "puenteId": null
-      }
+      },
+      "alojamiento": "hotel",
+      "precioNoche": 59.67,
+      "chollazo": false,
+      "valoracion": {
+        "nota": 6.8,
+        "n": 643
+      },
+      "referencia": null,
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": {
+        "dia": "2026-09-19",
+        "maxC": 19,
+        "minC": 13,
+        "lluviaPct": 65,
+        "codigo": 61,
+        "texto": "Lluvia ligera"
+      },
+      "eventos": []
     },
     {
       "imagen": null,
@@ -2765,7 +3390,21 @@
           "etiqueta": "Alojamiento en Marrakech (Booking)",
           "url": "https://www.booking.com/searchresults.es.html?ss=Marrakech&group_adults=2"
         }
-      ]
+      ],
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": {
+        "mediana": 39.77,
+        "ahorroPct": 12,
+        "grupo": "vuelos a Marruecos",
+        "n": 33
+      },
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "buscounchollo:vall-de-boi-2-noches-en-hotel-de-montana",
@@ -2831,7 +3470,34 @@
         "vuelta": null,
         "findeId": null,
         "puenteId": null
-      }
+      },
+      "alojamiento": "hotel",
+      "precioNoche": 47.5,
+      "chollazo": false,
+      "valoracion": {
+        "nota": 8.7,
+        "n": 121
+      },
+      "referencia": {
+        "mediana": 137.68,
+        "ahorroPct": 31,
+        "grupo": "rural · 2 noches",
+        "n": 16
+      },
+      "equivalentes": [],
+      "costeCoche": {
+        "eur": 43.12,
+        "litros": 27.82
+      },
+      "tiempo": {
+        "dia": "2026-09-19",
+        "maxC": 23,
+        "minC": 10,
+        "lluviaPct": 80,
+        "codigo": 95,
+        "texto": "Tormenta"
+      },
+      "eventos": []
     },
     {
       "id": "viajerospiratas:cuenca-noche-en-las-casas-colgadas",
@@ -2893,7 +3559,31 @@
         "vuelta": null,
         "findeId": null,
         "puenteId": null
-      }
+      },
+      "alojamiento": "hotel",
+      "precioNoche": 49,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": {
+        "mediana": 69.01,
+        "ahorroPct": 29,
+        "grupo": "ciudad · 1 noches",
+        "n": 15
+      },
+      "equivalentes": [],
+      "costeCoche": {
+        "eur": 100.95,
+        "litros": 65.13
+      },
+      "tiempo": {
+        "dia": "2026-09-19",
+        "maxC": 23,
+        "minC": 11,
+        "lluviaPct": 10,
+        "codigo": 2,
+        "texto": "Parcialmente nublado"
+      },
+      "eventos": []
     },
     {
       "id": "viajerospiratas:alquezar-barranquismo-2-noches-en-hotel-",
@@ -2959,7 +3649,34 @@
         "vuelta": null,
         "findeId": null,
         "puenteId": null
-      }
+      },
+      "alojamiento": "casa-rural",
+      "precioNoche": 55,
+      "chollazo": false,
+      "valoracion": {
+        "nota": 8,
+        "n": 48
+      },
+      "referencia": {
+        "mediana": 134.15,
+        "ahorroPct": 18,
+        "grupo": "aventura · 2 noches",
+        "n": 33
+      },
+      "equivalentes": [],
+      "costeCoche": {
+        "eur": 50.98,
+        "litros": 32.89
+      },
+      "tiempo": {
+        "dia": "2026-09-19",
+        "maxC": 26,
+        "minC": 11,
+        "lluviaPct": 45,
+        "codigo": 80,
+        "texto": "Chubascos"
+      },
+      "eventos": []
     },
     {
       "id": "travelpayouts:GRO-BGY:2026-11-13:2026-11-15",
@@ -3050,7 +3767,21 @@
         "vuelta": "2026-11-15T13:45:00",
         "findeId": "2026-11-13",
         "puenteId": null
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": {
+        "mediana": 47.92,
+        "ahorroPct": 27,
+        "grupo": "vuelos a Italia",
+        "n": 19
+      },
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "travelpayouts:BCN-FCO:2026-10-23:2026-10-25",
@@ -3141,7 +3872,21 @@
         "vuelta": "2026-10-25T18:15:00",
         "findeId": "2026-10-23",
         "puenteId": null
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": {
+        "mediana": 64.97,
+        "ahorroPct": 20,
+        "grupo": "vuelos a Italia",
+        "n": 33
+      },
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "travelpayouts:BCN-NAP:2026-10-09:2026-10-11",
@@ -3233,7 +3978,21 @@
         "vuelta": "2026-10-11T16:30:00",
         "findeId": "2026-10-09",
         "puenteId": "puente-2026-10-10"
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": {
+        "mediana": 74.3,
+        "ahorroPct": 26,
+        "grupo": "vuelos a Italia",
+        "n": 9
+      },
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "nomolesten:hotel-rural-en-temporada-de-setas-en-el-",
@@ -3299,7 +4058,26 @@
         "vuelta": null,
         "findeId": null,
         "puenteId": null
-      }
+      },
+      "alojamiento": "casa-rural",
+      "precioNoche": 44.5,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": null,
+      "equivalentes": [],
+      "costeCoche": {
+        "eur": 22.37,
+        "litros": 14.43
+      },
+      "tiempo": {
+        "dia": "2026-09-19",
+        "maxC": 23,
+        "minC": 9,
+        "lluviaPct": 0,
+        "codigo": 0,
+        "texto": "Despejado"
+      },
+      "eventos": []
     },
     {
       "imagen": null,
@@ -3362,7 +4140,21 @@
           "etiqueta": "Alojamiento en Berlín (Booking)",
           "url": "https://www.booking.com/searchresults.es.html?ss=Berl%C3%ADn&group_adults=2"
         }
-      ]
+      ],
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": {
+        "mediana": 35.96,
+        "ahorroPct": 11,
+        "grupo": "vuelos a Alemania",
+        "n": 15
+      },
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "travelpayouts:BCN-SCQ:2026-11-06:2026-11-08",
@@ -3454,7 +4246,16 @@
         "vuelta": "2026-11-08T10:20:00",
         "findeId": "2026-11-06",
         "puenteId": null
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": null,
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "travelpayouts:BCN-BGY:2026-11-13:2026-11-15",
@@ -3545,7 +4346,21 @@
         "vuelta": "2026-11-15T07:05:00",
         "findeId": "2026-11-13",
         "puenteId": null
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": {
+        "mediana": 66.15,
+        "ahorroPct": 32,
+        "grupo": "vuelos a Italia",
+        "n": 28
+      },
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "travelpayouts:BCN-NAP:2026-09-25:2026-09-27",
@@ -3637,7 +4452,21 @@
         "vuelta": "2026-09-27T13:45:00",
         "findeId": "2026-09-25",
         "puenteId": "puente-2026-09-24"
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": {
+        "mediana": 59.67,
+        "ahorroPct": 33,
+        "grupo": "vuelos a Italia",
+        "n": 10
+      },
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "travelpayouts:BCN-FCO:2026-10-02:2026-10-04",
@@ -3728,7 +4557,21 @@
         "vuelta": "2026-10-04T07:05:00",
         "findeId": "2026-10-02",
         "puenteId": null
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": {
+        "mediana": 65.76,
+        "ahorroPct": 24,
+        "grupo": "vuelos a Italia",
+        "n": 27
+      },
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "travelpayouts:GRO-CRL:2026-10-02:2026-10-04",
@@ -3819,7 +4662,21 @@
         "vuelta": "2026-10-04T18:15:00",
         "findeId": "2026-10-02",
         "puenteId": null
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": {
+        "mediana": 56.8,
+        "ahorroPct": 12,
+        "grupo": "vuelos a Bélgica",
+        "n": 7
+      },
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "travelpayouts:BCN-CRL:2026-10-23:2026-10-25",
@@ -3910,7 +4767,21 @@
         "vuelta": "2026-10-25T22:05:00",
         "findeId": "2026-10-23",
         "puenteId": null
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": {
+        "mediana": 57.45,
+        "ahorroPct": 13,
+        "grupo": "vuelos a Bélgica",
+        "n": 22
+      },
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "travelpayouts:BCN-LIS:2026-10-30:2026-11-01",
@@ -4001,7 +4872,21 @@
         "vuelta": "2026-11-01T16:30:00",
         "findeId": "2026-10-30",
         "puenteId": null
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": {
+        "mediana": 77.9,
+        "ahorroPct": 23,
+        "grupo": "vuelos a Portugal",
+        "n": 7
+      },
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "buscounchollo:escapada-termal-en-caldes-de-montbui-1-n",
@@ -4063,7 +4948,27 @@
         "vuelta": null,
         "findeId": null,
         "puenteId": null
-      }
+      },
+      "alojamiento": "balneario",
+      "precioNoche": 59,
+      "chollazo": false,
+      "valoracion": {
+        "nota": 8,
+        "n": 558
+      },
+      "referencia": {
+        "mediana": 89.39,
+        "ahorroPct": 34,
+        "grupo": "spa · 1 noches",
+        "n": 13
+      },
+      "equivalentes": [],
+      "costeCoche": {
+        "eur": 7.05,
+        "litros": 4.55
+      },
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "buscounchollo:priorat-noche-en-hotel-con-cata-de-vinos",
@@ -4129,7 +5034,34 @@
         "vuelta": null,
         "findeId": null,
         "puenteId": null
-      }
+      },
+      "alojamiento": "casa-rural",
+      "precioNoche": 69,
+      "chollazo": false,
+      "valoracion": {
+        "nota": 7,
+        "n": 362
+      },
+      "referencia": {
+        "mediana": 88.46,
+        "ahorroPct": 22,
+        "grupo": "gastronomia · 1 noches",
+        "n": 22
+      },
+      "equivalentes": [],
+      "costeCoche": {
+        "eur": 29.82,
+        "litros": 19.24
+      },
+      "tiempo": {
+        "dia": "2026-09-19",
+        "maxC": 29,
+        "minC": 14,
+        "lluviaPct": 25,
+        "codigo": 3,
+        "texto": "Nublado"
+      },
+      "eventos": []
     },
     {
       "id": "buscounchollo:albarracin-2-noches-en-casa-rural-con-en",
@@ -4195,7 +5127,34 @@
         "vuelta": null,
         "findeId": null,
         "puenteId": null
-      }
+      },
+      "alojamiento": "casa-rural",
+      "precioNoche": 39.5,
+      "chollazo": false,
+      "valoracion": {
+        "nota": 9.3,
+        "n": 837
+      },
+      "referencia": {
+        "mediana": 129.51,
+        "ahorroPct": 39,
+        "grupo": "rural · 2 noches",
+        "n": 42
+      },
+      "equivalentes": [],
+      "costeCoche": {
+        "eur": 83.22,
+        "litros": 53.69
+      },
+      "tiempo": {
+        "dia": "2026-09-19",
+        "maxC": 27,
+        "minC": 10,
+        "lluviaPct": 10,
+        "codigo": 2,
+        "texto": "Parcialmente nublado"
+      },
+      "eventos": []
     },
     {
       "id": "buscounchollo:benasque-2-noches-con-desayuno-y-ruta-gu",
@@ -4261,7 +5220,29 @@
         "vuelta": null,
         "findeId": null,
         "puenteId": null
-      }
+      },
+      "alojamiento": "hotel",
+      "precioNoche": 49.5,
+      "chollazo": false,
+      "valoracion": {
+        "nota": 8.9,
+        "n": 757
+      },
+      "referencia": null,
+      "equivalentes": [],
+      "costeCoche": {
+        "eur": 49.37,
+        "litros": 31.85
+      },
+      "tiempo": {
+        "dia": "2026-09-19",
+        "maxC": 19,
+        "minC": 11,
+        "lluviaPct": 65,
+        "codigo": 61,
+        "texto": "Lluvia ligera"
+      },
+      "eventos": []
     },
     {
       "id": "holidayguru:salou-hotel-4-con-todo-incluido-junto-a-",
@@ -4296,7 +5277,9 @@
       "cocheKm": 119,
       "cocheEstimado": false,
       "vuelo": null,
-      "etiquetas": [],
+      "etiquetas": [
+        "duplicada"
+      ],
       "publicada": "2026-09-18T03:33:00.000Z",
       "caduca": null,
       "vistaPrimera": "2026-09-18T04:33:00.000Z",
@@ -4323,7 +5306,29 @@
         "vuelta": null,
         "findeId": null,
         "puenteId": null
-      }
+      },
+      "alojamiento": "hotel",
+      "precioNoche": 55,
+      "chollazo": false,
+      "valoracion": {
+        "nota": 7.2,
+        "n": 762
+      },
+      "referencia": null,
+      "equivalentes": [],
+      "costeCoche": {
+        "eur": 23.98,
+        "litros": 15.47
+      },
+      "tiempo": {
+        "dia": "2026-09-19",
+        "maxC": 24,
+        "minC": 12,
+        "lluviaPct": 0,
+        "codigo": 0,
+        "texto": "Despejado"
+      },
+      "eventos": []
     },
     {
       "id": "travelpayouts:BCN-OPO:2026-10-16:2026-10-18:ideal",
@@ -4414,7 +5419,16 @@
         "vuelta": "2026-10-18T20:40:00",
         "findeId": "2026-10-16",
         "puenteId": null
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": null,
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "travelpayouts:BCN-LIS:2026-09-18:2026-09-20",
@@ -4505,7 +5519,21 @@
         "vuelta": "2026-09-20T18:15:00",
         "findeId": "2026-09-18",
         "puenteId": null
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": {
+        "mediana": 74.05,
+        "ahorroPct": 19,
+        "grupo": "vuelos a Portugal",
+        "n": 9
+      },
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "nomolesten:masia-del-siglo-xvii-en-el-camp-de-tarra",
@@ -4572,7 +5600,31 @@
         "vuelta": null,
         "findeId": null,
         "puenteId": null
-      }
+      },
+      "alojamiento": "casa-rural",
+      "precioNoche": 49,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": {
+        "mediana": 118.07,
+        "ahorroPct": 17,
+        "grupo": "rural · 2 noches",
+        "n": 10
+      },
+      "equivalentes": [],
+      "costeCoche": {
+        "eur": 25.19,
+        "litros": 16.25
+      },
+      "tiempo": {
+        "dia": "2026-09-19",
+        "maxC": 23,
+        "minC": 12,
+        "lluviaPct": 80,
+        "codigo": 95,
+        "texto": "Tormenta"
+      },
+      "eventos": []
     },
     {
       "id": "buscounchollo:andorra-hotel-4-con-entrada-a-caldea",
@@ -4633,7 +5685,34 @@
         "vuelta": null,
         "findeId": null,
         "puenteId": null
-      }
+      },
+      "alojamiento": "balneario",
+      "precioNoche": 75,
+      "chollazo": false,
+      "valoracion": {
+        "nota": 9.3,
+        "n": 212
+      },
+      "referencia": {
+        "mediana": 110.29,
+        "ahorroPct": 32,
+        "grupo": "spa · 1 noches",
+        "n": 22
+      },
+      "equivalentes": [],
+      "costeCoche": {
+        "eur": 34.86,
+        "litros": 22.49
+      },
+      "tiempo": {
+        "dia": "2026-09-19",
+        "maxC": 27,
+        "minC": 14,
+        "lluviaPct": 25,
+        "codigo": 3,
+        "texto": "Nublado"
+      },
+      "eventos": []
     },
     {
       "id": "travelpayouts:GRO-BVA:2026-10-30:2026-11-01",
@@ -4725,7 +5804,21 @@
         "vuelta": "2026-11-01T22:05:00",
         "findeId": "2026-10-30",
         "puenteId": null
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": {
+        "mediana": 69.59,
+        "ahorroPct": 21,
+        "grupo": "vuelos a Francia",
+        "n": 18
+      },
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "travelpayouts:GRO-BVA:2026-11-06:2026-11-08",
@@ -4817,7 +5910,21 @@
         "vuelta": "2026-11-08T10:20:00",
         "findeId": "2026-11-06",
         "puenteId": null
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": {
+        "mediana": 54.85,
+        "ahorroPct": 18,
+        "grupo": "vuelos a Francia",
+        "n": 49
+      },
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "travelpayouts:BCN-LIS:2026-11-20:2026-11-22",
@@ -4908,7 +6015,21 @@
         "vuelta": "2026-11-22T07:05:00",
         "findeId": "2026-11-20",
         "puenteId": null
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": {
+        "mediana": 64.08,
+        "ahorroPct": 22,
+        "grupo": "vuelos a Portugal",
+        "n": 15
+      },
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "holidayguru:madrid-en-ave-tren-2-noches-en-hotel-cen",
@@ -4971,7 +6092,34 @@
         "vuelta": null,
         "findeId": null,
         "puenteId": null
-      }
+      },
+      "alojamiento": "hotel",
+      "precioNoche": 64.5,
+      "chollazo": false,
+      "valoracion": {
+        "nota": 8.9,
+        "n": 696
+      },
+      "referencia": {
+        "mediana": 140.22,
+        "ahorroPct": 8,
+        "grupo": "ciudad · 2 noches",
+        "n": 36
+      },
+      "equivalentes": [],
+      "costeCoche": {
+        "eur": 130.37,
+        "litros": 84.11
+      },
+      "tiempo": {
+        "dia": "2026-09-19",
+        "maxC": 18,
+        "minC": 12,
+        "lluviaPct": 45,
+        "codigo": 80,
+        "texto": "Chubascos"
+      },
+      "eventos": []
     },
     {
       "id": "viajerospiratas:vall-de-nuria-cremallera-noche-en-el-hot",
@@ -5038,7 +6186,34 @@
         "vuelta": null,
         "findeId": null,
         "puenteId": null
-      }
+      },
+      "alojamiento": "hotel",
+      "precioNoche": 72,
+      "chollazo": false,
+      "valoracion": {
+        "nota": 7,
+        "n": 102
+      },
+      "referencia": {
+        "mediana": 109.09,
+        "ahorroPct": 34,
+        "grupo": "aventura · 1 noches",
+        "n": 42
+      },
+      "equivalentes": [],
+      "costeCoche": {
+        "eur": 29.02,
+        "litros": 18.72
+      },
+      "tiempo": {
+        "dia": "2026-09-19",
+        "maxC": 18,
+        "minC": 12,
+        "lluviaPct": 45,
+        "codigo": 80,
+        "texto": "Chubascos"
+      },
+      "eventos": []
     },
     {
       "id": "travelpayouts:BCN-EDI:2026-10-16:2026-10-18",
@@ -5129,7 +6304,21 @@
         "vuelta": "2026-10-18T22:05:00",
         "findeId": "2026-10-16",
         "puenteId": null
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": {
+        "mediana": 84.18,
+        "ahorroPct": 24,
+        "grupo": "vuelos a Reino Unido",
+        "n": 46
+      },
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "travelpayouts:BCN-EDI:2026-09-18:2026-09-20",
@@ -5220,7 +6409,21 @@
         "vuelta": "2026-09-20T18:15:00",
         "findeId": "2026-09-18",
         "puenteId": null
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": {
+        "mediana": 117.43,
+        "ahorroPct": 37,
+        "grupo": "vuelos a Reino Unido",
+        "n": 22
+      },
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "travelpayouts:BCN-PMI:2026-11-06:2026-11-08",
@@ -5311,7 +6514,16 @@
         "vuelta": "2026-11-08T20:40:00",
         "findeId": "2026-11-06",
         "puenteId": null
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": null,
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "travelpayouts:GRO-BGY:2026-10-09:2026-10-11",
@@ -5402,7 +6614,21 @@
         "vuelta": "2026-10-11T07:05:00",
         "findeId": "2026-10-09",
         "puenteId": "puente-2026-10-10"
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": {
+        "mediana": 95.56,
+        "ahorroPct": 32,
+        "grupo": "vuelos a Italia",
+        "n": 13
+      },
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "travelpayouts:BCN-FCO:2026-10-16:2026-10-18",
@@ -5493,7 +6719,21 @@
         "vuelta": "2026-10-18T20:40:00",
         "findeId": "2026-10-16",
         "puenteId": null
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": {
+        "mediana": 76.9,
+        "ahorroPct": 22,
+        "grupo": "vuelos a Italia",
+        "n": 27
+      },
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "nomolesten:hotel-boutique-con-piscina-en-sitges",
@@ -5529,7 +6769,8 @@
       "cocheEstimado": false,
       "vuelo": null,
       "etiquetas": [
-        "solo adultos"
+        "solo adultos",
+        "duplicada"
       ],
       "publicada": "2026-09-09T18:30:00.000Z",
       "caduca": null,
@@ -5557,7 +6798,34 @@
         "vuelta": null,
         "findeId": null,
         "puenteId": null
-      }
+      },
+      "alojamiento": "hotel",
+      "precioNoche": 60,
+      "chollazo": false,
+      "valoracion": {
+        "nota": 8.8,
+        "n": 59
+      },
+      "referencia": {
+        "mediana": 190.48,
+        "ahorroPct": 37,
+        "grupo": "romantico · 2 noches",
+        "n": 39
+      },
+      "equivalentes": [],
+      "costeCoche": {
+        "eur": 8.87,
+        "litros": 5.72
+      },
+      "tiempo": {
+        "dia": "2026-09-19",
+        "maxC": 29,
+        "minC": 9,
+        "lluviaPct": 10,
+        "codigo": 2,
+        "texto": "Parcialmente nublado"
+      },
+      "eventos": []
     },
     {
       "id": "travelpayouts:BCN-SVQ:2026-10-23:2026-10-25",
@@ -5648,7 +6916,21 @@
         "vuelta": "2026-10-25T18:15:00",
         "findeId": "2026-10-23",
         "puenteId": null
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": {
+        "mediana": 69.74,
+        "ahorroPct": 14,
+        "grupo": "vuelos a España",
+        "n": 27
+      },
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "nomolesten:villa-frente-al-mar-en-benicassim",
@@ -5710,7 +6992,27 @@
         "vuelta": null,
         "findeId": null,
         "puenteId": null
-      }
+      },
+      "alojamiento": "apartamento",
+      "precioNoche": 55,
+      "chollazo": false,
+      "valoracion": {
+        "nota": 7.5,
+        "n": 662
+      },
+      "referencia": {
+        "mediana": 130.95,
+        "ahorroPct": 16,
+        "grupo": "playa · 2 noches",
+        "n": 12
+      },
+      "equivalentes": [],
+      "costeCoche": {
+        "eur": 59.64,
+        "litros": 38.48
+      },
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "travelpayouts:BCN-CRL:2026-10-30:2026-11-01",
@@ -5801,7 +7103,21 @@
         "vuelta": "2026-11-01T07:05:00",
         "findeId": "2026-10-30",
         "puenteId": null
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": {
+        "mediana": 87.81,
+        "ahorroPct": 26,
+        "grupo": "vuelos a Bélgica",
+        "n": 25
+      },
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "travelpayouts:BCN-ATH:2026-11-06:2026-11-08",
@@ -5892,7 +7208,16 @@
         "vuelta": "2026-11-08T16:30:00",
         "findeId": "2026-11-06",
         "puenteId": null
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": null,
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "travelpayouts:REU-STN:2026-09-25:2026-09-27",
@@ -5983,7 +7308,21 @@
         "vuelta": "2026-09-27T20:40:00",
         "findeId": "2026-09-25",
         "puenteId": "puente-2026-09-24"
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": {
+        "mediana": 89.72,
+        "ahorroPct": 22,
+        "grupo": "vuelos a Reino Unido",
+        "n": 22
+      },
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "travelpayouts:BCN-VIE:2026-09-18:2026-09-20",
@@ -6074,7 +7413,21 @@
         "vuelta": "2026-09-20T16:30:00",
         "findeId": "2026-09-18",
         "puenteId": null
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": {
+        "mediana": 108.19,
+        "ahorroPct": 27,
+        "grupo": "vuelos a Austria",
+        "n": 45
+      },
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "travelpayouts:BCN-SCQ:2026-10-16:2026-10-18",
@@ -6166,7 +7519,21 @@
         "vuelta": "2026-10-18T22:05:00",
         "findeId": "2026-10-16",
         "puenteId": null
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": {
+        "mediana": 94.17,
+        "ahorroPct": 31,
+        "grupo": "vuelos a España",
+        "n": 12
+      },
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "buscounchollo:cadaques-escapada-romantica-con-cena-y-c",
@@ -6228,7 +7595,19 @@
         "vuelta": null,
         "findeId": null,
         "puenteId": null
-      }
+      },
+      "alojamiento": "hotel",
+      "precioNoche": 69.5,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": null,
+      "equivalentes": [],
+      "costeCoche": {
+        "eur": 35.06,
+        "litros": 22.62
+      },
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "travelpayouts:REU-STN:2026-10-23:2026-10-25",
@@ -6319,7 +7698,21 @@
         "vuelta": "2026-10-25T18:15:00",
         "findeId": "2026-10-23",
         "puenteId": null
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": {
+        "mediana": 107.11,
+        "ahorroPct": 30,
+        "grupo": "vuelos a Reino Unido",
+        "n": 22
+      },
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "travelpayouts:BCN-BGY:2026-11-20:2026-11-22",
@@ -6410,7 +7803,16 @@
         "vuelta": "2026-11-22T07:05:00",
         "findeId": "2026-11-20",
         "puenteId": null
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": null,
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "travelpayouts:BCN-LIS:2026-10-10:2026-10-12",
@@ -6501,7 +7903,21 @@
         "vuelta": "2026-10-12T20:40:00",
         "findeId": "2026-10-09",
         "puenteId": "puente-2026-10-10"
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": {
+        "mediana": 99.98,
+        "ahorroPct": 16,
+        "grupo": "vuelos a Portugal",
+        "n": 21
+      },
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "travelpayouts:BCN-RAK:2026-10-16:2026-10-18",
@@ -6592,7 +8008,21 @@
         "vuelta": "2026-10-18T20:40:00",
         "findeId": "2026-10-16",
         "puenteId": null
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": {
+        "mediana": 94.02,
+        "ahorroPct": 16,
+        "grupo": "vuelos a Marruecos",
+        "n": 33
+      },
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "travelpayouts:BCN-NAP:2026-10-02:2026-10-04",
@@ -6684,7 +8114,21 @@
         "vuelta": "2026-10-04T13:45:00",
         "findeId": "2026-10-02",
         "puenteId": null
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": {
+        "mediana": 89.87,
+        "ahorroPct": 11,
+        "grupo": "vuelos a Italia",
+        "n": 49
+      },
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "travelpayouts:BCN-AGP:2026-10-09:2026-10-11",
@@ -6776,7 +8220,21 @@
         "vuelta": "2026-10-11T22:05:00",
         "findeId": "2026-10-09",
         "puenteId": "puente-2026-10-10"
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": {
+        "mediana": 88.21,
+        "ahorroPct": 15,
+        "grupo": "vuelos a España",
+        "n": 37
+      },
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "nomolesten:hotel-con-spa-y-vinedos-en-el-emporda",
@@ -6841,7 +8299,34 @@
         "vuelta": null,
         "findeId": null,
         "puenteId": null
-      }
+      },
+      "alojamiento": "hotel",
+      "precioNoche": 72.5,
+      "chollazo": false,
+      "valoracion": {
+        "nota": 7.8,
+        "n": 241
+      },
+      "referencia": {
+        "mediana": 210.14,
+        "ahorroPct": 31,
+        "grupo": "romantico · 2 noches",
+        "n": 16
+      },
+      "equivalentes": [],
+      "costeCoche": {
+        "eur": 31.84,
+        "litros": 20.54
+      },
+      "tiempo": {
+        "dia": "2026-09-19",
+        "maxC": 24,
+        "minC": 13,
+        "lluviaPct": 80,
+        "codigo": 95,
+        "texto": "Tormenta"
+      },
+      "eventos": []
     },
     {
       "id": "travelpayouts:BCN-CRL:2026-10-02:2026-10-04",
@@ -6932,7 +8417,21 @@
         "vuelta": "2026-10-04T22:05:00",
         "findeId": "2026-10-02",
         "puenteId": null
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": {
+        "mediana": 108.41,
+        "ahorroPct": 17,
+        "grupo": "vuelos a Bélgica",
+        "n": 16
+      },
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "holidayguru:san-sebastian-2-noches-con-desayuno-en-l",
@@ -6994,7 +8493,34 @@
         "vuelta": null,
         "findeId": null,
         "puenteId": null
-      }
+      },
+      "alojamiento": "hotel",
+      "precioNoche": 72.5,
+      "chollazo": false,
+      "valoracion": {
+        "nota": 8.6,
+        "n": 54
+      },
+      "referencia": {
+        "mediana": 185.9,
+        "ahorroPct": 22,
+        "grupo": "gastronomia · 2 noches",
+        "n": 9
+      },
+      "equivalentes": [],
+      "costeCoche": {
+        "eur": 103.97,
+        "litros": 67.08
+      },
+      "tiempo": {
+        "dia": "2026-09-19",
+        "maxC": 21,
+        "minC": 11,
+        "lluviaPct": 45,
+        "codigo": 80,
+        "texto": "Chubascos"
+      },
+      "eventos": []
     },
     {
       "id": "nomolesten:hotel-bodega-en-la-rioja-alta",
@@ -7056,7 +8582,34 @@
         "vuelta": null,
         "findeId": null,
         "puenteId": null
-      }
+      },
+      "alojamiento": "hotel",
+      "precioNoche": 67.5,
+      "chollazo": false,
+      "valoracion": {
+        "nota": 6.8,
+        "n": 49
+      },
+      "referencia": {
+        "mediana": 214.29,
+        "ahorroPct": 37,
+        "grupo": "gastronomia · 2 noches",
+        "n": 34
+      },
+      "equivalentes": [],
+      "costeCoche": {
+        "eur": 112.24,
+        "litros": 72.41
+      },
+      "tiempo": {
+        "dia": "2026-09-19",
+        "maxC": 23,
+        "minC": 13,
+        "lluviaPct": 80,
+        "codigo": 95,
+        "texto": "Tormenta"
+      },
+      "eventos": []
     },
     {
       "id": "travelpayouts:GRO-STN:2026-09-23:2026-09-27",
@@ -7147,7 +8700,21 @@
         "vuelta": "2026-09-27T13:45:00",
         "findeId": "2026-09-25",
         "puenteId": "puente-2026-09-24"
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": {
+        "mediana": 92.08,
+        "ahorroPct": 24,
+        "grupo": "vuelos a Reino Unido",
+        "n": 46
+      },
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "travelpayouts:REU-DUB:2026-10-10:2026-10-12",
@@ -7238,7 +8805,21 @@
         "vuelta": "2026-10-12T10:20:00",
         "findeId": "2026-10-09",
         "puenteId": "puente-2026-10-10"
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": {
+        "mediana": 108.08,
+        "ahorroPct": 26,
+        "grupo": "vuelos a Irlanda",
+        "n": 13
+      },
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "buscounchollo:portaventura-hotel-con-entradas-2-dias-a",
@@ -7300,7 +8881,38 @@
         "vuelta": null,
         "findeId": null,
         "puenteId": null
-      }
+      },
+      "alojamiento": "apartamento",
+      "precioNoche": 89,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": {
+        "mediana": 96.74,
+        "ahorroPct": 8,
+        "grupo": "parques · 1 noches",
+        "n": 30
+      },
+      "equivalentes": [
+        {
+          "fuente": "holidayguru",
+          "precio": 55,
+          "unidad": "pp/noche",
+          "url": "https://www.holidayguru.es/oferta/salou-hotel-4-con-todo-incluido-junto-a-la-playa"
+        }
+      ],
+      "costeCoche": {
+        "eur": 23.37,
+        "litros": 15.08
+      },
+      "tiempo": {
+        "dia": "2026-09-19",
+        "maxC": 27,
+        "minC": 12,
+        "lluviaPct": 45,
+        "codigo": 80,
+        "texto": "Chubascos"
+      },
+      "eventos": []
     },
     {
       "id": "holidayguru:terra-mitica-hotel-en-benidorm-con-todo-",
@@ -7363,7 +8975,22 @@
         "vuelta": null,
         "findeId": null,
         "puenteId": null
-      }
+      },
+      "alojamiento": "hotel",
+      "precioNoche": 99,
+      "chollazo": false,
+      "valoracion": {
+        "nota": 8.4,
+        "n": 477
+      },
+      "referencia": null,
+      "equivalentes": [],
+      "costeCoche": {
+        "eur": 95.91,
+        "litros": 61.88
+      },
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "travelpayouts:BCN-AGP:2026-09-25:2026-09-27",
@@ -7455,7 +9082,16 @@
         "vuelta": "2026-09-27T16:30:00",
         "findeId": "2026-09-25",
         "puenteId": "puente-2026-09-24"
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": null,
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "travelpayouts:BCN-CIA:2026-10-02:2026-10-04",
@@ -7546,7 +9182,21 @@
         "vuelta": "2026-10-04T13:45:00",
         "findeId": "2026-10-02",
         "puenteId": null
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": {
+        "mediana": 113.9,
+        "ahorroPct": 21,
+        "grupo": "vuelos a Italia",
+        "n": 46
+      },
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "travelpayouts:REU-DUB:2026-10-16:2026-10-18",
@@ -7637,7 +9287,21 @@
         "vuelta": "2026-10-18T13:45:00",
         "findeId": "2026-10-16",
         "puenteId": null
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": {
+        "mediana": 105.93,
+        "ahorroPct": 16,
+        "grupo": "vuelos a Irlanda",
+        "n": 25
+      },
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "travelpayouts:BCN-OPO:2026-09-23:2026-09-27",
@@ -7728,7 +9392,16 @@
         "vuelta": "2026-09-27T18:15:00",
         "findeId": "2026-09-25",
         "puenteId": "puente-2026-09-24"
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": null,
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "travelpayouts:BCN-SVQ:2026-10-09:2026-10-11",
@@ -7819,7 +9492,16 @@
         "vuelta": "2026-10-11T16:30:00",
         "findeId": "2026-10-09",
         "puenteId": "puente-2026-10-10"
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": null,
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "travelpayouts:BCN-NAP:2026-09-24:2026-09-27",
@@ -7911,7 +9593,21 @@
         "vuelta": "2026-09-27T20:40:00",
         "findeId": "2026-09-25",
         "puenteId": "puente-2026-09-24"
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": {
+        "mediana": 128.54,
+        "ahorroPct": 30,
+        "grupo": "vuelos a Italia",
+        "n": 39
+      },
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "travelpayouts:BCN-DUB:2026-09-18:2026-09-20",
@@ -8002,7 +9698,21 @@
         "vuelta": "2026-09-20T10:20:00",
         "findeId": "2026-09-18",
         "puenteId": null
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": {
+        "mediana": 113.02,
+        "ahorroPct": 8,
+        "grupo": "vuelos a Irlanda",
+        "n": 21
+      },
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "travelpayouts:BCN-BUD:2026-09-24:2026-09-27",
@@ -8094,7 +9804,16 @@
         "vuelta": "2026-09-27T16:30:00",
         "findeId": "2026-09-25",
         "puenteId": "puente-2026-09-24"
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": null,
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "travelpayouts:BCN-FCO:2026-10-09:2026-10-12",
@@ -8185,7 +9904,21 @@
         "vuelta": "2026-10-12T18:15:00",
         "findeId": "2026-10-09",
         "puenteId": "puente-2026-10-10"
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": {
+        "mediana": 107.43,
+        "ahorroPct": 6,
+        "grupo": "vuelos a Italia",
+        "n": 33
+      },
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "chollometro:forfait-hotel-en-la-molina-para-la-apert",
@@ -8248,7 +9981,26 @@
         "vuelta": null,
         "findeId": null,
         "puenteId": null
-      }
+      },
+      "alojamiento": "hotel",
+      "precioNoche": 119,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": null,
+      "equivalentes": [],
+      "costeCoche": {
+        "eur": 27.61,
+        "litros": 17.81
+      },
+      "tiempo": {
+        "dia": "2026-09-19",
+        "maxC": 24,
+        "minC": 9,
+        "lluviaPct": 0,
+        "codigo": 0,
+        "texto": "Despejado"
+      },
+      "eventos": []
     },
     {
       "id": "travelpayouts:BCN-MLA:2026-10-09:2026-10-12",
@@ -8339,7 +10091,16 @@
         "vuelta": "2026-10-12T16:30:00",
         "findeId": "2026-10-09",
         "puenteId": "puente-2026-10-10"
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": null,
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "travelpayouts:BCN-EDI:2026-10-30:2026-11-01",
@@ -8430,7 +10191,16 @@
         "vuelta": "2026-11-01T16:30:00",
         "findeId": "2026-10-30",
         "puenteId": null
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": null,
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "travelpayouts:GRO-STN:2026-11-20:2026-11-22",
@@ -8521,7 +10291,21 @@
         "vuelta": "2026-11-22T22:05:00",
         "findeId": "2026-11-20",
         "puenteId": null
-      }
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": null,
+      "referencia": {
+        "mediana": 141,
+        "ahorroPct": 22,
+        "grupo": "vuelos a Reino Unido",
+        "n": 9
+      },
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "buscounchollo:dormir-en-una-cabana-en-los-arboles-en-l",
@@ -8588,7 +10372,22 @@
         "vuelta": "2026-09-20",
         "findeId": "2026-09-18",
         "puenteId": null
-      }
+      },
+      "alojamiento": "casa-rural",
+      "precioNoche": 115,
+      "chollazo": false,
+      "valoracion": {
+        "nota": 7.5,
+        "n": 167
+      },
+      "referencia": null,
+      "equivalentes": [],
+      "costeCoche": {
+        "eur": 20.75,
+        "litros": 13.39
+      },
+      "tiempo": null,
+      "eventos": []
     }
   ]
 }

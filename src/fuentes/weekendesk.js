@@ -112,6 +112,7 @@ function ofertaDe(resultado, etiquetasPagina) {
     descuento: rebajada ? Math.round((1 - precio / anterior) * 100) : null,
     noches,
     regimen: regimenDe(resultado.headwords ?? []),
+    valoracion: valoracionDe(hotel.review),
     temas: temasDe(resultado.topTheme ?? []),
     lugar: lugarDe(hotel.location?.label),
     etiquetas: etiquetasDe(resultado, hotel, etiquetasPagina),
@@ -124,6 +125,13 @@ const limpiar = (texto = '') => String(texto).replace(/\s+/g, ' ').trim();
 function estancia(noches, personas) {
   if (!noches || !personas) return '';
   return ` (${noches} ${noches === 1 ? 'noche' : 'noches'} para ${personas})`;
+}
+
+/** Weekendesk publica la media del hotel sobre 10 y cuántas opiniones la respaldan. */
+function valoracionDe(review) {
+  const nota = review?.average ?? 0;
+  const n = review?.count ?? 0;
+  return nota > 0 && n > 0 ? { nota, n } : null;
 }
 
 /** «Augusta Club & Spa (4*, 8,2/10 en 17 opiniones)» */

@@ -6,28 +6,35 @@
 import { abrirFicha, liberarFicha } from './ficha.js';
 import { diasEntre, estadoFinde, fechaLocal, findesProximos, proximoPuente } from './fechas.js';
 import {
-  POR_PAGINA, crearHash, esNovedad, leerFiltrosEscapadas, leerRuta, medirDistancias,
-  referenciaNovedades, resumenFuentes,
+  POR_PAGINA, crearHash, criterioVigilado, esNovedad, leerFiltrosEscapadas, leerFiltrosVuelos, leerRuta,
+  medirDistancias, referenciaNovedades, resumenFuentes,
 } from './filtros.js';
 import { contar, cuentaAtras, escaparHtml as esc, haceCuanto } from './formato.js';
-import { cargarFavoritos, guardarFavoritos, guardarTema, tomarVisitaAnterior } from './local.js';
+import {
+  borrarBusqueda, cargarBusquedas, cargarDescartadas, cargarFavoritos, guardarBusqueda,
+  guardarDescartadas, guardarFavoritos, guardarTema, tomarVisitaAnterior,
+} from './local.js';
 import { destruirMapa, pintarMapa } from './mapa.js';
 import { estadoVacio } from './plantillas.js';
 import { activarUbicacion } from './ubicacion.js';
-import { VISTAS_HTML, ctxTarjetas, datosMapa, resultadosMapa } from './vistas.js';
+import { VISTAS_HTML, contenidoSorpresa, ctxTarjetas, datosMapa, resultadosMapa } from './vistas.js';
 
 const $ = (selector) => document.querySelector(selector);
 const principal = $('#principal');
 const dialogo = $('#ficha');
 const DATOS_ANTIGUOS_MS = 3 * 3_600_000;
+const AVISO_MS = 5000;
+const SALTO_SORPRESA = 3;
+const CAMPOS_QUE_SE_ESCRIBEN = ['number', 'search', 'text'];
 const TITULOS = {
   finde: 'Este finde', vuelos: 'Vuelos', escapadas: 'Escapadas', mapa: 'Mapa', calendario: 'Calendario',
-  vigilados: 'Vigilados', fuentes: 'Fuentes', buscar: 'Buscar',
+  puentes: 'Puentes', vigilados: 'Vigilados', fuentes: 'Fuentes', buscar: 'Buscar',
 };
 
 let estado = null;
 let vistaActual = null;
 let temporizadorFiltros = null;
+let temporizadorAviso = null;
 let origenFicha = null;
 
 async function cargarJson(ruta, porDefecto) {
@@ -55,6 +62,9 @@ function crearEstado(datos, historial, vigilados) {
     findes: findes.length ? findes : findesProximos(10, ahora),
     puente: proximoPuente(datos.puentes ?? [], hoy),
     favoritos: cargarFavoritos(),
+    descartadas: cargarDescartadas(),
+    busquedas: cargarBusquedas(),
+    salto: 0,
     visitaAnterior,
     referencia: referenciaNovedades(visitaAnterior, datos.generado),
     temas: new Map((datos.temas ?? []).map((t) => [t.id, t])),
@@ -127,7 +137,11 @@ function cambiarTema() {
 // ── Vistas ───────────────────────────────────────────────────────────────────
 
 function anunciar(texto) {
-  if (texto) $('#aviso').textContent = texto;
+  if (!texto) return;
+  const aviso = $('#aviso');
+  aviso.textContent = texto;
+  clearTimeout(temporizadorAviso);
+  temporizadorAviso = setTimeout(() => { aviso.textContent = ''; }, AVISO_MS);
 }
 
 function prepararMapa(params) {
@@ -173,20 +187,28 @@ function paramsDeFormulario(formulario) {
   return params;
 }
 
-function aplicarFiltros(formulario) {
+/** `repintar` es el nombre del campo que obliga a rehacer el formulario (país, listas negras). */
+function aplicarFiltros(formulario, { repintar = null } = {}) {
   const vista = formulario.dataset.filtros;
   const params = paramsDeFormulario(formulario);
   history.replaceState(null, '', crearHash(vista, params));
   estado.paginas.clear();
-  actualizarResultados(vista, params);
+  if (!repintar) {
+    actualizarResultados(vista, params);
+    return;
+  }
+  render({ enfocar: false });
+  principal.querySelector(`[name="${CSS.escape(repintar)}"][data-repintar]`)?.focus();
 }
 
 function alCambiarFiltro(evento) {
-  const formulario = evento.target.closest?.('form[data-filtros]');
-  if (!formulario || (!evento.target.name && evento.target !== formulario)) return;
-  const escribiendo = evento.type === 'input' && evento.target.type === 'number';
+  const campo = evento.target;
+  const formulario = campo.closest?.('form[data-filtros]');
+  if (!formulario || (!campo.name && campo !== formulario)) return;
+  const repintar = campo.dataset?.repintar === undefined ? null : campo.name;
+  const escribiendo = evento.type === 'input' && CAMPOS_QUE_SE_ESCRIBEN.includes(campo.type);
   clearTimeout(temporizadorFiltros);
-  temporizadorFiltros = setTimeout(() => aplicarFiltros(formulario), escribiendo ? 300 : 0);
+  temporizadorFiltros = setTimeout(() => aplicarFiltros(formulario, { repintar }), escribiendo ? 300 : 0);
 }
 
 function verMas(boton) {
@@ -198,7 +220,70 @@ function verMas(boton) {
   document.querySelector(`[data-lista="${CSS.escape(clave)}"] > :nth-child(${Number(desde) + 1}) .enlace-ficha`)?.focus();
 }
 
-// ── Favoritos y ficha ────────────────────────────────────────────────────────
+// ── Sorpresa y búsquedas guardadas ───────────────────────────────────────────
+
+function otraSorpresa() {
+  estado.salto += SALTO_SORPRESA;
+  const contenedor = $('#sorpresa');
+  if (contenedor) contenedor.innerHTML = contenidoSorpresa(estado, leerRuta(location.hash).params);
+  anunciar('Tres planes nuevos');
+}
+
+const nombreEscrito = () => principal.querySelector('[data-nombre-busqueda]')?.value.trim() ?? '';
+
+function guardarBusquedaActual(vista) {
+  const nombre = nombreEscrito();
+  if (!nombre) {
+    principal.querySelector('[data-nombre-busqueda]')?.focus();
+    anunciar('Ponle un nombre a la búsqueda para poder guardarla.');
+    return;
+  }
+  estado.busquedas = guardarBusqueda({ nombre, vista, hash: location.hash || crearHash(vista, {}) });
+  render({ enfocar: false });
+  anunciar(`Búsqueda «${nombre}» guardada en este navegador.`);
+}
+
+function borrarBusquedaGuardada(nombre) {
+  estado.busquedas = borrarBusqueda(nombre);
+  render({ enfocar: false });
+  anunciar(`Búsqueda «${nombre}» borrada.`);
+}
+
+async function copiarTexto(texto) {
+  try {
+    await navigator.clipboard.writeText(texto);
+    return true;
+  } catch {
+    return copiarConSeleccion(texto);
+  }
+}
+
+/** Respaldo para navegadores sin API de portapapeles o sin permiso. */
+function copiarConSeleccion(texto) {
+  const area = Object.assign(document.createElement('textarea'), { value: texto, readOnly: true });
+  area.style.cssText = 'position:fixed;opacity:0';
+  document.body.append(area);
+  area.select();
+  const copiado = document.execCommand?.('copy') ?? false;
+  area.remove();
+  return copiado;
+}
+
+async function copiarVigilado(vista, boton) {
+  const { params } = leerRuta(location.hash);
+  const filtros = vista === 'vuelos' ? leerFiltrosVuelos(params) : leerFiltrosEscapadas(params);
+  const json = JSON.stringify(criterioVigilado(nombreEscrito(), filtros, { vista }), null, 2);
+  const copiado = await copiarTexto(json);
+  const caja = boton.closest('details')?.querySelector('.vigilado-json')
+    ?? Object.assign(document.createElement('pre'), { className: 'vigilado-json' });
+  caja.textContent = json;
+  boton.closest('details')?.append(caja);
+  anunciar(copiado
+    ? 'Criterio copiado: pégalo en config/vigilados.json, dentro de la lista "vigilados".'
+    : 'No se ha podido copiar solo: tienes el criterio debajo del botón para copiarlo a mano.');
+}
+
+// ── Favoritos, descartadas y ficha ───────────────────────────────────────────
 
 function alternarFavorito(id) {
   const activo = !estado.favoritos.has(id);
@@ -212,6 +297,37 @@ function alternarFavorito(id) {
   anunciar(activo ? 'Guardada en favoritos' : 'Quitada de favoritos');
 }
 
+function ocultarTarjetas(id) {
+  document.querySelectorAll(`[data-descartar="${CSS.escape(id)}"]`)
+    .forEach((boton) => boton.closest('.con-motivo, .tarjeta, .billete')?.remove());
+}
+
+/** La primera vez que se descarta algo se activa el filtro, para que no vuelva a aparecer. */
+function activarFiltroDescartadas() {
+  const { vista, params } = leerRuta(location.hash);
+  if (params.sindesc === '1') return;
+  history.replaceState(null, '', crearHash(vista, { ...params, sindesc: '1' }));
+  const casilla = principal.querySelector('form[data-filtros] input[name="sindesc"]');
+  if (casilla) casilla.checked = true;
+}
+
+function alternarDescartada(id) {
+  const descartar = !estado.descartadas.has(id);
+  if (descartar) estado.descartadas.add(id);
+  else estado.descartadas.delete(id);
+  guardarDescartadas(estado.descartadas);
+  if (!descartar) {
+    anunciar('Oferta recuperada');
+    return;
+  }
+  if (dialogo.open) dialogo.close();
+  ocultarTarjetas(id);
+  activarFiltroDescartadas();
+  const { vista, params } = leerRuta(location.hash);
+  if (VISTAS_HTML[vista].resultados) actualizarResultados(vista, params);
+  anunciar('Oferta descartada. Quita «Ocultar las descartadas» en los filtros para volver a verla.');
+}
+
 function mostrarFicha(id, disparador) {
   const oferta = estado.porId.get(id);
   if (!oferta) return;
@@ -222,14 +338,22 @@ function mostrarFicha(id, disparador) {
   abrirFicha(dialogo, oferta, ctxTarjetas(estado, { distancias, desde: punto?.nombre ?? estado.datos.origen.nombre }));
 }
 
+const ACCIONES = '[data-ficha], [data-fav], [data-descartar], [data-mas], [data-sorpresa],'
+  + ' [data-guardar-busqueda], [data-borrar-busqueda], [data-copiar-vigilado], [data-cerrar-ficha], [data-cerrar-novedades]';
+
 function manejarClic(evento) {
-  const objetivo = evento.target.closest('[data-ficha], [data-fav], [data-mas], [data-cerrar-ficha], [data-cerrar-novedades]');
+  const objetivo = evento.target.closest(ACCIONES);
   if (!objetivo) return;
-  const { ficha, fav } = objetivo.dataset;
-  if (ficha) mostrarFicha(ficha, objetivo);
-  else if (fav) alternarFavorito(fav);
-  else if ('mas' in objetivo.dataset) verMas(objetivo);
-  else if ('cerrarFicha' in objetivo.dataset) dialogo.close();
+  const d = objetivo.dataset;
+  if (d.ficha) mostrarFicha(d.ficha, objetivo);
+  else if (d.fav) alternarFavorito(d.fav);
+  else if (d.descartar) alternarDescartada(d.descartar);
+  else if ('mas' in d) verMas(objetivo);
+  else if ('sorpresa' in d) otraSorpresa();
+  else if (d.guardarBusqueda) guardarBusquedaActual(d.guardarBusqueda);
+  else if (d.borrarBusqueda) borrarBusquedaGuardada(d.borrarBusqueda);
+  else if (d.copiarVigilado) copiarVigilado(d.copiarVigilado, objetivo);
+  else if ('cerrarFicha' in d) dialogo.close();
   else $('#novedades').hidden = true;
 }
 
