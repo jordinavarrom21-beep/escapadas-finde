@@ -21,7 +21,10 @@ necesita algo que no está aquí, no lo inventes en otro archivo: documéntalo c
 - Tests con `node:test` + `node:assert/strict` en `test/<modulo>.test.js`, con
   fixtures reales en `test/fixtures/`. Los tests **no** usan la red.
 - Utilidades comunes disponibles (no las dupliques):
-  - `src/util/http.js`: `obtenerTexto`, `obtenerJson`, `esperar`, `clienteHttp`, `ErrorHttp`, `USER_AGENT`
+  - `src/util/http.js`: `obtenerTexto`, `obtenerJson`, `esperar`, `clienteHttp`, `crearClienteHttp({etiqueta, log})`,
+    `metricasHttp()`, `reiniciarMetricas()`, `USER_AGENT` y los errores `ErrorHttp` (con `estado`, `dominio`,
+    `intento`, `duracionMs` y `esperaSugeridaMs`), `ErrorRed` (`motivo: 'red' | 'timeout'`) y `ErrorParseo`
+    (la respuesta llegó pero no es JSON; extiende `SyntaxError`, que es como las fuentes detectan los desafíos anti-bot)
   - `src/util/xml.js`: `parsearXml(texto, {arrays})`, `textoPlano(html)`, `decodificarEntidades`, `recortar`, `normalizarTexto`
   - `src/util/precio.js`: `parsearPrecio`, `extraerPrecio`, `extraerPrecios`
   - `src/util/fechas.js`: `ZONA`, `fechaLocal`, `horaLocal`, `sumarDias`, `diaSemana`, `diasEntre`, `etiquetaDia`, `etiquetaFechaHora`, `etiquetaRango`, `findesProximos`

@@ -67,16 +67,39 @@ function enlacesVuelo({ origen, destino, nombreDestino }, { entrada, salida }) {
 function enlaceRuta(origen, { lat, lon }) {
   return {
     etiqueta: 'Cómo llegar en coche',
+    grupo: 'llegar',
     url: `https://www.google.com/maps/dir/?api=1&origin=${origen.lat},${origen.lon}&destination=${lat},${lon}&travelmode=driving`,
   };
 }
 
+/** Qué hacer en el destino esos días: los buscadores de actividades no dejan leer su catálogo, pero sí enlazar. */
+function enlacesActividades(nombre, { entrada }) {
+  return [
+    { etiqueta: 'Actividades en Civitatis', grupo: 'actividades', url: `https://www.civitatis.com/es/buscar/?q=${cod(nombre)}` },
+    { etiqueta: 'Visitas en GetYourGuide', grupo: 'actividades', url: `https://www.getyourguide.es/s/?q=${cod(nombre)}&date_from=${entrada}` },
+    { etiqueta: 'Free tours en GuruWalk', grupo: 'actividades', url: `https://www.guruwalk.com/es/search?q=${cod(nombre)}` },
+  ];
+}
+
+/** Alternativas de transporte a un destino cercano: tren, bus y ferry. */
+function enlacesTransporte(oferta, origen, { entrada }) {
+  const destino = oferta.lugar?.nombre;
+  const enlaces = [
+    { etiqueta: 'Tren o bus en Omio', grupo: 'llegar', url: `https://www.omio.es/search-frontend/results?departurePosition=${cod(origen.nombre)}&arrivalPosition=${cod(destino)}&departureDate=${entrada}` },
+  ];
+  if (oferta.transporte === 'ferry' || /balear|mallorca|menorca|ibiza|formentera|cerdena|cerdeña|sicilia|italia/i.test(`${destino} ${oferta.lugar?.region ?? ''} ${oferta.lugar?.pais ?? ''}`)) {
+    enlaces.push({ etiqueta: 'Ferris en Direct Ferries', grupo: 'llegar', url: `https://www.directferries.es/rutas.htm?q=${cod(destino)}` });
+  }
+  return enlaces;
+}
+
 /**
- * Enlaces extra de una oferta (además de su propia URL), entre 0 y 6.
+ * Enlaces extra de una oferta (además de su propia URL), agrupados por para qué
+ * sirven: comparar el vuelo, buscar alojamiento, llegar y qué hacer allí.
  * @param {import('../modelo.js').Oferta} oferta
- * @param {{origen: {nombre: string, lat: number, lon: number}, ahora?: Date}} opciones
+ * @param {{origen: {nombre: string, lat: number, lon: number}, ahora?: Date, max?: number}} opciones
  */
-export function enlacesPara(oferta, { origen, ahora = new Date() }) {
+export function enlacesPara(oferta, { origen, ahora = new Date(), max = 8 }) {
   const nombre = oferta.lugar?.nombre;
   const fechas = fechasEstancia(oferta, ahora);
   const enlaces = [];
@@ -85,11 +108,16 @@ export function enlacesPara(oferta, { origen, ahora = new Date() }) {
       origen: oferta.vuelo?.origen ?? origen.nombre,
       destino: oferta.vuelo?.destino ?? null,
       nombreDestino: nombre,
-    }, fechas));
+    }, fechas).map((enlace) => ({ ...enlace, grupo: 'comparar' })));
   }
-  if (nombre) enlaces.push(...enlacesAlojamiento(nombre, fechas));
-  if (oferta.tipo !== 'vuelo' && oferta.lugar?.lat != null && oferta.lugar?.lon != null && oferta.transporte !== 'avion') {
-    enlaces.push(enlaceRuta(origen, oferta.lugar));
+  // Una actividad ya es el plan: no tiene sentido ofrecerle más actividades.
+  if (nombre && oferta.tipo !== 'actividad') {
+    enlaces.push(...enlacesAlojamiento(nombre, fechas).map((enlace) => ({ ...enlace, grupo: 'alojamiento' })));
+    enlaces.push(...enlacesActividades(nombre, fechas));
   }
-  return enlaces.slice(0, 6);
+  if (oferta.tipo !== 'vuelo' && oferta.transporte !== 'avion' && nombre) {
+    if (oferta.lugar?.lat != null && oferta.lugar?.lon != null) enlaces.push(enlaceRuta(origen, oferta.lugar));
+    enlaces.push(...enlacesTransporte(oferta, origen, fechas));
+  }
+  return enlaces.slice(0, max);
 }

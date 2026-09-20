@@ -5,7 +5,7 @@
 
 import { diaSemana, fechaLocal, sumarDias } from './fechas.js';
 import { distanciaKm, esMismoPunto, minutosEnCoche, radioKmParaMinutos, tieneCoordenadas } from './geo.js';
-import { duracion, euros, normalizar } from './formato.js';
+import { ETIQUETAS_ALOJAMIENTO, ETIQUETAS_REGIMEN, duracion, euros, normalizar } from './formato.js';
 
 export const VISTAS = ['finde', 'vuelos', 'escapadas', 'mapa', 'calendario', 'puentes', 'vigilados', 'fuentes', 'buscar'];
 export const POR_PAGINA = 24;
@@ -512,48 +512,116 @@ export function resumenFuentes(fuentes = []) {
   };
 }
 
+/** «2 noches», «de 2 a 3 noches», «3 noches o más». */
+function textoNoches(noches) {
+  if (typeof noches === 'number') return `${noches} ${noches === 1 ? 'noche' : 'noches'}`;
+  const { min, max } = noches ?? {};
+  if (min != null && max != null) return `de ${min} a ${max} noches`;
+  if (min != null) return `${min} noches o más`;
+  return `${max} noches o menos`;
+}
+
 /** Condiciones de un criterio de vigilados en frases cortas. */
-export function describirCriterio(c, { temas = [], origen = null } = {}) {
-  const tema = temas.find((t) => t.id === c.tema);
+export function describirCriterio(c, { temas = [], origen = null, periodos = [] } = {}) {
+  const nombreTema = (id) => {
+    const tema = temas.find((t) => t.id === id);
+    return tema ? `${tema.emoji} ${tema.nombre}` : `tema ${id}`;
+  };
   const cerca = c.cerca && (esMismoPunto(c.cerca, origen) ? origen.nombre : `${c.cerca.lat.toFixed(2)}, ${c.cerca.lon.toFixed(2)}`);
+  const periodo = periodos.find((p) => p.id === c.finde);
   return [
+    c.ofertaId && 'una oferta concreta',
     c.texto && `contiene «${c.texto}»`,
     c.tipo && `tipo ${c.tipo}`,
-    c.tema && (tema ? `${tema.emoji} ${tema.nombre}` : `tema ${c.tema}`),
+    c.tema && nombreTema(c.tema),
+    c.temas?.length && c.temas.map(nombreTema).join(' o '),
+    c.alojamiento && (ETIQUETAS_ALOJAMIENTO[c.alojamiento] ?? c.alojamiento),
+    c.regimenMinimo && `${ETIQUETAS_REGIMEN[c.regimenMinimo] ?? c.regimenMinimo} o mejor`,
     c.fuente && `fuente ${c.fuente}`,
     c.aeropuerto && `desde ${c.aeropuerto}`,
     c.precioMax && `hasta ${euros(c.precioMax)}`,
+    c.precioNocheMax && `hasta ${euros(c.precioNocheMax)} por persona y noche`,
+    c.valoracionMin && `valoración ${c.valoracionMin} o más`,
+    c.descuentoMin && `descuento del ${c.descuentoMin} % o más`,
+    c.noches != null && textoNoches(c.noches),
     c.cocheMaxMin && `a menos de ${duracion(c.cocheMaxMin)} en coche`,
     c.cerca && `a menos de ${c.cerca.radioKm} km de ${cerca}`,
+    c.pais && `en ${c.pais}`,
+    c.region && `en ${c.region}`,
     c.puente && 'solo en puentes',
+    c.finde && `solo ${periodo?.etiqueta ?? c.finde}`,
+    c.soloChollazos && 'solo chollazos',
+    c.soloMinimoHistorico && 'solo en mínimo histórico',
   ].filter(Boolean);
 }
 
 /**
- * Criterio para config/vigilados.json equivalente a los filtros actuales.
- * Solo incluye lo que entiende src/vigilados.js; el resto de filtros se pierde.
+ * Estado de un vigilado con los datos que publica el escaneo: qué ofertas cumple
+ * ahora mismo, cuál es la mejor y si esa mejor está en su precio más bajo.
+ */
+export function resumenVigilado(criterio, { porId = new Map(), historial = {} } = {}) {
+  const ofertas = (criterio.coincidencias ?? []).map((id) => porId.get(id)).filter(Boolean);
+  const precios = ofertas.map((o) => o.precio).filter((precio) => typeof precio === 'number');
+  const mejor = [...ofertas].sort(porPrecio)[0] ?? null;
+  const serie = (mejor && historial[mejor.id]) ?? [];
+  const minimoSerie = serie.length >= 2 ? Math.min(...serie.map(([, precio]) => precio)) : null;
+  return {
+    criterio,
+    activo: criterio.activo !== false,
+    ofertas,
+    total: ofertas.length,
+    mejor,
+    precioMin: precios.length ? Math.min(...precios) : null,
+    enMinimo: Boolean(mejor?.minimoHistorico || (minimoSerie != null && mejor?.precio <= minimoSerie)),
+    diasHistorial: serie.length,
+  };
+}
+
+/** Marca de `data-copiar-vigilado` para un criterio que ya está hecho (no sale de los filtros). */
+export const marcaVigilado = (criterio) => `json:${encodeURIComponent(JSON.stringify(criterio))}`;
+
+/**
+ * Criterio para config/vigilados.json equivalente a los filtros actuales, o el que
+ * lleve dentro la marca de `marcaVigilado`. Solo incluye lo que entiende
+ * src/vigilados.js; el resto de filtros se pierde.
  */
 export function criterioVigilado(nombre, f, { vista = 'escapadas' } = {}) {
+  if (vista.startsWith('json:')) return JSON.parse(decodeURIComponent(vista.slice('json:'.length)));
   const criterio = {
     nombre: nombre.trim() || 'Mi búsqueda',
     texto: analizarConsulta(f.q ?? '').incluye.join(' ') || undefined,
     tipo: (vista === 'vuelos' ? 'vuelo' : f.tipo) || undefined,
-    tema: f.temas?.[0] || undefined,
+    tema: f.temas?.length === 1 ? f.temas[0] : undefined,
+    temas: f.temas?.length > 1 ? f.temas : undefined,
     fuente: f.fuente || undefined,
     aeropuerto: f.aero || undefined,
+    alojamiento: f.alojamiento || undefined,
+    regimenMinimo: f.regimen || undefined,
+    valoracionMin: f.nota ?? undefined,
+    descuentoMin: f.dto ?? undefined,
     precioMax: f.max ?? undefined,
+    precioNocheMax: f.nocheMax ?? undefined,
+    noches: f.noches ?? undefined,
     cocheMaxMin: f.horas ? f.horas * 60 : undefined,
     cerca: f.punto
       ? { lat: Number(f.punto.lat.toFixed(4)), lon: Number(f.punto.lon.toFixed(4)), radioKm: Math.round(radioBusquedaKm(f) ?? 100) }
       : undefined,
+    pais: f.pais || undefined,
+    region: f.region || undefined,
     puente: f.cuando === 'puente' || f.cuando?.startsWith('puente-') || undefined,
+    finde: (vista === 'vuelos' ? f.finde : f.cuando?.startsWith('puente-') && f.cuando) || undefined,
+    soloChollazos: f.chollazo || undefined,
+    soloMinimoHistorico: f.historico || undefined,
   };
   return Object.fromEntries(Object.entries(criterio).filter(([, valor]) => valor !== undefined));
 }
 
-/** Enlace para editar config/vigilados.json si el panel está en GitHub Pages (usuario.github.io/repo/). */
+/**
+ * Enlace al editor de GitHub de config/vigilados.json cuando el panel está en
+ * Pages (usuario.github.io/repo/); null si se está viendo en local.
+ */
 export function urlEditarVigilados({ hostname = '', pathname = '/' } = {}) {
-  const usuario = hostname.match(/^([^.]+)\.github\.io$/i)?.[1];
+  const usuario = hostname.match(/^([^.]+).github.io$/i)?.[1];
   if (!usuario) return null;
   const primero = pathname.split('/').filter(Boolean)[0];
   const repo = primero && !primero.endsWith('.html') ? primero : `${usuario}.github.io`;

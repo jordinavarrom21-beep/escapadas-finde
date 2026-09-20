@@ -6,6 +6,7 @@
   },
   "panelUrl": null,
   "retencionDias": 10,
+  "maxFuentesEnParalelo": 4,
   "vuelos": {
     "aeropuertos": [
       "BCN",

@@ -18,7 +18,8 @@ export const TEMAS = [
   { id: 'singular', nombre: 'Alojamientos singulares', emoji: '✨' },
 ];
 
-export const TIPOS = ['vuelo', 'escapada', 'hotel', 'paquete'];
+/** `actividad` son entradas, visitas y experiencias; `crucero`, salidas de crucero. */
+export const TIPOS = ['vuelo', 'escapada', 'hotel', 'paquete', 'actividad', 'crucero'];
 /** pp = por persona · pp/noche = por persona y noche · i/v = ida y vuelta por persona. */
 export const UNIDADES = ['pp', 'pp/noche', 'total', 'i/v', 'noche'];
 export const REGIMENES = ['solo-alojamiento', 'desayuno', 'media-pension', 'pension-completa', 'todo-incluido'];

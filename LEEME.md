@@ -103,6 +103,34 @@ npm run panel            # sirve el panel en http://localhost:8080 (tras escanea
 npm run email:prueba     # sin SMTP guarda los emails en data/emails-prueba/ para verlos
 ```
 
+## Qué webs entran y cuáles no
+
+El objetivo es **ofertas de viaje para un fin de semana desde Barcelona**. Con ese criterio:
+
+**Entran como fuente** (publican ofertas con precio y se pueden leer de forma legítima):
+escapadas y paquetes, hoteles y casas rurales, campings, vuelos y transporte barato,
+actividades con precio, y todo lo que llegue por el buzón de newsletters.
+
+**Solo como enlace** (con destino y fechas ya puestos, porque no permiten leer sus
+resultados): Booking, Agoda, Hotels.com, Trivago, Airbnb, Vrbo, Google Flights,
+Skyscanner, KAYAK, Momondo, Kiwi, Expedia, eDreams, Rumbo, Omio, Direct Ferries,
+Civitatis, GetYourGuide y GuruWalk.
+
+**Descartados a propósito**, para que el panel no se llene de ruido:
+- **Cruceros** (MSC, Costa, Royal Caribbean, NCL, Celebrity, Cruise.com): viajes de una
+  semana o más, no escapadas de finde.
+- **Alquiler de coches** (Rentalcars, Discover Cars, Sixt, Europcar, Hertz, Avis,
+  Goldcar, OK Mobility, Record Go…): es un complemento, no una oferta de viaje.
+- **Guías e inspiración** (Lonely Planet, Condé Nast, National Geographic, Spain.info,
+  Tripadvisor, blogs de viajes): no publican precios.
+- **Restaurantes** (TheFork, Michelin Guide): es otro producto.
+- **Hoteles de lujo** (Mr & Mrs Smith, Tablet, Small Luxury Hotels, Leading Hotels,
+  Relais & Châteaux): casi nunca están de oferta.
+- **Cajas regalo** (Smartbox, Wonderbox): no tienen fechas ni precio de escapada.
+
+Si alguna te interesa igualmente, suscribe el Gmail dedicado a su newsletter: entrará
+por el buzón sin tocar código.
+
 ## Fuentes y uso justo
 
 Antes de consultar una web, se comprueba que su **robots.txt** lo permite. Si no lo

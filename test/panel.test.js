@@ -305,7 +305,7 @@ describe('ayudas para elegir', () => {
       nombre: 'Spa cerca de Girona',
       texto: 'spa',
       tipo: 'hotel',
-      tema: 'spa',
+      temas: ['spa', 'rural'],
       precioMax: 90,
       cocheMaxMin: 120,
       cerca: { lat: 41.9794, lon: 2.8214, radioKm: 123 },

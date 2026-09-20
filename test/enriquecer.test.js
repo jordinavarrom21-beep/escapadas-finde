@@ -57,14 +57,21 @@ describe('enlaces', () => {
     assert.equal(porEtiqueta['Comparar en KAYAK'], 'https://www.kayak.es/flights/BCN-CIA/2026-10-16/2026-10-18?sort=price_a');
     assert.match(porEtiqueta['Hoteles en Booking'], /ss=Roma&checkin=2026-10-16&checkout=2026-10-18/);
     assert.equal(porEtiqueta['Comparar en Trivago'], 'https://www.trivago.es/es/srl?search=200-25084;dr-20261016-20261018;rc-1-2');
-    assert.ok(enlaces.length <= 6);
+    assert.match(porEtiqueta['Actividades en Civitatis'], /civitatis\.com\/es\/buscar\/\?q=Roma/);
+    assert.ok(enlaces.length <= 8);
+    assert.deepEqual([...new Set(enlaces.map((e) => e.grupo))], ['comparar', 'alojamiento', 'actividades']);
   });
 
   test('escapada sin fechas: próximo finde y ruta en coche', () => {
     const o = oferta({ titulo: 'Casa rural', lugar: { nombre: 'Taüll', lat: 42.52, lon: 0.85 }, transporte: 'coche' });
     const enlaces = enlacesPara(o, { origen: ORIGEN, ahora: AHORA });
     assert.match(enlaces.find((e) => e.etiqueta === 'Hoteles en Booking').url, /ss=Ta%C3%BCll&checkin=2026-09-18&checkout=2026-09-20/);
-    assert.equal(enlaces.at(-1).url, 'https://www.google.com/maps/dir/?api=1&origin=41.3874,2.1686&destination=42.52,0.85&travelmode=driving');
+    assert.equal(enlaces.find((e) => e.etiqueta === 'Cómo llegar en coche').url,
+      'https://www.google.com/maps/dir/?api=1&origin=41.3874,2.1686&destination=42.52,0.85&travelmode=driving');
+    assert.ok(enlaces.some((e) => e.etiqueta === 'Tren o bus en Omio'));
+    // Una actividad ya es el plan: no se le ofrecen más actividades ni alojamiento.
+    const actividad = oferta({ tipo: 'actividad', titulo: 'Visita guiada', lugar: { nombre: 'Girona' } });
+    assert.deepEqual(enlacesPara(actividad, { origen: ORIGEN, ahora: AHORA }).map((e) => e.etiqueta), ['Tren o bus en Omio']);
   });
 
   test('oferta sin lugar: sin enlaces', () => {

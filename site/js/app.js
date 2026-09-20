@@ -184,6 +184,12 @@ function paramsDeFormulario(formulario) {
     if (valor === '') continue;
     params[clave] = params[clave] ? `${params[clave]},${valor}` : valor;
   }
+  // «Un día concreto» es un atajo del rango: ese día como principio y como fin.
+  if (params.dia) {
+    params.desde = params.dia;
+    params.hasta = params.dia;
+  }
+  delete params.dia;
   return params;
 }
 

@@ -4,6 +4,7 @@
  */
 import { TEMAS } from '../modelo.js';
 import { esChollazo } from '../enriquecer/puntuacion.js';
+import { resumenVigilados } from '../vigilados.js';
 import { etiquetaDia } from '../util/fechas.js';
 
 const C = {
@@ -53,22 +54,27 @@ function distintivos(oferta) {
   return lista;
 }
 
-function filaHtml(oferta) {
-  const extras = distintivos(oferta)
+/** Una fila es una oferta, o una oferta con etiquetas extra: `{oferta, extras: ['ha bajado 5 €']}`. */
+const comoFila = (fila) => (fila.oferta ? { extras: [], ...fila } : { oferta: fila, extras: [] });
+
+function filaHtml(fila) {
+  const { oferta, extras } = comoFila(fila);
+  const marcas = [...extras, ...distintivos(oferta)]
     .map((d) => `<span style="display:inline-block;margin:4px 4px 0 0;padding:2px 8px;border-radius:10px;background:#e8f3ec;color:${C.precio};font-size:12px">${esc(d)}</span>`)
     .join('');
   return `<tr><td style="padding:12px 0;border-bottom:1px solid ${C.borde}">
 <a href="${esc(oferta.url)}" style="color:${C.acento};font-weight:600;font-size:16px;text-decoration:none">${esc(oferta.titulo)}</a>
 <div style="color:${C.suave};font-size:13px;margin-top:2px">${esc(detalle(oferta))}</div>
-<div style="color:${C.precio};font-weight:700;font-size:15px;margin-top:4px">${esc(precioLegible(oferta))}</div>${extras}
+<div style="color:${C.precio};font-weight:700;font-size:15px;margin-top:4px">${esc(precioLegible(oferta))}</div>${marcas}
 </td></tr>`;
 }
 
-function seccionHtml({ titulo, ofertas, vacio }) {
+function seccionHtml({ titulo, ofertas, vacio, nota = '' }) {
   const cuerpo = ofertas.length
     ? ofertas.map(filaHtml).join('')
     : `<tr><td style="padding:8px 0;color:${C.suave};font-size:14px">${esc(vacio)}</td></tr>`;
-  return `<tr><td style="padding:20px 24px 4px"><h2 style="margin:0;font-size:18px;color:${C.texto}">${esc(titulo)}</h2></td></tr>
+  return `<tr><td style="padding:20px 24px 4px"><h2 style="margin:0;font-size:18px;color:${C.texto}">${esc(titulo)}</h2>${
+    nota ? `<p style="margin:4px 0 0;color:${C.suave};font-size:13px">${esc(nota)}</p>` : ''}</td></tr>
 <tr><td style="padding:0 24px"><table role="presentation" width="100%" cellspacing="0" cellpadding="0">${cuerpo}</table></td></tr>`;
 }
 
@@ -95,10 +101,14 @@ ${boton}
 
 function textoPlano({ titulo, intro, secciones, panelUrl }) {
   const lineas = [titulo, intro ?? '', ''];
-  for (const { titulo: t, ofertas, vacio } of secciones) {
+  for (const { titulo: t, ofertas, vacio, nota } of secciones) {
     lineas.push(`== ${t} ==`);
+    if (nota) lineas.push(nota);
     if (!ofertas.length) lineas.push(vacio);
-    for (const o of ofertas) lineas.push(`- ${o.titulo} — ${precioLegible(o)}`, `  ${detalle(o)}`, `  ${o.url}`);
+    for (const fila of ofertas) {
+      const { oferta: o, extras } = comoFila(fila);
+      lineas.push(`- ${o.titulo} — ${precioLegible(o)}${extras.length ? ` · ${extras.join(' · ')}` : ''}`, `  ${detalle(o)}`, `  ${o.url}`);
+    }
     lineas.push('');
   }
   if (panelUrl) lineas.push(`Panel: ${panelUrl}`);
@@ -110,8 +120,33 @@ const construir = (contenido) => ({ asunto: contenido.asunto, html: envolver(con
 const mejores = (ofertas, criterio = (a, b) => b.puntuacion - a.puntuacion) => [...ofertas].sort(criterio).slice(0, MAX_POR_SECCION);
 const porPrecio = (a, b) => (a.precio ?? Infinity) - (b.precio ?? Infinity);
 
-/** Resumen del viernes: vuelos del finde, próximo puente, escapadas y chollazos. */
-export function resumenSemanal({ ofertas, findes, puentes, ajustes, panelUrl, ahora = new Date() }) {
+/**
+ * Sección «⭐ Tus vigilados»: por cada criterio activo, cuántas ofertas cumple y
+ * la mejor de todas con su precio. Sin vigilados, no sale la sección.
+ */
+function seccionVigilados(ofertas, vigilados) {
+  const resumen = resumenVigilados(ofertas, vigilados);
+  if (!resumen.length) return [];
+  const conCoincidencias = resumen.filter((r) => r.total);
+  const sinCoincidencias = resumen.filter((r) => !r.total).map((r) => r.criterio.nombre);
+  const mostrados = conCoincidencias.slice(0, MAX_POR_SECCION);
+  const notas = [
+    mostrados.length < conCoincidencias.length && `Y ${conCoincidencias.length - mostrados.length} vigilados más con coincidencias, en el panel.`,
+    sinCoincidencias.length && `Sin coincidencias ahora mismo: ${sinCoincidencias.join(', ')}.`,
+  ].filter(Boolean);
+  return [{
+    titulo: '⭐ Tus vigilados',
+    nota: notas.join(' '),
+    ofertas: mostrados.map(({ criterio, total, mejor }) => ({
+      oferta: mejor,
+      extras: [`⭐ ${criterio.nombre}`, `${total} ${total === 1 ? 'coincidencia' : 'coincidencias'}`],
+    })),
+    vacio: 'Ninguno de tus vigilados tiene coincidencias ahora mismo.',
+  }];
+}
+
+/** Resumen del viernes: tus vigilados, vuelos del finde, próximo puente, escapadas y chollazos. */
+export function resumenSemanal({ ofertas, findes, puentes, ajustes, vigilados = [], panelUrl, ahora = new Date() }) {
   const [finde, siguiente] = findes;
   const idsFindes = [finde?.id, siguiente?.id].filter(Boolean);
   const vuelosConFecha = ofertas.filter((o) => o.vuelo && idsFindes.includes(o.fechas.findeId));
@@ -123,6 +158,7 @@ export function resumenSemanal({ ofertas, findes, puentes, ajustes, panelUrl, ah
   const chollazos = mejores(ofertas.filter((o) =>
     esChollazo(o, ajustes) && o.vistaPrimera && ahora - Date.parse(o.vistaPrimera) <= SEMANA_MS));
   const secciones = [
+    ...seccionVigilados(ofertas, vigilados),
     { titulo: vuelosConFecha.length ? '✈️ Vuelos para este finde y el siguiente' : '✈️ Chollos de vuelos', ofertas: vuelos, vacio: 'Hoy no hay vuelos destacados.' },
     ...(puente ? [{
       titulo: `🗓️ Puente de ${puente.nombre} · ${puente.etiqueta}`,
@@ -154,19 +190,42 @@ export function alertaChollazos({ ofertas, panelUrl }) {
   });
 }
 
-/** Alerta de ofertas que cumplen un criterio vigilado y han bajado de precio. */
+/** «ha bajado 5,00 € (−20 %) desde el último aviso», o que es la primera vez. */
+function textoBajada(oferta, anterior) {
+  if (anterior == null) return 'primer aviso de este vigilado';
+  const bajada = anterior - oferta.precio;
+  const porcentaje = anterior > 0 ? ` (−${Math.round((bajada / anterior) * 100)} %)` : '';
+  return `ha bajado ${euros.format(bajada)}${porcentaje} desde el último aviso (${euros.format(anterior)})`;
+}
+
+/**
+ * Alerta de ofertas que cumplen un criterio vigilado y han bajado de precio.
+ * @param {{coincidencias: {criterio: Object, oferta: Object, anterior: number|null}[], panelUrl: string}} datos
+ */
 export function alertaVigilados({ coincidencias, panelUrl }) {
   const porCriterio = new Map();
-  for (const { criterio, oferta } of coincidencias) {
-    if (!porCriterio.has(criterio.nombre)) porCriterio.set(criterio.nombre, []);
-    porCriterio.get(criterio.nombre).push(oferta);
+  for (const coincidencia of coincidencias) {
+    const { nombre } = coincidencia.criterio;
+    if (!porCriterio.has(nombre)) porCriterio.set(nombre, []);
+    porCriterio.get(nombre).push(coincidencia);
   }
   const nombres = [...porCriterio.keys()];
+  const secciones = nombres.map((nombre) => {
+    const lista = porCriterio.get(nombre);
+    const { precioMax } = lista[0].criterio;
+    return {
+      titulo: `⭐ ${nombre}`,
+      nota: precioMax != null ? `Tu precio objetivo: ${euros.format(precioMax)}.` : '',
+      ofertas: mejores(lista, (a, b) => porPrecio(a.oferta, b.oferta))
+        .map(({ oferta, anterior = null }) => ({ oferta, extras: [textoBajada(oferta, anterior)] })),
+      vacio: '',
+    };
+  });
   return construir({
     asunto: `⭐ Bajada en tus vigilados: ${nombres.join(', ')}`,
     titulo: 'Novedades en lo que vigilas',
     intro: 'Estas ofertas cumplen tus criterios y están por debajo del último precio que te avisé.',
-    secciones: nombres.map((nombre) => ({ titulo: `⭐ ${nombre}`, ofertas: mejores(porCriterio.get(nombre), porPrecio), vacio: '' })),
+    secciones,
     panelUrl,
   });
 }

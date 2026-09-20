@@ -1,7 +1,48 @@
 {
+  "leeme": [
+    "JSON no admite comentarios, así que la explicación va aquí: este campo no se usa, puedes cambiarlo a tu gusto.",
+    "Cada objeto de «vigilados» es un criterio. Una oferta coincide si cumple TODOS los campos que pongas; los que no pongas no filtran. Solo «nombre» es obligatorio (es lo que sale en los emails y en el panel, así que ponlos distintos).",
+    "Cuando una oferta que coincide baja de precio respecto al último aviso, te llega un email. Además, el resumen del viernes trae una sección «⭐ Tus vigilados» con cuántas coinciden y la mejor de cada uno.",
+    "Campos: activo (false lo pausa: ni compara ni avisa), ofertaId (vigilar UNA oferta concreta por su id, p. ej. «chollometro:hotel-en-sitges...»), texto (en título, lugar, IATA y destino del vuelo, sin tildes ni mayúsculas), tipo (vuelo | escapada | hotel | paquete), tema (uno) o temas (lista: basta con que tenga uno), fuente, aeropuerto (de salida), alojamiento (hotel | casa-rural | camping | apartamento | parador | balneario | hostal), regimenMinimo (ese régimen o mejor: solo-alojamiento | desayuno | media-pension | pension-completa | todo-incluido), valoracionMin (0–10), descuentoMin (% mínimo), precioMax (tu precio objetivo), precioNocheMax (por persona y noche), noches (un número exacto o {min, max}), cocheMaxMin (minutos en coche desde casa), cerca ({lat, lon, radioKm}), pais y region (nombre o código), puente (solo lo que cae en un puente), finde (id de un finde o de un puente concreto, como «puente-2026-12-05»), soloChollazos y soloMinimoHistorico.",
+    "Ejemplo 1 «Oporto en avión»: el clásico. Vuelos que mencionen Oporto, saliendo de Barcelona, por 60 € o menos ida y vuelta.",
+    "Ejemplo 2 «Italia en avión desde BCN»: en vez de escribir cada ciudad, filtra por país; «soloMinimoHistorico» hace que solo avise cuando el precio es el más bajo que se ha visto nunca para esa oferta.",
+    "Ejemplo 3 «Spa con media pensión cerca de casa»: vale spa o romántico, con media pensión o mejor, bien valorado (8/10), una o dos noches, a menos de 2 h en coche y sin pasar de 70 € por persona y noche.",
+    "Ejemplo 4 «Casa rural para el puente»: casas rurales de 2 o 3 noches que caigan en un puente, a menos de 250 km de Barcelona y por 200 € como mucho.",
+    "Para vigilar una oferta concreta, en el panel pulsa «👁️ Vigilar esta oferta» y pega aquí lo que te copia: { \"nombre\": \"Hotel de Sitges\", \"ofertaId\": \"chollometro:hotel-en-sitges-para-el-festival-de-cine\" }.",
+    "Para dejar de recibir avisos de uno sin borrarlo, añádele \"activo\": false."
+  ],
   "vigilados": [
-    { "nombre": "Oporto en avión", "texto": "oporto", "tipo": "vuelo", "precioMax": 60 },
-    { "nombre": "Roma en avión", "texto": "roma", "tipo": "vuelo", "precioMax": 60 },
-    { "nombre": "Spa a menos de 2 h en coche", "tema": "spa", "cocheMaxMin": 120, "precioMax": 70 }
+    {
+      "nombre": "Oporto en avión",
+      "texto": "oporto",
+      "tipo": "vuelo",
+      "aeropuerto": "BCN",
+      "precioMax": 60
+    },
+    {
+      "nombre": "Italia en avión desde BCN",
+      "tipo": "vuelo",
+      "pais": "Italia",
+      "aeropuerto": "BCN",
+      "precioMax": 70,
+      "soloMinimoHistorico": true
+    },
+    {
+      "nombre": "Spa con media pensión cerca de casa",
+      "temas": ["spa", "romantico"],
+      "regimenMinimo": "media-pension",
+      "valoracionMin": 8,
+      "noches": { "min": 1, "max": 2 },
+      "cocheMaxMin": 120,
+      "precioNocheMax": 70
+    },
+    {
+      "nombre": "Casa rural para el puente",
+      "alojamiento": "casa-rural",
+      "puente": true,
+      "noches": { "min": 2, "max": 3 },
+      "cerca": { "lat": 41.3874, "lon": 2.1686, "radioKm": 250 },
+      "precioMax": 200
+    }
   ]
 }

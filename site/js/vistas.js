@@ -357,6 +357,8 @@ function formularioEscapadas(e, params, vista) {
   <fieldset class="chips chips--desplazables"><legend>Temática</legend><div class="chips__lista">${chipsTemas(e, f)}</div></fieldset>
   <fieldset class="chips chips--desplazables"><legend>Cuándo</legend><div class="chips__lista">${chipsCuando(e, f)}</div></fieldset>
   <div class="filtros__fila">
+    <label class="campo">📅 Un día concreto <input type="date" name="dia" value="${esc(f.desde && f.desde === f.hasta ? f.desde : '')}"
+      title="Ofertas que se pueden disfrutar ese día, incluidas las de fechas flexibles"></label>
     <label class="campo">Desde <input type="date" name="desde" value="${esc(f.desde)}"></label>
     <label class="campo">Hasta <input type="date" name="hasta" value="${esc(f.hasta)}"></label>
     ${interruptor('clasica', '🛏️ Escapada clásica de finde (2 noches)', f.clasica)}
