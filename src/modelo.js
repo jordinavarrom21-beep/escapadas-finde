@@ -23,6 +23,7 @@ export const TIPOS = ['vuelo', 'escapada', 'hotel', 'paquete'];
 export const UNIDADES = ['pp', 'pp/noche', 'total', 'i/v', 'noche'];
 export const REGIMENES = ['solo-alojamiento', 'desayuno', 'media-pension', 'pension-completa', 'todo-incluido'];
 export const TRANSPORTES = ['avion', 'coche', 'tren', 'bus', 'ferry'];
+export const ALOJAMIENTOS = ['hotel', 'casa-rural', 'camping', 'apartamento', 'parador', 'balneario', 'hostal'];
 
 const IDS_TEMAS = new Set(TEMAS.map((t) => t.id));
 
@@ -41,6 +42,7 @@ export function validarOferta(o) {
   if (o.unidad !== null && !UNIDADES.includes(o.unidad)) errores.push(`unidad no válida: ${o.unidad}`);
   if (o.regimen !== null && !REGIMENES.includes(o.regimen)) errores.push(`régimen no válido: ${o.regimen}`);
   if (o.transporte !== null && !TRANSPORTES.includes(o.transporte)) errores.push(`transporte no válido: ${o.transporte}`);
+  if (o.alojamiento !== null && !ALOJAMIENTOS.includes(o.alojamiento)) errores.push(`alojamiento no válido: ${o.alojamiento}`);
   if (!Array.isArray(o.temas) || o.temas.some((t) => !IDS_TEMAS.has(t))) errores.push(`temas no válidos: ${o.temas}`);
   if (o.lugar && ((o.lugar.lat != null && !esNumero(o.lugar.lat)) || (o.lugar.lon != null && !esNumero(o.lugar.lon)))) {
     errores.push('coordenadas no válidas');
@@ -89,6 +91,14 @@ export function crearOferta(datos) {
     puntuacion: 0,
     chollazo: false,
     enlaces: [],
+    alojamiento: null,
+    valoracion: null,
+    precioNoche: null,
+    referencia: null,
+    equivalentes: [],
+    costeCoche: null,
+    tiempo: null,
+    eventos: [],
     ...datos,
     fechas: { salida: null, vuelta: null, findeId: null, puenteId: null, ...datos.fechas },
   };

@@ -61,6 +61,14 @@ un `try/catch`, registran el error con `ctx.log` y descartan solo esa oferta.
 | `bajada`, `minimoHistorico` | `historial.js` | € que ha bajado respecto al máximo de los últimos 7 días; `true` si es el precio más bajo registrado (con ≥ 2 días de historial) |
 | `puntuacion`, `chollazo` | `puntuacion.js` | 0–100, y si merece alerta (`esChollazo`; el panel usa este campo) |
 | `enlaces` | `enlaces.js` | `[{etiqueta, url}]`: reservar, comparar, hotel, ruta… |
+| `alojamiento` | fuente o `temas.js` | `hotel` \| `casa-rural` \| `camping` \| `apartamento` \| `parador` \| `balneario` \| `hostal` \| `null` |
+| `valoracion` | fuente | `{nota: 0–10, n: nº de opiniones}` o `null` |
+| `precioNoche` | `puntuacion.js` | precio por persona y noche cuando se puede deducir (`precioPorPersonaNoche`) |
+| `referencia` | `referencia.js` | `{mediana, ahorroPct, grupo, n}`: comparación con ofertas parecidas |
+| `equivalentes` | `duplicados.js` | la misma oferta en otras webs: `[{fuente, precio, unidad, url}]` |
+| `costeCoche` | `geo.js` | `{eur, litros}` del viaje de ida y vuelta desde `ajustes.origen` |
+| `tiempo` | `tiempo.js` | `{dia, maxC, minC, lluviaPct, codigo, texto}` del finde o puente asignado |
+| `eventos` | `eventos.js` | hasta 3 `{nombre, fecha, url, municipio}` cerca del destino esos días |
 
 Etiquetas especiales (en `etiquetas`) que otros módulos entienden:
 `temperatura:<grados>` (popularidad en Chollometro), `top-chollo` (destacado por la
