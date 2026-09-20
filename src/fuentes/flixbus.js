@@ -8,7 +8,7 @@
  * La API no devuelve la vuelta en la misma consulta, así que no se pide.
  */
 import { crearOferta } from '../modelo.js';
-import { etiquetaDia, findesProximos } from '../util/fechas.js';
+import { etiquetaDia, fechaLocal, findesProximos } from '../util/fechas.js';
 import { recortar } from '../util/xml.js';
 
 const ID = 'flixbus';
@@ -137,8 +137,15 @@ export function ofertaDestino(respuesta, destino, viernes) {
 
 const esBloqueo = (error) => error.estado === 403 || error.estado === 429 || error instanceof SyntaxError;
 
+// El viernes del primer finde cuya salida no haya pasado ya (hoy puede ser sábado o domingo).
+function proximoViernes(ctx) {
+  const hoy = fechaLocal(ctx.ahora);
+  const findes = ctx.findes?.length ? ctx.findes : findesProximos(2, ctx.ahora);
+  return findes.find((finde) => finde.viernes >= hoy)?.viernes ?? findesProximos(2, ctx.ahora).at(-1).viernes;
+}
+
 async function obtener(ctx) {
-  const { viernes } = ctx.findes?.[0] ?? findesProximos(1, ctx.ahora)[0];
+  const viernes = proximoViernes(ctx);
   const ofertas = [];
   const consultados = new Set();
   let ultimoError = null;
