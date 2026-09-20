@@ -1,0 +1,129 @@
+#
+# robots.txt
+#
+# This file is to prevent the crawling and indexing of certain parts
+# of your site by web crawlers and spiders run by sites like Yahoo!
+# and Google. By telling these "robots" where not to go on your site,
+# you save bandwidth and server resources.
+#
+# This file will be ignored unless it is at the root of your host :
+# Used: http://example.com/robots.txt
+# Ignored: http://example.com/site/robots.txt
+#
+# For more information about the robots.txt standard, see :
+# http://www.robotstxt.org/robotstxt.html
+ 
+User-agent: *
+
+# Block Drupal's internal directories
+Disallow: /includes/
+Disallow: /misc/
+Disallow: /modules/
+Disallow: /profiles/
+Disallow: /scripts/
+Disallow: /themes/
+
+#Allow access to CSS and JS in internal directories
+Allow: /*.css$
+Allow: /*.js$
+
+# Block admin and sensitive routes
+Disallow: /admin/
+Disallow: /user/
+Disallow: /cron.php
+Disallow: /update.php
+Disallow: /install.php
+Disallow: /xmlrpc.php
+Disallow: /cron-content-scheduler.php
+
+# Block irrelevant and duplicated content
+Disallow: /node/
+Disallow: /comment/reply/
+Disallow: /search/
+Disallow: /taxonomy
+Disallow: /*clid=
+Disallow: /*campaign_term
+Disallow: /*adskeywords
+Disallow: /*IN_MOBILE_APP=1
+
+# Block PDFs (is they are not being considered for SEO purposes)
+Disallow: /*.pdf
+
+# Blcok changelogs and install files
+Disallow: /CHANGELOG.txt
+Disallow: /INSTALL.*
+Disallow: /LICENSE.txt
+Disallow: /MAINTAINERS.txt
+Disallow: /UPGRADE.txt
+
+# Block specific innecesary URLs
+Disallow: /image_captcha/
+Disallow: /Captation_POPIN/
+Disallow: /push/
+Disallow: /retrieveBooking.aspx
+Disallow: /ajax/
+Disallow: /horaires?page
+Disallow: /actualites?field
+Disallow: /blog?field
+Disallow: */checker-content-expired
+Disallow: */es/actualitat/
+Disallow: /*/recherche
+Disallow: /fr-en
+
+# Allow access for relevant Search and LLM crawlers
+# AI and LLM Crawlers
+User-agent: GPTBot
+Allow: /
+User-agent: OAI-SearchBot
+Allow: /
+User-agent: ClaudeBot
+Allow: /
+User-agent: PerplexityBot
+Allow: /
+User-agent: CCBot
+Allow: /
+User-agent: Google-Extended
+Allow: /
+
+# Major search crawlers (SEO + AI integration)
+User-agent: Googlebot
+Allow: /
+User-agent: Bingbot
+Allow: /
+User-agent: Applebot
+Allow: /
+
+# Allow specific URLs
+Allow: /blog?field*=92
+Allow: /blog?field*=94
+Allow: /blog?field*=96
+Allow: /blog?field*=97
+Allow: /blog?field*=11
+Allow: /blog?field*=95
+Allow: /blog?field*=130
+Allow: /blog?field*=131
+
+# URLs parametrized
+Disallow: /?q=admin/
+Disallow: /?q=comment/reply/
+Disallow: /?q=filter/tips/
+Disallow: /?q=node/add/
+Disallow: /?q=search/
+Disallow: /?q=user/password/
+Disallow: /?q=user/register/
+Disallow: /?q=user/login/
+Disallow: /?q=user/logout/
+Allow: /es/preguntas-frecuentes?question=
+Allow: /es/preguntas-frecuentes?thematic=
+
+# Allow access to specific images
+Allow: /themes/custom/ouigo/*.png
+
+# Blcok specific específicos if they are not necessary
+Disallow: /themes/custom/ouigo/js/scripts.js
+
+Sitemap: https://www.ouigo.com/sitemap.xml
+Sitemap: https://www.ouigo.com/es/sitemap.xml
+Sitemap: https://www.ouigo.com/es/ca/sitemap.xml
+Sitemap: https://www.ouigo.com/es/en/sitemap.xml
+Sitemap: https://www.ouigo.com/en/sitemap.xml

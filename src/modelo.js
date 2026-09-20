@@ -22,7 +22,7 @@ export const TIPOS = ['vuelo', 'escapada', 'hotel', 'paquete'];
 /** pp = por persona · pp/noche = por persona y noche · i/v = ida y vuelta por persona. */
 export const UNIDADES = ['pp', 'pp/noche', 'total', 'i/v', 'noche'];
 export const REGIMENES = ['solo-alojamiento', 'desayuno', 'media-pension', 'pension-completa', 'todo-incluido'];
-export const TRANSPORTES = ['avion', 'coche', 'tren', 'ferry'];
+export const TRANSPORTES = ['avion', 'coche', 'tren', 'bus', 'ferry'];
 
 const IDS_TEMAS = new Set(TEMAS.map((t) => t.id));
 

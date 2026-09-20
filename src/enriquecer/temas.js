@@ -84,6 +84,7 @@ function detectarTransporte(texto, oferta) {
   if (/\b(vuelos? incluidos?|con vuelos?|vuelo \+ hotel|vuelo y hotel|flights? (from|\+)|avion incluido)\b/.test(texto)) return 'avion';
   if (/\b(ferry|en barco)\b/.test(texto)) return 'ferry';
   if (/\b(tren|ave|avlo|renfe|ouigo|iryo)\b/.test(texto)) return 'tren';
+  if (/\b(autobus|flixbus|alsa)\b/.test(texto)) return 'bus';
   const pais = normalizarTexto(oferta.lugar?.pais ?? '');
   const esIsla = /\b(islas?|baleares|canarias|mallorca|menorca|ibiza|tenerife)\b/.test(texto);
   return PAISES_EN_COCHE.some((p) => pais.includes(p)) && !esIsla ? 'coche' : null;

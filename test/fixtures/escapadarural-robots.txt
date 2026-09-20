@@ -1,0 +1,39 @@
+User-agent: *
+Disallow: /*_escaped_fragment_
+Disallow: /stats.php
+Disallow: /dynamic/
+Disallow: /translate/
+Disallow: /feed/
+Disallow: /mobile/set-classic-view
+Disallow: /get_panoramas.php
+Disallow: /websites.php
+Disallow: /wiki/
+Disallow: /static/
+Disallow: *viz=map
+
+User-Agent: bingbot
+Crawl-delay: 1
+
+User-agent: Yandex
+Disallow: /
+
+User-agent: Aboundexbot
+Disallow: /
+
+User-agent: WijuBot
+Disallow: /
+
+User-agent: ShopWiki
+Disallow: /
+
+User-agent: WBSearchBot
+Disallow: /
+
+User-agent: Baiduspider
+Crawl-delay: 3
+
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /

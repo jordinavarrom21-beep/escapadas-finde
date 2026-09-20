@@ -22,7 +22,7 @@ export const ETIQUETAS_REGIMEN = {
   'todo-incluido': 'Todo incluido',
 };
 
-export const ETIQUETAS_TRANSPORTE = { avion: '✈️ Avión', coche: '🚗 Coche', tren: '🚆 Tren', ferry: '⛴️ Ferry' };
+export const ETIQUETAS_TRANSPORTE = { avion: '✈️ Avión', coche: '🚗 Coche', tren: '🚆 Tren', bus: '🚌 Autobús', ferry: '⛴️ Ferry' };
 
 export const ETIQUETAS_TIPO = { vuelo: 'Vuelo', escapada: 'Escapada', hotel: 'Hotel', paquete: 'Paquete' };
 

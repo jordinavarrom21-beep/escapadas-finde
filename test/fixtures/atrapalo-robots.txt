@@ -1,0 +1,139 @@
+User-Agent: *
+Disallow:/USUCerrarSesion/
+
+# Account / login areas (not indexable) - #52081
+Disallow: /user/
+Disallow: /misreservas/
+
+# Cart and checkout (not indexable) - #52081
+Disallow: /carrito/
+Disallow: /cart/
+
+Disallow: *?*zanpid=*
+Disallow: *?*tduid=*
+Disallow: *?*affId=*
+
+Disallow: /forms
+Disallow: /home
+Disallow: */_fp
+Disallow: /tracking/
+Disallow: /tracker/
+
+Disallow: /widget/
+Disallow: /newsletter/
+Disallow: /home
+Disallow: /miatrapalo/
+Disallow: /hoteles/feed-rss/
+Disallow: /hoteles/hide/
+Disallow: /hoteles/profile/lite/*
+Disallow: /hoteles/profile/reviews/*
+Disallow: /casasrurales/
+Disallow: /crucis/
+Disallow: /opiniones/
+Disallow: /vuelos/fechas_flexibles
+Disallow: /dynamicpackaging/
+Disallow: /dynamic-packaging/
+Disallow: /common/photo/map/hoteles*
+Disallow: /common/photo/hotelmap*
+Disallow: /transport/fare/
+Disallow: /vuelos/pre_busqueda
+
+Disallow: /ms/
+Disallow: *_search/
+Disallow: */results/
+Disallow: */resultados/
+Allow:    /assets/*/results/*css
+Allow:    /js_new/*/results/*js
+
+# Urban Leisure
+Disallow: /actividades/*desde-*-hasta-*
+
+#Google Tag Manager
+Disallow: /57344399/
+Disallow: /9201/
+
+#Blocked bots
+User-agent: MegaIndex.ru
+Disallow: /
+User-agent: NPBot
+Disallow: /
+User-agent: psbot
+Disallow: /
+User-agent: grub
+Disallow: /
+User-agent: larbin
+Disallow: /
+User-agent: BsshoppingCrawler
+Disallow: /
+User-agent: WebCopier
+Disallow: /
+User-agent: WebTrafficExpress
+Disallow: /
+User-agent:VayalaCreep
+Disallow: /
+User-agent: Mercator
+Disallow: /
+User-agent: HTTrack
+Disallow: /
+User-agent: PabloElRobot
+Disallow: /
+User-agent: Wget
+Disallow: /
+User-agent: Teleport
+Disallow: /
+User-agent: SuperBot
+Disallow: /
+User-agent: Gaisbot
+Disallow: /
+User-agent: Nocilla
+Disallow: /
+User-agent: HenryTheMiragoRobot
+Disallow: /
+User-agent: Harvest-NG/1.0.2
+Disallow: /
+User-agent: AbachoBOT
+Disallow: /
+User-agent: bumblebee@relevare.com
+Disallow: /
+User-agent: LinkWalker
+Disallow: /
+User-agent: True_Robot/1.0
+Disallow: /
+User-agent: True_Robot
+Disallow: /
+User-agent: Szukacz/1.4
+Disallow: /
+User-agent: Zeus
+Disallow: /
+User-agent: Zeus 32297 Webster Pro V2.9 Win32
+Disallow: /
+User-agent: Openfind
+Disallow: /
+User-agent: Openfind data gatherer, Openbot/3.0+(robot-response@openfind.com.tw;+http://www.openfind.com.tw/robot.html)
+Disallow: /
+User-Agent: SlySearch
+Disallow: /
+User-Agent: BaiDuSpider
+Disallow: /
+User-agent: voyager/1.0
+Disallow: /
+#User-agent: MJ12bot/v1.0.7 (http://majestic12.co.uk/bot.php?+)
+#Disallow: /
+User-agent: Arachnophilia
+Disallow: /
+User-agent: ArchitextSpider
+Disallow: /
+User-agent: ASpider/0.09
+Disallow: /
+User-agent: AURESYS/1.0
+Disallow: /
+User-agent: Exabot/2.0
+Disallow: /
+User-agent: lmspider (lmspider@scansoft.com)
+Disallow: /
+User-agent: appie 1.1 (www.walhello.com)
+Disallow: /
+User-agent: 008
+Disallow: /
+
+Sitemap: https://www.atrapalo.com/sitemaps/sitemap.xml.gz

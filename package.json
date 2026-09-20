@@ -17,6 +17,8 @@
   "dependencies": {
     "cheerio": "^1.2.0",
     "fast-xml-parser": "^5.11.1",
+    "imapflow": "^2.0.5",
+    "mailparser": "^3.9.28",
     "nodemailer": "^10.0.10"
   }
 }

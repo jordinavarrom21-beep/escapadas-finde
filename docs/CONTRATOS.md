@@ -6,8 +6,9 @@ necesita algo que no está aquí, no lo inventes en otro archivo: documéntalo c
 
 ## Reglas generales
 
-- Node ≥ 22, módulos ES (`import`/`export`), sin TypeScript. Solo tres dependencias:
-  `fast-xml-parser`, `cheerio` y `nodemailer`. Todo lo demás, con la librería estándar.
+- Node ≥ 22, módulos ES (`import`/`export`), sin TypeScript. Dependencias: `fast-xml-parser`,
+  `cheerio` y `nodemailer`, más `imapflow` y `mailparser` solo para el buzón. Todo lo demás,
+  con la librería estándar.
 - Identificadores, comentarios, logs y textos visibles **en español**. Código limpio:
   funciones pequeñas y puras cuando se pueda, sin abstracciones especulativas y sin
   comentarios que repitan el código.
@@ -49,7 +50,7 @@ un `try/catch`, registran el error con `ctx.log` y descartan solo esa oferta.
 | `noches` | fuente o `temas.js` | número de noches si se conoce |
 | `regimen` | fuente o `temas.js` | `solo-alojamiento` \| `desayuno` \| `media-pension` \| `pension-completa` \| `todo-incluido` |
 | `temas` | fuente + `temas.js` | ids de `TEMAS` (se unen los de la fuente y los detectados) |
-| `transporte` | fuente o `temas.js` | `avion` \| `coche` \| `tren` \| `ferry` |
+| `transporte` | fuente o `temas.js` | `avion` \| `coche` \| `tren` \| `bus` \| `ferry` |
 | `lugar` | fuente (+ `geo.js` completa lat/lon) | `{nombre, region, pais, codigoPais, lat, lon, iata}` |
 | `cocheMin`, `cocheKm`, `cocheEstimado` | `geo.js` | tiempo y distancia en coche desde `ajustes.origen`; `cocheEstimado=true` si es una estimación en línea recta |
 | `fechas` | fuente (`salida`, `vuelta`) + `festivos.js` (`findeId`, `puenteId`) | `salida`/`vuelta` en hora local `YYYY-MM-DDTHH:mm:ss` o `YYYY-MM-DD` |

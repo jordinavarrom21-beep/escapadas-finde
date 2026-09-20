@@ -36,7 +36,18 @@
     "holidayguru": { "activa": true, "intervaloMin": 60 },
     "nomolesten": { "activa": true, "intervaloMin": 360 },
     "fly4free": { "activa": true, "intervaloMin": 60 },
-    "chollometro": { "activa": true, "intervaloMin": 30 }
+    "chollometro": { "activa": true, "intervaloMin": 30 },
+    "atrapalo": { "activa": true, "intervaloMin": 720 },
+    "weekendesk": { "activa": true, "intervaloMin": 720 },
+    "rusticae": { "activa": true, "intervaloMin": 360 },
+    "paradores": { "activa": true, "intervaloMin": 720 },
+    "escapadarural": { "activa": true, "intervaloMin": 360 },
+    "clubrural": { "activa": true, "intervaloMin": 360 },
+    "campings": { "activa": true, "intervaloMin": 720 },
+    "volotea": { "activa": true, "intervaloMin": 360 },
+    "ouigo": { "activa": true, "intervaloMin": 240 },
+    "flixbus": { "activa": true, "intervaloMin": 180 },
+    "buzon": { "activa": true, "intervaloMin": 60 }
   },
   "emails": {
     "resumen": { "activo": true, "diaSemana": 5, "hora": 8 },
