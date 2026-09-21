@@ -6,8 +6,8 @@
 import { abrirFicha, liberarFicha } from './ficha.js';
 import { diasEntre, estadoFinde, fechaLocal, findesProximos, proximoPuente } from './fechas.js';
 import {
-  POR_PAGINA, crearHash, criterioVigilado, esNovedad, leerFiltrosEscapadas, leerFiltrosVuelos, leerRuta,
-  medirDistancias, referenciaNovedades, resumenFuentes,
+  POR_PAGINA, actividadesCerca, crearHash, criterioVigilado, esNovedad, leerFiltrosActividades,
+  leerFiltrosEscapadas, leerFiltrosVuelos, leerRuta, medirDistancias, referenciaNovedades, resumenFuentes,
 } from './filtros.js';
 import { contar, cuentaAtras, escaparHtml as esc, haceCuanto } from './formato.js';
 import {
@@ -27,8 +27,8 @@ const AVISO_MS = 5000;
 const SALTO_SORPRESA = 3;
 const CAMPOS_QUE_SE_ESCRIBEN = ['number', 'search', 'text'];
 const TITULOS = {
-  finde: 'Este finde', vuelos: 'Vuelos', escapadas: 'Escapadas', mapa: 'Mapa', calendario: 'Calendario',
-  puentes: 'Puentes', vigilados: 'Vigilados', fuentes: 'Fuentes', buscar: 'Buscar',
+  finde: 'Este finde', vuelos: 'Vuelos', escapadas: 'Escapadas', actividades: 'Actividades', mapa: 'Mapa',
+  calendario: 'Calendario', puentes: 'Puentes', vigilados: 'Vigilados', fuentes: 'Fuentes', buscar: 'Buscar',
 };
 
 let estado = null;
@@ -190,6 +190,11 @@ function paramsDeFormulario(formulario) {
     params.hasta = params.dia;
   }
   delete params.dia;
+  // Las casillas que vienen marcadas de fábrica («Ocultar cruceros») tienen que dejar
+  // constancia en la URL de que se han desmarcado; si no, se volverían a activar solas.
+  for (const casilla of formulario.querySelectorAll('input[type="checkbox"][data-defecto]')) {
+    if (!casilla.checked) params[casilla.name] = '0';
+  }
   return params;
 }
 
@@ -277,7 +282,8 @@ function copiarConSeleccion(texto) {
 
 async function copiarVigilado(vista, boton) {
   const { params } = leerRuta(location.hash);
-  const filtros = vista === 'vuelos' ? leerFiltrosVuelos(params) : leerFiltrosEscapadas(params);
+  const leer = { vuelos: leerFiltrosVuelos, actividades: leerFiltrosActividades }[vista] ?? leerFiltrosEscapadas;
+  const filtros = leer(params);
   const json = JSON.stringify(criterioVigilado(nombreEscrito(), filtros, { vista }), null, 2);
   const copiado = await copiarTexto(json);
   const caja = boton.closest('details')?.querySelector('.vigilado-json')
@@ -341,7 +347,11 @@ function mostrarFicha(id, disparador) {
   const { punto } = ['escapadas', 'mapa'].includes(vista) ? leerFiltrosEscapadas(params) : {};
   const distancias = punto ? medirDistancias([oferta], punto, estado.datos.origen) : estado.distanciasOrigen;
   origenFicha = disparador;
-  abrirFicha(dialogo, oferta, ctxTarjetas(estado, { distancias, desde: punto?.nombre ?? estado.datos.origen.nombre }));
+  abrirFicha(dialogo, oferta, ctxTarjetas(estado, {
+    distancias,
+    desde: punto?.nombre ?? estado.datos.origen.nombre,
+    actividades: actividadesCerca(estado.datos.ofertas, oferta),
+  }));
 }
 
 const ACCIONES = '[data-ficha], [data-fav], [data-descartar], [data-mas], [data-sorpresa],'

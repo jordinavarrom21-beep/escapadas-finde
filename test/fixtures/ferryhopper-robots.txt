@@ -1,0 +1,17 @@
+# www.robotstxt.org/
+# www.google.com/support/webmasters/bin/answer.py?hl=en&answer=156449
+
+User-agent: *
+Disallow: /*/login
+Disallow: /*/contacted
+Disallow: /*/resetting/request
+Disallow: /*/destinations/byport/*
+Disallow: /*/reservations/*
+Disallow: /*/reservation/*
+Disallow: /*/booking/success*
+Disallow: /*/booking/failed*
+Disallow: /*/paymentssubmit/*
+Disallow: /*/payment/submit/*
+Disallow: /*/boarding-pass?order*
+Disallow: /*/reservations/pending
+Disallow: /*/contact?orderId*

@@ -13,6 +13,7 @@ import { aplicarAlojamiento } from '../enriquecer/alojamiento.js';
 import { enlacesPara } from '../enriquecer/enlaces.js';
 import { asignarFechas, calcularPuentes, obtenerFestivos } from '../enriquecer/festivos.js';
 import { calcularCoche, calcularCosteCoche, geolocalizar } from '../enriquecer/geo.js';
+import { revisarPrecios } from '../enriquecer/precios.js';
 import { calcularReferencia } from '../enriquecer/referencia.js';
 import { marcarEquivalentes } from '../enriquecer/duplicados.js';
 import { anadirTiempo } from '../enriquecer/tiempo.js';
@@ -36,7 +37,7 @@ const CADUCIDAD_CACHE_MS = 200 * 24 * 60 * 60 * 1000;
 export const MODULOS = {
   obtenerFestivos, calcularPuentes, asignarFechas, aplicarClasificacion, aplicarAlojamiento,
   geolocalizar, calcularCoche, calcularCosteCoche, calcularReferencia, marcarEquivalentes,
-  anadirTiempo, anadirEventos, enlacesPara, registrarPrecios, compactar, seriesPara, puntuar,
+  revisarPrecios, anadirTiempo, anadirEventos, enlacesPara, registrarPrecios, compactar, seriesPara, puntuar,
   procesarEmails, crearTransporte, enviarEmail,
 };
 
@@ -159,6 +160,8 @@ export async function escanear({
   await m.geolocalizar(ofertas, crearCtx('geo'));
   await m.calcularCoche(ofertas, crearCtx('coche'));
   await m.calcularCosteCoche(ofertas, crearCtx('coche'));
+  const dudosos = m.revisarPrecios(ofertas, conPrefijo('precios'));
+  if (dudosos) conPrefijo('precios')(`${dudosos} ofertas con un precio no creíble: se muestran sin precio`);
   m.calcularReferencia(ofertas);
   m.marcarEquivalentes(ofertas);
   await m.anadirTiempo(ofertas, { ...crearCtx('tiempo'), findes, puentes });

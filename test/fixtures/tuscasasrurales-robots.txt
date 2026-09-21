@@ -1,0 +1,12 @@
+User-agent: *
+Disallow: /iframeMapa.php
+Disallow: /mapa-
+Disallow: /*Spa=
+Disallow: /*Piscina=
+Disallow: /*Animales=
+
+User-agent: Bytespider
+Disallow: /
+
+User-agent: GPTBot
+Disallow: /*?pag=

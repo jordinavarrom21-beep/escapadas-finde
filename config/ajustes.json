@@ -92,7 +92,8 @@
       "intervaloMin": 360
     },
     "paradores": {
-      "activa": true,
+      "activa": false,
+      "motivo": "No responde desde los servidores de GitHub (desde España sí: actívala si escaneas en tu PC)",
       "intervaloMin": 720
     },
     "escapadarural": {
@@ -122,6 +123,30 @@
     "buzon": {
       "activa": true,
       "intervaloMin": 60
+    },
+    "civitatis": {
+      "activa": true,
+      "intervaloMin": 720
+    },
+    "guruwalk": {
+      "activa": true,
+      "intervaloMin": 1440
+    },
+    "ferryhopper": {
+      "activa": true,
+      "intervaloMin": 720
+    },
+    "holidu": {
+      "activa": true,
+      "intervaloMin": 360
+    },
+    "renfe": {
+      "activa": true,
+      "intervaloMin": 720
+    },
+    "tuscasasrurales": {
+      "activa": true,
+      "intervaloMin": 360
     }
   },
   "emails": {

@@ -320,6 +320,7 @@ main { padding-block: 18px 40px; min-height: 60vh; }
 .precio strong { font-size: 1.35rem; font-weight: 800; letter-spacing: -0.01em; }
 .precio__consultar { font-size: 1rem !important; }
 .precio__unidad { font-size: 0.8rem; color: var(--texto-suave); }
+.precio__gratis { color: var(--exito); }
 .precio__anterior { font-size: 0.85rem; color: var(--texto-suave); }
 .precio__descuento { font-size: 0.8rem; font-weight: 800; color: var(--exito); }
 
@@ -457,6 +458,8 @@ main { padding-block: 18px 40px; min-height: 60vh; }
 .insignia--chollazo { background: var(--aviso-suave); color: var(--aviso); }
 .eventos { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; font-size: 0.82rem; color: var(--texto-suave); }
 .eventos li::before { content: "🎪 "; }
+
+.ficha__actividades .filas { margin-top: 4px; font-size: 0.92rem; }
 
 .con-motivo { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .con-motivo > .tarjeta, .con-motivo > .billete { flex: 1; }

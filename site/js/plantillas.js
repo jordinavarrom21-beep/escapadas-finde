@@ -9,7 +9,7 @@ import {
   contar, duracion, emojiTiempo, enumerar, escaparHtml as esc, euros, grados, haceCuanto, nota,
   puntosMinigrafica, urlSegura,
 } from './formato.js';
-import { esDuplicada, esNovedad, tieneVuelo } from './filtros.js';
+import { duracionActividad, esDuplicada, esNovedad, tieneVuelo } from './filtros.js';
 
 export const ESTADOS_FUENTE = {
   ok: { texto: 'Funciona', clase: 'ok' },
@@ -128,8 +128,15 @@ function enlaceOferta(o, texto = 'Ver oferta') {
   return url ? `<a class="boton boton--primario" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${texto}<span class="sr"> (se abre en otra pestaña)</span></a>` : '';
 }
 
+/** Lo que añade la web al «Gratis» («con propina voluntaria»), sin repetir la palabra. */
+function matiz(precioTexto = '') {
+  const resto = String(precioTexto ?? '').replace(/^\s*gratis\s*[·,:-]?\s*/i, '').trim();
+  return resto ? ` <span class="precio__unidad">${esc(resto)}</span>` : '';
+}
+
 function precio(o) {
   if (typeof o.precio !== 'number') return `<p class="precio"><strong class="precio__consultar">${esc(o.precioTexto || 'Consultar precio')}</strong></p>`;
+  if (o.precio === 0) return `<p class="precio"><strong class="precio__gratis">Gratis</strong>${matiz(o.precioTexto)}</p>`;
   const unidad = ETIQUETAS_UNIDAD[o.unidad] ?? '';
   const noche = o.precioNoche != null && o.unidad !== 'pp/noche'
     ? ` <span class="precio__noche">≈ ${euros(Math.round(o.precioNoche))} por persona y noche</span>`
@@ -162,8 +169,10 @@ function textoLugar(o) {
 
 /** Tarjeta de escapada, hotel, paquete o chollo de vuelo sin fechas. */
 export function tarjetaOferta(o, ctx) {
+  const minutos = duracionActividad(o);
   const detalles = [
     textoFechas(o),
+    minutos && `⏱️ ${duracion(minutos)}`,
     o.noches && contar(o.noches, 'noche'),
     ETIQUETAS_ALOJAMIENTO[o.alojamiento],
     ETIQUETAS_REGIMEN[o.regimen],
@@ -263,6 +272,24 @@ export function filaOferta(o) {
   <span class="fila__precio">${euros(o.precio)}</span><span class="suave">${esc(textoFechas(o))}</span></li>`;
 }
 
+/** Fila compacta de una actividad: título, precio, duración y valoración. */
+export function filaActividad(o) {
+  const minutos = duracionActividad(o);
+  return `<li class="fila"><button type="button" class="enlace-ficha" data-ficha="${esc(o.id)}">${esc(o.titulo)}</button>
+  <span class="fila__precio">${o.precio === 0 ? 'Gratis' : euros(o.precio)}</span>${
+  minutos ? `<span class="suave">⏱️ ${esc(duracion(minutos))}</span>` : ''}${valoracion(o)}</li>`;
+}
+
+/** «Qué hacer allí»: hasta tres actividades en el mismo lugar que la oferta de la ficha. */
+function queHacerAlli(ctx) {
+  const lista = ctx.actividades ?? [];
+  if (!lista.length) return '';
+  return `<section class="ficha__actividades" aria-labelledby="ficha-actividades-titulo">
+  <h3 id="ficha-actividades-titulo">🎟️ Qué hacer allí</h3>
+  <ul class="filas">${lista.map(filaActividad).join('')}</ul>
+</section>`;
+}
+
 /** Explica desde dónde se miden las distancias en el buscador por ubicación. */
 export function textoAyudaUbicacion(punto, origen) {
   return punto
@@ -336,6 +363,7 @@ ${cocheFicha(o, ctx)}
 ${tiempo(o)}
 ${equivalentes(o, ctx)}
 ${o.eventos?.length ? `<section class="ficha__eventos"><h3>Qué hay esos días por la zona</h3>${eventos(o, { conEnlace: true })}</section>` : ''}
+${queHacerAlli(ctx)}
 <dl class="ficha__datos">${datosFicha(o)}</dl>
 <section class="ficha__historial" aria-labelledby="ficha-historial-titulo">
   <h3 id="ficha-historial-titulo">Historial de precios</h3>

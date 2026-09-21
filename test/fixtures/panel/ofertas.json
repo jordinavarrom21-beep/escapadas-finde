@@ -307,6 +307,30 @@
       "falta": [
         "SERPAPI_KEY"
       ]
+    },
+    {
+      "motivo": null,
+      "id": "civitatis",
+      "nombre": "Civitatis",
+      "web": "https://www.civitatis.com",
+      "modo": "afiliado",
+      "estado": "ok",
+      "ultimoOk": "2026-09-18T05:28:30.000Z",
+      "error": null,
+      "total": 6,
+      "falta": []
+    },
+    {
+      "motivo": null,
+      "id": "guruwalk",
+      "nombre": "GuruWalk",
+      "web": "https://www.guruwalk.com",
+      "modo": "html",
+      "estado": "ok",
+      "ultimoOk": "2026-09-18T05:27:10.000Z",
+      "error": null,
+      "total": 4,
+      "falta": []
     }
   ],
   "ofertas": [
@@ -591,6 +615,77 @@
       "eventos": []
     },
     {
+      "id": "guruwalk:free-tour-barrio-gotico-barcelona",
+      "fuente": "guruwalk",
+      "tipo": "actividad",
+      "titulo": "Free tour por el Barrio Gótico de Barcelona",
+      "descripcion": "Paseo de dos horas y media por el casco antiguo, la catedral y el Call judío con un guía local. Pagas lo que creas que vale al terminar.",
+      "url": "https://www.guruwalk.com/es/walks/12480-free-tour-barrio-gotico-barcelona",
+      "imagen": null,
+      "precio": 0,
+      "precioTexto": "Gratis · propina voluntaria",
+      "unidad": "pp",
+      "precioAnterior": null,
+      "descuento": null,
+      "noches": null,
+      "regimen": null,
+      "temas": [
+        "ciudad"
+      ],
+      "transporte": null,
+      "lugar": {
+        "iata": null,
+        "nombre": "Barcelona",
+        "region": "Barcelona",
+        "pais": "España",
+        "codigoPais": "ES",
+        "lat": 41.3874,
+        "lon": 2.1686
+      },
+      "cocheMin": 0,
+      "cocheKm": 0,
+      "cocheEstimado": false,
+      "vuelo": null,
+      "etiquetas": [
+        "duracion:150"
+      ],
+      "publicada": null,
+      "caduca": null,
+      "vistaPrimera": "2026-09-17T18:10:00.000Z",
+      "vistaUltima": "2026-09-18T05:30:00.000Z",
+      "bajada": 0,
+      "minimoHistorico": false,
+      "puntuacion": 95,
+      "enlaces": [
+        {
+          "etiqueta": "Ver la oferta",
+          "url": "https://www.guruwalk.com/es/walks/12480-free-tour-barrio-gotico-barcelona"
+        },
+        {
+          "etiqueta": "Cómo llegar (Google Maps)",
+          "url": "https://www.google.com/maps/dir/?api=1&origin=41.3874,2.1686&destination=41.3874,2.1686"
+        }
+      ],
+      "fechas": {
+        "salida": null,
+        "vuelta": null,
+        "findeId": null,
+        "puenteId": null
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": {
+        "nota": 9.4,
+        "n": 3820
+      },
+      "referencia": null,
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
+    },
+    {
       "id": "travelpayouts:BCN-CIA:2026-11-06:2026-11-08",
       "fuente": "travelpayouts",
       "tipo": "vuelo",
@@ -684,6 +779,148 @@
       "precioNoche": null,
       "chollazo": true,
       "valoracion": null,
+      "referencia": null,
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
+    },
+    {
+      "id": "civitatis:entrada-sagrada-familia",
+      "fuente": "civitatis",
+      "tipo": "actividad",
+      "titulo": "Entrada a la Sagrada Família con audioguía",
+      "descripcion": "Acceso sin cola al templo de Gaudí con audioguía en español. Duración aproximada de hora y media por libre.",
+      "url": "https://www.civitatis.com/es/barcelona/entrada-sagrada-familia/",
+      "imagen": null,
+      "precio": 26,
+      "precioTexto": "desde 26 € por persona",
+      "unidad": "pp",
+      "precioAnterior": null,
+      "descuento": null,
+      "noches": null,
+      "regimen": null,
+      "temas": [
+        "ciudad"
+      ],
+      "transporte": null,
+      "lugar": {
+        "iata": null,
+        "nombre": "Barcelona",
+        "region": "Barcelona",
+        "pais": "España",
+        "codigoPais": "ES",
+        "lat": 41.3874,
+        "lon": 2.1686
+      },
+      "cocheMin": 0,
+      "cocheKm": 0,
+      "cocheEstimado": false,
+      "vuelo": null,
+      "etiquetas": [
+        "duracion:90"
+      ],
+      "publicada": null,
+      "caduca": null,
+      "vistaPrimera": "2026-09-16T09:00:00.000Z",
+      "vistaUltima": "2026-09-18T05:30:00.000Z",
+      "bajada": 0,
+      "minimoHistorico": false,
+      "puntuacion": 92,
+      "enlaces": [
+        {
+          "etiqueta": "Ver la oferta",
+          "url": "https://www.civitatis.com/es/barcelona/entrada-sagrada-familia/"
+        },
+        {
+          "etiqueta": "Cómo llegar (Google Maps)",
+          "url": "https://www.google.com/maps/dir/?api=1&origin=41.3874,2.1686&destination=41.3874,2.1686"
+        }
+      ],
+      "fechas": {
+        "salida": null,
+        "vuelta": null,
+        "findeId": null,
+        "puenteId": null
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": {
+        "nota": 9.2,
+        "n": 4210
+      },
+      "referencia": null,
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
+    },
+    {
+      "id": "guruwalk:free-tour-girona-judia",
+      "fuente": "guruwalk",
+      "tipo": "actividad",
+      "titulo": "Free tour por la Girona judía",
+      "descripcion": "Recorrido por el Call, la catedral y las escaleras que salen en Juego de Tronos. Dos horas con guía local.",
+      "url": "https://www.guruwalk.com/es/walks/33120-free-tour-girona-judia",
+      "imagen": null,
+      "precio": 0,
+      "precioTexto": "Gratis · propina voluntaria",
+      "unidad": "pp",
+      "precioAnterior": null,
+      "descuento": null,
+      "noches": null,
+      "regimen": null,
+      "temas": [
+        "ciudad"
+      ],
+      "transporte": null,
+      "lugar": {
+        "iata": null,
+        "nombre": "Girona",
+        "region": "Girona",
+        "pais": "España",
+        "codigoPais": "ES",
+        "lat": 41.9854,
+        "lon": 2.8246
+      },
+      "cocheMin": 83,
+      "cocheKm": 110,
+      "cocheEstimado": false,
+      "vuelo": null,
+      "etiquetas": [
+        "duracion:120"
+      ],
+      "publicada": null,
+      "caduca": null,
+      "vistaPrimera": "2026-09-17T20:05:00.000Z",
+      "vistaUltima": "2026-09-18T05:30:00.000Z",
+      "bajada": 0,
+      "minimoHistorico": false,
+      "puntuacion": 90,
+      "enlaces": [
+        {
+          "etiqueta": "Ver la oferta",
+          "url": "https://www.guruwalk.com/es/walks/33120-free-tour-girona-judia"
+        },
+        {
+          "etiqueta": "Cómo llegar (Google Maps)",
+          "url": "https://www.google.com/maps/dir/?api=1&origin=41.3874,2.1686&destination=41.9854,2.8246"
+        }
+      ],
+      "fechas": {
+        "salida": null,
+        "vuelta": null,
+        "findeId": null,
+        "puenteId": null
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": {
+        "nota": 9.1,
+        "n": 540
+      },
       "referencia": null,
       "equivalentes": [],
       "costeCoche": null,
@@ -793,6 +1030,77 @@
       ]
     },
     {
+      "id": "guruwalk:free-tour-tarragona-romana",
+      "fuente": "guruwalk",
+      "tipo": "actividad",
+      "titulo": "Free tour por la Tarragona romana",
+      "descripcion": "El anfiteatro, el circo y la muralla de la antigua Tárraco en poco más de dos horas.",
+      "url": "https://www.guruwalk.com/es/walks/28841-free-tour-tarragona-romana",
+      "imagen": null,
+      "precio": 0,
+      "precioTexto": "Gratis · propina voluntaria",
+      "unidad": "pp",
+      "precioAnterior": null,
+      "descuento": null,
+      "noches": null,
+      "regimen": null,
+      "temas": [
+        "ciudad"
+      ],
+      "transporte": null,
+      "lugar": {
+        "iata": null,
+        "nombre": "Tarragona",
+        "region": "Tarragona",
+        "pais": "España",
+        "codigoPais": "ES",
+        "lat": 41.1189,
+        "lon": 1.2445
+      },
+      "cocheMin": 68,
+      "cocheKm": 99,
+      "cocheEstimado": false,
+      "vuelo": null,
+      "etiquetas": [
+        "duracion:135"
+      ],
+      "publicada": null,
+      "caduca": null,
+      "vistaPrimera": "2026-09-15T11:20:00.000Z",
+      "vistaUltima": "2026-09-18T05:30:00.000Z",
+      "bajada": 0,
+      "minimoHistorico": false,
+      "puntuacion": 86,
+      "enlaces": [
+        {
+          "etiqueta": "Ver la oferta",
+          "url": "https://www.guruwalk.com/es/walks/28841-free-tour-tarragona-romana"
+        },
+        {
+          "etiqueta": "Cómo llegar (Google Maps)",
+          "url": "https://www.google.com/maps/dir/?api=1&origin=41.3874,2.1686&destination=41.1189,1.2445"
+        }
+      ],
+      "fechas": {
+        "salida": null,
+        "vuelta": null,
+        "findeId": null,
+        "puenteId": null
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": {
+        "nota": 9,
+        "n": 310
+      },
+      "referencia": null,
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
+    },
+    {
       "id": "fly4free:error-tarifa-bcn-atenas",
       "fuente": "fly4free",
       "tipo": "vuelo",
@@ -872,6 +1180,77 @@
       "eventos": []
     },
     {
+      "id": "civitatis:visita-guiada-girona-medieval",
+      "fuente": "civitatis",
+      "tipo": "actividad",
+      "titulo": "Visita guiada por la Girona medieval",
+      "descripcion": "Dos horas por los baños árabes, la muralla y el barrio antiguo con un guía oficial en grupo reducido.",
+      "url": "https://www.civitatis.com/es/girona/visita-guiada-girona/",
+      "imagen": null,
+      "precio": 18,
+      "precioTexto": "18 € por persona",
+      "unidad": "pp",
+      "precioAnterior": null,
+      "descuento": null,
+      "noches": null,
+      "regimen": null,
+      "temas": [
+        "ciudad"
+      ],
+      "transporte": null,
+      "lugar": {
+        "iata": null,
+        "nombre": "Girona",
+        "region": "Girona",
+        "pais": "España",
+        "codigoPais": "ES",
+        "lat": 41.9854,
+        "lon": 2.8246
+      },
+      "cocheMin": 83,
+      "cocheKm": 110,
+      "cocheEstimado": false,
+      "vuelo": null,
+      "etiquetas": [
+        "duracion:120"
+      ],
+      "publicada": null,
+      "caduca": null,
+      "vistaPrimera": "2026-09-14T08:45:00.000Z",
+      "vistaUltima": "2026-09-18T05:30:00.000Z",
+      "bajada": 0,
+      "minimoHistorico": false,
+      "puntuacion": 84,
+      "enlaces": [
+        {
+          "etiqueta": "Ver la oferta",
+          "url": "https://www.civitatis.com/es/girona/visita-guiada-girona/"
+        },
+        {
+          "etiqueta": "Cómo llegar (Google Maps)",
+          "url": "https://www.google.com/maps/dir/?api=1&origin=41.3874,2.1686&destination=41.9854,2.8246"
+        }
+      ],
+      "fechas": {
+        "salida": null,
+        "vuelta": null,
+        "findeId": null,
+        "puenteId": null
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": {
+        "nota": 8.8,
+        "n": 860
+      },
+      "referencia": null,
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
+    },
+    {
       "id": "chollometro:1587342",
       "fuente": "chollometro",
       "tipo": "vuelo",
@@ -938,6 +1317,78 @@
       "precioNoche": null,
       "chollazo": false,
       "valoracion": null,
+      "referencia": null,
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
+    },
+    {
+      "id": "guruwalk:free-tour-besalu-medieval",
+      "fuente": "guruwalk",
+      "tipo": "actividad",
+      "titulo": "Free tour por Besalú medieval",
+      "descripcion": "El puente románico, la judería y el micvé en una hora y media, con salidas los fines de semana.",
+      "url": "https://www.guruwalk.com/es/walks/41905-free-tour-besalu-medieval",
+      "imagen": null,
+      "precio": 0,
+      "precioTexto": "Gratis · propina voluntaria",
+      "unidad": "pp",
+      "precioAnterior": null,
+      "descuento": null,
+      "noches": null,
+      "regimen": null,
+      "temas": [
+        "ciudad",
+        "rural"
+      ],
+      "transporte": null,
+      "lugar": {
+        "iata": null,
+        "nombre": "Besalú",
+        "region": "Girona",
+        "pais": "España",
+        "codigoPais": "ES",
+        "lat": 42.1986,
+        "lon": 2.6989
+      },
+      "cocheMin": 95,
+      "cocheKm": 128,
+      "cocheEstimado": false,
+      "vuelo": null,
+      "etiquetas": [
+        "duracion:90"
+      ],
+      "publicada": null,
+      "caduca": null,
+      "vistaPrimera": "2026-09-17T07:30:00.000Z",
+      "vistaUltima": "2026-09-18T05:30:00.000Z",
+      "bajada": 0,
+      "minimoHistorico": false,
+      "puntuacion": 82,
+      "enlaces": [
+        {
+          "etiqueta": "Ver la oferta",
+          "url": "https://www.guruwalk.com/es/walks/41905-free-tour-besalu-medieval"
+        },
+        {
+          "etiqueta": "Cómo llegar (Google Maps)",
+          "url": "https://www.google.com/maps/dir/?api=1&origin=41.3874,2.1686&destination=42.1986,2.6989"
+        }
+      ],
+      "fechas": {
+        "salida": null,
+        "vuelta": null,
+        "findeId": null,
+        "puenteId": null
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": {
+        "nota": 8.9,
+        "n": 145
+      },
       "referencia": null,
       "equivalentes": [],
       "costeCoche": null,
@@ -1145,6 +1596,78 @@
       "eventos": []
     },
     {
+      "id": "civitatis:kayak-y-snorkel-costa-brava",
+      "fuente": "civitatis",
+      "tipo": "actividad",
+      "titulo": "Kayak y snorkel por las calas de Tossa de Mar",
+      "descripcion": "Tres horas en kayak por las calas de la Costa Brava con parada para hacer snorkel. Material incluido.",
+      "url": "https://www.civitatis.com/es/tossa-de-mar/kayak-snorkel-costa-brava/",
+      "imagen": null,
+      "precio": 45,
+      "precioTexto": "45 € por persona",
+      "unidad": "pp",
+      "precioAnterior": null,
+      "descuento": null,
+      "noches": null,
+      "regimen": null,
+      "temas": [
+        "aventura",
+        "playa"
+      ],
+      "transporte": null,
+      "lugar": {
+        "iata": null,
+        "nombre": "Tossa de Mar",
+        "region": "Girona",
+        "pais": "España",
+        "codigoPais": "ES",
+        "lat": 41.7197,
+        "lon": 2.9319
+      },
+      "cocheMin": 72,
+      "cocheKm": 94,
+      "cocheEstimado": false,
+      "vuelo": null,
+      "etiquetas": [
+        "duracion:180"
+      ],
+      "publicada": null,
+      "caduca": "2026-10-31T21:59:00.000Z",
+      "vistaPrimera": "2026-09-12T16:00:00.000Z",
+      "vistaUltima": "2026-09-18T05:30:00.000Z",
+      "bajada": 0,
+      "minimoHistorico": false,
+      "puntuacion": 79,
+      "enlaces": [
+        {
+          "etiqueta": "Ver la oferta",
+          "url": "https://www.civitatis.com/es/tossa-de-mar/kayak-snorkel-costa-brava/"
+        },
+        {
+          "etiqueta": "Cómo llegar (Google Maps)",
+          "url": "https://www.google.com/maps/dir/?api=1&origin=41.3874,2.1686&destination=41.7197,2.9319"
+        }
+      ],
+      "fechas": {
+        "salida": null,
+        "vuelta": null,
+        "findeId": null,
+        "puenteId": null
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": {
+        "nota": 9.3,
+        "n": 420
+      },
+      "referencia": null,
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
+    },
+    {
       "id": "travelpayouts:BCN-CIA:2026-10-30:2026-11-01",
       "fuente": "travelpayouts",
       "tipo": "vuelo",
@@ -1340,6 +1863,77 @@
           "municipio": "Deltebre"
         }
       ]
+    },
+    {
+      "id": "civitatis:cata-cavas-penedes",
+      "fuente": "civitatis",
+      "tipo": "actividad",
+      "titulo": "Visita a una bodega del Penedès con cata de cavas",
+      "descripcion": "Recorrido por los viñedos y las cavas subterráneas con cata de tres cavas y picoteo.",
+      "url": "https://www.civitatis.com/es/sant-sadurni-danoia/visita-bodega-cava-penedes/",
+      "imagen": null,
+      "precio": 39,
+      "precioTexto": "39 € por persona",
+      "unidad": "pp",
+      "precioAnterior": null,
+      "descuento": null,
+      "noches": null,
+      "regimen": null,
+      "temas": [
+        "gastronomia"
+      ],
+      "transporte": null,
+      "lugar": {
+        "iata": null,
+        "nombre": "Sant Sadurní d'Anoia",
+        "region": "Barcelona",
+        "pais": "España",
+        "codigoPais": "ES",
+        "lat": 41.4267,
+        "lon": 1.7867
+      },
+      "cocheMin": 42,
+      "cocheKm": 46,
+      "cocheEstimado": false,
+      "vuelo": null,
+      "etiquetas": [
+        "duracion:210"
+      ],
+      "publicada": null,
+      "caduca": null,
+      "vistaPrimera": "2026-09-11T10:15:00.000Z",
+      "vistaUltima": "2026-09-18T05:30:00.000Z",
+      "bajada": 0,
+      "minimoHistorico": false,
+      "puntuacion": 76,
+      "enlaces": [
+        {
+          "etiqueta": "Ver la oferta",
+          "url": "https://www.civitatis.com/es/sant-sadurni-danoia/visita-bodega-cava-penedes/"
+        },
+        {
+          "etiqueta": "Cómo llegar (Google Maps)",
+          "url": "https://www.google.com/maps/dir/?api=1&origin=41.3874,2.1686&destination=41.4267,1.7867"
+        }
+      ],
+      "fechas": {
+        "salida": null,
+        "vuelta": null,
+        "findeId": null,
+        "puenteId": null
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": {
+        "nota": 8.9,
+        "n": 612
+      },
+      "referencia": null,
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
     },
     {
       "id": "viajerospiratas:vuelos-bolonia-32",
@@ -1766,6 +2360,78 @@
         "codigo": 61,
         "texto": "Lluvia ligera"
       },
+      "eventos": []
+    },
+    {
+      "id": "civitatis:excursion-montserrat-desde-barcelona",
+      "fuente": "civitatis",
+      "tipo": "actividad",
+      "titulo": "Excursión a Montserrat con cremallera y monasterio",
+      "descripcion": "Día completo con transporte desde Barcelona, tren cremallera y tiempo libre en el monasterio.",
+      "url": "https://www.civitatis.com/es/barcelona/excursion-montserrat/",
+      "imagen": null,
+      "precio": 62,
+      "precioTexto": "62 € por persona",
+      "unidad": "pp",
+      "precioAnterior": null,
+      "descuento": null,
+      "noches": null,
+      "regimen": null,
+      "temas": [
+        "rural",
+        "ciudad"
+      ],
+      "transporte": null,
+      "lugar": {
+        "iata": null,
+        "nombre": "Montserrat",
+        "region": "Barcelona",
+        "pais": "España",
+        "codigoPais": "ES",
+        "lat": 41.5933,
+        "lon": 1.8373
+      },
+      "cocheMin": 47,
+      "cocheKm": 46,
+      "cocheEstimado": false,
+      "vuelo": null,
+      "etiquetas": [
+        "duracion:420"
+      ],
+      "publicada": null,
+      "caduca": null,
+      "vistaPrimera": "2026-09-09T12:00:00.000Z",
+      "vistaUltima": "2026-09-18T05:30:00.000Z",
+      "bajada": 0,
+      "minimoHistorico": false,
+      "puntuacion": 73,
+      "enlaces": [
+        {
+          "etiqueta": "Ver la oferta",
+          "url": "https://www.civitatis.com/es/barcelona/excursion-montserrat/"
+        },
+        {
+          "etiqueta": "Cómo llegar (Google Maps)",
+          "url": "https://www.google.com/maps/dir/?api=1&origin=41.3874,2.1686&destination=41.5933,1.8373"
+        }
+      ],
+      "fechas": {
+        "salida": null,
+        "vuelta": null,
+        "findeId": null,
+        "puenteId": null
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": {
+        "nota": 8.6,
+        "n": 1530
+      },
+      "referencia": null,
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
       "eventos": []
     },
     {
@@ -2652,6 +3318,77 @@
       "precioNoche": null,
       "chollazo": false,
       "valoracion": null,
+      "referencia": null,
+      "equivalentes": [],
+      "costeCoche": null,
+      "tiempo": null,
+      "eventos": []
+    },
+    {
+      "id": "civitatis:paseo-en-barco-por-el-duero",
+      "fuente": "civitatis",
+      "tipo": "actividad",
+      "titulo": "Paseo en barco por el Duero (seis puentes)",
+      "descripcion": "Una hora navegando por el Duero bajo los seis puentes de Oporto, con salidas cada media hora.",
+      "url": "https://www.civitatis.com/es/oporto/crucero-seis-puentes/",
+      "imagen": null,
+      "precio": 15,
+      "precioTexto": "15 € por persona",
+      "unidad": "pp",
+      "precioAnterior": null,
+      "descuento": null,
+      "noches": null,
+      "regimen": null,
+      "temas": [
+        "ciudad"
+      ],
+      "transporte": null,
+      "lugar": {
+        "iata": null,
+        "nombre": "Oporto",
+        "region": null,
+        "pais": "Portugal",
+        "codigoPais": "PT",
+        "lat": 41.1496,
+        "lon": -8.611
+      },
+      "cocheMin": null,
+      "cocheKm": null,
+      "cocheEstimado": false,
+      "vuelo": null,
+      "etiquetas": [
+        "duracion:55"
+      ],
+      "publicada": null,
+      "caduca": null,
+      "vistaPrimera": "2026-09-13T09:30:00.000Z",
+      "vistaUltima": "2026-09-18T05:30:00.000Z",
+      "bajada": 0,
+      "minimoHistorico": false,
+      "puntuacion": 70,
+      "enlaces": [
+        {
+          "etiqueta": "Ver la oferta",
+          "url": "https://www.civitatis.com/es/oporto/crucero-seis-puentes/"
+        },
+        {
+          "etiqueta": "Cómo llegar (Google Maps)",
+          "url": "https://www.google.com/maps/dir/?api=1&origin=41.3874,2.1686&destination=41.1496,-8.611"
+        }
+      ],
+      "fechas": {
+        "salida": null,
+        "vuelta": null,
+        "findeId": null,
+        "puenteId": null
+      },
+      "alojamiento": null,
+      "precioNoche": null,
+      "chollazo": false,
+      "valoracion": {
+        "nota": 8.7,
+        "n": 2100
+      },
       "referencia": null,
       "equivalentes": [],
       "costeCoche": null,

@@ -7,10 +7,11 @@ import { diaSemana, fechaLocal, sumarDias } from './fechas.js';
 import { distanciaKm, esMismoPunto, minutosEnCoche, radioKmParaMinutos, tieneCoordenadas } from './geo.js';
 import { ETIQUETAS_ALOJAMIENTO, ETIQUETAS_REGIMEN, duracion, euros, normalizar } from './formato.js';
 
-export const VISTAS = ['finde', 'vuelos', 'escapadas', 'mapa', 'calendario', 'puentes', 'vigilados', 'fuentes', 'buscar'];
+export const VISTAS = ['finde', 'vuelos', 'escapadas', 'actividades', 'mapa', 'calendario', 'puentes', 'vigilados', 'fuentes', 'buscar'];
 export const POR_PAGINA = 24;
 export const ORDENES_VUELOS = ['precio', 'puntuacion', 'hora'];
 export const ORDENES_ESCAPADAS = ['puntuacion', 'precio', 'noche', 'ahorro', 'valoracion', 'distancia', 'novedad'];
+export const ORDENES_ACTIVIDADES = ['puntuacion', 'precio', 'valoracion'];
 /** De menos a más incluido: sirve para el filtro de «régimen mínimo». */
 export const REGIMENES_ORDEN = ['solo-alojamiento', 'desayuno', 'media-pension', 'pension-completa', 'todo-incluido'];
 export const ALOJAMIENTOS = ['hotel', 'casa-rural', 'camping', 'apartamento', 'parador', 'balneario', 'hostal'];
@@ -106,7 +107,20 @@ export function leerFiltrosEscapadas(p = {}) {
     punto: lat != null && lon != null ? { nombre: p.lugar || 'Punto elegido', lat, lon } : null,
     horas: [1, 2, 3, 4].includes(horas) ? horas : null,
     km: positivo(p.km),
+    // Los cruceros se esconden salvo que se pida verlos («cru=0» apaga el interruptor).
+    sinCruceros: p.cru !== '0',
     orden: ORDENES_ESCAPADAS.includes(p.orden) ? p.orden : 'puntuacion',
+  };
+}
+
+/** Filtros de la vista de actividades: los comunes más temática, lugar y «solo gratis». */
+export function leerFiltrosActividades(p = {}) {
+  return {
+    ...leerFiltrosComunes(p),
+    temas: lista(p.temas),
+    dest: p.dest ?? '',
+    gratis: p.gratis === '1',
+    orden: ORDENES_ACTIVIDADES.includes(p.orden) ? p.orden : 'puntuacion',
   };
 }
 
@@ -124,8 +138,22 @@ const porPrecio = (a, b) => ascendente(a.precio, b.precio) || porPuntuacion(a, b
 export const esVuelo = (o) => o.tipo === 'vuelo';
 /** Vuelo con fechas y horas concretas (campo «vuelo»). */
 export const tieneVuelo = (o) => esVuelo(o) && o.vuelo != null;
+/** Entradas, visitas y free tours: tienen su propia vista, no se mezclan con las escapadas. */
+export const esActividad = (o) => o.tipo === 'actividad';
+export const esCrucero = (o) => o.tipo === 'crucero';
+/** Lo que se lista como escapada: todo menos los vuelos y las actividades. */
+export const esEscapada = (o) => !esVuelo(o) && !esActividad(o);
 /** La misma oferta ya aparece en otra web con mejor precio (la marca duplicados.js). */
 export const esDuplicada = (o) => (o.etiquetas ?? []).includes('duplicada');
+
+const PREFIJO_DURACION = 'duracion:';
+
+/** Minutos que dura una actividad, de la etiqueta «duracion:<minutos>», o null. */
+export function duracionActividad(o) {
+  const etiqueta = (o.etiquetas ?? []).find((e) => e.startsWith(PREFIJO_DURACION));
+  const minutos = Number(etiqueta?.slice(PREFIJO_DURACION.length));
+  return Number.isFinite(minutos) && minutos > 0 ? minutos : null;
+}
 
 /** ¿Se vio por primera vez después de `referencia` (ISO)? */
 export function esNovedad(oferta, referencia) {
@@ -313,6 +341,7 @@ const cumpleRegimenMinimo = (o, minimo) => !minimo
 
 function cumpleEscapada(o, f, ctx, distancia) {
   return cumpleComunes(o, f, ctx)
+    && (!f.sinCruceros || !esCrucero(o))
     && (!f.noches || (f.noches === 3 ? o.noches >= 3 : o.noches === f.noches))
     && (!f.clasica || o.noches === NOCHES_CLASICAS)
     && cumpleRegimenMinimo(o, f.regimen)
@@ -344,9 +373,56 @@ const comparadoresEscapadas = (distancias) => ({
  */
 export function buscarEscapadas(ofertas, f, ctx) {
   const distancias = medirDistancias(ofertas, f.punto, ctx.origen);
-  const lista = ofertas.filter((o) => !esVuelo(o) && cumpleEscapada(o, f, ctx, distancias.get(o.id)));
+  const lista = ofertas.filter((o) => esEscapada(o) && cumpleEscapada(o, f, ctx, distancias.get(o.id)));
   const comparador = comparadoresEscapadas(distancias)[f.orden] ?? porPuntuacion;
   return { ofertas: lista.sort(comparador), distancias };
+}
+
+// ── Actividades ──────────────────────────────────────────────────────────────
+
+const COMPARADORES_ACTIVIDADES = {
+  puntuacion: (a, b) => porPuntuacion(a, b) || ascendente(a.precio, b.precio),
+  precio: porPrecio,
+  valoracion: (a, b) => descendente(a.valoracion?.nota, b.valoracion?.nota) || porPuntuacion(a, b),
+};
+
+const cumpleActividad = (o, f, ctx) => cumpleComunes(o, f, ctx)
+  && (!f.gratis || o.precio === 0)
+  && (!f.dest || o.lugar?.nombre === f.dest || o.lugar?.region === f.dest);
+
+/**
+ * Actividades (entradas, visitas y free tours) que cumplen los filtros, ya ordenadas.
+ * Las distancias son siempre desde el origen: se toman de `ctx.distancias` si vienen.
+ */
+export function buscarActividades(ofertas, f, ctx = {}) {
+  return ofertas.filter((o) => esActividad(o) && cumpleActividad(o, f, ctx))
+    .sort(COMPARADORES_ACTIVIDADES[f.orden] ?? porPuntuacion);
+}
+
+/** Las mejores actividades que se pueden hacer en un periodo {id, desde}. */
+export function actividadesPara(ofertas, periodo, { max = 4, descartadas } = {}) {
+  return ofertas
+    .filter((o) => esActividad(o) && !esDuplicada(o) && !descartadas?.has(o.id) && disponibleEn(o, periodo))
+    .sort(porPuntuacion)
+    .slice(0, max);
+}
+
+/** Mismo pueblo o ciudad (por nombre), o a menos de 25 km si hay coordenadas. */
+const KM_MISMO_LUGAR = 25;
+function mismoLugar(a, b) {
+  if (!a || !b) return false;
+  if (a.nombre && b.nombre && normalizar(a.nombre) === normalizar(b.nombre)) return true;
+  const km = distanciaKm(a, b);
+  return km != null && km <= KM_MISMO_LUGAR;
+}
+
+/** Actividades en el mismo lugar que `oferta` («Qué hacer allí» de la ficha). */
+export function actividadesCerca(ofertas, oferta, { max = 3 } = {}) {
+  if (!oferta || esActividad(oferta)) return [];
+  return ofertas
+    .filter((o) => esActividad(o) && o.id !== oferta.id && !esDuplicada(o) && mismoLugar(o.lugar, oferta.lugar))
+    .sort(porPuntuacion)
+    .slice(0, max);
 }
 
 /** Vuelos (con o sin fechas) que respetan los filtros de escapadas que tienen sentido para ellos. */
@@ -376,7 +452,7 @@ const nombreTema = (id, ctx) => (ctx.temas?.get(id)?.nombre ?? id).toLowerCase()
 export function planesSorpresa(ofertas, ctx, { max = 3, horasMax = 3, salto = 0 } = {}) {
   const candidatos = ofertas.filter((o) => {
     const d = ctx.distancias?.get(o.id);
-    return !esVuelo(o) && d?.minutos != null && d.minutos <= horasMax * 60;
+    return esEscapada(o) && d?.minutos != null && d.minutos <= horasMax * 60;
   }).sort(porPuntuacion);
   if (!candidatos.length) return [];
   const inicio = ((salto % candidatos.length) + candidatos.length) % candidatos.length;
@@ -423,7 +499,7 @@ export function recomendadas(ofertas, perfil, ctx, { max = 6 } = {}) {
   const pesoTema = new Map(perfil.temas.map(({ valor, n }) => [valor, n]));
   const pesoZona = new Map(perfil.zonas.map(({ valor, n }) => [valor, n]));
   return ofertas
-    .filter((o) => !ctx.favoritos?.has(o.id) && !esVuelo(o) && !esDuplicada(o))
+    .filter((o) => !ctx.favoritos?.has(o.id) && esEscapada(o) && !esDuplicada(o))
     .flatMap((o) => {
       const distancia = ctx.distancias?.get(o.id);
       const tema = o.temas.filter((t) => pesoTema.has(t)).sort((a, b) => pesoTema.get(b) - pesoTema.get(a))[0] ?? null;
@@ -483,7 +559,7 @@ export function resumenPuentes(ofertas, puentes = [], hoy, { descartadas } = {})
         pedir: diasAPedir(puente),
         festivos: puente.festivos ?? [],
         vuelos: disponibles.filter(tieneVuelo).sort(porPrecio),
-        escapadas: disponibles.filter((o) => !esVuelo(o)).sort((a, b) => suyas(a) - suyas(b) || porPuntuacion(a, b)),
+        escapadas: disponibles.filter((o) => esEscapada(o)).sort((a, b) => suyas(a) - suyas(b) || porPuntuacion(a, b)),
       };
     });
 }
@@ -496,7 +572,7 @@ export function resumenCalendario(ofertas, findes, puentes = []) {
       && (o.fechas?.findeId === finde.id || (puente != null && o.fechas?.puenteId === puente.id)));
     const vuelo = vuelos.filter((o) => typeof o.precio === 'number').sort(porPrecio)[0] ?? null;
     const periodo = periodoFinde(finde);
-    const escapadas = ofertas.filter((o) => !esVuelo(o) && disponibleEn(o, periodo)).length;
+    const escapadas = ofertas.filter((o) => esEscapada(o) && disponibleEn(o, periodo)).length;
     return { finde, puente, vuelo, vuelos: vuelos.length, escapadas };
   });
 }
@@ -590,7 +666,7 @@ export function criterioVigilado(nombre, f, { vista = 'escapadas' } = {}) {
   const criterio = {
     nombre: nombre.trim() || 'Mi búsqueda',
     texto: analizarConsulta(f.q ?? '').incluye.join(' ') || undefined,
-    tipo: (vista === 'vuelos' ? 'vuelo' : f.tipo) || undefined,
+    tipo: ({ vuelos: 'vuelo', actividades: 'actividad' }[vista] ?? f.tipo) || undefined,
     tema: f.temas?.length === 1 ? f.temas[0] : undefined,
     temas: f.temas?.length > 1 ? f.temas : undefined,
     fuente: f.fuente || undefined,

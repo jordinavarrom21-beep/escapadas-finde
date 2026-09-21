@@ -24,7 +24,9 @@ export const ETIQUETAS_REGIMEN = {
 
 export const ETIQUETAS_TRANSPORTE = { avion: '✈️ Avión', coche: '🚗 Coche', tren: '🚆 Tren', bus: '🚌 Autobús', ferry: '⛴️ Ferry' };
 
-export const ETIQUETAS_TIPO = { vuelo: 'Vuelo', escapada: 'Escapada', hotel: 'Hotel', paquete: 'Paquete' };
+export const ETIQUETAS_TIPO = {
+  vuelo: 'Vuelo', escapada: 'Escapada', hotel: 'Hotel', paquete: 'Paquete', actividad: 'Actividad', crucero: 'Crucero',
+};
 
 export const ETIQUETAS_ALOJAMIENTO = {
   hotel: '🏨 Hotel',

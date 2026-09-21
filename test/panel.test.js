@@ -3,17 +3,20 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 import {
-  analizarConsulta, buscarEscapadas, buscarTexto, chollosDeVuelos, crearHash, criterioVigilado, describirCriterio,
-  destinosDeVuelo, diasAPedir, disponibleEn, esNovedad, filtrarVuelos, leerFiltrosComunes, leerFiltrosEscapadas,
-  leerFiltrosVuelos, leerRuta, medirDistancias, perfilFavoritos, planesSorpresa, recomendadas,
-  referenciaNovedades, resumenCalendario, resumenFuentes, resumenPuentes, urlEditarVigilados, vuelosParaMapa,
+  actividadesCerca, actividadesPara, analizarConsulta, buscarActividades, buscarEscapadas, buscarTexto,
+  chollosDeVuelos, crearHash, criterioVigilado, describirCriterio, destinosDeVuelo, diasAPedir, disponibleEn,
+  duracionActividad, esActividad, esNovedad, filtrarVuelos, leerFiltrosActividades, leerFiltrosComunes,
+  leerFiltrosEscapadas, leerFiltrosVuelos, leerRuta, medirDistancias, perfilFavoritos, periodoFinde,
+  planesSorpresa, recomendadas, referenciaNovedades, resumenCalendario, resumenFuentes, resumenPuentes,
+  urlEditarVigilados, vuelosParaMapa,
 } from '../site/js/filtros.js';
 import { estadoFinde, findesProximos, proximoPuente } from '../site/js/fechas.js';
 import { cuentaAtras, euros } from '../site/js/formato.js';
 import { parsearPhoton, urlPhoton } from '../site/js/geo.js';
-import { tarjeta } from '../site/js/plantillas.js';
+import { contenidoFicha, tarjeta } from '../site/js/plantillas.js';
 import {
-  contenidoSorpresa, resultadosVuelos, vistaCalendario, vistaEscapadas, vistaFinde, vistaFuentes, vistaPuentes,
+  contenidoSorpresa, resultadosVuelos, vistaActividades, vistaCalendario, vistaEscapadas, vistaFinde,
+  vistaFuentes, vistaPuentes,
 } from '../site/js/vistas.js';
 import { crearServidor, rutaArchivo } from '../scripts/servir.js';
 
@@ -255,6 +258,116 @@ describe('filtros nuevos de escapadas', () => {
   });
 });
 
+describe('actividades', () => {
+  const actividades = ofertas.filter(esActividad);
+  const buscarAct = (params) => buscarActividades(ofertas, leerFiltrosActividades(params), ctxBusqueda);
+  const ctxFicha = {
+    temas, fuentes: new Map(datos.fuentes.map((f) => [f.id, f.nombre])), favoritos: new Set(), historial,
+    viajeros: datos.viajeros, distancias: medirDistancias(ofertas, null, origen), desde: origen.nombre,
+  };
+  const escapadaGirona = ofertas.find((o) => o.lugar?.nombre === 'Girona' && !esActividad(o) && o.tipo !== 'vuelo');
+
+  it('el ejemplo trae actividades de Civitatis y GuruWalk, con precio por persona y algunas gratis', () => {
+    assert.equal(actividades.length, 10);
+    assert.deepEqual([...new Set(actividades.map((o) => o.fuente))].sort(), ['civitatis', 'guruwalk']);
+    assert.equal(actividades.filter((o) => o.precio === 0).length, 4);
+    assert.ok(actividades.every((o) => o.unidad === 'pp' && o.valoracion.nota > 0 && o.noches === null));
+  });
+
+  it('la duración sale de la etiqueta «duracion:<minutos>»', () => {
+    assert.equal(duracionActividad(porId('guruwalk:free-tour-barrio-gotico-barcelona')), 150);
+    assert.equal(duracionActividad({ etiquetas: ['temperatura:356'] }), null);
+    assert.equal(duracionActividad({ etiquetas: ['duracion:0'] }), null);
+    assert.equal(duracionActividad({}), null);
+  });
+
+  it('filtra por texto, lugar o destino, precio máximo, «solo gratis», valoración y temática', () => {
+    assert.equal(buscarAct({}).length, actividades.length);
+    assert.ok(buscarAct({}).every(esActividad), 'solo actividades, ni escapadas ni vuelos');
+    const gratis = buscarAct({ gratis: '1' });
+    assert.ok(gratis.length === 4 && gratis.every((o) => o.precio === 0));
+    assert.ok(buscarAct({ max: '20' }).every((o) => o.precio <= 20));
+    assert.equal(buscarAct({ gratis: '1', max: '5' }).length, 4, 'las gratis caben en cualquier precio máximo');
+    const girona = buscarAct({ dest: 'Girona' });
+    assert.ok(girona.length >= 2 && girona.every((o) => o.lugar.nombre === 'Girona' || o.lugar.region === 'Girona'));
+    assert.ok(buscarAct({ nota: '9.2' }).every((o) => o.valoracion.nota >= 9.2));
+    assert.ok(buscarAct({ temas: 'gastronomia' }).every((o) => o.temas.includes('gastronomia')));
+    const conTexto = buscarAct({ q: 'free tour girona' });
+    assert.ok(conTexto.length > 0 && conTexto.every((o) => o.precio === 0));
+    assert.ok(conTexto.some((o) => o.id === 'guruwalk:free-tour-girona-judia'));
+    assert.deepEqual(buscarAct({ q: 'free tour -besalu' }).filter((o) => o.lugar.nombre === 'Besalú'), []);
+  });
+
+  it('ordena por puntuación (por defecto), por precio y por valoración', () => {
+    const precios = buscarAct({ orden: 'precio' }).map((o) => o.precio);
+    assert.deepEqual(precios, [...precios].sort((a, b) => a - b));
+    const notas = buscarAct({ orden: 'valoracion' }).map((o) => o.valoracion.nota);
+    assert.deepEqual(notas, [...notas].sort((a, b) => b - a));
+    const puntos = buscarAct({ orden: 'inventado' }).map((o) => o.puntuacion);
+    assert.deepEqual(puntos, [...puntos].sort((a, b) => b - a));
+  });
+
+  it('no se mezclan con las escapadas, pero la búsqueda global sí las encuentra', () => {
+    assert.ok(actividades.length > 0 && !buscar({}).some(esActividad));
+    assert.ok(!resumenPuentes(ofertas, datos.puentes, HOY)[0].escapadas.some(esActividad));
+    assert.ok(buscarTexto(ofertas, leerFiltrosComunes({ q: 'free tour' }), ctxBusqueda).some(esActividad));
+  });
+
+  it('propone las mejores para este finde y las del mismo lugar que una escapada', () => {
+    const delFinde = actividadesPara(ofertas, periodoFinde(finde), { max: 4 });
+    assert.equal(delFinde.length, 4);
+    assert.ok(delFinde.every(esActividad));
+    assert.ok(delFinde.every((o, i) => i === 0 || delFinde[i - 1].puntuacion >= o.puntuacion));
+    assert.equal(actividadesPara(ofertas, periodoFinde(finde), { max: 4, descartadas: new Set([delFinde[0].id]) })[0].id,
+      delFinde[1].id, 'las descartadas no se proponen');
+
+    const cerca = actividadesCerca(ofertas, escapadaGirona);
+    assert.ok(cerca.length >= 2 && cerca.length <= 3);
+    assert.ok(cerca.every((o) => esActividad(o) && o.lugar.nombre === 'Girona'));
+    assert.deepEqual(actividadesCerca(ofertas, actividades[0]), [], 'una actividad no se recomienda a sí misma');
+    const vueloOporto = ofertas.find((o) => o.lugar?.iata === 'OPO');
+    const conOtroNombre = { ...vueloOporto, lugar: { ...vueloOporto.lugar, nombre: 'Porto' } };
+    assert.equal(actividadesCerca(ofertas, conOtroNombre).length, 1, 'vale con estar a menos de 25 km');
+    assert.deepEqual(actividadesCerca(ofertas, { ...vueloOporto, lugar: null }), []);
+  });
+
+  it('la vista de actividades trae sus filtros, la duración y el precio «Gratis»', () => {
+    const html = vistaActividades(estadoPanel(), { gratis: '1' });
+    for (const campo of ['q', 'temas', 'dest', 'max', 'nota', 'orden', 'gratis']) {
+      assert.match(html, new RegExp(`name="${campo}"`), `falta el filtro ${campo}`);
+    }
+    assert.match(html, /4 actividades · 4 gratuitas/);
+    assert.match(html, /<strong class="precio__gratis">Gratis<\/strong> <span class="precio__unidad">propina voluntaria/);
+    assert.match(html, /⏱️ 2 h 30 min/);
+    assert.match(html, /Actividad · GuruWalk/);
+    assert.match(vistaActividades(estadoPanel(), { temas: 'gastronomia', nota: '9.9' }), /Ninguna actividad cumple estos filtros/);
+  });
+
+  it('la portada las propone y la ficha enseña qué hacer allí', () => {
+    const portada = vistaFinde(estadoPanel(), {});
+    assert.match(portada, /🎟️ Actividades para este finde/);
+    assert.match(portada, /href="#\/actividades"/);
+
+    const conActividades = contenidoFicha(escapadaGirona, { ...ctxFicha, actividades: actividadesCerca(ofertas, escapadaGirona) });
+    assert.match(conActividades, /Qué hacer allí/);
+    assert.match(conActividades, /Free tour por la Girona jud/);
+    assert.match(conActividades, /class="fila__precio">Gratis</);
+    assert.ok(!/Qué hacer allí/.test(contenidoFicha(escapadaGirona, ctxFicha)), 'sin actividades no aparece la sección');
+  });
+
+  it('los cruceros se ocultan en las escapadas salvo que se apague el interruptor', () => {
+    const base = porId('chollometro:hotel-en-sitges-para-el-festival-de-cine');
+    const crucero = { ...base, id: 'prueba:crucero', tipo: 'crucero', titulo: 'Crucero de 4 noches por el Mediterráneo', etiquetas: [] };
+    const conCrucero = [...ofertas, crucero];
+    const ver = (params) => buscarEscapadas(conCrucero, leerFiltrosEscapadas(params), ctxBusqueda).ofertas;
+    assert.equal(leerFiltrosEscapadas({}).sinCruceros, true, 'activado por defecto');
+    assert.ok(!ver({}).some((o) => o.id === crucero.id));
+    assert.ok(ver({ cru: '0' }).some((o) => o.id === crucero.id));
+    assert.match(vistaEscapadas(estadoPanel(), {}), /name="cru" value="1" data-defecto checked>\s*🚢 Ocultar cruceros/);
+    assert.match(vistaEscapadas(estadoPanel({ ...datos, ofertas: conCrucero }), {}), /<option value="crucero">Crucero/);
+  });
+});
+
 describe('ayudas para elegir', () => {
   it('«Sorpréndeme» propone tres planes variados a menos de 3 h y cambia con cada ronda', () => {
     const { ofertas: lista, distancias } = buscarEscapadas(ofertas, leerFiltrosEscapadas({}), ctxBusqueda);
@@ -342,7 +455,7 @@ describe('búsqueda, novedades y resúmenes', () => {
   });
 
   it('estado de las fuentes: las bloqueadas y desactivadas no cuentan como fallo y se muestra el motivo', () => {
-    assert.deepEqual(resumenFuentes(datos.fuentes), { activas: 7, ok: 6, conError: 1, inactivas: 2 });
+    assert.deepEqual(resumenFuentes(datos.fuentes), { activas: 9, ok: 8, conError: 1, inactivas: 2 });
     const html = vistaFuentes(estadoPanel());
     assert.match(html, /Bloqueada<\/span><\/td>\s*<td data-etiqueta="Detalle">Su robots\.txt prohíbe \/api/);
     assert.match(html, /HTTP 403 en www\.nomolesten\.com/);
@@ -441,7 +554,7 @@ describe('vistas nuevas', () => {
     const e = estadoPanel();
     e.busquedas = [{ nombre: 'Spa barato', vista: 'escapadas', hash: '#/escapadas?temas=spa&pnMax=40' }];
     const html = vistaEscapadas(e, { aloj: 'casa-rural', nodest: 'Sitges' });
-    for (const campo of ['q', 'pnMin', 'pnMax', 'dto', 'pts', 'nota', 'aloj', 'region', 'sincoche', 'clasica', 'desde', 'cho', 'sindesc', 'dup']) {
+    for (const campo of ['q', 'pnMin', 'pnMax', 'dto', 'pts', 'nota', 'aloj', 'region', 'sincoche', 'clasica', 'desde', 'cho', 'sindesc', 'dup', 'cru']) {
       assert.match(html, new RegExp(`name="${campo}"`), `falta el filtro ${campo}`);
     }
     assert.match(html, /<option value="casa-rural" selected/);
