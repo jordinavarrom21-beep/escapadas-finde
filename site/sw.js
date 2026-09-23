@@ -1,15 +1,23 @@
 /**
  * Service worker del panel: la interfaz se sirve desde la caché (y se actualiza
  * en segundo plano) y los datos, primero desde la red con la caché de respaldo.
+ *
+ * VERSION cambia con cada commit (el workflow le pone el SHA al desplegar): así el
+ * navegador instala la interfaz nueva entera de una vez, sin mezclar módulos viejos
+ * y nuevos, y borra la caché anterior.
  */
 
-const VERSION = 'escapadas-interfaz-v1';
+const VERSION = 'escapadas-interfaz-dev';
 const CACHE_DATOS = 'escapadas-datos';
 const INTERFAZ = [
   './',
   'index.html',
   'css/estilos.css',
   'icono.svg',
+  'icono-192.png',
+  'icono-512.png',
+  'icono-maskable-512.png',
+  'apple-touch-icon.png',
   'manifest.webmanifest',
   'js/app.js',
   'js/cdn.js',
@@ -26,7 +34,9 @@ const INTERFAZ = [
 ];
 
 self.addEventListener('install', (evento) => {
-  evento.waitUntil(caches.open(VERSION).then((cache) => cache.addAll(INTERFAZ)).then(() => self.skipWaiting()));
+  // «reload» salta la caché HTTP del navegador: si no, podría guardar una versión de hace minutos.
+  const peticiones = INTERFAZ.map((ruta) => new Request(ruta, { cache: 'reload' }));
+  evento.waitUntil(caches.open(VERSION).then((cache) => cache.addAll(peticiones)).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (evento) => {
@@ -59,7 +69,8 @@ async function primeroCache(peticion, evento) {
       return respuesta;
     });
   if (guardada) {
-    evento.waitUntil(actualizar.catch(() => {}));
+    // Sin red se sigue con la copia guardada; el fallo solo se anota.
+    evento.waitUntil(actualizar.catch((error) => console.warn(`No se ha podido actualizar ${peticion.url}:`, error)));
     return guardada;
   }
   return actualizar;

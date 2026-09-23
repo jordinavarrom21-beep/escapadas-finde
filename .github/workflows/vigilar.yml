@@ -91,6 +91,15 @@ jobs:
           git commit -q -m "Datos del $(date -u +'%Y-%m-%d %H:%M') UTC"
           git push -q --force "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" datos
 
+      # Cada commit cambia la versión de la caché del service worker: los navegadores
+      # instalan la interfaz nueva entera en lugar de mezclarla con la vieja.
+      - name: Versionar la caché del panel
+        if: ${{ !cancelled() && steps.escaneo.conclusion != 'skipped' }}
+        run: |
+          version="escapadas-interfaz-${GITHUB_SHA::12}"
+          sed -i "s/escapadas-interfaz-dev/${version}/" site/sw.js
+          grep -q "'${version}'" site/sw.js
+
       - uses: actions/configure-pages@v6
         if: ${{ !cancelled() && steps.escaneo.conclusion != 'skipped' }}
 
