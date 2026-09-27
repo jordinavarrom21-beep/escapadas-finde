@@ -415,7 +415,8 @@ async function iniciar() {
       cargarJson('data/vigilados.json', { vigilados: [] }),
     ]);
     estado = crearEstado(datos, historial, vigilados);
-  } catch {
+  } catch (error) {
+    console.error('No se han podido cargar los datos del panel:', error);
     principal.innerHTML = estadoVacio('No se han podido cargar las ofertas',
       'Puede que aún no se haya hecho la primera revisión o que no haya conexión.', '<a class="boton boton--primario" href="">Reintentar</a>');
     return;
@@ -425,7 +426,10 @@ async function iniciar() {
   pintarNovedades();
   render({ enfocar: false });
   setInterval(pintarReloj, 30_000);
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+  if ('serviceWorker' in navigator) {
+    // Sin service worker el panel funciona igual, solo que no se instala ni va sin conexión.
+    navigator.serviceWorker.register('sw.js').catch((error) => console.warn('No se ha podido registrar el service worker:', error));
+  }
 }
 
 iniciar();

@@ -1,33 +1,73 @@
 /**
- * Envío de emails con nodemailer (Gmail por defecto). Las credenciales llegan por
- * variables de entorno (secretos del repo) y nunca se registran.
+ * Envío de emails con nodemailer. Las credenciales llegan por variables de entorno
+ * (secretos del repo) y nunca se registran.
  *
- * Remitente: SMTP_USER/SMTP_PASS o, si no están, el Gmail dedicado del buzón
- * (GMAIL_USER/GMAIL_APP_PASSWORD). Destinatario: EMAIL_TO.
+ * Remitente, uno de estos dos juegos COMPLETOS (nunca se mezclan campos de uno y otro,
+ * para no mandar la contraseña de una cuenta al servidor de la otra):
+ *   - SMTP_HOST + SMTP_USER + SMTP_PASS (+ SMTP_PORT, 587 por defecto): cualquier servidor.
+ *   - GMAIL_USER + GMAIL_APP_PASSWORD: el Gmail dedicado del buzón.
+ * Si hay algo de SMTP_*, manda SMTP. Destinatario: EMAIL_TO.
  */
 import nodemailer from 'nodemailer';
 
-function credenciales(env) {
+const PUERTO_SMTP = 587;
+const PUERTO_TLS_DIRECTO = 465;
+
+/**
+ * Qué cuenta se usaría para enviar, sin crear nada.
+ * @returns {{estado: 'sin-configurar'} | {estado: 'incompleta', motivo: string} |
+ *   {estado: 'lista', remitente: string, opciones: object}}
+ */
+export function configuracionEnvio(env) {
+  const faltan = (nombres) => nombres.filter((nombre) => !env[nombre]);
+  const smtp = ['SMTP_HOST', 'SMTP_USER', 'SMTP_PASS'];
+  const gmail = ['GMAIL_USER', 'GMAIL_APP_PASSWORD'];
+  const usaSmtp = [...smtp, 'SMTP_PORT'].some((nombre) => env[nombre]);
+  const cuenta = usaSmtp ? smtp : gmail;
+  const hayAlgo = usaSmtp || gmail.some((nombre) => env[nombre]) || env.EMAIL_TO;
+  if (!hayAlgo) return { estado: 'sin-configurar' };
+
+  const falta = [...faltan(cuenta), ...faltan(['EMAIL_TO'])];
+  if (falta.length) {
+    const tipo = usaSmtp ? 'SMTP' : 'Gmail';
+    return { estado: 'incompleta', motivo: `Emails desactivados: la cuenta ${tipo} está a medias, falta ${falta.join(', ')}` };
+  }
+  if (!usaSmtp) {
+    return {
+      estado: 'lista',
+      remitente: env.GMAIL_USER,
+      opciones: { service: 'gmail', auth: { user: env.GMAIL_USER, pass: env.GMAIL_APP_PASSWORD } },
+    };
+  }
+  const puerto = env.SMTP_PORT ? Number(env.SMTP_PORT) : PUERTO_SMTP;
+  if (!Number.isInteger(puerto) || puerto < 1 || puerto > 65535) {
+    return { estado: 'incompleta', motivo: `Emails desactivados: SMTP_PORT no es un puerto válido («${env.SMTP_PORT}»)` };
+  }
+  const tlsDirecto = puerto === PUERTO_TLS_DIRECTO;
   return {
-    user: env.SMTP_USER || env.GMAIL_USER,
-    pass: env.SMTP_PASS || env.GMAIL_APP_PASSWORD,
+    estado: 'lista',
+    remitente: env.SMTP_USER,
+    // Sin TLS directo se exige STARTTLS: nunca se manda la contraseña en claro.
+    opciones: { host: env.SMTP_HOST, port: puerto, secure: tlsDirecto, requireTLS: !tlsDirecto, auth: { user: env.SMTP_USER, pass: env.SMTP_PASS } },
   };
 }
 
-/** Transporte listo para enviar, o null si faltan credenciales o EMAIL_TO. */
-export function crearTransporte(env) {
-  const auth = credenciales(env);
-  if (!auth.user || !auth.pass || !env.EMAIL_TO) return null;
-  const { SMTP_HOST, SMTP_PORT } = env;
-  return SMTP_HOST
-    ? nodemailer.createTransport({ host: SMTP_HOST, port: Number(SMTP_PORT ?? 587), secure: Number(SMTP_PORT) === 465, auth })
-    : nodemailer.createTransport({ service: 'gmail', auth });
+/**
+ * Transporte listo para enviar, o null si no hay cuenta configurada. Si está a
+ * medias, lo dice por `log` (una cuenta mal puesta no debe parar el escaneo).
+ */
+export function crearTransporte(env, log = console.warn) {
+  const config = configuracionEnvio(env);
+  if (config.estado === 'incompleta') log(config.motivo);
+  return config.estado === 'lista' ? nodemailer.createTransport(config.opciones) : null;
 }
 
-/** Envía `{asunto, html, texto}` a EMAIL_TO. */
+/** Envía `{asunto, html, texto}` a EMAIL_TO desde la cuenta configurada. */
 export async function enviarEmail(transporte, { asunto, html, texto }, env) {
+  const config = configuracionEnvio(env);
+  if (config.estado !== 'lista') throw new Error('No hay una cuenta de envío completa');
   await transporte.sendMail({
-    from: `Escapadas Finde <${credenciales(env).user}>`,
+    from: `Escapadas Finde <${config.remitente}>`,
     to: env.EMAIL_TO,
     subject: asunto,
     html,

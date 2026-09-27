@@ -29,6 +29,7 @@ const INTERFAZ = [
   'js/local.js',
   'js/mapa.js',
   'js/plantillas.js',
+  'js/tema.js',
   'js/ubicacion.js',
   'js/vistas.js',
 ];

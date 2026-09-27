@@ -2,6 +2,10 @@
 <html lang="es">
 <head>
   <meta charset="utf-8">
+  <!-- Defensa en profundidad: aunque se colara HTML en una oferta, no podría ejecutar
+       scripts en línea ni cargar código de otros sitios. Imágenes de cualquier web https
+       (las de las ofertas); conexiones solo al propio sitio y al buscador de lugares. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' https: data:; connect-src 'self' https://photon.komoot.io; object-src 'none'; base-uri 'self'; form-action 'self'">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Escapadas Finde</title>
   <meta name="description" content="Vuelos y escapadas de fin de semana desde Barcelona, revisados cada 30 minutos.">
@@ -12,12 +16,7 @@
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <meta name="apple-mobile-web-app-title" content="Escapadas">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <script>
-    try {
-      const tema = localStorage.getItem('escapadas:tema');
-      if (tema === 'claro' || tema === 'oscuro') document.documentElement.dataset.theme = tema === 'claro' ? 'light' : 'dark';
-    } catch {}
-  </script>
+  <script src="js/tema.js"></script>
   <link rel="stylesheet" href="css/estilos.css">
   <link rel="modulepreload" href="js/filtros.js">
   <link rel="modulepreload" href="js/vistas.js">

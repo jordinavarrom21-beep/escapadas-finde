@@ -185,7 +185,7 @@ export async function escanear({
 
   let emails = { enviados: [], errores: [] };
   if (!opciones.sinEmails) {
-    const transporte = m.crearTransporte(env);
+    const transporte = m.crearTransporte(env, conPrefijo('emails'));
     emails = await m.procesarEmails({
       ofertas, estado, ajustes, vigilados, findes, puentes, fuentes: estadoFuentes, panelUrl, ahora,
       enviar: transporte ? (mensaje) => m.enviarEmail(transporte, mensaje, env) : null,

@@ -4,7 +4,7 @@
  */
 
 import { LEAFLET, cargarEstilo, cargarScript } from './cdn.js';
-import { euros } from './formato.js';
+import { escaparHtml, euros } from './formato.js';
 import { tarjeta } from './plantillas.js';
 
 const ATRIBUCION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
@@ -56,7 +56,8 @@ function encuadrar(L, d) {
 export async function pintarMapa(contenedor, d, ctx) {
   try {
     await Promise.all([cargarEstilo(LEAFLET.css), cargarScript(LEAFLET.js)]);
-  } catch {
+  } catch (error) {
+    console.error('No se ha podido cargar Leaflet:', error);
     contenedor.innerHTML = '<p class="mapa__cargando">No se ha podido cargar el mapa. Comprueba la conexión y vuelve a intentarlo.</p>';
     return;
   }
@@ -80,7 +81,8 @@ export async function pintarMapa(contenedor, d, ctx) {
       .addTo(capas.vuelos);
   }
   L.circleMarker([d.punto.lat, d.punto.lon], { radius: 6, color: '#ffffff', weight: 2, fillColor: '#111827', fillOpacity: 1 })
-    .bindTooltip(d.desde).addTo(capas.busqueda);
+    // Leaflet mete el texto del tooltip con innerHTML, y el nombre puede venir del hash de la URL.
+    .bindTooltip(escaparHtml(d.desde)).addTo(capas.busqueda);
   if (d.radioKm) {
     L.circle([d.punto.lat, d.punto.lon], { radius: d.radioKm * 1000, color: acento, weight: 2, fillOpacity: 0.08, interactive: false })
       .addTo(capas.busqueda);

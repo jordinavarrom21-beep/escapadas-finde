@@ -45,10 +45,12 @@ const positivo = (valor) => {
   const n = Number(valor);
   return valor != null && valor !== '' && Number.isFinite(n) && n > 0 ? n : null;
 };
-const coordenada = (valor) => {
+const coordenada = (valor, limite) => {
   const n = Number(valor);
-  return valor != null && valor !== '' && Number.isFinite(n) ? n : null;
+  return valor != null && valor !== '' && Number.isFinite(n) && Math.abs(n) <= limite ? n : null;
 };
+/** Nombre del punto de búsqueda tal como llega del hash: texto corto, sin marcas. */
+const nombreLugar = (valor) => (valor ?? '').replace(/[<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 80);
 const lista = (valor) => (valor ?? '').split(',').map((parte) => parte.trim()).filter(Boolean);
 const dia = (valor) => (/^\d{4}-\d{2}-\d{2}$/.test(valor ?? '') ? valor : '');
 
@@ -90,8 +92,8 @@ export function leerFiltrosVuelos(p = {}) {
 }
 
 export function leerFiltrosEscapadas(p = {}) {
-  const lat = coordenada(p.lat);
-  const lon = coordenada(p.lon);
+  const lat = coordenada(p.lat, 90);
+  const lon = coordenada(p.lon, 180);
   const horas = Number(p.h);
   return {
     ...leerFiltrosComunes(p),
@@ -104,7 +106,7 @@ export function leerFiltrosEscapadas(p = {}) {
     alojamiento: ALOJAMIENTOS.includes(p.aloj) ? p.aloj : '',
     fuente: p.fuente ?? '',
     tipo: p.tipo ?? '',
-    punto: lat != null && lon != null ? { nombre: p.lugar || 'Punto elegido', lat, lon } : null,
+    punto: lat != null && lon != null ? { nombre: nombreLugar(p.lugar) || 'Punto elegido', lat, lon } : null,
     horas: [1, 2, 3, 4].includes(horas) ? horas : null,
     km: positivo(p.km),
     // Los cruceros se esconden salvo que se pida verlos («cru=0» apaga el interruptor).

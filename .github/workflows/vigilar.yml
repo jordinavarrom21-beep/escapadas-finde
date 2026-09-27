@@ -1,10 +1,13 @@
-# Vigila las ofertas cada 30 minutos, guarda el estado en la rama «datos»,
+# Vigila las ofertas, guarda el estado en la rama «datos»,
 # publica el panel en GitHub Pages y envía los emails que tocan.
 name: Vigilar ofertas
 
 on:
   schedule:
-    - cron: '7,37 * * * *'
+    # GitHub no garantiza los crons: con «7,37» solo llegaban ~6 de 48 al día (un escaneo
+    # cada ~4 h). Con más disparos llegan más; cada fuente sigue respetando su intervalo
+    # (config/ajustes.json), así que las webs no reciben más peticiones por esto.
+    - cron: '7-59/10 * * * *'
   workflow_dispatch:
     inputs:
       forzar:
@@ -41,38 +44,64 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.despliegue.outputs.page_url }}
-    env:
-      GMAIL_USER: ${{ secrets.GMAIL_USER }}
-      GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
-      EMAIL_TO: ${{ secrets.EMAIL_TO }}
-      SMTP_USER: ${{ secrets.SMTP_USER }}
-      SMTP_PASS: ${{ secrets.SMTP_PASS }}
+    # Los secretos NO van aquí (a nivel de job los verían npm ci, los tests y las acciones
+    # de terceros): solo en los dos pasos que envían o leen correo.
     steps:
-      - uses: actions/checkout@v7
+      # Acciones fijadas por SHA (el comentario dice qué versión es): una etiqueta se puede mover.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false   # que el token no quede guardado en .git para los pasos siguientes
 
       - name: Recuperar los datos guardados
         run: |
-          if git ls-remote --exit-code --heads origin datos > /dev/null; then
+          # ls-remote devuelve 2 si la rama no existe y otro código si falla la red: en ese
+          # caso hay que parar, porque seguir escanearía desde cero y el push forzado del
+          # final sustituiría «datos» por un estado vacío (historial, avisos y vigilados).
+          set +e
+          git ls-remote --exit-code --heads origin datos > /dev/null
+          codigo=$?
+          set -e
+          if [ "$codigo" -eq 0 ]; then
             git fetch --depth=1 origin datos
             git checkout FETCH_HEAD -- data
-          else
+          elif [ "$codigo" -eq 2 ]; then
             echo "Primera ejecución: todavía no existe la rama «datos»"
+          else
+            echo "::error::No se ha podido consultar la rama «datos» (código $codigo): no se escanea para no perder los datos"
+            exit 1
           fi
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 24
           cache: npm
 
-      - run: npm ci
+      # Ninguna dependencia necesita scripts de instalación: así no se ejecuta código al instalar.
+      - run: npm ci --ignore-scripts
       - run: npm test
 
       - name: Escanear ofertas
         id: escaneo
+        env:
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
         run: npm run escanear -- ${{ inputs.forzar && '--forzar' || '' }}
 
       - name: Email de prueba
         if: inputs.email_prueba
+        env:
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
         run: npm run email:prueba
 
       - name: Guardar los datos en la rama «datos»
@@ -100,17 +129,17 @@ jobs:
           sed -i "s/escapadas-interfaz-dev/${version}/" site/sw.js
           grep -q "'${version}'" site/sw.js
 
-      - uses: actions/configure-pages@v6
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6
         if: ${{ !cancelled() && steps.escaneo.conclusion != 'skipped' }}
 
-      - uses: actions/upload-pages-artifact@v5
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5
         if: ${{ !cancelled() && steps.escaneo.conclusion != 'skipped' }}
         with:
           path: site
 
       - id: despliegue
         if: ${{ !cancelled() && steps.escaneo.conclusion != 'skipped' }}
-        uses: actions/deploy-pages@v5
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5
 
       # GitHub desactiva los crons de los repos sin actividad en 60 días.
       - name: Mantener vivo el cron

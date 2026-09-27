@@ -15,7 +15,8 @@ const colorCss = (nombre) => getComputedStyle(document.documentElement).getPrope
 async function dibujarGrafica(lienzo, serie) {
   try {
     await cargarScript(CHART);
-  } catch {
+  } catch (error) {
+    console.error('No se ha podido cargar Chart.js:', error);
     lienzo.closest('.ficha__grafica')?.replaceWith(Object.assign(document.createElement('p'), {
       className: 'suave', textContent: 'No se ha podido cargar la gráfica.',
     }));

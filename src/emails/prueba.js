@@ -7,7 +7,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { crearTransporte, enviarEmail } from './enviar.js';
+import { configuracionEnvio, crearTransporte, enviarEmail } from './enviar.js';
 import { alertaChollazos, alertaFuentes, alertaVigilados, resumenSemanal } from './plantillas.js';
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
@@ -42,5 +42,7 @@ if (transporte) {
     writeFileSync(path.join(destino, `${nombre}.html`), html);
     console.log(`${nombre}.html — «${asunto}»`);
   }
-  console.log(`Sin SMTP configurado: emails guardados en ${destino} (datos de ${rutaDatos}).`);
+  const config = configuracionEnvio(process.env);
+  const porque = config.estado === 'incompleta' ? config.motivo : 'Sin cuenta de envío configurada';
+  console.log(`${porque}: emails guardados en ${destino} (datos de ${rutaDatos}).`);
 }
