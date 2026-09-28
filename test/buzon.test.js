@@ -2,8 +2,9 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
 import fuente, {
-  ErrorBloqueo, comercioDe, enlacesPorResolver, leerBuzon, limpiarTexto, nombresPrivados,
-  parsearEmail, resolverEnlace, urlDirecta,
+  ErrorBloqueo, comercioDe, enlacesPorResolver, esTransaccional, interpretarMensaje, leerBuzon, limpiarTexto,
+  newslettersAutenticas, nombresConfigurados, nombresPrivados, pareceToken, parsearEmail, remitenteVerificado,
+  resolverEnlace, urlDirecta,
 } from '../src/fuentes/buzon.js';
 import { Cache } from '../src/cache.js';
 import { validarOferta } from '../src/modelo.js';
@@ -251,9 +252,25 @@ describe('buzon: privacidad de los textos', () => {
 // obtener() con un cliente IMAP y una red simulados
 // ---------------------------------------------------------------------------
 
-function mime({ de, para, asunto, fecha, html, messageId }) {
+/** Authentication-Results como la que pone Gmail al recibir un correo del dominio `dominio`. */
+const autenticacionGmail = (dominio, resultado = 'pass') => [
+  'Authentication-Results: mx.google.com;',
+  `       dkim=${resultado} header.i=@${dominio} header.s=s1 header.b=AbCdEf12;`,
+  `       spf=${resultado} (google.com: domain of bounces@${dominio} designates 192.0.2.10 as permitted sender) smtp.mailfrom=bounces@${dominio};`,
+  `       dmarc=${resultado} (p=REJECT sp=REJECT dis=NONE) header.from=${dominio}`,
+];
+
+/**
+ * Mensaje RFC 822 como los que devuelve Gmail: por defecto con su Authentication-Results
+ * (DKIM y DMARC correctos para el dominio del remitente) y con List-Unsubscribe.
+ */
+function mime({ de, para, asunto, fecha, html, messageId }, { autenticacion, lista = true, cabeceras = [] } = {}) {
   const cuerpo = Buffer.from(html, 'utf8').toString('base64').replace(/.{76}/g, '$&\r\n');
+  const dominio = de.match(/@([\w.-]+)>?\s*$/)[1];
   return Buffer.from([
+    ...(autenticacion ?? autenticacionGmail(dominio)),
+    ...cabeceras,
+    ...(lista ? [`List-Unsubscribe: <https://${dominio}/baja>`] : []),
     `From: ${de}`,
     `To: ${para}`,
     `Subject: =?UTF-8?B?${Buffer.from(asunto, 'utf8').toString('base64')}?=`,
@@ -363,7 +380,7 @@ describe('buzon: obtener', () => {
     // 3 de Booking + 4 de Vueling (repetido en las dos carpetas) + 3 de Groupon; ni la alerta ni el antiguo.
     assert.equal(ofertas.length, 10);
     for (const o of ofertas) assert.deepEqual(validarOferta(o), [], o.id);
-    assert.ok(logs.some((l) => /1 emails de remitentes no reconocidos/.test(l)));
+    assert.ok(logs.includes('1 emails ignorados: remitente que no es un comercio conocido'), logs.join(' | '));
 
     assert.equal(porTitulo(ofertas, 'Hotel Peralada').url, 'https://www.booking.com/hotel/es/peralada.es.html');
     assert.equal(porTitulo(ofertas, 'Parador de Cardona').url, 'https://www.booking.com/hotel/es/parador-de-cardona.es.html');
@@ -434,5 +451,145 @@ describe('buzon: obtener', () => {
     assert.equal(fuente.modo, 'buzon');
     assert.deepEqual(fuente.requiere, ['GMAIL_USER', 'GMAIL_APP_PASSWORD']);
     assert.deepEqual(fuente.urls, []);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Seguridad y privacidad: cada caso reproduce un ataque o una fuga real
+// ---------------------------------------------------------------------------
+
+describe('buzon: solo newsletters auténticas', () => {
+  const booking = comercioDe('x@booking.com');
+  const GMAIL_OK = 'mx.google.com; dkim=pass header.i=@sg.booking.com header.s=s1; spf=pass smtp.mailfrom=b@sg.booking.com; dmarc=pass (p=REJECT) header.from=sg.booking.com';
+
+  it('el nombre visible no cuenta: solo la dirección real', () => {
+    assert.equal(comercioDe('"ofertas@booking.com" <atacante@evil.example>'), null);
+    assert.equal(comercioDe('ofertas@booking.com <atacante@evil.example>'), null);
+    assert.equal(comercioDe('ofertas@booking.com atacante@evil.example'), null);
+    assert.equal(comercioDe('email.campaign@sg.booking.com').nombre, 'Booking.com');
+  });
+
+  it('exige que Gmail haya verificado DMARC o DKIM del dominio del comercio', () => {
+    assert.ok(remitenteVerificado({ autenticacion: GMAIL_OK }, booking));
+    assert.ok(remitenteVerificado({ autenticacion: 'mx.google.com; dkim=pass header.d=booking.com; dmarc=fail header.from=booking.com' }, booking));
+    assert.ok(!remitenteVerificado({ autenticacion: 'mx.google.com; dkim=fail header.i=@booking.com; dmarc=fail header.from=booking.com' }, booking));
+    assert.ok(!remitenteVerificado({ autenticacion: 'mx.google.com; dkim=pass header.i=@evil.example; dmarc=pass header.from=evil.example' }, booking));
+    assert.ok(!remitenteVerificado({ autenticacion: 'otro-servidor.example; dmarc=pass header.from=booking.com' }, booking), 'solo vale el de Gmail');
+    assert.ok(!remitenteVerificado({}, booking));
+  });
+
+  it('lee la cabecera de Gmail (la primera), no una falsa escrita por el remitente más abajo', async () => {
+    const falsa = ['Authentication-Results: mx.google.com; dmarc=pass (p=REJECT) header.from=booking.com'];
+    const email = await interpretarMensaje(mime({ ...EMAILS.booking, de: 'Booking.com <ofertas@booking.com>' }, {
+      autenticacion: autenticacionGmail('booking.com', 'fail'), cabeceras: falsa,
+    }));
+    assert.equal(email.de, 'ofertas@booking.com');
+    assert.match(email.autenticacion, /dmarc=fail/);
+    assert.ok(!remitenteVerificado(email, booking));
+  });
+
+  it('interpreta el mensaje con la dirección sola y si es una lista de correo', async () => {
+    const lista = await interpretarMensaje(mime(EMAILS.booking));
+    assert.equal(lista.de, 'email.campaign@sg.booking.com');
+    assert.equal(lista.esLista, true);
+    assert.ok(remitenteVerificado(lista, booking));
+    assert.equal((await interpretarMensaje(mime(EMAILS.booking, { lista: false }))).esLista, false);
+    const suplantado = await interpretarMensaje(mime({ ...EMAILS.booking, de: '"ofertas@booking.com" <atacante@evil.example>' }));
+    assert.equal(suplantado.de, 'atacante@evil.example');
+  });
+
+  it('obtener descarta suplantaciones, correos que no son de lista y transaccionales, y dice por qué', async () => {
+    const suplantado = mime({ ...EMAILS.booking, de: '"ofertas@booking.com" <atacante@evil.example>', messageId: '<s1@evil.example>' });
+    const sinDmarc = mime({ ...EMAILS.vueling, messageId: '<s2@x>' }, { autenticacion: autenticacionGmail('news.vueling.com', 'fail') });
+    const personal = mime({ ...EMAILS.groupon, messageId: '<s3@x>' }, { lista: false });
+    const reserva = mime({ ...EMAILS.booking, asunto: 'Tu reserva en Hotel Arts está confirmada', messageId: '<s4@x>' });
+    const { ctx, logs } = contextoObtener({ carpetas: { INBOX: [suplantado, sinDmarc, personal, reserva, mime(EMAILS.groupon)] } });
+    const { ofertas } = await fuente.obtener(ctx);
+    assert.equal(ofertas.length, 3, 'solo las 3 de la newsletter buena de Groupon');
+    assert.ok(ofertas.every((o) => o.etiquetas.includes('Groupon')));
+    for (const motivo of ['remitente que no es un comercio conocido', 'remitente sin verificar por Gmail (posible suplantación)',
+      'no son newsletters (sin List-Unsubscribe ni List-Id)', 'transaccionales (reservas, códigos, facturas…)']) {
+      assert.ok(logs.includes(`1 emails ignorados: ${motivo}`), `${motivo} · ${logs.join(' | ')}`);
+    }
+  });
+
+  it('newslettersAutenticas cuenta los descartes por motivo', () => {
+    const buena = { de: 'x@sg.booking.com', autenticacion: GMAIL_OK, esLista: true, asunto: 'Ofertas de otoño' };
+    const { emails, descartes } = newslettersAutenticas([buena, { ...buena, esLista: false }, { ...buena, asunto: 'Código de verificación' }]);
+    assert.deepEqual(emails, [buena]);
+    assert.equal(Object.values(descartes).reduce((a, b) => a + b, 0), 2);
+  });
+});
+
+describe('buzon: nada de datos de una reserva ni de enlaces personales', () => {
+  const booking = comercioDe('x@booking.com');
+
+  it('los asuntos transaccionales no generan ofertas aunque se llame a parsearEmail', () => {
+    for (const asunto of ['Tu reserva está confirmada', 'Localizador ABC123', 'Tu tarjeta de embarque', 'Código de verificación: 123456', 'Tu factura de septiembre']) {
+      assert.ok(esTransaccional({ asunto }), asunto);
+      assert.deepEqual(parsearEmail({ ...EMAILS.booking, asunto }), [], asunto);
+    }
+    assert.ok(!esTransaccional({ asunto: 'Reserva ya tu escapada de otoño' }), '«Reserva ya» es publicidad');
+  });
+
+  it('un bloque con número de reserva y PIN no se publica', () => {
+    const html = `<table><tr><td><a href="https://secure.booking.com/myreservations.es.html?bn=1">Hotel Arts Barcelona</a>
+      <p>Entrada: vie 9 oct 2026 · Número de reserva 4567891234 · PIN 1234</p><p>Precio total 412 €</p></td></tr>
+      <tr><td><a href="https://www.booking.com/hotel/es/peralada.es.html">Hotel Peralada Wine Spa</a><p>desde 142 € por noche</p></td></tr></table>`;
+    const ofertas = parsearEmail({ ...EMAILS.booking, asunto: 'Ofertas para ti', html });
+    assert.deepEqual(ofertas.map((o) => o.titulo), ['Hotel Peralada Wine Spa']);
+    assert.ok(!JSON.stringify(ofertas).includes('4567891234'));
+  });
+
+  it('quita teléfonos y números largos de los textos', () => {
+    assert.equal(limpiarTexto('Hotel con spa gratis, llama al 666 000 000 ya'), 'Hotel con spa gratis, llama al ya');
+    assert.equal(limpiarTexto('Tu cliente 12345678: 2 noches por 1.299 € en 2026'), 'Tu cliente: 2 noches por 1.299 € en 2026');
+  });
+
+  it('reconoce como token UUID, hexadecimales largos y rutas con extensión', () => {
+    for (const token of ['3f2a9c1e-4b5d-4e6f-8a7b-9c0d1e2f3a4b', '5f4dcc3b5aa765d61d8327deb882cf99.html', 'u001-a1b2c3d4e5f6a7b8c9d0e1f2', '123456789012']) {
+      assert.ok(pareceToken(token), token);
+    }
+    for (const normal of ['peralada.es.html', 'hotel-rural-montseny-5', 'barcelona-lisboa', 'deals', '2026']) assert.ok(!pareceToken(normal), normal);
+    assert.equal(urlDirecta('https://www.booking.com/c/3f2a9c1e-4b5d-4e6f-8a7b-9c0d1e2f3a4b/deal', booking), null);
+    assert.equal(urlDirecta('https://www.booking.com/r/5f4dcc3b5aa765d61d8327deb882cf99.html', booking), null);
+  });
+
+  it('«Pulsa aquí» (la versión web personal) nunca es el enlace de la oferta', () => {
+    const html = '<p>¿No ves bien este email? <a href="https://www.groupon.es/email/web/campana-otono">Pulsa aquí</a></p><p>Escapadas de otoño para desconectar</p>';
+    const [oferta] = parsearEmail({ ...EMAILS.groupon, asunto: 'Escapadas de otoño', html });
+    assert.equal(oferta.url, 'https://www.groupon.es');
+  });
+
+  it('las imágenes solo se aceptan de la web del comercio o de su CDN', () => {
+    const tarjeta = (src) => `<table><tr><td><img src="${src}" width="600"><a href="https://www.groupon.es/deals/spa-sitges">Spa en Sitges para dos</a><p>59 € para 2 personas</p></td></tr></table>`;
+    const imagen = (src) => parsearEmail({ ...EMAILS.groupon, asunto: 'Ofertas', html: tarjeta(src) })[0].imagen;
+    assert.equal(imagen('https://img.grouponcdn.com/deal/abc/Sp-700x420/v1/t600x362.jpg?u=1'), 'https://img.grouponcdn.com/deal/abc/Sp-700x420/v1/t600x362.jpg');
+    assert.equal(imagen('https://tracker.evil.example/px/visitor.png'), null);
+    assert.equal(imagen('https://ab.movableink-dmz.com/p/rp/3f2a9c1e.png?email=x'), null);
+  });
+});
+
+describe('buzon: el nombre del destinatario no se escapa', () => {
+  it('detecta los vocativos del asunto en cualquier posición', () => {
+    assert.deepEqual(nombresPrivados({ asunto: '¡Jordi, tu escapada te espera!' }), ['Jordi']);
+    assert.deepEqual(nombresPrivados({ asunto: 'Tus vuelos favoritos, Jordi: desde 19 €' }), ['Jordi']);
+    assert.deepEqual(nombresPrivados({ asunto: 'Jordi Navarro, tus ofertas' }), ['Jordi', 'Navarro']);
+    assert.deepEqual(nombresPrivados({ html: '<p>Hola Jordi Navarro:</p>' }), ['Jordi', 'Navarro']);
+  });
+
+  it('quita el nombre también en mayúsculas o sin tildes, pero no de un lugar', () => {
+    assert.equal(limpiarTexto('¡JORDI, tu escapada te espera!', ['Jordi']), '¡Tu escapada te espera!');
+    assert.equal(limpiarTexto('Tus vuelos favoritos, Jordi: desde 19 €', ['Jordi']), 'Tus vuelos favoritos: desde 19 €');
+    assert.equal(limpiarTexto('Para Jose y amigos', ['José']), 'Para y amigos');
+    assert.equal(limpiarTexto('Mas Sant Jordi, Girona', ['Jordi']), 'Mas Sant Jordi, Girona');
+    assert.equal(limpiarTexto('Hotel Jordina en Girona', ['Jordi']), 'Hotel Jordina en Girona');
+  });
+
+  it('usa los nombres configurados (BUZON_NOMBRES y el usuario de GMAIL_USER)', () => {
+    assert.deepEqual(nombresConfigurados({ BUZON_NOMBRES: 'Jordi Navarro, Jordina', GMAIL_USER: 'escapadas.jordi21@gmail.com' }),
+      ['Jordi', 'Navarro', 'Jordina', 'escapadas', 'jordi']);
+    const [oferta] = parsearEmail({ ...EMAILS.vueling, asunto: 'NAVARRO: vuelos desde 19 €', html: '', texto: 'Ofertas' }, { nombres: ['Navarro'] });
+    assert.equal(oferta.titulo, 'Vuelos desde 19 €');
   });
 });

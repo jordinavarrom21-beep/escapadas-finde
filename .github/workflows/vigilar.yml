@@ -90,6 +90,7 @@ jobs:
           SMTP_PORT: ${{ secrets.SMTP_PORT }}
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          BUZON_NOMBRES: ${{ secrets.BUZON_NOMBRES }}
         run: npm run escanear -- ${{ inputs.forzar && '--forzar' || '' }}
 
       - name: Email de prueba

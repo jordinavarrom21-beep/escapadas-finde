@@ -3,11 +3,17 @@
  * etiqueta «Ofertas», últimos 3 días, en solo lectura: no marca ni borra nada) y
  * convierte las newsletters de viajes de remitentes conocidos en ofertas.
  *
+ * Solo se leen newsletters auténticas: remitente de un comercio conocido (por la
+ * dirección real, no por el nombre visible), verificado por Gmail con DMARC o DKIM
+ * del dominio del comercio y con cabeceras de lista de correo (List-Unsubscribe o
+ * List-Id). Los transaccionales (reservas, localizadores, códigos) se descartan.
+ *
  * Privacidad (el panel es público): los enlaces de las newsletters llevan tokens
  * personales, así que nunca se publican tal cual. Se siguen sus redirecciones
  * hasta la web del comercio (sin llegar a pedirla) y se guarda la URL sin query ni
  * fragmento; si no se puede, se usa la portada del comercio. Los textos se limpian
- * de direcciones de email, saludos y nombres, y nunca se toma nada del pie.
+ * de direcciones de email, saludos, nombres, teléfonos y números largos, y nunca se
+ * toma nada del pie. Las imágenes solo se aceptan de la web del comercio o de su CDN.
  *
  * El precio es el que anuncia la newsletter para cada oferta («desde X €»), con la
  * unidad que indique el propio bloque (por noche, por persona, total…) o null si no
@@ -41,11 +47,12 @@ const PRECIO_MAX = 5_000;
 /**
  * Remitentes conocidos, por dominio del remitente. `web` es la portada que se usa
  * cuando un enlace no se puede limpiar; `hosts` son otras webs del comercio (además
- * del dominio y www.) y `ruta` limita las URLs válidas a esa sección.
+ * del dominio y www.), `ruta` limita las URLs válidas a esa sección e `imagenes`
+ * son los dominios de su CDN de imágenes (además de los suyos).
  */
 export const COMERCIOS = [
-  { nombre: 'Booking.com', dominios: ['booking.com'], web: 'https://www.booking.com', tipo: 'hotel' },
-  { nombre: 'Groupon', dominios: ['groupon.es', 'groupon.com'], web: 'https://www.groupon.es', tipo: 'escapada' },
+  { nombre: 'Booking.com', dominios: ['booking.com'], imagenes: ['bstatic.com'], web: 'https://www.booking.com', tipo: 'hotel' },
+  { nombre: 'Groupon', dominios: ['groupon.es', 'groupon.com'], imagenes: ['grouponcdn.com'], web: 'https://www.groupon.es', tipo: 'escapada' },
   { nombre: 'Voyage Privé', dominios: ['voyage-prive.es', 'voyage-prive.com'], web: 'https://www.voyage-prive.es', tipo: 'escapada' },
   { nombre: 'Travelzoo', dominios: ['travelzoo.com'], web: 'https://www.travelzoo.com/es/', tipo: 'escapada' },
   { nombre: 'Weekendesk', dominios: ['weekendesk.es', 'weekendesk.com'], web: 'https://www.weekendesk.es', tipo: 'escapada' },
@@ -76,20 +83,47 @@ export const COMERCIOS = [
 // Enlaces que nunca son una oferta. BAJA marca además el pie: un bloque que lo
 // contiene no es una oferta.
 const BAJA = /\bbaja\b|unsubscribe|cancelar (la |tu )?suscripcion|gestionar (tus |las |la )?(suscripcion|preferencias)|preferencias|preferences|opt-?out|ver (este )?(email|correo|mensaje)? ?en (el|tu) navegador|ver online|version (web|online)|view (it )?(in|on) (your )?browser|web ?version/;
-const DESCARTE_TEXTO = /privacidad|privacy|aviso legal|\blegal\b|condiciones|terminos|\bterms\b|cookies|centro de ayuda|\bayuda\b|\bhelp\b|contacto|\bcontact\b|mi cuenta|my account|iniciar sesion|\blog ?in\b|\bsign ?in\b|app store|google play|descarga (la|nuestra) app|^(facebook|instagram|twitter|x|youtube|linkedin|tiktok|pinterest|whatsapp|telegram)$/;
+const DESCARTE_TEXTO = /^(pulsa|haz clic|haz click|clic|click|clica|pincha) (aqui|here)$|^(aqui|here)$|no (ves|se ve|puedes ver) bien|privacidad|privacy|aviso legal|\blegal\b|condiciones|terminos|\bterms\b|cookies|centro de ayuda|\bayuda\b|\bhelp\b|contacto|\bcontact\b|mi cuenta|my account|iniciar sesion|\blog ?in\b|\bsign ?in\b|app store|google play|descarga (la|nuestra) app|^(facebook|instagram|twitter|x|youtube|linkedin|tiktok|pinterest|whatsapp|telegram)$/;
 const DESCARTE_HREF = /^(mailto|tel|sms):|unsubscribe|opt-?out|\/baja\b|preferenc|subscription|privacy|privacidad|legal|cookies|terms|condiciones|facebook\.com|instagram\.com|twitter\.com|\/\/(www\.)?x\.com|youtube\.com|linkedin\.com|tiktok\.com|pinterest\.|wa\.me|whatsapp|\/\/t\.me\/|apps\.apple\.com|play\.google\.com|view-?online|webversion|viewinbrowser/;
 const CTA = /^(ver|reserva|reservar|reserva ya|comprar|compra|descubre|descubrir|consulta|consultar|mas info|mas informacion|me interesa|buscar|busca|lo quiero|aprovecha|vuela|book|go)\b/;
 const CONTENEDORES = new Set(['td', 'tr', 'table', 'div', 'p', 'li', 'section', 'article', 'center']);
 const TACHADO = 's, del, strike, [style*="line-through"]';
 
+/** Correos que no son publicidad sino de una cuenta o una compra (sobre el texto normalizado). */
+const TRANSACCIONAL = /tu reserva|reserva (confirmada|cancelada|modificada|n\.?[ºo°]|numero)|confirmacion de (tu |la )?(reserva|compra|pedido)|localizador|tarjeta de embarque|check-?in|codigo de (verificacion|acceso|seguridad|confirmacion)|contrasena|password|factura|recibo|tu pedido|tu cuenta|inicio de sesion/;
+/** Un bloque con datos de una reserva concreta nunca es una oferta. */
+const DATOS_RESERVA = /localizador|(numero|codigo|n\.?[ºo°]) de (reserva|pedido|confirmacion)|\bpin\b|codigo de (verificacion|acceso|seguridad)|tarjeta de embarque/;
+
 const EMAIL = /[\w.+-]+@[\w-]+(\.[\w-]+)+/g;
+/** Números que pueden identificar a alguien: teléfonos españoles y cifras de 6 dígitos o más. */
+const TELEFONO = /(?:\+34[\s.-]?)?\b[6-9](?:[\s.-]?\d){8}\b/g;
+const NUMERO_LARGO = /\b\d{6,}\b/g;
 const SALUDO = '(?:[Hh]ola|[Hh]i|[Hh]ello|[Hh]ey|[Qq]uerid[oa]|[Ee]stimad[oa]|[Bb]on dia|[Bb]uenos d[ií]as|[Bb]uenas(?: tardes| noches)?)';
-const NOMBRE_EN_SALUDO = new RegExp(`(?:${SALUDO}|[Pp]ara ti|[Gg]racias)[\\s,]+(\\p{Lu}\\p{Ll}{2,})`, 'gu');
+const NOMBRE_PROPIO = '\\p{Lu}\\p{Ll}{2,}(?:\\s+\\p{Lu}\\p{Ll}{2,}){0,2}';
+const NOMBRE_EN_SALUDO = new RegExp(`(?:${SALUDO}|[Pp]ara ti|[Gg]racias)[\\s,]+(${NOMBRE_PROPIO})`, 'gu');
+/** Vocativos del asunto: «Jordi, …», «¡Jordi Navarro, …» o «…, Jordi: …». */
+const VOCATIVOS = [
+  new RegExp(`^[¡¿]?\\s*(${NOMBRE_PROPIO}),\\s`, 'u'),
+  new RegExp(`,\\s*(\\p{Lu}\\p{Ll}{2,})\\s*[:!.?]`, 'u'),
+];
+/** Tras estas palabras un nombre es parte de un lugar («Mas Sant Jordi»), no el destinatario. */
+const ANTES_DE_LUGAR = '(?:sant|san|santa|sta\\.?|can|mas|son|sa|ca)\\s+';
+const VARIANTES = { a: 'aáàâä', e: 'eéèêë', i: 'iíìîï', o: 'oóòôö', u: 'uúùûü', n: 'nñ', c: 'cç' };
 
 const hash = (texto, largo = 12) => createHash('sha256').update(String(texto)).digest('hex').slice(0, largo);
 const perteneceA = (host, dominio) => host === dominio || host.endsWith(`.${dominio}`);
 const escaparRegex = (texto) => texto.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-const pareceToken = (segmento) => /^(?=.*\d)(?=.*[a-z])[a-z\d_=]{16,}$/i.test(segmento) || /^[\w=-]{40,}$/.test(segmento);
+const UUID = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i;
+
+/** Un segmento de ruta que parece un identificador personal (con o sin extensión). */
+export function pareceToken(segmento) {
+  const base = segmento.replace(/\.[a-z\d]{1,5}$/i, '');
+  if (UUID.test(base) || /^[\w=-]{40,}$/.test(base) || /^\d{12,}$/.test(base)) return true;
+  return base.split(/[-._]/).some((parte) => /^[\da-f]{24,}$/i.test(parte) || /^(?=.*\d)(?=.*[a-z])[a-z\d_=]{16,}$/i.test(parte));
+}
+
+/** Patrón de un nombre que casa con y sin tildes (se usa con la bandera «i»). */
+const patronNombre = (nombre) => [...normalizarTexto(nombre)].map((c) => (VARIANTES[c] ? `[${VARIANTES[c]}]` : escaparRegex(c))).join('');
 const EUROS = new Intl.NumberFormat('es-ES', { maximumFractionDigits: 2 });
 
 export class ErrorBloqueo extends Error {
@@ -100,12 +134,32 @@ export class ErrorBloqueo extends Error {
   }
 }
 
-/** Comercio conocido del remitente («Booking.com <x@sg.booking.com>»), o null. */
+/**
+ * Comercio conocido del remitente («Booking.com <x@sg.booking.com>» o la dirección
+ * sola), o null. Solo cuenta la dirección de dentro de <…>: el nombre visible lo
+ * escribe quien envía («"ofertas@booking.com" <atacante@otro.com>»).
+ */
 export function comercioDe(de) {
-  const direccion = String(de ?? '').toLowerCase().match(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/)?.[0];
+  const texto = String(de ?? '').toLowerCase().trim();
+  const direccion = (texto.match(/<([^<>]*)>$/)?.[1] ?? texto).trim().match(/^[\w.+-]+@[\w-]+(?:\.[\w-]+)+$/)?.[0];
   if (!direccion) return null;
   const [local, dominio] = direccion.split('@');
   return COMERCIOS.find((c) => c.dominios.some((d) => perteneceA(dominio, d)) && (!c.remitente || c.remitente.test(local))) ?? null;
+}
+
+/**
+ * ¿Ha comprobado Gmail que el correo es de verdad del comercio? Mira solo la primera
+ * cabecera Authentication-Results (la que añade el servidor de Gmail al recibirlo; las
+ * de más abajo las puede escribir cualquiera) y exige DMARC o DKIM con el dominio del
+ * comercio. Sin eso, el remitente se puede falsificar.
+ */
+export function remitenteVerificado({ autenticacion = '' } = {}, comercio) {
+  const resultados = String(autenticacion).replace(/\s+/g, ' ');
+  if (!comercio || !/^\s*mx\.google\.com\s*;/i.test(resultados)) return false;
+  const delComercio = (dominio) => comercio.dominios.some((d) => perteneceA(dominio.toLowerCase(), d));
+  const dmarc = resultados.match(/\bdmarc=pass\b[^;]*?\bheader\.from=([\w.-]+)/i);
+  if (dmarc && delComercio(dmarc[1])) return true;
+  return [...resultados.matchAll(/\bdkim=pass\b[^;]*?\bheader\.(?:i=[\w.+-]*@|d=)([\w.-]+)/gi)].some(([, dominio]) => delComercio(dominio));
 }
 
 /**
@@ -223,26 +277,30 @@ function tituloAlternativo($, nodo) {
   return [...candidatos, ...alternativos].find(esTitulo) ?? null;
 }
 
-// Primera imagen de la tarjeta (sin píxeles de seguimiento ni logos), sin query:
-// los CDN de imágenes no la necesitan y podría identificar al destinatario.
-function imagenDe($, nodo) {
+/**
+ * Primera imagen de la tarjeta (sin píxeles de seguimiento ni logos), sin query: los
+ * CDN no la necesitan y podría identificar al destinatario. Solo de la web del
+ * comercio o de su CDN: las de terceros suelen ser imágenes personalizadas o de
+ * seguimiento, y cada visitante del panel se las pediría a ese tercero.
+ */
+function imagenDe($, nodo, comercio) {
+  const permitidos = [...comercio.dominios, ...(comercio.imagenes ?? [])];
   for (const img of $(nodo).find('img[src]').toArray()) {
     const $img = $(img);
     if ($img.attr('width') === '1' || $img.attr('height') === '1') continue;
     if (/logo|pixel|spacer|\/open\b/i.test(`${$img.attr('src')} ${$img.attr('alt') ?? ''}`)) continue;
-    try {
-      const url = new URL($img.attr('src'));
-      if (url.protocol !== 'https:') continue;
-      return `${url.origin}${url.pathname}`;
-    } catch {
-      // src relativo o no válido
-    }
+    const src = $img.attr('src').trim();
+    if (!URL.canParse(src)) continue; // src relativo o mal formado
+    const url = new URL(src);
+    if (url.protocol !== 'https:' || url.username || url.pathname.includes('@')) continue;
+    if (!permitidos.some((dominio) => perteneceA(url.hostname.toLowerCase(), dominio))) continue;
+    return `${url.origin}${url.pathname}`;
   }
   return null;
 }
 
-/** Bloques «enlace + título + precio (+ imagen)» de un HTML de newsletter. */
-export function extraerBloques(html) {
+/** Bloques «enlace + título + precio (+ imagen)» de un HTML de newsletter del `comercio`. */
+export function extraerBloques(html, comercio) {
   const $ = cheerio.load(html);
   $('script, style, head, title').remove();
   $('[style*="display:none"], [style*="display: none"]').remove();
@@ -257,7 +315,7 @@ export function extraerBloques(html) {
     const propios = $(tarjeta).find('a[href]').toArray().filter((a) => !esEnlaceDescartado($, a));
     const conTitulo = propios.find((a) => esTitulo(textoPlano($(a).text())));
     const titulo = conTitulo ? textoPlano($(conTitulo).text()) : tituloAlternativo($, tarjeta);
-    if (!propios.length || !titulo) continue;
+    if (!propios.length || !titulo || DATOS_RESERVA.test(normalizarTexto(lector.texto(tarjeta)))) continue;
     const tachados = $(tarjeta).find(TACHADO).toArray().flatMap((e) => extraerPrecios(lector.texto(e)).map((p) => p.valor));
     const ctas = propios.map((a) => textoPlano($(a).text())).filter((t) => t && !esTitulo(t));
     bloques.push({
@@ -266,7 +324,7 @@ export function extraerBloques(html) {
       texto: lector.texto(tarjeta),
       ctas,
       tachados,
-      imagen: imagenDe($, tarjeta),
+      imagen: imagenDe($, tarjeta, comercio),
     });
   }
   return { bloques: bloques.slice(0, MAX_BLOQUES), principal: enlacePrincipal($, enlaces) };
@@ -345,48 +403,74 @@ function tipoDe(comercio, texto) {
 // Privacidad
 // ---------------------------------------------------------------------------
 
+const palabrasDe = (texto) => String(texto).match(/\p{L}{3,}/gu) ?? [];
+
 /**
- * Nombres propios del destinatario: los de la cabecera «Para», los del saludo
- * («Hola Jordi», «solo para ti, Jordi») y el vocativo al principio del asunto
- * («Jordi, tus ofertas…») salvo que aparezca en los títulos de las ofertas (un destino).
+ * Nombres que se sabe que son del destinatario, sin leer ningún correo: los de
+ * BUZON_NOMBRES («Jordi Navarro, Jordina») y las partes del usuario de GMAIL_USER
+ * («escapadas.jordi» → escapadas, jordi).
  */
-export function nombresPrivados({ para = '', asunto = '', html = '', texto = '' } = {}, titulos = []) {
-  const nombres = new Set();
+export function nombresConfigurados(env = {}) {
+  const nombres = palabrasDe(env.BUZON_NOMBRES ?? '');
+  const local = String(env.GMAIL_USER ?? '').split('@')[0];
+  return [...new Set([...nombres, ...palabrasDe(local.replace(/\d+/g, ' '))])];
+}
+
+/**
+ * Nombres propios del destinatario: los configurados, los de la cabecera «Para», los
+ * del saludo («Hola Jordi Navarro», «solo para ti, Jordi») y los vocativos del asunto
+ * («¡Jordi, …», «…, Jordi: …») salvo que aparezcan en los títulos de las ofertas
+ * (entonces son un destino: «Roma, desde 29 €»).
+ */
+export function nombresPrivados({ para = '', asunto = '', html = '', texto = '' } = {}, titulos = [], configurados = []) {
+  const nombres = new Set(configurados);
   const enPara = String(para).replace(/<[^>]*>|"/g, ' ').replace(EMAIL, ' ');
   for (const palabra of enPara.match(/\p{Lu}\p{Ll}{2,}/gu) ?? []) nombres.add(palabra);
   const cuerpo = `${textoPlano(html)} ${texto}`;
-  for (const [, nombre] of cuerpo.matchAll(NOMBRE_EN_SALUDO)) nombres.add(nombre);
-  const vocativo = String(asunto).match(/^(\p{Lu}\p{Ll}{2,}),\s+[\p{Ll}¡¿]/u)?.[1];
-  if (vocativo && !titulos.some((t) => t.includes(vocativo))) nombres.add(vocativo);
+  for (const [, nombre] of cuerpo.matchAll(NOMBRE_EN_SALUDO)) palabrasDe(nombre).forEach((n) => nombres.add(n));
+  for (const patron of VOCATIVOS) {
+    for (const nombre of palabrasDe(String(asunto).match(patron)?.[1] ?? '')) {
+      if (!titulos.some((t) => t.includes(nombre))) nombres.add(nombre);
+    }
+  }
   return [...nombres];
 }
 
-/** Quita emails, saludos con nombre y los nombres del destinatario de un texto. */
+/**
+ * Quita de un texto emails, teléfonos, números de 6 cifras o más (localizadores,
+ * clientes…), saludos con nombre y los nombres del destinatario, con o sin tildes y
+ * en mayúsculas o minúsculas, salvo cuando forman parte de un lugar («Mas Sant Jordi»).
+ */
 export function limpiarTexto(texto, nombres = []) {
-  let limpio = String(texto ?? '').replace(EMAIL, ' ');
+  let limpio = String(texto ?? '').replace(EMAIL, ' ').replace(TELEFONO, ' ').replace(NUMERO_LARGO, ' ');
   for (const nombre of nombres) {
-    const n = escaparRegex(nombre);
+    const n = patronNombre(nombre);
     limpio = limpio
-      .replace(new RegExp(`${SALUDO}[\\s,]*${n}\\s*[,:!.]?`, 'gu'), ' ')
-      .replace(new RegExp(`(^|[^\\p{L}])${n}(?![\\p{L}])`, 'gu'), '$1');
+      .replace(new RegExp(`${SALUDO}[\\s,]*${n}(?![\\p{L}])\\s*[,:!.]?`, 'giu'), ' ')
+      .replace(new RegExp(`(?<![\\p{L}])(?<!${ANTES_DE_LUGAR})${n}(?![\\p{L}])`, 'giu'), '');
   }
   limpio = limpio
     .replace(/([¡¿])\s*[,;:]\s*/g, '$1')
     .replace(/\s+([,.;:!?])/g, '$1')
+    .replace(/,\s*([:;!.?])/g, '$1')
     .replace(/\s+/g, ' ')
     .replace(/^[\s,;:·|–—-]+/, '')
     .trim();
-  return limpio.charAt(0).toUpperCase() + limpio.slice(1);
+  // Mayúscula en la primera letra, también tras «¡», «¿» o comillas.
+  return limpio.replace(/^([¡¿"«(]*)(\p{Ll})/u, (_, signos, letra) => signos + letra.toUpperCase());
 }
 
 // ---------------------------------------------------------------------------
 // Email → ofertas
 // ---------------------------------------------------------------------------
 
+/** ¿Es de una cuenta o una compra (reserva, código, factura…) y no publicidad? */
+export const esTransaccional = (email) => TRANSACCIONAL.test(normalizarTexto(email.asunto ?? ''));
+
 function analizarEmail(email) {
   const comercio = comercioDe(email.de);
-  if (!comercio) return null;
-  return { comercio, ...extraerBloques(email.html || htmlDeTexto(email.texto)) };
+  if (!comercio || esTransaccional(email)) return null;
+  return { comercio, ...extraerBloques(email.html || htmlDeTexto(email.texto), comercio) };
 }
 
 /**
@@ -415,16 +499,18 @@ const aIso = (fecha) => {
  * llegan en `resueltos` (enlace crudo → URL limpia o null); los demás se limpian
  * si ya apuntan a la web del comercio o se sustituyen por su portada.
  * @param {{de: string, para?: string, asunto: string, fecha: Date|string, html?: string, texto?: string, messageId?: string}} email
- * @param {{resueltos?: Map<string, string|null>, log?: (mensaje: string) => void}} [opciones]
+ * No comprueba la autenticidad del remitente: eso lo hace `obtener` con las cabeceras.
+ * @param {{resueltos?: Map<string, string|null>, log?: (mensaje: string) => void,
+ *   nombres?: string[]}} [opciones] `nombres`: los del destinatario que ya se conocen.
  * @returns {import('../modelo.js').Oferta[]}
  */
-export function parsearEmail(email, { resueltos = new Map(), log = () => {} } = {}) {
+export function parsearEmail(email, { resueltos = new Map(), log = () => {}, nombres: configurados = [] } = {}) {
   const analisis = analizarEmail(email);
   if (!analisis) return [];
   const { comercio, bloques, principal } = analisis;
   const publicada = aIso(email.fecha);
   const idMensaje = hash(email.messageId || `${email.de}|${email.asunto}|${publicada}`);
-  const nombres = nombresPrivados(email, bloques.map((b) => b.titulo));
+  const nombres = nombresPrivados(email, bloques.map((b) => b.titulo), configurados);
   const limpiar = (texto) => limpiarTexto(texto, nombres);
   const comun = {
     fuente: ID,
@@ -557,11 +643,20 @@ export async function leerBuzon(cliente, { desde, limiteMs = LIMITE_IMAP_MS }) {
   }
 }
 
-/** Mensaje RFC 822 → {de, para, asunto, fecha, html, texto, messageId}. */
+/**
+ * Mensaje RFC 822 → {de, para, asunto, fecha, html, texto, messageId, autenticacion,
+ * esLista}. `de` es solo la dirección (el nombre visible no cuenta para nada);
+ * `autenticacion` es la PRIMERA cabecera Authentication-Results, la más reciente, que
+ * es la que pone Gmail al recibirlo; `esLista` dice si trae cabeceras de lista de correo.
+ */
 export async function interpretarMensaje(fuente) {
   const correo = await simpleParser(fuente, { skipImageLinks: true, skipTextToHtml: true, skipTextLinks: true });
+  const remitentes = correo.from?.value ?? [];
   return {
-    de: correo.from?.text ?? '',
+    de: remitentes.length === 1 ? remitentes[0].address ?? '' : '',
+    autenticacion: [correo.headers.get('authentication-results') ?? []].flat()[0] ?? '',
+    // mailparser agrupa las List-* en otra clave: se miran las líneas originales.
+    esLista: correo.headerLines.some(({ key }) => key === 'list-unsubscribe' || key === 'list-id'),
     para: [correo.to ?? []].flat().map((d) => d.text).join(', '),
     asunto: correo.subject ?? '',
     fecha: correo.date ?? null,
@@ -583,6 +678,31 @@ async function interpretarMensajes(fuentes, desde, ctx) {
     }
   }
   return [...emails.values()].sort((a, b) => b.fecha - a.fecha);
+}
+
+/**
+ * Se queda con las newsletters de verdad: comercio conocido, remitente verificado por
+ * Gmail (DMARC/DKIM), con cabeceras de lista de correo y que no sean transaccionales.
+ * Devuelve también cuántos se han descartado por cada motivo, para el registro.
+ */
+export function newslettersAutenticas(emails) {
+  const descartes = {
+    'remitente que no es un comercio conocido': 0,
+    'remitente sin verificar por Gmail (posible suplantación)': 0,
+    'no son newsletters (sin List-Unsubscribe ni List-Id)': 0,
+    'transaccionales (reservas, códigos, facturas…)': 0,
+  };
+  const [desconocido, sinVerificar, noLista, transaccional] = Object.keys(descartes);
+  const validos = emails.filter((email) => {
+    const comercio = comercioDe(email.de);
+    const motivo = !comercio ? desconocido
+      : !remitenteVerificado(email, comercio) ? sinVerificar
+        : !email.esLista ? noLista
+          : esTransaccional(email) ? transaccional : null;
+    if (motivo) descartes[motivo] += 1;
+    return !motivo;
+  });
+  return { emails: validos, descartes };
 }
 
 // Sigue (con caché por hash, sin guardar nunca el enlace con su token) los enlaces
@@ -634,12 +754,13 @@ export default {
   async obtener(ctx) {
     const desde = new Date(ctx.ahora.getTime() - DIAS_LEIDOS * DIA_MS);
     const cliente = (ctx.crearClienteImap ?? crearClienteImap)(ctx.env);
-    const emails = await interpretarMensajes(await leerBuzon(cliente, { desde }), desde, ctx);
-    const desconocidos = emails.filter((e) => !comercioDe(e.de));
-    if (desconocidos.length) ctx.log(`${desconocidos.length} emails de remitentes no reconocidos ignorados`);
+    const leidos = await interpretarMensajes(await leerBuzon(cliente, { desde }), desde, ctx);
+    const { emails, descartes } = newslettersAutenticas(leidos);
+    for (const [motivo, cuantos] of Object.entries(descartes)) if (cuantos) ctx.log(`${cuantos} emails ignorados: ${motivo}`);
     const resueltos = await resolverEnlaces(emails, ctx);
-    const ofertas = emails.flatMap((email) => parsearEmail(email, { resueltos, log: ctx.log }));
-    ctx.log(`${emails.length - desconocidos.length} newsletters de los últimos ${DIAS_LEIDOS} días → ${ofertas.length} ofertas`);
+    const nombres = nombresConfigurados(ctx.env);
+    const ofertas = emails.flatMap((email) => parsearEmail(email, { resueltos, log: ctx.log, nombres }));
+    ctx.log(`${emails.length} newsletters de los últimos ${DIAS_LEIDOS} días → ${ofertas.length} ofertas`);
     return { ofertas };
   },
 };

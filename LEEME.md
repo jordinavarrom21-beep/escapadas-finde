@@ -69,6 +69,19 @@ Voyage Privé, Travelzoo, Weekendesk, Atrápalo, Rusticae, Paradores, Vueling, e
 Wizz Air, Volotea, Ryanair, Iberia Express, Renfe, Ouigo, iryo, Secret Flying,
 Jack's Flight Club, y las alertas de precio de Google Flights, Skyscanner y KAYAK.
 
+Como el panel es público, el buzón es desconfiado:
+
+- Solo acepta correos de esos comercios que **Gmail haya verificado** (DMARC o DKIM del
+  dominio del comercio). Poner «booking.com» en el nombre del remitente no basta.
+- Solo **newsletters** (con cabecera de baja de lista). Confirmaciones de reserva,
+  localizadores, códigos, facturas o avisos de cuenta se ignoran siempre.
+- Quita de los textos emails, teléfonos, números largos y tu nombre. Para asegurarlo,
+  guarda tu nombre y apellidos como secreto (opcional):
+  `gh secret set BUZON_NOMBRES` → «Nombre Apellido1 Apellido2».
+- Las imágenes solo se aceptan de la web del comercio o de su CDN.
+
+En el registro de cada escaneo verás cuántos correos se han ignorado y por qué.
+
 Para comprobar que llegan: en GitHub, **Actions → Vigilar ofertas → Run workflow** y
 marca «Enviar un email de prueba».
 

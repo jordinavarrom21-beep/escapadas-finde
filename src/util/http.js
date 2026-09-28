@@ -249,14 +249,43 @@ export async function obtenerJson(url, opciones = {}) {
   }
 }
 
+/**
+ * Un solo salto de un enlace: pide la URL SIN seguir la redirección ni leer el cuerpo
+ * y devuelve adónde apunta. Lo usa el buzón para llegar desde el enlace de rastreo de
+ * una newsletter hasta la web del comercio sin llegar a pedir esa web. Sin cookies
+ * (el fetch de Node no guarda ninguna) y sin reintentos.
+ * @returns {Promise<{estado: number, destino: string|null}>}
+ */
+export async function obtenerRedireccion(url, { timeoutMs = 3_000, cabeceras = {} } = {}) {
+  const dominio = dominioDe(url);
+  const inicio = Date.now();
+  try {
+    const respuesta = await fetch(url, {
+      headers: { 'User-Agent': USER_AGENT, 'Accept-Language': 'es-ES,es;q=0.9', ...cabeceras },
+      signal: AbortSignal.timeout(timeoutMs),
+      redirect: 'manual',
+    });
+    await respuesta.body?.cancel();
+    anotarIntento(dominio, Date.now() - inicio, true);
+    const ubicacion = respuesta.headers.get('location');
+    const destino = ubicacion && URL.canParse(ubicacion, url) ? new URL(ubicacion, url).href : null;
+    return { estado: respuesta.status, destino };
+  } catch (causa) {
+    const error = comoErrorPropio(causa, url, { intento: 0, duracionMs: Date.now() - inicio });
+    anotarIntento(dominio, error.duracionMs, false);
+    throw error;
+  }
+}
+
 /** Cliente con opciones fijas (p. ej. la `etiqueta` y el `log` de una fuente). */
 export function crearClienteHttp(defectos = {}) {
   return {
     texto: (url, opciones = {}) => obtenerTexto(url, { ...defectos, ...opciones }),
     json: (url, opciones = {}) => obtenerJson(url, { ...defectos, ...opciones }),
+    redireccion: obtenerRedireccion,
     esperar,
   };
 }
 
 /** Cliente que reciben las fuentes en `ctx.http` (en los tests se sustituye por uno falso). */
-export const clienteHttp = { texto: obtenerTexto, json: obtenerJson, esperar };
+export const clienteHttp = { texto: obtenerTexto, json: obtenerJson, redireccion: obtenerRedireccion, esperar };
