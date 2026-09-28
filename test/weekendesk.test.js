@@ -102,6 +102,13 @@ describe('obtener', () => {
     assert.equal(reemplazar({ etiquetas: ['Escapada barata'] }), false, 'de las baratas solo se leen 24 de 198');
   });
 
+  it('una página vacía (0 de 0) no cuenta como leída entera: no se borran sus ofertas guardadas', async () => {
+    const vacia = '<html><script id="__NEXT_DATA__" type="application/json">{"props":{"pageProps":{"initialState":{"search":{"exactMatches":[],"searchDetails":{"totalCount":0}}}}}}</script></html>';
+    const { ctx } = crearCtx({ respuestas: responder({ ...PAGINAS, [URL_FLASH]: vacia }) });
+    const { reemplazar } = await fuente.obtener(ctx);
+    assert.equal(reemplazar, false, 'ninguna página entera con resultados: no se borra nada');
+  });
+
   it('ante un desafío de AWS WAF deja de pedir y lanza un error claro', async () => {
     const { ctx, peticiones, logs } = crearCtx({ respuestas: responder({ ...PAGINAS, [URL_FLASH]: DESAFIO }) });
     await assert.rejects(fuente.obtener(ctx), /ninguna página de Weekendesk.*desafío anti-bot/);

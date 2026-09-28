@@ -115,6 +115,25 @@ describe('atrapalo: obtener', () => {
     assert.equal(reemplazar, true);
   });
 
+  it('una página general VACÍA no es «catálogo completo»: no se borra nada fuera de las provincias leídas', async () => {
+    // Pasó de verdad: con la web limitando, la general devolvió 0 de 0 y se borraron 81 ofertas.
+    const vacia = '<html><script id="__NEXT_DATA__" type="application/json">{"props":{"pageProps":{"escapadas":[],"filteredTotal":0}}}</script></html>';
+    const { ctx, logs } = crearCtx({ respuestas: responder({ ...PAGINAS, [URL_GENERAL]: vacia }) });
+    const { reemplazar } = await fuente.obtener(ctx);
+    assert.equal(typeof reemplazar, 'function');
+    assert.equal(reemplazar({ lugar: { region: null } }), false, 'las del listado general se conservan');
+    assert.ok(logs.some((l) => l.includes('no trae ninguna escapada')));
+  });
+
+  it('con el general completo pero una provincia sin leer, tampoco se borra todo', async () => {
+    const completo = GENERAL.replace('"filteredTotal":122', '"filteredTotal":100');
+    const lleida = 'https://www.atrapalo.com/escapadas/?region_id=53&page=5';
+    const { ctx } = crearCtx({ respuestas: responder({ ...PAGINAS, [URL_GENERAL]: completo, [lleida]: new ErrorHttp(429, lleida) }) });
+    const { reemplazar } = await fuente.obtener(ctx);
+    assert.equal(typeof reemplazar, 'function');
+    assert.equal(reemplazar({ lugar: { region: 'Lleida' } }), false, 'las de Lleida no se han podido comprobar');
+  });
+
   it('si la web limita (429) deja de pedir y conserva lo leído', async () => {
     const limitada = { ...PAGINAS, 'https://www.atrapalo.com/escapadas/?region_id=54&page=5': new ErrorHttp(429, 'https://www.atrapalo.com/') };
     const { ctx, peticiones, logs } = crearCtx({ respuestas: responder(limitada) });

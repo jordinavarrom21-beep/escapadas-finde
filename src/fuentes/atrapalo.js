@@ -154,6 +154,9 @@ async function obtener(ctx) {
     try {
       // Sin reintentos: ante un 429 lo correcto es esperar a la siguiente ejecución.
       const { escapadas, total } = datosDePagina(await ctx.http.texto(url, { reintentos: 0 }));
+      // Una página vacía no demuestra que el catálogo esté vacío (suele ser un límite de
+      // peticiones disfrazado): antes contaba como «catálogo completo» y se borraba todo.
+      if (!escapadas.length) throw new Error('la página no trae ninguna escapada (¿límite de peticiones o cambio de la web?)');
       for (const oferta of ofertasDe(escapadas, zona, ctx.log)) porId.set(oferta.id, oferta);
       leidas++;
       const completa = escapadas.length >= total;
@@ -173,7 +176,9 @@ async function obtener(ctx) {
   if (!ofertas.length) throw new Error('Atrápalo no ha devuelto ninguna escapada válida');
   return {
     ofertas,
-    reemplazar: catalogoCompleto || ((oferta) => zonasCompletas.has(oferta.lugar?.region)),
+    // «Todo» solo si se han leído todas las páginas: las de provincia traen escapadas que
+    // no salen en la general, y si una falla (429) no se pueden dar por desaparecidas.
+    reemplazar: (catalogoCompleto && leidas === PAGINAS.length) || ((oferta) => zonasCompletas.has(oferta.lugar?.region)),
   };
 }
 

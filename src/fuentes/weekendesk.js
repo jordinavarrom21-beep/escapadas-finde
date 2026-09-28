@@ -192,7 +192,9 @@ function leerPagina(html, pagina, ctx) {
   }
   const ofertas = parsear(html, ctx, [pagina.etiqueta]);
   if (!ofertas.length && datos.total > 0) throw new Error('hay resultados pero ninguna oferta válida (¿ha cambiado el formato?)');
-  return { ofertas, completa: datos.total <= datos.resultados.length };
+  // Vacía no cuenta como «entera»: puede ser un bloqueo disfrazado (le pasó a Atrápalo) y
+  // borraría todo lo guardado con su etiqueta; si de verdad ya no hay nada, caduca solo.
+  return { ofertas, completa: datos.resultados.length > 0 && datos.total <= datos.resultados.length };
 }
 
 const esBloqueo = (error) => error.bloqueo || [403, 405, 429].includes(error.estado);
