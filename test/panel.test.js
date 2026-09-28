@@ -221,14 +221,14 @@ describe('filtros nuevos de escapadas', () => {
     assert.ok(!nombres(buscar({ nodest: 'Sitges,Girona' })).some((n) => ['Sitges', 'Girona'].includes(n)));
   });
 
-  it('oculta las duplicadas salvo que se pidan y quita las descartadas cuando se activa', () => {
+  it('oculta las duplicadas salvo que se pidan, y las descartadas salvo que se pida verlas', () => {
     const duplicada = porId('nomolesten:hotel-boutique-con-piscina-en-sitges');
     assert.ok(duplicada.etiquetas.includes('duplicada'));
     assert.ok(!buscar({}).includes(duplicada), 'las repetidas no se ven por defecto');
     assert.ok(buscar({ dup: '1' }).includes(duplicada));
     const descartadas = new Set([buscar({})[0].id]);
-    assert.equal(buscar({ sindesc: '1' }, { descartadas }).length, buscar({}).length - 1);
-    assert.equal(buscar({}, { descartadas }).length, buscar({}).length, 'sin el filtro siguen saliendo');
+    assert.equal(buscar({}, { descartadas }).length, buscar({}).length - 1, 'la ✕ la quita de todas las listas sin tocar nada más');
+    assert.equal(buscar({ sindesc: '0' }, { descartadas }).length, buscar({}).length, 'con «sindesc=0» se vuelven a ver');
   });
 
   it('busca con varias palabras y quita las que llevan «-» delante', () => {

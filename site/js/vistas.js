@@ -114,7 +114,7 @@ ${interruptor('hist', 'Solo mínimo histórico', f.historico)}`;
 function filtrosListas(f) {
   return `${interruptor('fav', '⭐ Solo favoritos', f.fav)}
 ${interruptor('nuevas', '🆕 Solo novedades', f.nuevas)}
-${interruptor('sindesc', '✕ Ocultar las descartadas', f.sinDescartadas)}
+${interruptorDefecto('sindesc', '✕ Ocultar las descartadas', f.sinDescartadas)}
 ${interruptor('dup', 'Mostrar las repetidas en varias webs', f.conDuplicadas)}`;
 }
 
@@ -239,7 +239,8 @@ export function vistaFinde(e, params = {}) {
   const ctx = ctxTarjetas(e);
   const hayVuelosConFecha = e.datos.ofertas.some(tieneVuelo);
   const escapadas = buscarEscapadas(e.datos.ofertas, leerFiltrosEscapadas({ ...params, cuando: 'finde' }), contextoBusqueda(e)).ofertas;
-  const top = chollazos(e.datos.ofertas);
+  // Las descartadas con ✕ no vuelven a salir, tampoco aquí.
+  const top = chollazos(e.datos.ofertas).filter((o) => !e.descartadas.has(o.id));
   const favoritos = e.datos.ofertas.filter((o) => e.favoritos.has(o.id));
   const puenteSiguiente = siguiente && puenteDelFinde(siguiente, e.datos.puentes);
 
@@ -404,6 +405,9 @@ function formularioEscapadas(e, params, vista) {
   const regiones = valoresUnicos(escapadas.filter((o) => !f.pais || o.lugar?.pais === f.pais), (o) => o.lugar?.region);
   const alojamientos = ALOJAMIENTOS.filter((a) => escapadas.some((o) => o.alojamiento === a)).map((a) => [a, ETIQUETAS_ALOJAMIENTO[a]]);
   const secundarios = contarSecundarios(params);
+  // Un solo día va en su campo y el rango en los suyos, nunca a la vez: si no, cambiar el
+  // rango no haría nada porque el día concreto manda.
+  const unDia = Boolean(f.desde) && f.desde === f.hasta;
   return `${atajosEscapadas(vista)}
 <form class="filtros" data-filtros="${vista}" aria-label="Filtros de escapadas">
   <div class="filtros__fila">${campoTexto(f)}
@@ -412,9 +416,9 @@ function formularioEscapadas(e, params, vista) {
   <fieldset class="bloque"><legend class="bloque__titulo">¿Cuándo?</legend>
     <div class="chips chips--desplazables"><div class="chips__lista">${chipsCuando(e, f)}</div></div>
     <div class="filtros__fila">
-      <label class="campo">📅 Un día concreto <input type="date" name="dia" value="${esc(f.desde && f.desde === f.hasta ? f.desde : '')}"></label>
-      <label class="campo">O entre el <input type="date" name="desde" value="${esc(f.desde)}"></label>
-      <label class="campo">y el <input type="date" name="hasta" value="${esc(f.hasta)}"></label>
+      <label class="campo">📅 Un día concreto <input type="date" name="dia" value="${esc(unDia ? f.desde : '')}"></label>
+      <label class="campo">O entre el <input type="date" name="desde" value="${esc(unDia ? '' : f.desde)}"></label>
+      <label class="campo">y el <input type="date" name="hasta" value="${esc(unDia ? '' : f.hasta)}"></label>
       ${interruptor('cerradas', '📅 Solo con fechas cerradas', f.soloCerradas)}
     </div>
     <p class="ayuda">Las ofertas con <strong>fechas cerradas</strong> dicen el día exacto («vie 16 – dom 18 oct»). Las de <strong>fechas flexibles</strong> se pueden usar cualquier día hasta que caducan: salen en todas las fechas, pero la disponibilidad exacta la confirma la web del anunciante (el botón de la oferta la abre).</p>
@@ -496,7 +500,7 @@ ${avisoMemoria(e, 'actividades')}
     ${numero('nota', 'Valoración mín. (0–10)', f.nota, ' max="10" step="0.5" placeholder="Cualquiera"')}
     <label class="campo">Ordenar por <select name="orden">${opciones(ORDENES_ACTIVIDADES.map((o) => [o, ETIQUETAS_ORDEN_ACTIVIDADES[o]]), f.orden)}</select></label>
     ${interruptor('gratis', '🆓 Solo gratis', f.gratis)}
-    ${interruptor('sindesc', '✕ Ocultar las descartadas', f.sinDescartadas)}
+    ${interruptorDefecto('sindesc', '✕ Ocultar las descartadas', f.sinDescartadas)}
   </div>
   ${bloqueBusquedas(e, 'actividades')}
 </form>

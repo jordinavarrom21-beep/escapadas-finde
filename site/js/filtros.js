@@ -73,7 +73,8 @@ export function leerFiltrosComunes(p = {}) {
     region: p.region ?? '',
     nuevas: p.nuevas === '1',
     fav: p.fav === '1',
-    sinDescartadas: p.sindesc === '1',
+    // Las descartadas (✕) se ocultan salvo que se pida verlas («sindesc=0»).
+    sinDescartadas: p.sindesc !== '0',
     conDuplicadas: p.dup === '1',
     noTemas: lista(p.notemas),
     noDestinos: lista(p.nodest),
@@ -691,8 +692,10 @@ export function criterioVigilado(nombre, f, { vista = 'escapadas' } = {}) {
       : undefined,
     pais: f.pais || undefined,
     region: f.region || undefined,
-    puente: f.cuando === 'puente' || f.cuando?.startsWith('puente-') || undefined,
-    finde: (vista === 'vuelos' ? f.finde : f.cuando?.startsWith('puente-') && f.cuando) || undefined,
+    // «cuando» es 'finde', 'puente' o el id de un finde o de un puente concretos (su
+    // fecha: '2026-10-10'); src/vigilados.js acepta los dos ids en `finde`.
+    puente: f.cuando === 'puente' || undefined,
+    finde: (vista === 'vuelos' ? f.finde : !['', 'finde', 'puente'].includes(f.cuando ?? '') && f.cuando) || undefined,
     soloChollazos: f.chollazo || undefined,
     soloMinimoHistorico: f.historico || undefined,
   };
@@ -726,6 +729,26 @@ export const ATAJOS_ESCAPADAS = [
   { texto: '🔥 Solo chollazos', params: { cho: '1' } },
   { texto: '📅 Con fechas cerradas', params: { cerradas: '1' } },
 ];
+
+/**
+ * Los filtros guardados sin lo que ya ha caducado: un finde o un puente que ya pasó y
+ * fechas anteriores a hoy. Si no, la memoria de filtros dejaría la vista vacía.
+ * @param {Record<string, string>} params
+ * @param {{hoy: string, findes?: object[], puentes?: object[]}} contexto
+ */
+export function filtrosVigentes(params = {}, { hoy, findes = [], puentes = [] } = {}) {
+  const vigentes = { ...params };
+  const periodoVivo = (id) => ['finde', 'puente'].includes(id)
+    || findes.some((f) => f.id === id && f.domingo >= hoy) || puentes.some((p) => p.id === id && p.hasta >= hoy);
+  for (const clave of ['cuando', 'finde']) if (vigentes[clave] && !periodoVivo(vigentes[clave])) delete vigentes[clave];
+  if (vigentes.hasta && vigentes.hasta < hoy) {
+    delete vigentes.desde;
+    delete vigentes.hasta;
+  } else if (vigentes.desde && vigentes.desde < hoy) {
+    vigentes.desde = hoy;
+  }
+  return vigentes;
+}
 
 /** Parámetros que no filtran (ordenan o acompañan a otro) y no salen como chip. */
 const NO_SON_FILTROS = new Set(['orden', 'lat', 'lon']);
@@ -782,7 +805,7 @@ function textoFiltro(clave, valor, ctx) {
     cho: () => '🔥 Solo chollazos',
     baja: () => '↓ Con bajada de precio',
     hist: () => 'Mínimo histórico',
-    sindesc: () => 'Sin las descartadas',
+    sindesc: () => (valor === '0' ? '✕ Con las descartadas' : null),
     dup: () => 'Con las repetidas',
     cru: () => (valor === '0' ? '🚢 Con cruceros' : null),
     cerradas: () => '📅 Solo con fechas cerradas',

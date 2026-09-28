@@ -6,8 +6,8 @@
 import { abrirFicha, liberarFicha } from './ficha.js';
 import { diasEntre, estadoFinde, fechaLocal, findesProximos, proximoPuente } from './fechas.js';
 import {
-  POR_PAGINA, actividadesCerca, crearHash, criterioVigilado, esNovedad, leerFiltrosActividades,
-  leerFiltrosEscapadas, leerFiltrosVuelos, leerRuta, medirDistancias, referenciaNovedades, resumenFuentes,
+  POR_PAGINA, actividadesCerca, buscarTexto, crearHash, criterioVigilado, filtrosVigentes, leerFiltrosActividades,
+  leerFiltrosComunes, leerFiltrosEscapadas, leerFiltrosVuelos, leerRuta, medirDistancias, referenciaNovedades, resumenFuentes,
 } from './filtros.js';
 import { contar, cuentaAtras, escaparHtml as esc, haceCuanto } from './formato.js';
 import {
@@ -17,7 +17,9 @@ import {
 import { destruirMapa, pintarMapa } from './mapa.js';
 import { estadoVacio } from './plantillas.js';
 import { activarUbicacion } from './ubicacion.js';
-import { VISTAS_HTML, contarSecundarios, contenidoSorpresa, ctxTarjetas, datosMapa, resultadosMapa } from './vistas.js';
+import {
+  VISTAS_HTML, contarSecundarios, contenidoSorpresa, contextoBusqueda, ctxTarjetas, datosMapa, resultadosMapa,
+} from './vistas.js';
 
 const $ = (selector) => document.querySelector(selector);
 const principal = $('#principal');
@@ -108,7 +110,8 @@ function pintarCabecera() {
 }
 
 function pintarNovedades() {
-  const nuevas = estado.datos.ofertas.filter((o) => esNovedad(o, estado.referencia)).length;
+  // Contadas igual que las enseña «Verlas» (sin repetidas ni descartadas), para que cuadren.
+  const nuevas = buscarTexto(estado.datos.ofertas, leerFiltrosComunes({ nuevas: '1' }), contextoBusqueda(estado)).length;
   const aviso = $('#novedades');
   if (!nuevas) return;
   const desde = estado.visitaAnterior ? `desde tu última visita (${haceCuanto(estado.visitaAnterior)})` : 'en las últimas 24 h';
@@ -152,33 +155,41 @@ function prepararMapa(params) {
   pintarMapa($('#mapa'), d, ctxTarjetas(estado, { distancias: d.distancias, desde: d.desde }));
 }
 
-/**
- * Al entrar sin filtros en una vista con memoria, se recuperan los de la última vez
- * (con un aviso y un «Empezar de cero»). Con filtros en la URL, mandan los de la URL.
- */
-function rutaConMemoria() {
+/** La URL manda siempre; en las vistas con memoria, lo que trae se guarda como «lo último». */
+function rutaActual() {
   const ruta = leerRuta(location.hash);
-  estado.filtrosRecordados = false;
-  if (!VISTAS_CON_MEMORIA.includes(ruta.vista)) return ruta;
-  if (Object.keys(ruta.params).length) {
-    guardarFiltros(ruta.vista, ruta.params);
-    return ruta;
+  if (VISTAS_CON_MEMORIA.includes(ruta.vista) && Object.keys(ruta.params).length) guardarFiltros(ruta.vista, ruta.params);
+  return ruta;
+}
+
+const contextoFechas = () => ({ hoy: estado.hoy, findes: estado.findes, puentes: estado.datos.puentes });
+
+/**
+ * Los enlaces del menú de las vistas con memoria llevan sus últimos filtros (sin lo que
+ * ya ha caducado). Así se recuperan al entrar desde el menú, pero Atrás y Adelante
+ * siguen el historial de verdad (antes se reescribía la entrada «sin filtros»).
+ */
+function enlacesConMemoria() {
+  for (const enlace of document.querySelectorAll('.navegacion a[data-vista]')) {
+    const vista = enlace.dataset.vista;
+    if (!VISTAS_CON_MEMORIA.includes(vista)) continue;
+    const guardados = filtrosVigentes(cargarFiltros(vista) ?? {}, contextoFechas());
+    enlace.setAttribute('href', crearHash(vista, guardados));
+    enlace.toggleAttribute('data-con-memoria', Object.keys(guardados).length > 0);
   }
-  const guardados = cargarFiltros(ruta.vista);
-  if (!guardados) return ruta;
-  history.replaceState(null, '', crearHash(ruta.vista, guardados));
-  estado.filtrosRecordados = true;
-  return { vista: ruta.vista, params: guardados };
 }
 
 function render({ enfocar = true } = {}) {
-  const { vista, params } = rutaConMemoria();
+  const { vista, params } = rutaActual();
   const cambiaVista = vista !== vistaActual;
   if (cambiaVista) estado.paginas.clear();
   if (dialogo.open) dialogo.close();
   if (vista !== 'mapa') destruirMapa();
   vistaActual = vista;
   principal.innerHTML = VISTAS_HTML[vista].html(estado, params);
+  // El aviso «con los filtros de la última vez» solo vale para la entrada desde el menú.
+  estado.filtrosRecordados = false;
+  enlacesConMemoria();
   document.title = `${TITULOS[vista]} · Escapadas Finde`;
   document.querySelectorAll('.navegacion a').forEach((a) => {
     if (a.dataset.vista === vista) a.setAttribute('aria-current', 'page');
@@ -243,13 +254,20 @@ function aplicarFiltros(formulario, { repintar = null } = {}) {
   const vista = formulario.dataset.filtros;
   const params = paramsDeFormulario(formulario);
   history.replaceState(null, '', crearHash(vista, params));
-  if (VISTAS_CON_MEMORIA.includes(vista)) guardarFiltros(vista, params);
+  if (VISTAS_CON_MEMORIA.includes(vista)) {
+    guardarFiltros(vista, params);
+    enlacesConMemoria();
+  }
   estado.paginas.clear();
   if (!repintar) {
     actualizarResultados(vista, params);
     return;
   }
+  // Repintar el formulario no debe cerrar «Más filtros» (en el móvil, a pantalla completa)
+  // ni los demás desplegables que estuvieran abiertos.
+  const abiertos = [...principal.querySelectorAll('details')].map((d) => d.open);
   render({ enfocar: false });
+  principal.querySelectorAll('details').forEach((d, i) => { if (abiertos[i]) d.open = true; });
   principal.querySelector(`[name="${CSS.escape(repintar)}"][data-repintar]`)?.focus();
 }
 
@@ -257,6 +275,13 @@ function alCambiarFiltro(evento) {
   const campo = evento.target;
   const formulario = campo.closest?.('form[data-filtros]');
   if (!formulario || (!campo.name && campo !== formulario)) return;
+  // «Un día concreto» y el rango se excluyen: el que se toca manda y el otro se vacía.
+  const fechas = formulario.elements;
+  if ((campo.name === 'desde' || campo.name === 'hasta') && fechas.dia) fechas.dia.value = '';
+  if (campo.name === 'dia' && fechas.desde && fechas.hasta) {
+    fechas.desde.value = '';
+    fechas.hasta.value = '';
+  }
   const repintar = campo.dataset?.repintar === undefined ? null : campo.name;
   const escribiendo = evento.type === 'input' && CAMPOS_QUE_SE_ESCRIBEN.includes(campo.type);
   clearTimeout(temporizadorFiltros);
@@ -356,14 +381,6 @@ function ocultarTarjetas(id) {
 }
 
 /** La primera vez que se descarta algo se activa el filtro, para que no vuelva a aparecer. */
-function activarFiltroDescartadas() {
-  const { vista, params } = leerRuta(location.hash);
-  if (params.sindesc === '1') return;
-  history.replaceState(null, '', crearHash(vista, { ...params, sindesc: '1' }));
-  const casilla = principal.querySelector('form[data-filtros] input[name="sindesc"]');
-  if (casilla) casilla.checked = true;
-}
-
 function alternarDescartada(id) {
   const descartar = !estado.descartadas.has(id);
   if (descartar) estado.descartadas.add(id);
@@ -375,10 +392,10 @@ function alternarDescartada(id) {
   }
   if (dialogo.open) dialogo.close();
   ocultarTarjetas(id);
-  activarFiltroDescartadas();
+  // Las descartadas se ocultan por defecto en todas las listas (salvo «sindesc=0»).
   const { vista, params } = leerRuta(location.hash);
   if (VISTAS_HTML[vista].resultados) actualizarResultados(vista, params);
-  anunciar('Oferta descartada. Quita «Ocultar las descartadas» en los filtros para volver a verla.');
+  anunciar('Oferta descartada. Para volver a verla, desmarca «Ocultar las descartadas» en los filtros.');
 }
 
 function mostrarFicha(id, disparador) {
@@ -435,7 +452,18 @@ function conectarEventos() {
   principal.addEventListener('input', alCambiarFiltro);
   principal.addEventListener('change', alCambiarFiltro);
   principal.addEventListener('submit', (evento) => evento.preventDefault());
-  window.addEventListener('hashchange', () => render());
+  // «#principal» (el enlace de saltar al contenido) no es una ruta: no se cambia de vista.
+  window.addEventListener('hashchange', () => { if (!location.hash || location.hash.startsWith('#/')) render(); });
+  $('.saltar')?.addEventListener('click', (evento) => {
+    evento.preventDefault();
+    principal.focus();
+    principal.scrollIntoView();
+  });
+  // Entrar desde el menú a una vista con memoria enseña el aviso de «filtros de la última vez».
+  document.querySelector('.navegacion')?.addEventListener('click', (evento) => {
+    if (evento.target.closest('a[data-con-memoria]')) estado.filtrosRecordados = true;
+  });
+  document.addEventListener('visibilitychange', refrescarSiHaceFalta);
   $('#buscador').addEventListener('submit', (evento) => {
     evento.preventDefault();
     location.hash = crearHash('buscar', { q: $('#q').value.trim() });
@@ -459,6 +487,33 @@ function conectarEventos() {
   document.addEventListener('error', (evento) => {
     if (evento.target.matches?.('img.tarjeta__imagen, img.ficha__imagen')) evento.target.remove();
   }, true);
+}
+
+const REFRESCO_MS = 30 * 60_000;
+let cargadoEn = Date.now();
+
+/**
+ * Con la pestaña o la app instalada abiertas días, al volver a ella se renuevan los
+ * datos si ha cambiado el día o han pasado 30 min: si no, «Este finde» seguiría con el
+ * finde pasado.
+ */
+async function refrescarSiHaceFalta() {
+  if (document.visibilityState !== 'visible' || !estado) return;
+  if (fechaLocal(new Date()) === estado.hoy && Date.now() - cargadoEn < REFRESCO_MS) return;
+  try {
+    const [datos, historial, vigilados] = await Promise.all([
+      cargarJson('data/ofertas.json'),
+      cargarJson('data/historial.json', {}),
+      cargarJson('data/vigilados.json', { vigilados: [] }),
+    ]);
+    const { paginas, salto } = estado;
+    estado = { ...crearEstado(datos, historial, vigilados), paginas, salto };
+    cargadoEn = Date.now();
+    pintarCabecera();
+    render({ enfocar: false });
+  } catch (error) {
+    console.warn('No se han podido renovar los datos al volver a la pestaña:', error);
+  }
 }
 
 async function iniciar() {
