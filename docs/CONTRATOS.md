@@ -54,7 +54,7 @@ un `try/catch`, registran el error con `ctx.log` y descartan solo esa oferta.
 | `regimen` | fuente o `temas.js` | `solo-alojamiento` \| `desayuno` \| `media-pension` \| `pension-completa` \| `todo-incluido` |
 | `temas` | fuente + `temas.js` | ids de `TEMAS` (se unen los de la fuente y los detectados) |
 | `transporte` | fuente o `temas.js` | `avion` \| `coche` \| `tren` \| `bus` \| `ferry` |
-| `lugar` | fuente (+ `geo.js` completa lat/lon) | `{nombre, region, pais, codigoPais, lat, lon, iata}` |
+| `lugar` | fuente (+ `geo.js` completa lat/lon, `zona.js` provincia y comunidad) | `{nombre, region, pais, codigoPais, lat, lon, iata, provincia, comunidad}`. `nombre` va con el nombre oficial (`util/lugares.js`: «Gerona» → «Girona»); `region` es lo que dice la web |
 | `cocheMin`, `cocheKm`, `cocheEstimado` | `geo.js` | tiempo y distancia en coche desde `ajustes.origen`; `cocheEstimado=true` si es una estimación en línea recta |
 | `fechas` | fuente (`salida`, `vuelta`) + `festivos.js` (`findeId`, `puenteId`) | `salida`/`vuelta` en hora local `YYYY-MM-DDTHH:mm:ss` o `YYYY-MM-DD` |
 | `vuelo` | solo fuentes de vuelos | ver más abajo |
@@ -150,6 +150,9 @@ export default {
     título, descripción, etiquetas y lugar. No modifica la oferta.
   - `aplicarClasificacion(oferta)` rellena `regimen`, `noches` y `transporte` solo si
     son `null`, y une los `temas`.
+- `zona.js`
+  - `aplicarZona(oferta)`: `lugar.provincia` y `lugar.comunidad` en España a partir de lo
+    que diga `region` (provincia, comunidad, comarca, zona turística…); null si no se sabe.
 - `alojamiento.js`
   - `aplicarAlojamiento(oferta)` rellena `alojamiento` (hotel, casa-rural, camping…):
     primero el de la fuente y, si no, por palabras clave.
@@ -254,7 +257,7 @@ Otros archivos de `data/`: `cache.json` (Cache), `historial.json`.
    dominio (`src/core/source-runner.js`); cada una espacia sus propias peticiones.
 4. `fusionar` los resultados → `podar`.
 5. Enriquecer todas las ofertas, en este orden (cada paso usa lo del anterior):
-   `completarOferta` → `aplicarClasificacion` → `aplicarAlojamiento` → `precioNoche` →
+   `completarOferta` → `aplicarClasificacion` → `aplicarAlojamiento` → `aplicarZona` → `precioNoche` →
    `asignarFechas` → `geolocalizar` → `calcularCoche` → `calcularCosteCoche` →
    `revisarPrecios` → `calcularReferencia` → `marcarEquivalentes` → `anadirTiempo` →
    `anadirEventos` → `enlacesPara` → `registrarPrecios` → `compactar` → `puntuar`.
