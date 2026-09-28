@@ -10,7 +10,7 @@ Funciona gratis en GitHub Actions, así que **no hace falta tener el PC encendid
 ## Cómo funciona
 
 ```
-GitHub Actions (cron cada 10 min; GitHub lanza los que puede, ver «Revisión puntual»)
+GitHub Actions (cron cada 30 min, pero GitHub lanza los que puede: ver «Revisión puntual»)
   └─ npm run escanear
        ├─ fuentes      Buscounchollo, Viajeros Piratas, Holidayguru, Nomolesten,
        │               Chollometro, Fly4free… (comprobando antes su robots.txt)
@@ -116,9 +116,9 @@ Campos disponibles: `texto`, `tipo` (vuelo, escapada, hotel, paquete), `tema`, `
 
 ## Revisión puntual cada 30 minutos (opcional)
 
-GitHub no garantiza los crons: en la práctica lanzaba unas 6 de las 48 revisiones diarias
-(una cada ~4 h). El cron va cada 10 minutos para que entren más, pero si quieres una
-revisión puntual, que la lance un servicio externo gratuito (unos 5 minutos de configurar):
+GitHub no garantiza los crons: en la práctica lanza unas 6 de las 48 revisiones diarias
+(una cada ~4 h), y ponerlo más a menudo no cambia nada. Para una revisión puntual, que la
+lance un servicio externo gratuito (unos 5 minutos de configurar):
 
 1. En GitHub → Settings → Developer settings → **Fine-grained tokens** → Generate new token:
    solo el repositorio `escapadas-finde`, permiso **Actions: Read and write**, y nada más.

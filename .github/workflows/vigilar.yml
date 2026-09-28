@@ -4,10 +4,10 @@ name: Vigilar ofertas
 
 on:
   schedule:
-    # GitHub no garantiza los crons: con «7,37» solo llegaban ~6 de 48 al día (un escaneo
-    # cada ~4 h). Con más disparos llegan más; cada fuente sigue respetando su intervalo
-    # (config/ajustes.json), así que las webs no reciben más peticiones por esto.
-    - cron: '7-59/10 * * * *'
+    # GitHub no garantiza los crons: de las 48 ejecuciones diarias lanza unas 6 (una cada
+    # ~4 h), y subirlo a cada 10 min no cambió nada. Para revisar de verdad cada 30 min,
+    # un servicio externo lanza workflow_dispatch (LEEME, «Revisión puntual»).
+    - cron: '7,37 * * * *'
   workflow_dispatch:
     inputs:
       forzar:
