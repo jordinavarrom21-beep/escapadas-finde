@@ -12,6 +12,7 @@ import { cargarEstado, cargarJson, guardarJson } from './almacen.js';
 import { cargarAjustes } from './ajustes.js';
 import { cargarVigilados } from './vigilados.js';
 import { MODULOS, escanear, urlPanel } from './core/scan-pipeline.js';
+import { FUENTES } from './fuentes/index.js';
 
 // Se reexportan para quien importaba el núcleo desde aquí.
 export { MODULOS, escanear, urlPanel };
@@ -28,27 +29,35 @@ const RUTAS = {
   panelVigilados: 'site/data/vigilados.json',
 };
 
-function leerOpciones(argumentos) {
-  return {
-    forzar: argumentos.includes('--forzar'),
-    sinEmails: argumentos.includes('--sin-emails'),
-    solo: argumentos.find((a) => a.startsWith('--solo='))?.slice('--solo='.length) ?? null,
-  };
+const USO = 'Uso: node src/escanear.js [--forzar] [--solo=<fuente>] [--sin-emails]';
+
+/**
+ * Opciones de la línea de órdenes. Un argumento que no se entiende detiene el escaneo: si
+ * no, «--solo ryanair» (sin «=») se ignoraría y se consultarían todas las fuentes.
+ * @param {string[]} argumentos
+ * @param {string[]} [ids] fuentes que existen, para comprobar la de «--solo»
+ */
+export function leerOpciones(argumentos, ids = null) {
+  const desconocidos = argumentos.filter((a) => !['--forzar', '--sin-emails'].includes(a) && !/^--solo=[a-z0-9-]+$/.test(a));
+  if (desconocidos.length) throw new Error(`Argumento no válido: ${desconocidos.join(' ')}. ${USO}`);
+  const solo = argumentos.find((a) => a.startsWith('--solo='))?.slice('--solo='.length) ?? null;
+  if (solo && ids && !ids.includes(solo)) throw new Error(`No hay ninguna fuente «${solo}». Las fuentes son: ${ids.join(', ')}`);
+  return { forzar: argumentos.includes('--forzar'), sinEmails: argumentos.includes('--sin-emails'), solo };
 }
 
 // Los datos corruptos no deben parar el vigilante: se prueba con la copia de la
 // ejecución anterior (<ruta>.bak) y, si tampoco se puede, se avisa y se empieza de cero.
-function leerDatos(ruta, porDefecto) {
+export function leerDatos(ruta, porDefecto, avisar = console.warn) {
   const nombre = path.relative(RAIZ, ruta);
   try {
     return cargarJson(ruta, porDefecto);
   } catch (error) {
     try {
       const copia = cargarJson(`${ruta}.bak`);
-      console.warn(`⚠️  ${nombre} no se puede leer (${error.message}); se sigue con la copia anterior (.bak)`);
+      avisar(`⚠️  ${nombre} no se puede leer (${error.message}); se sigue con la copia anterior (.bak)`);
       return copia;
     } catch (errorCopia) {
-      console.warn(`⚠️  ${nombre} no se puede leer (${error.message}) y la copia anterior tampoco (${errorCopia.message}); se empieza de cero`);
+      avisar(`⚠️  ${nombre} no se puede leer (${error.message}) y la copia anterior tampoco (${errorCopia.message}); se empieza de cero`);
       return structuredClone(porDefecto);
     }
   }
@@ -80,9 +89,19 @@ function imprimirInforme({ fuentes, total, podadas, emails, puentes, red }) {
   imprimirRed(red);
 }
 
+/**
+ * 1 si todas las fuentes que se han ejecutado en ESTA pasada han fallado; si no, 0. Las
+ * demás conservan el estado de antes, y una en «ok» de hace horas escondería que ahora
+ * ha fallado todo (p. ej. sin red).
+ */
+export function codigoSalida(informe, generado) {
+  const ejecutadas = informe.fuentes.filter((f) => f.ultimoIntento === generado && ['ok', 'error'].includes(f.estado));
+  return ejecutadas.length && ejecutadas.every((f) => f.estado === 'error') ? 1 : 0;
+}
+
 async function principal() {
   const ruta = (clave) => path.join(RAIZ, RUTAS[clave]);
-  const opciones = leerOpciones(process.argv.slice(2));
+  const opciones = leerOpciones(process.argv.slice(2), FUENTES.map((f) => f.id));
   // Se valida al arrancar: sin «retencionDias», por ejemplo, la poda no quitaría nada.
   const ajustes = cargarAjustes(ruta('ajustes'));
   const resultado = await escanear({
@@ -102,11 +121,7 @@ async function principal() {
   guardarJson(ruta('panelVigilados'), resultado.salida.vigilados);
   imprimirInforme(resultado.informe);
 
-  // Solo las que se han ejecutado en ESTA pasada: las demás conservan el estado de antes, y una
-  // en «ok» de hace horas escondería que ahora ha fallado todo (p. ej. sin red).
-  const generado = resultado.salida.ofertas.generado;
-  const ejecutadas = resultado.informe.fuentes.filter((f) => f.ultimoIntento === generado && ['ok', 'error'].includes(f.estado));
-  if (ejecutadas.length && ejecutadas.every((f) => f.estado === 'error')) process.exitCode = 1;
+  if (codigoSalida(resultado.informe, resultado.salida.ofertas.generado)) process.exitCode = 1;
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
