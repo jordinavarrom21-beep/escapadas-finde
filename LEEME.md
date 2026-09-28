@@ -10,7 +10,7 @@ Funciona gratis en GitHub Actions, así que **no hace falta tener el PC encendid
 ## Cómo funciona
 
 ```
-GitHub Actions (cada 30 min)
+GitHub Actions (cron cada 10 min; GitHub lanza los que puede, ver «Revisión puntual»)
   └─ npm run escanear
        ├─ fuentes      Buscounchollo, Viajeros Piratas, Holidayguru, Nomolesten,
        │               Chollometro, Fly4free… (comprobando antes su robots.txt)
@@ -34,6 +34,11 @@ GitHub Actions (cada 30 min)
   «cerca de Girona a menos de 1 h en coche».
 - **Mapa**, **calendario** de los próximos findes, **historial de precios**, **vigilados**
   y **estado de las fuentes**.
+
+**Como app en el móvil o el ordenador**: abre el panel y, en Android o en Chrome/Edge,
+pulsa «Instalar aplicación»; en el iPhone, desde Safari, Compartir → «Añadir a pantalla
+de inicio». Se abre a pantalla completa, con icono propio y accesos directos, y sin
+conexión muestra los últimos datos descargados.
 
 ## Emails
 
@@ -109,6 +114,21 @@ Todo se cambia editando archivos del repo (se puede hacer desde la web de GitHub
 Campos disponibles: `texto`, `tipo` (vuelo, escapada, hotel, paquete), `tema`, `fuente`,
 `aeropuerto`, `precioMax`, `cocheMaxMin`, `cerca` y `puente: true`.
 
+## Revisión puntual cada 30 minutos (opcional)
+
+GitHub no garantiza los crons: en la práctica lanzaba unas 6 de las 48 revisiones diarias
+(una cada ~4 h). El cron va cada 10 minutos para que entren más, pero si quieres una
+revisión puntual, que la lance un servicio externo gratuito (unos 5 minutos de configurar):
+
+1. En GitHub → Settings → Developer settings → **Fine-grained tokens** → Generate new token:
+   solo el repositorio `escapadas-finde`, permiso **Actions: Read and write**, y nada más.
+2. En [cron-job.org](https://cron-job.org) (gratis), crea un trabajo cada 30 minutos:
+   - URL: `https://api.github.com/repos/<tu-usuario>/escapadas-finde/actions/workflows/vigilar.yml/dispatches`
+   - Método **POST**, cuerpo `{"ref":"main"}`
+   - Cabeceras: `Authorization: Bearer <el token>`, `Accept: application/vnd.github+json`
+3. Si una ejecución coincide con otra, GitHub la pone en cola (nunca van dos a la vez) y
+   cada web sigue consultándose solo cuando le toca según su intervalo.
+
 ## Comandos (en tu PC)
 
 ```bash
@@ -171,6 +191,8 @@ sus resultados.
 - **Una fuente sale en rojo**: el panel (pestaña Fuentes) muestra el error. Si una web
   cambia su diseño, hay que ajustar su lector. Las demás siguen funcionando.
 - **No llegan emails**: revisa los tres secretos y lanza el workflow con «email de prueba».
-- **El cron se ha parado**: GitHub desactiva los crons tras 60 días sin actividad. El
-  workflow lo reactiva solo, pero puedes hacerlo a mano en Actions → Enable workflow.
+- **El cron se ha parado**: GitHub desactiva los crons de los repos sin actividad en 60
+  días. Cada escaneo programado lo vuelve a marcar como activo, así que mientras funcione
+  no debería pasar; si pasa, reactívalo en Actions → Vigilar ofertas → Enable workflow.
+- **El panel tarda horas en actualizarse**: es el cron de GitHub; mira «Revisión puntual».
 - **Empezar de cero**: borra la rama `datos` en GitHub. El siguiente escaneo la vuelve a crear.

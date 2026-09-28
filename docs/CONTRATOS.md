@@ -98,7 +98,7 @@ ofertas de vuelos de blogs y comunidades usan `tipo: 'vuelo'` con `vuelo: null`)
 {
   ahora: Date,
   ajustes,                 // config/ajustes.json
-  http: { texto, json, esperar },
+  http: { texto, json, redireccion, esperar }, // src/util/http.js; redireccion = un salto sin seguirlo
   cache: Cache,
   log: (mensaje) => void,  // ya lleva el prefijo de la fuente
   findes: Finde[],         // findesProximos(ajustes.vuelos.findes, ahora)
@@ -150,12 +150,31 @@ export default {
     título, descripción, etiquetas y lugar. No modifica la oferta.
   - `aplicarClasificacion(oferta)` rellena `regimen`, `noches` y `transporte` solo si
     son `null`, y une los `temas`.
+- `alojamiento.js`
+  - `aplicarAlojamiento(oferta)` rellena `alojamiento` (hotel, casa-rural, camping…):
+    primero el de la fuente y, si no, por palabras clave.
 - `enlaces.js`
-  - `enlacesPara(oferta, {origen})` → `[{etiqueta, url}]` (entre 2 y 6). Vuelos: Ryanair
-    (reserva), Google Flights, Skyscanner, y alojamiento en el destino para esas fechas
-    (Booking, Trivago, Airbnb). Escapadas: la oferta, «cómo llegar» en Google Maps
-    desde el origen, y alojamiento alternativo por la zona (Booking, Trivago, Escapada
-    Rural). Todo con destino y fechas ya rellenados cuando se conocen.
+  - `enlacesPara(oferta, {origen, ahora, max = 8})` → `[{etiqueta, url, grupo}]`, agrupados
+    en comparar, alojamiento, actividades y llegar (Google Flights, Skyscanner, Booking,
+    Trivago, Civitatis, GetYourGuide, GuruWalk, Omio, Direct Ferries, Google Maps…), con
+    destino y fechas ya rellenados cuando se conocen. Solo se construyen URLs: nunca se
+    consultan esas webs. Las actividades no reciben enlaces a más actividades.
+- `precios.js` (guardián)
+  - `revisarPrecios(ofertas, log)` → nº de ofertas con un precio no creíble (negativo,
+    por debajo del mínimo de su tipo o < 8 €/noche por persona; los billetes de bus, tren
+    y ferry pueden valer desde 1 €). Les pone `precio` y `precioNoche` a `null`,
+    `chollazo` a `false` y la etiqueta «precio-dudoso»; `precioTexto` se conserva.
+- `referencia.js`
+  - `calcularReferencia(ofertas)` rellena `referencia` `{grupo, mediana, n, ahorroPct}`
+    comparando con la mediana de su grupo (ruta de vuelo, billetes por transporte,
+    tipo + zona…). Sin red.
+- `duplicados.js`
+  - `marcarEquivalentes(ofertas)`: la misma escapada en varias webs (mismo alojamiento
+    normalizado y localidad). La más barata guarda `equivalentes`; las demás llevan la
+    etiqueta «duplicada». Conservador: ante la duda no agrupa.
+- `tiempo.js` / `eventos.js`
+  - `anadirTiempo(ofertas, ctx)`: previsión de Open-Meteo para el finde o puente.
+  - `anadirEventos(ofertas, ctx)`: agenda cultural de Cataluña (Socrata) cerca del destino.
 - `festivos.js`
   - `obtenerFestivos(ctx, anios)` → `Festivo[]` `{fecha, nombre, ambito: 'nacional'|'autonomico'|'local'}`.
     Nager.at (`/api/v3/PublicHolidays/{año}/ES`, filtrando por `ajustes.puentes.comunidad`)
@@ -178,6 +197,8 @@ export default {
     `ajustes.coche.maxKmLineaRecta`. OSRM `table` por lotes (≤ 80 destinos) con caché
     (`ruta:<lat>,<lon>` redondeado a 3 decimales, 180 días). Si OSRM falla, estima
     con línea recta × 1,3 a `velocidadMediaKmh` y marca `cocheEstimado`.
+  - `calcularCosteCoche(ofertas, ctx)`: `costeCoche` `{eur, litros}` (ida y vuelta) con el consumo de
+    `ajustes.coche` y el precio del carburante del Ministerio (caché diaria).
   - `distanciaKm(a, b)`: haversine.
 - `puntuacion.js`
   - `puntuar(ofertas, ajustes)`: asigna `puntuacion` (0–100) a todas.
@@ -223,16 +244,22 @@ export default {
 Otros archivos de `data/`: `cache.json` (Cache), `historial.json`.
 **Todo `data/` se guarda entre ejecuciones en la rama `datos` del repo.**
 
-## Orden del escaneo (`src/escanear.js`)
+## Orden del escaneo (`src/core/scan-pipeline.js`; la CLI `src/escanear.js` lee y escribe el disco)
 
 1. Cargar `config/ajustes.json`, `config/vigilados.json` y `data/*`.
 2. `obtenerFestivos` → `calcularPuentes` (próximos 120 días) y `findesProximos`.
 3. Ejecutar las fuentes a las que les toca (han pasado ≥ 80 % de su intervalo desde
-   `ultimoIntento`, o `--forzar`, o `--solo=<id>`). Las fuentes se ejecutan en paralelo
-   entre sí: cada una ya espacia sus propias peticiones.
+   `ultimoIntento`, o `--forzar`, o `--solo=<id>`), con robots.txt comprobado antes
+   (salvo el buzón). Como mucho `ajustes.maxFuentesEnParalelo` a la vez y una por
+   dominio (`src/core/source-runner.js`); cada una espacia sus propias peticiones.
 4. `fusionar` los resultados → `podar`.
-5. Enriquecer todas las ofertas: `aplicarClasificacion` → `asignarFechas` →
-   `geolocalizar` → `calcularCoche` → `enlacesPara` → `registrarPrecios` → `puntuar`.
+5. Enriquecer todas las ofertas, en este orden (cada paso usa lo del anterior):
+   `completarOferta` → `aplicarClasificacion` → `aplicarAlojamiento` → `precioNoche` →
+   `asignarFechas` → `geolocalizar` → `calcularCoche` → `calcularCosteCoche` →
+   `revisarPrecios` → `calcularReferencia` → `marcarEquivalentes` → `anadirTiempo` →
+   `anadirEventos` → `enlacesPara` → `registrarPrecios` → `compactar` → `puntuar`.
+   El guardián de precios va antes de la referencia para que un precio imposible no
+   hunda la mediana ni pase por chollazo.
 6. Escribir `site/data/ofertas.json`, `site/data/historial.json` y `site/data/vigilados.json`.
 7. `procesarEmails` (salvo con `--sin-emails`).
 8. Guardar `data/estado.json`, `data/cache.json` y `data/historial.json`, e imprimir un
@@ -272,9 +299,11 @@ una oferta coincide si cumple **todos** los que estén presentes):
 - `plantillas.js`: `resumenSemanal(datos)`, `alertaChollazos(datos)`,
   `alertaVigilados(datos)` y `alertaFuentes(datos)` → `{asunto, html, texto}`. HTML con
   estilos en línea y tablas (compatible con Gmail), en español y apto para móvil.
-- `enviar.js`: `crearTransporte(env)` → transporte de nodemailer o `null` si faltan
-  `SMTP_USER`/`SMTP_PASS`/`EMAIL_TO` (Gmail por defecto; `SMTP_HOST`/`SMTP_PORT`
-  opcionales). `enviarEmail(transporte, mensaje, env)`.
+- `enviar.js`: `configuracionEnvio(env)` elige un juego COMPLETO de credenciales:
+  SMTP (`SMTP_HOST` + `SMTP_USER` + `SMTP_PASS`, `SMTP_PORT` 587 por defecto, STARTTLS
+  obligatorio salvo en el 465) si hay algo de SMTP, o Gmail (`GMAIL_USER` +
+  `GMAIL_APP_PASSWORD`); nunca mezcla campos. `crearTransporte(env, log)` → transporte
+  o `null` (una cuenta a medias se avisa por `log`). `enviarEmail(transporte, mensaje, env)`.
 - `decidir.js`:
   `procesarEmails({ofertas, estado, ajustes, vigilados, findes, puentes, fuentes, panelUrl, ahora, enviar})`.
   - Resumen: viernes (`ajustes.emails.resumen`) a partir de la hora indicada en Madrid,
