@@ -11,7 +11,7 @@ import {
 import {
   ALOJAMIENTOS, ATAJOS_ESCAPADAS, ORDENES_ACTIVIDADES, ORDENES_ESCAPADAS, POR_PAGINA, REGIMENES_ORDEN, actividadesPara,
   buscarActividades, buscarEscapadas, buscarTexto, chollazos, chollosDeVuelos, crearHash, describirCriterio,
-  destinosDe, destinosDeVuelo, esActividad, esEscapada, filtrarVuelos, filtrosActivos, leerFiltrosActividades,
+  destinosDe, destinosDeVuelo, esActividad, esEscapada, filtrarVuelos, filtrosActivos, leerFiltrosActividades, zonasDe,
   leerFiltrosComunes, leerFiltrosEscapadas, leerFiltrosVuelos, perfilFavoritos, periodoFinde, planesSorpresa,
   puenteDelFinde, radioBusquedaKm, recomendadas, resumenCalendario, resumenFuentes, resumenPuentes, tieneVuelo,
   urlEditarVigilados, valoresUnicos, vuelosParaMapa,
@@ -402,7 +402,7 @@ function formularioEscapadas(e, params, vista) {
   const tipos = ['escapada', 'hotel', 'paquete', 'crucero'].filter((t) => escapadas.some((o) => o.tipo === t));
   const fuentes = [...new Set(escapadas.map((o) => o.fuente))].map((id) => [id, e.fuentes.get(id) ?? id]);
   const paises = valoresUnicos(escapadas, (o) => o.lugar?.pais);
-  const regiones = valoresUnicos(escapadas.filter((o) => !f.pais || o.lugar?.pais === f.pais), (o) => o.lugar?.region);
+  const zonas = zonasDe(escapadas.filter((o) => !f.pais || o.lugar?.pais === f.pais));
   const alojamientos = ALOJAMIENTOS.filter((a) => escapadas.some((o) => o.alojamiento === a)).map((a) => [a, ETIQUETAS_ALOJAMIENTO[a]]);
   const secundarios = contarSecundarios(params);
   // Un solo día va en su campo y el rango en los suyos, nunca a la vez: si no, cambiar el
@@ -449,7 +449,9 @@ function formularioEscapadas(e, params, vista) {
     </div></div>
     <div class="grupo"><h3 class="grupo__titulo">Zona, web y tipo</h3><div class="filtros__fila">
       <label class="campo">País <select name="pais" data-repintar>${opciones(paises.map((p) => [p, p]), f.pais, 'Todos')}</select></label>
-      <label class="campo">Región o provincia <select name="region">${opciones(regiones.map((r) => [r, r]), f.region, 'Todas')}</select></label>
+      <label class="campo">Provincia o comunidad <select name="region"><option value="">Todas</option>${
+        zonas.provincias.length ? `<optgroup label="Provincias">${opciones(zonas.provincias.map((z) => [z, z]), f.region)}</optgroup>` : ''}${
+        zonas.comunidades.length ? `<optgroup label="Comunidades">${opciones(zonas.comunidades.map((z) => [z, z]), f.region)}</optgroup>` : ''}</select></label>
       <label class="campo">Web <select name="fuente">${opciones(fuentes, f.fuente, 'Todas')}</select></label>
       <label class="campo">Tipo <select name="tipo">${opciones(tipos.map((t) => [t, ETIQUETAS_TIPO[t]]), f.tipo, 'Todos')}</select></label>
       ${interruptorDefecto('cru', '🚢 Ocultar cruceros', f.sinCruceros)}

@@ -79,7 +79,8 @@ export function coincide(oferta, c) {
   if (c.noches != null && !cumpleNoches(oferta.noches, c.noches)) return false;
   if (c.cocheMaxMin != null && !(oferta.cocheMin != null && oferta.cocheMin <= c.cocheMaxMin)) return false;
   if (c.pais && !cumplePais(oferta.lugar, c.pais)) return false;
-  if (c.region && !contiene(oferta.lugar?.region, c.region)) return false;
+  // La región puede ser la que dice la web, la provincia o la comunidad («Girona» o «Cataluña»).
+  if (c.region && ![oferta.lugar?.region, oferta.lugar?.provincia, oferta.lugar?.comunidad].some((zona) => contiene(zona, c.region))) return false;
   if (c.puente && !oferta.fechas.puenteId) return false;
   if (c.finde && ![oferta.fechas.findeId, oferta.fechas.puenteId].includes(c.finde)) return false;
   if (c.soloChollazos && !oferta.chollazo) return false;

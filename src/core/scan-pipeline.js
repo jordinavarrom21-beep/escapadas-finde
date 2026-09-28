@@ -10,6 +10,7 @@ import { FUENTES } from '../fuentes/index.js';
 import { TEMAS, completarOferta } from '../modelo.js';
 import { aplicarClasificacion } from '../enriquecer/temas.js';
 import { aplicarAlojamiento } from '../enriquecer/alojamiento.js';
+import { aplicarZona } from '../enriquecer/zona.js';
 import { enlacesPara } from '../enriquecer/enlaces.js';
 import { asignarFechas, calcularPuentes, obtenerFestivos } from '../enriquecer/festivos.js';
 import { calcularCoche, calcularCosteCoche, geolocalizar } from '../enriquecer/geo.js';
@@ -38,7 +39,7 @@ const CADUCIDAD_POR_PREFIJO = { 'tiempo:': DIA_MS, 'eventos:': 2 * DIA_MS };
 
 /** Módulos que usa el escaneo; los tests pueden sustituir cualquiera. */
 export const MODULOS = {
-  obtenerFestivos, calcularPuentes, asignarFechas, aplicarClasificacion, aplicarAlojamiento,
+  obtenerFestivos, calcularPuentes, asignarFechas, aplicarClasificacion, aplicarAlojamiento, aplicarZona,
   geolocalizar, calcularCoche, calcularCosteCoche, calcularReferencia, marcarEquivalentes,
   revisarPrecios, anadirTiempo, anadirEventos, enlacesPara, registrarPrecios, compactar, seriesPara, puntuar,
   procesarEmails, crearTransporte, enviarEmail,
@@ -170,6 +171,7 @@ export async function escanear({
   for (const oferta of ofertas) {
     m.aplicarClasificacion(oferta);
     m.aplicarAlojamiento(oferta);
+    m.aplicarZona(oferta);
     oferta.precioNoche = precioPorPersonaNoche(oferta);
     Object.assign(oferta.fechas, m.asignarFechas(oferta, findes, puentes));
   }

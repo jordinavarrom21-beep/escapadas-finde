@@ -229,6 +229,16 @@ export function valoresUnicos(ofertas, campo) {
   return [...new Set(ofertas.map(campo).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'es'));
 }
 
+/**
+ * Provincias y comunidades de las ofertas (las que deduce el escaneo), para el filtro de
+ * zona: con la región tal cual la escribe cada web, «Girona» y «Cataluña» no se encontraban.
+ */
+export function zonasDe(ofertas) {
+  const provincias = valoresUnicos(ofertas, (o) => o.lugar?.provincia);
+  const comunidades = valoresUnicos(ofertas, (o) => o.lugar?.comunidad);
+  return { provincias, comunidades };
+}
+
 /** Destinos que se pueden poner en la lista negra: nombre del lugar de cada oferta. */
 export const destinosDe = (ofertas) => valoresUnicos(ofertas, (o) => o.lugar?.nombre);
 
@@ -266,7 +276,7 @@ function cumpleComunes(o, f, ctx) {
     && (!f.puntos || o.puntuacion >= f.puntos)
     && (!f.nota || (o.valoracion?.nota ?? 0) >= f.nota)
     && (!f.pais || o.lugar?.pais === f.pais)
-    && (!f.region || o.lugar?.region === f.region)
+    && (!f.region || [o.lugar?.region, o.lugar?.provincia, o.lugar?.comunidad].includes(f.region))
     && (!f.nuevas || esNovedad(o, ctx.referencia))
     && (!f.fav || Boolean(ctx.favoritos?.has(o.id)))
     && (!f.sinDescartadas || !ctx.descartadas?.has(o.id))

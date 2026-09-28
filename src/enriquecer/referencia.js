@@ -34,8 +34,9 @@ const esPrecio = (valor) => typeof valor === 'number' && Number.isFinite(valor) 
 /** Precio por persona y noche, lo haya calculado ya `puntuacion.js` o no. */
 const porNoche = (oferta) => oferta.precioNoche ?? precioPorPersonaNoche(oferta);
 
+// La provincia, si se sabe (zona.js): así «Costa Brava», «Baix Empordà» y «Girona» son el mismo grupo.
 const zonaDe = (lugar) => {
-  const zona = normalizarTexto(lugar?.region || lugar?.pais || '').trim();
+  const zona = normalizarTexto(lugar?.provincia || lugar?.region || lugar?.pais || '').trim();
   return zona || null;
 };
 
