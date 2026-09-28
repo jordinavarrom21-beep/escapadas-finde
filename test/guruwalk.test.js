@@ -157,6 +157,12 @@ describe('guruwalk: parsear (páginas reales)', () => {
     assert.match(o.descripcion, /la huella que dejó la comunidad judía\.\.\.\.$/);
     assert.doesNotMatch(o.descripcion, /&/);
   });
+
+  it('solo quita la entidad cortada del final, no un «&» normal del texto', () => {
+    for (const descripcion of ['Ruta de tapas por Gràcia&Bar', 'Rock&Roll en el Born, 2 horas', 'Tour R&B']) {
+      assert.equal(unaOferta(tour({ description: descripcion }))[0].descripcion, descripcion);
+    }
+  });
 });
 
 describe('guruwalk: casos límite', () => {

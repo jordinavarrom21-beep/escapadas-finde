@@ -42,7 +42,7 @@ const DESAFIO = /cf-chl|challenge-platform|just a moment|attention required|capt
 const urlCiudad = (ciudad) => `${WEB}/es/${ciudad.slug}`;
 
 /** La web recorta la descripción a mitad de una entidad («…judía.&nb...»): se quita el resto. */
-const sinEntidadCortada = (texto) => texto.replace(/&[#a-zd]{0,8}(?=.{3}$)/i, '');
+const sinEntidadCortada = (texto) => texto.replace(/&[#a-z\d]{0,8}(?=\.{3}$)/i, '');
 
 /**
  * Tours (bloques JSON-LD de tipo `Event`) de una página de ciudad.

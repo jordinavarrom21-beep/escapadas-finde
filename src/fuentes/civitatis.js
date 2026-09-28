@@ -36,6 +36,7 @@ const DESTINOS = [
   { slug: 'costa-brava', nombre: 'Costa Brava', region: 'Girona', lat: 41.95, lon: 3.1667 },
 ];
 
+
 const PAIS = 'España';
 const CODIGO_PAIS = 'ES';
 
@@ -161,6 +162,7 @@ function ofertaDe(actividad, destino, ruta, extra = {}) {
     temas: temasDe(titulo),
     valoracion: valoracionDe(actividad.aggregateRating),
     lugar: {
+      // Los exónimos («Gerona») los unifica crearOferta con util/lugares.js.
       nombre: textoPlano(actividad.location?.address?.addressLocality ?? '') || destino.nombre,
       region: destino.region,
       pais: PAIS,

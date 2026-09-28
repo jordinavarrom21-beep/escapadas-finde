@@ -2,6 +2,7 @@
  * Modelo común «Oferta» y catálogos compartidos por backend, emails y panel.
  * Ver docs/CONTRATOS.md para el significado de cada campo.
  */
+import { nombreOficial } from './util/lugares.js';
 
 export const TEMAS = [
   { id: 'spa', nombre: 'Relax y spa', emoji: '🧖' },
@@ -115,6 +116,8 @@ export function completarOferta(datos) {
     eventos: [],
     ...datos,
     fechas: { salida: null, vuelta: null, findeId: null, puenteId: null, ...datos.fechas },
+    // Un solo nombre por localidad («Gerona» → «Girona»): ver util/lugares.js.
+    lugar: datos.lugar ? { ...datos.lugar, nombre: nombreOficial(datos.lugar.nombre) } : null,
   };
 }
 
@@ -122,7 +125,7 @@ export function completarOferta(datos) {
  * @typedef {Object} Oferta
  * @property {string} id
  * @property {string} fuente
- * @property {'vuelo'|'escapada'|'hotel'|'paquete'} tipo
+ * @property {'vuelo'|'escapada'|'hotel'|'paquete'|'actividad'|'crucero'} tipo  «hotel» = solo alojamiento
  * @property {string} titulo
  * @property {string} descripcion
  * @property {string} url
