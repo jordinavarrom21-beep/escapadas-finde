@@ -28,14 +28,14 @@ describe('precios no creíbles', () => {
 
   test('revisarPrecios deja la oferta sin precio, sin chollazo y marcada', () => {
     const avisos = [];
-    const mala = oferta({ tipo: 'hotel', precio: 2, unidad: 'noche', precioNoche: 1, chollazo: true, titulo: 'Xalet de Prades' });
+    const mala = oferta({ tipo: 'hotel', precio: 2, unidad: 'noche', precioNoche: 1, chollazo: true, titulo: 'Xalet de Prades', precioTexto: '2 €' });
     const buena = oferta({ tipo: 'hotel', precio: 80, unidad: 'noche', precioNoche: 40, chollazo: true });
     assert.equal(revisarPrecios([mala, buena], (m) => avisos.push(m)), 1);
     assert.equal(mala.precio, null);
     assert.equal(mala.precioNoche, null);
     assert.equal(mala.chollazo, false);
     assert.ok(mala.etiquetas.includes(ETIQUETA_DUDOSO));
-    assert.equal(mala.precioTexto !== undefined, true, 'el texto original se conserva');
+    assert.equal(mala.precioTexto, '2 €', 'el texto original se conserva');
     assert.match(avisos[0], /Xalet de Prades/);
     assert.equal(buena.precio, 80, 'la buena no se toca');
   });

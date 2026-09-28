@@ -183,7 +183,7 @@ describe('puntuación', () => {
     assert.ok(barato.puntuacion > caro.puntuacion);
     assert.equal(barato.puntuacion, 70);
     assert.equal(caro.puntuacion, 0);
-    assert.ok(sinPrecio.puntuacion <= 50);
+    assert.equal(sinPrecio.puntuacion, 15, 'sin precio: solo las señales (top-chollo 5 + novedad 10)');
   });
 
   test('esChollazo', () => {
