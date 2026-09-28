@@ -23,17 +23,26 @@ const CAMPOS_BOOLEANO = ['activo', 'puente', 'soloChollazos', 'soloMinimoHistori
 const CAMPOS_CATALOGO = { tipo: TIPOS, tema: IDS_TEMAS, alojamiento: ALOJAMIENTOS, regimenMinimo: REGIMENES };
 
 /**
- * Lee los criterios y avisa por `log` de los que tengan algo raro, sin descartarlos:
- * un vigilado mal escrito no debe parar el escaneo.
+ * Lee los criterios y avisa por `log` de los que tengan algo raro. Un vigilado mal
+ * escrito no debe parar el escaneo: con el JSON roto o sin lista se sigue sin vigilados,
+ * y lo que no es un objeto se descarta; el resto se conserva aunque tenga avisos.
  */
 export function cargarVigilados(ruta, log = console.warn) {
-  let vigilados;
+  let contenido;
   try {
-    vigilados = JSON.parse(readFileSync(ruta, 'utf8')).vigilados ?? [];
+    contenido = JSON.parse(readFileSync(ruta, 'utf8'));
   } catch (error) {
     if (error.code === 'ENOENT') return [];
-    throw error;
+    log(`⚠️  ${ruta} no se puede leer (${error.message}): esta vez sin vigilados`);
+    return [];
   }
+  const lista = contenido?.vigilados ?? [];
+  if (!Array.isArray(lista)) {
+    log(`⚠️  ${ruta}: «vigilados» debe ser una lista [ … ]: esta vez sin vigilados`);
+    return [];
+  }
+  const vigilados = lista.filter((criterio) => criterio && typeof criterio === 'object' && !Array.isArray(criterio));
+  if (vigilados.length < lista.length) log(`⚠️  ${ruta}: ${lista.length - vigilados.length} elementos de «vigilados» no son un criterio {…} y se ignoran`);
   const vistos = new Set();
   for (const criterio of vigilados) {
     const nombre = criterio?.nombre ?? '(sin nombre)';
@@ -47,8 +56,34 @@ export function cargarVigilados(ruta, log = console.warn) {
 
 const tieneCoordenadas = (lugar) => typeof lugar?.lat === 'number' && typeof lugar?.lon === 'number';
 const contiene = (donde, buscado) => normalizarTexto(donde ?? '').includes(normalizarTexto(buscado));
+const escaparRegex = (texto) => texto.replace(/[.*+?^${}()|[\]\\]/g, (caracter) => `\\${caracter}`);
+/** Palabras completas: «reus» no es «Santes Creus» ni «sort» un «resort». */
+const contienePalabras = (donde, buscado) => {
+  const aguja = normalizarTexto(String(buscado)).trim();
+  return new RegExp(`(^|[^a-z0-9])${escaparRegex(aguja)}($|[^a-z0-9])`).test(normalizarTexto(donde ?? ''));
+};
 const cumpleRegimen = (regimen, minimo) => regimen != null && REGIMENES.indexOf(regimen) >= REGIMENES.indexOf(minimo);
-const cumplePais = (lugar, pais) => contiene(lugar?.pais, pais) || normalizarTexto(lugar?.codigoPais ?? '') === normalizarTexto(pais);
+
+/** Nombre del país (sin tildes) → código ISO, para las webs que no dan el código. */
+const CODIGOS_PAIS = {
+  espana: 'ES', portugal: 'PT', francia: 'FR', italia: 'IT', andorra: 'AD', alemania: 'DE', 'reino unido': 'GB',
+  irlanda: 'IE', 'paises bajos': 'NL', holanda: 'NL', belgica: 'BE', suiza: 'CH', austria: 'AT', grecia: 'GR',
+  marruecos: 'MA', 'republica checa': 'CZ', chequia: 'CZ', hungria: 'HU', polonia: 'PL', croacia: 'HR', malta: 'MT',
+  egipto: 'EG', turquia: 'TR', 'estados unidos': 'US', noruega: 'NO', suecia: 'SE', dinamarca: 'DK', islandia: 'IS',
+  rumania: 'RO', bulgaria: 'BG', tunez: 'TN', chipre: 'CY', albania: 'AL', montenegro: 'ME', eslovenia: 'SI',
+  eslovaquia: 'SK', finlandia: 'FI', letonia: 'LV', lituania: 'LT', estonia: 'EE', luxemburgo: 'LU', mexico: 'MX',
+  cuba: 'CU', 'republica dominicana': 'DO', tailandia: 'TH', japon: 'JP', vietnam: 'VN', 'corea del sur': 'KR',
+};
+/**
+ * Un código de dos letras se compara con el código (antes «MA» casaba con «Alemania»
+ * por subcadena); un nombre, por igualdad.
+ */
+function cumplePais(lugar, pais) {
+  const buscado = normalizarTexto(pais).trim();
+  const nombre = normalizarTexto(lugar?.pais ?? '').trim();
+  if (/^[a-z]{2}$/.test(buscado)) return (lugar?.codigoPais ?? CODIGOS_PAIS[nombre] ?? '').toLowerCase() === buscado;
+  return nombre === buscado;
+}
 
 /** `noches: 2` son exactamente 2; `noches: {min, max}` es un rango (cualquiera de los dos puede faltar). */
 function cumpleNoches(noches, criterio) {
@@ -67,9 +102,11 @@ export function coincide(oferta, c) {
   if (c.ofertaId && oferta.id !== c.ofertaId) return false;
   if (c.tipo && oferta.tipo !== c.tipo) return false;
   if (c.tema && !oferta.temas.includes(c.tema)) return false;
-  if (c.temas?.length && !c.temas.some((tema) => oferta.temas.includes(tema))) return false;
-  if (c.fuente && oferta.fuente !== c.fuente) return false;
-  if (c.aeropuerto && oferta.vuelo?.origen !== c.aeropuerto) return false;
+  if (Array.isArray(c.temas) && c.temas.length && !c.temas.some((tema) => oferta.temas.includes(tema))) return false;
+  if (c.fuente && oferta.fuente !== String(c.fuente).toLowerCase()) return false;
+  // Casi ninguna web publica el aeropuerto de salida: solo descarta los vuelos que lo dicen
+  // y es otro. Antes exigía conocerlo y el vigilado no coincidía nunca con nada.
+  if (c.aeropuerto && oferta.vuelo?.origen && oferta.vuelo.origen !== String(c.aeropuerto).toUpperCase()) return false;
   if (c.alojamiento && oferta.alojamiento !== c.alojamiento) return false;
   if (c.regimenMinimo && !cumpleRegimen(oferta.regimen, c.regimenMinimo)) return false;
   if (c.valoracionMin != null && !(oferta.valoracion?.nota >= c.valoracionMin)) return false;
@@ -82,11 +119,12 @@ export function coincide(oferta, c) {
   // La región puede ser la que dice la web, la provincia o la comunidad («Girona» o «Cataluña»).
   if (c.region && ![oferta.lugar?.region, oferta.lugar?.provincia, oferta.lugar?.comunidad].some((zona) => contiene(zona, c.region))) return false;
   if (c.puente && !oferta.fechas.puenteId) return false;
-  if (c.finde && ![oferta.fechas.findeId, oferta.fechas.puenteId].includes(c.finde)) return false;
+  // Los ids de finde y de puente son su fecha; se acepta el «puente-…» que documentaba el leeme.
+  if (c.finde && ![oferta.fechas.findeId, oferta.fechas.puenteId].includes(String(c.finde).replace(/^puente-/, ''))) return false;
   if (c.soloChollazos && !oferta.chollazo) return false;
   if (c.soloMinimoHistorico && !oferta.minimoHistorico) return false;
   if (c.cerca && !(tieneCoordenadas(oferta.lugar) && distanciaKm(c.cerca, oferta.lugar) <= c.cerca.radioKm)) return false;
-  if (c.texto && !contiene([oferta.titulo, oferta.lugar?.nombre, oferta.lugar?.iata, oferta.vuelo?.destino].join(' '), c.texto)) return false;
+  if (c.texto && !contienePalabras([oferta.titulo, oferta.lugar?.nombre, oferta.lugar?.iata, oferta.vuelo?.destino].join(' '), c.texto)) return false;
   return true;
 }
 
@@ -107,6 +145,7 @@ export function validarVigilado(c) {
   if (!c || typeof c !== 'object' || Array.isArray(c)) return ['no es un objeto'];
   const problemas = [];
   if (typeof c.nombre !== 'string' || !c.nombre.trim()) problemas.push('falta «nombre» (es obligatorio y es lo que sale en los avisos)');
+  else if (c.nombre.includes('|')) problemas.push('«nombre» no puede llevar «|» (se usa para separar el nombre del id de la oferta)');
   for (const campo of Object.keys(c)) {
     if (!CAMPOS.has(campo)) problemas.push(`campo desconocido: «${campo}»`);
   }
@@ -132,7 +171,12 @@ export function validarVigilado(c) {
   if (c.valoracionMin > 10) problemas.push('«valoracionMin» va de 0 a 10');
   if (c.descuentoMin > 100) problemas.push('«descuentoMin» es un porcentaje de 0 a 100');
   if (c.noches != null && !esNochesValido(c.noches)) problemas.push('«noches» debe ser un número o {min, max}');
+  else if (c.noches?.min != null && c.noches?.max != null && c.noches.min > c.noches.max) problemas.push('«noches»: min es mayor que max y no coincidiría con nada');
   if (c.cerca != null && !esCercaValido(c.cerca)) problemas.push('«cerca» debe ser {lat, lon, radioKm} con números');
+  else if (c.cerca && (c.cerca.radioKm <= 0 || Math.abs(c.cerca.lat) > 90 || Math.abs(c.cerca.lon) > 180)) problemas.push('«cerca»: radioKm debe ser mayor que 0 y lat/lon estar en rango');
+  if (typeof c.aeropuerto === 'string' && !/^[a-z]{3}$/i.test(c.aeropuerto)) problemas.push('«aeropuerto» es un código IATA de 3 letras, como «BCN»');
+  if (typeof c.aeropuerto === 'string') problemas.push('aviso: «aeropuerto» solo descarta vuelos cuyo origen se conoce, y hoy casi ninguna web lo publica');
+  if (typeof c.finde === 'string' && !/^(puente-)?\d{4}-\d{2}-\d{2}$/.test(c.finde)) problemas.push('«finde» es la fecha de un finde o de un puente, como «2026-12-05»');
   return problemas;
 }
 

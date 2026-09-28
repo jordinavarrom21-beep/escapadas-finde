@@ -116,6 +116,9 @@ function textoPlano({ titulo, intro, secciones, panelUrl }) {
   return lineas.filter((l, i, todas) => l !== '' || todas[i - 1] !== '').join('\n');
 }
 
+/** «Y 4 más en el panel.» cuando la lista no cabe en el email (MAX_POR_SECCION). */
+const yMas = (total) => (total > MAX_POR_SECCION ? `Y ${total - MAX_POR_SECCION} más en el panel.` : '');
+
 const construir = (contenido) => ({ asunto: contenido.asunto, html: envolver(contenido), texto: textoPlano(contenido) });
 const mejores = (ofertas, criterio = (a, b) => b.puntuacion - a.puntuacion) => [...ofertas].sort(criterio).slice(0, MAX_POR_SECCION);
 const porPrecio = (a, b) => (a.precio ?? Infinity) - (b.precio ?? Infinity);
@@ -154,7 +157,8 @@ export function resumenSemanal({ ofertas, findes, puentes, ajustes, vigilados = 
     ? mejores(vuelosConFecha, porPrecio)
     : mejores(ofertas.filter((o) => o.tipo === 'vuelo'));
   const puente = puentes.find((p) => p.hasta >= (finde?.viernes ?? ''));
-  const escapadas = mejores(ofertas.filter((o) => o.tipo !== 'vuelo'));
+  // Escapadas de verdad: sin vuelos y sin actividades (un free tour por Barcelona no es una escapada).
+  const escapadas = mejores(ofertas.filter((o) => ['escapada', 'hotel', 'paquete', 'crucero'].includes(o.tipo)));
   const chollazos = mejores(ofertas.filter((o) =>
     esChollazo(o, ajustes) && o.vistaPrimera && ahora - Date.parse(o.vistaPrimera) <= SEMANA_MS));
   const secciones = [
@@ -168,7 +172,9 @@ export function resumenSemanal({ ofertas, findes, puentes, ajustes, vigilados = 
     { titulo: '🏨 Las mejores escapadas', ofertas: escapadas, vacio: 'No hay escapadas nuevas.' },
     { titulo: '🔥 Chollazos de la semana', ofertas: chollazos, vacio: 'Esta semana no ha habido chollazos.' },
   ];
-  const desde = vuelos.find((o) => o.precio != null)?.precio;
+  // El más barato de la sección (la lista va por puntuación, no por precio).
+  const precios = vuelos.map((o) => o.precio).filter((precio) => precio != null);
+  const desde = precios.length ? Math.min(...precios) : undefined;
   return construir({
     asunto: `Tu finde ${finde?.etiqueta ?? ''}: ${desde != null ? `vuelos desde ${euros.format(desde)} y ` : ''}${escapadas.length} ${escapadas.length === 1 ? 'escapada' : 'escapadas'}`,
     titulo: `Tu finde ${finde?.etiqueta ?? ''}`,
@@ -185,7 +191,7 @@ export function alertaChollazos({ ofertas, panelUrl }) {
     asunto: `🔥 ${ofertas.length === 1 ? 'Chollazo' : `${ofertas.length} chollazos`}: ${primera.titulo} (${precioLegible(primera)})`,
     titulo: ofertas.length === 1 ? 'Ha aparecido un chollazo' : `Han aparecido ${ofertas.length} chollazos`,
     intro: 'Ofertas excepcionales detectadas ahora mismo. Suelen durar poco.',
-    secciones: [{ titulo: '🔥 Chollazos', ofertas: mejores(ofertas), vacio: '' }],
+    secciones: [{ titulo: '🔥 Chollazos', ofertas: mejores(ofertas), vacio: '', nota: yMas(ofertas.length) }],
     panelUrl,
   });
 }
@@ -215,16 +221,20 @@ export function alertaVigilados({ coincidencias, panelUrl }) {
     const { precioMax } = lista[0].criterio;
     return {
       titulo: `⭐ ${nombre}`,
-      nota: precioMax != null ? `Tu precio objetivo: ${euros.format(precioMax)}.` : '',
+      nota: [precioMax != null ? `Tu precio objetivo: ${euros.format(precioMax)}.` : '', yMas(lista.length)].filter(Boolean).join(' '),
       ofertas: mejores(lista, (a, b) => porPrecio(a.oferta, b.oferta))
         .map(({ oferta, anterior = null }) => ({ oferta, extras: [textoBajada(oferta, anterior)] })),
       vacio: '',
     };
   });
+  // Si todo es la primera vez que se avisa, no es una «bajada».
+  const soloNuevas = coincidencias.every(({ anterior }) => anterior == null);
   return construir({
-    asunto: `⭐ Bajada en tus vigilados: ${nombres.join(', ')}`,
+    asunto: `⭐ ${soloNuevas ? 'Novedades' : 'Bajada'} en tus vigilados: ${nombres.join(', ')}`,
     titulo: 'Novedades en lo que vigilas',
-    intro: 'Estas ofertas cumplen tus criterios y están por debajo del último precio que te avisé.',
+    intro: soloNuevas
+      ? 'Estas ofertas cumplen tus criterios por primera vez.'
+      : 'Estas ofertas cumplen tus criterios y están por debajo del último precio que te avisé (o son nuevas).',
     secciones,
     panelUrl,
   });

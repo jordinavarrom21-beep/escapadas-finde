@@ -90,6 +90,7 @@ jobs:
           SMTP_PORT: ${{ secrets.SMTP_PORT }}
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          SMTP_FROM: ${{ secrets.SMTP_FROM }}
           BUZON_NOMBRES: ${{ secrets.BUZON_NOMBRES }}
         run: npm run escanear -- ${{ inputs.forzar && '--forzar' || '' }}
 
@@ -103,6 +104,7 @@ jobs:
           SMTP_PORT: ${{ secrets.SMTP_PORT }}
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          SMTP_FROM: ${{ secrets.SMTP_FROM }}
         run: npm run email:prueba
 
       - name: Guardar los datos en la rama «datos»

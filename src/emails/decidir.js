@@ -36,7 +36,7 @@ function limpiarRegistros(emails, ofertas, ahora, hoy) {
   const iso = ahora.toISOString();
   for (const clave of Object.keys(emails.vigilados)) {
     const visto = Date.parse(emails.vigiladosVistos[clave] ?? '');
-    if (vivas.has(clave.slice(clave.indexOf('|') + 1)) || !Number.isFinite(visto)) {
+    if (vivas.has(clave.slice(clave.lastIndexOf('|') + 1)) || !Number.isFinite(visto)) {
       // Viva, o de un estado anterior a este registro: empieza a contar desde hoy.
       emails.vigiladosVistos[clave] = iso;
     } else if (visto < limite) {

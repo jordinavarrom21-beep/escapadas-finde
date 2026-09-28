@@ -4,7 +4,8 @@
  *
  * Remitente, uno de estos dos juegos COMPLETOS (nunca se mezclan campos de uno y otro,
  * para no mandar la contraseña de una cuenta al servidor de la otra):
- *   - SMTP_HOST + SMTP_USER + SMTP_PASS (+ SMTP_PORT, 587 por defecto): cualquier servidor.
+ *   - SMTP_HOST + SMTP_USER + SMTP_PASS (+ SMTP_PORT, 587 por defecto, y SMTP_FROM si el
+ *     usuario no es una dirección, como en SendGrid o SES): cualquier servidor.
  *   - GMAIL_USER + GMAIL_APP_PASSWORD: el Gmail dedicado del buzón.
  * Si hay algo de SMTP_*, manda SMTP. Destinatario: EMAIL_TO.
  */
@@ -46,7 +47,7 @@ export function configuracionEnvio(env) {
   const tlsDirecto = puerto === PUERTO_TLS_DIRECTO;
   return {
     estado: 'lista',
-    remitente: env.SMTP_USER,
+    remitente: env.SMTP_FROM || env.SMTP_USER,
     // Sin TLS directo se exige STARTTLS: nunca se manda la contraseña en claro.
     opciones: { host: env.SMTP_HOST, port: puerto, secure: tlsDirecto, requireTLS: !tlsDirecto, auth: { user: env.SMTP_USER, pass: env.SMTP_PASS } },
   };

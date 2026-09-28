@@ -60,7 +60,8 @@ gh secret set EMAIL_TO             # dónde quieres recibir los avisos (tu email
 ```
 
 ¿Prefieres enviar desde otra cuenta? Guarda las tres de SMTP (`SMTP_HOST`, `SMTP_USER` y
-`SMTP_PASS`; `SMTP_PORT` es opcional, 587 por defecto) y se usarán ellas para enviar. Van
+`SMTP_PASS`; `SMTP_PORT` es opcional, 587 por defecto, y `SMTP_FROM` también, para los
+proveedores cuyo usuario no es una dirección, como SendGrid o SES) y se usarán ellas para enviar. Van
 siempre juntas: si falta una, los emails se desactivan y el registro del escaneo dice cuál
 falta, en lugar de mezclar el usuario de una cuenta con la contraseña de otra.
 
