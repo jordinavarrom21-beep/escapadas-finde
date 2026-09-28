@@ -31,7 +31,10 @@ import { ejecutarFuentes } from './source-runner.js';
 /** Una fuente se vuelve a consultar cuando ha pasado este porcentaje de su intervalo (los crons se retrasan). */
 const MARGEN_INTERVALO = 0.8;
 const HORIZONTE_PUENTES_DIAS = 120;
-const CADUCIDAD_CACHE_MS = 200 * 24 * 60 * 60 * 1000;
+const DIA_MS = 24 * 60 * 60 * 1000;
+const CADUCIDAD_CACHE_MS = 200 * DIA_MS;
+/** El tiempo y la agenda llevan el día en la clave o solo valen unas horas: a los 1–2 días sobran. */
+const CADUCIDAD_POR_PREFIJO = { 'tiempo:': DIA_MS, 'eventos:': 2 * DIA_MS };
 
 /** Módulos que usa el escaneo; los tests pueden sustituir cualquiera. */
 export const MODULOS = {
@@ -79,6 +82,11 @@ async function ejecutarFuente(fuente, { estado, ajustes, env, ahora, opciones, c
       await comprobarRobots(ctx, fuente.urls);
     }
     const resultado = await fuente.obtener(ctx);
+    // Una lectura que no trae nada con «reemplazar» borraría todo el catálogo guardado y
+    // la fuente quedaría «ok» sin avisar. Casi siempre es que la web ha cambiado: error.
+    if (!resultado.ofertas.length && resultado.reemplazar && (previo.total ?? 0) > 0) {
+      throw new Error(`0 ofertas (la última vez ${previo.total}): no se borra lo guardado (¿ha cambiado la web?)`);
+    }
     const { nuevas, total } = fusionar(estado, fuente.id, resultado, ahora);
     estado.fuentes[fuente.id] = {
       estado: 'ok', motivo: null, error: null, desdeError: null, falta: [],
@@ -92,6 +100,8 @@ async function ejecutarFuente(fuente, { estado, ajustes, env, ahora, opciones, c
       motivo: bloqueada ? error.message : null,
       error: bloqueada ? null : error.message,
       desdeError: bloqueada ? null : (previo.estado === 'error' && previo.desdeError) || iso,
+      // Lo que faltaba configurar ya no es el motivo: si no, taparía el error real.
+      falta: [],
       ultimoIntento: iso,
       nuevas: 0,
       duracionMs: Math.round(performance.now() - inicio),
@@ -99,14 +109,20 @@ async function ejecutarFuente(fuente, { estado, ajustes, env, ahora, opciones, c
   }
 }
 
+/**
+ * Estado de cada fuente para el panel. `total` son las ofertas suyas que se enseñan
+ * ahora (tras la poda); `leidas`, cuántas trajo su última lectura.
+ */
 function estadoParaPanel(fuentes, estado) {
+  const porFuente = {};
+  for (const o of Object.values(estado.ofertas)) porFuente[o.fuente] = (porFuente[o.fuente] ?? 0) + 1;
   return fuentes.map((f) => {
     const s = estado.fuentes[f.id] ?? {};
     return {
       id: f.id, nombre: f.nombre, web: f.web, modo: f.modo,
       estado: s.estado ?? 'pendiente', motivo: s.motivo ?? null, error: s.error ?? null,
       desdeError: s.desdeError ?? null, ultimoOk: s.ultimoOk ?? null, ultimoIntento: s.ultimoIntento ?? null,
-      total: s.total ?? 0, nuevas: s.nuevas ?? 0, falta: s.falta ?? [],
+      total: porFuente[f.id] ?? 0, leidas: s.total ?? 0, nuevas: s.nuevas ?? 0, falta: s.falta ?? [],
     };
   });
 }
@@ -192,7 +208,7 @@ export async function escanear({
       log: conPrefijo('emails'),
     });
   }
-  cache.podar(CADUCIDAD_CACHE_MS, ahora.getTime());
+  cache.podar(CADUCIDAD_CACHE_MS, ahora.getTime(), CADUCIDAD_POR_PREFIJO);
   return {
     estado,
     cache,

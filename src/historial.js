@@ -32,13 +32,20 @@ function calcularBajada(anteriores, hoy, precio) {
   return bajada >= BAJADA_MINIMA ? bajada : null;
 }
 
+/**
+ * El precio de hoy es el más bajo de su serie Y alguna vez ha estado más alto: un
+ * precio que nunca ha cambiado no es un mínimo histórico (lo sería el 90 % de todo).
+ */
 function esMinimoHistorico(anteriores, precio) {
-  return anteriores.length > 0 && anteriores.every(([, valor]) => precio <= valor);
+  return anteriores.some(([, valor]) => valor > precio) && anteriores.every(([, valor]) => precio <= valor);
 }
+
+/** ¿Se ha leído hoy de su fuente? Una oferta que no se ha vuelto a leer no aporta un precio nuevo. */
+const vistaHoy = (oferta, hoy) => !oferta.vistaUltima || fechaLocal(new Date(oferta.vistaUltima)) === hoy;
 
 /**
  * Anota el precio de hoy (el mínimo del día en hora de Madrid) de cada oferta con
- * precio numérico y rellena `bajada` y `minimoHistorico`. Las ofertas sin precio
+ * precio numérico que se haya leído hoy, y rellena `bajada` y `minimoHistorico`. Las ofertas sin precio
  * no se registran y quedan con `bajada: null` y `minimoHistorico: false`.
  * Modifica `historial` y las ofertas; devuelve `historial`.
  * @param {Record<string, [string, number][]>} historial
@@ -53,8 +60,8 @@ export function registrarPrecios(historial, ofertas, ahora = new Date()) {
       oferta.minimoHistorico = false;
       continue;
     }
-    const serie = anotarPrecio(historial[oferta.id] ?? [], hoy, oferta.precio);
-    historial[oferta.id] = serie;
+    const serie = vistaHoy(oferta, hoy) ? anotarPrecio(historial[oferta.id] ?? [], hoy, oferta.precio) : historial[oferta.id] ?? [];
+    if (serie.length) historial[oferta.id] = serie;
     const anteriores = serie.filter(([fecha]) => fecha < hoy);
     oferta.bajada = calcularBajada(anteriores, hoy, oferta.precio);
     oferta.minimoHistorico = esMinimoHistorico(anteriores, oferta.precio);

@@ -184,6 +184,9 @@ async function obtener(ctx) {
   const leidas = Object.keys(paginas).length;
   if (!leidas) throw new Error(`No se ha podido leer ninguna página de Volotea (último error: ${ultimoError.message})`);
   const ofertas = parsear(paginas[PAGINA_GENERAL] ?? '', paginas[PAGINA_BARCELONA] ?? '', ctx);
+  // Leídas las páginas y ni una ruta: la página ha cambiado (p. ej. el nombre del
+  // aeropuerto). Con [] y «reemplazar» se borraría todo y la fuente seguiría en «ok».
+  if (!ofertas.length) throw new Error('ninguna ruta desde Barcelona, Girona o Reus (¿ha cambiado la página?)');
   return { ofertas, reemplazar: leidas === PAGINAS.length };
 }
 

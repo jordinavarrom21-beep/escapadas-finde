@@ -50,6 +50,19 @@ const ANTES_DE_LUGAR = /\s+(?:a|al|en|por)\s+/i;
 const FIN_DE_LUGAR = /\s+(?:y|e|o|u|con|cerca|desde|para|junto|durante|sin)\s|\s+\d|\s[-–—|]\s|[¡!¿?(),:;]/i;
 const ARTICULO = /^(?:el|la|los|las)\s+/;
 const PARTICULAS = new Set(['de', 'del', 'el', 'la', 'las', 'los', 'y']);
+/**
+ * Palabras con mayúscula que van tras «a», «en» o «por» y no son un sitio: fiestas y
+ * comercios («Escapada por Navidad a Andorra», «Visto en Instagram», «…en MediaMarkt»).
+ * Se comparan sin tildes y en minúsculas; se salta al siguiente candidato.
+ */
+const NO_SON_LUGARES = new Set([
+  'navidad', 'nochevieja', 'fin de ano', 'ano nuevo', 'reyes', 'semana santa', 'pascua', 'san valentin',
+  'halloween', 'black friday', 'cyber monday', 'puente', 'verano', 'invierno', 'otono', 'primavera',
+  'instagram', 'facebook', 'tiktok', 'youtube', 'amazon', 'aliexpress', 'mediamarkt', 'el corte ingles',
+  'booking', 'booking.com', 'airbnb', 'expedia', 'edreams', 'skyscanner', 'kayak', 'trivago', 'groupon',
+  'renfe', 'iryo', 'ouigo', 'ryanair', 'vueling', 'iberia', 'volotea', 'easyjet', 'atrapalo', 'logitravel',
+]);
+const esNoLugar = (texto) => NO_SON_LUGARES.has(texto.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase());
 
 /** Título sin emojis ni espacios sobrantes. */
 export function limpiarTitulo(titulo = '') {
@@ -66,7 +79,8 @@ export function extraerLugar(titulo) {
   const [, ...trozos] = limpiarTitulo(titulo).split(ANTES_DE_LUGAR);
   for (const trozo of trozos) {
     const candidato = trozo.split(FIN_DE_LUGAR)[0].replace(ARTICULO, '').replace(/[.\s]+$/, '');
-    if (/^\p{Lu}/u.test(candidato)) return esMayusculas(candidato) ? capitalizar(candidato) : candidato;
+    if (!/^\p{Lu}/u.test(candidato) || esNoLugar(candidato)) continue;
+    return esMayusculas(candidato) ? capitalizar(candidato) : candidato;
   }
   return null;
 }

@@ -56,6 +56,22 @@ describe('parsear (portada real)', () => {
   });
 });
 
+describe('parsear: tarjetas de Barcelona (ids numéricos de la web)', () => {
+  // La primera tarjeta, «Madrid > Murcia», pasa a ser «Barcelona > Murcia» (id 7117000_7161200).
+  const conBarcelona = PORTADA.replace('station-content__departure"> Madrid </span>', 'station-content__departure"> Barcelona </span>');
+
+  it('con promoción de Barcelona se queda también con la tarjeta de Barcelona', () => {
+    const ids = parsear(conBarcelona, { ahora: AHORA }).map((o) => o.id);
+    assert.deepEqual(ids, ['ouigo:promo:2026-09-16:barcelona-madrid', 'ouigo:promo:2026-09-16:general', 'ouigo:tarifa:7117000_7161200']);
+  });
+
+  it('sin banner, una tarjeta de Barcelona basta para quitar las de Madrid', () => {
+    const sinBanner = conBarcelona.replace(/<section id="block-blockcountdown"[\s\S]*?<\/section>/, '');
+    const ofertas = parsear(sinBanner, { ahora: AHORA });
+    assert.deepEqual(ofertas.map((o) => o.titulo), ['Tren OUIGO Barcelona – Murcia desde 13 €']);
+  });
+});
+
 describe('ciudad y fechaDiaMes', () => {
   it('reconoce ciudades por nombre o abreviatura', () => {
     assert.equal(ciudad('BAR').nombre, 'Barcelona');

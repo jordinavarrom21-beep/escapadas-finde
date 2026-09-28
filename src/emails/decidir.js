@@ -30,8 +30,21 @@ function limpiarRegistros(emails, ofertas, ahora, hoy) {
     // Mientras la oferta siga publicada no se olvida el aviso: si no, se repetiría cada 30 días.
     if (!vivas.has(id) && Date.parse(cuando) < limite) delete emails.alertados[id];
   }
+  // Igual con el último precio avisado de cada vigilado: una oferta puede faltar una
+  // ejecución (un feed que no la trae, la poda) y volver; si se olvidara el precio, el
+  // aviso se repetiría. Se olvida solo tras 30 días sin verla.
+  const iso = ahora.toISOString();
   for (const clave of Object.keys(emails.vigilados)) {
-    if (!vivas.has(clave.slice(clave.indexOf('|') + 1))) delete emails.vigilados[clave];
+    const visto = Date.parse(emails.vigiladosVistos[clave] ?? '');
+    if (vivas.has(clave.slice(clave.indexOf('|') + 1)) || !Number.isFinite(visto)) {
+      // Viva, o de un estado anterior a este registro: empieza a contar desde hoy.
+      emails.vigiladosVistos[clave] = iso;
+    } else if (visto < limite) {
+      delete emails.vigilados[clave];
+    }
+  }
+  for (const clave of Object.keys(emails.vigiladosVistos)) {
+    if (!(clave in emails.vigilados)) delete emails.vigiladosVistos[clave];
   }
   for (const [nombre, aviso] of Object.entries(emails.avisosVigilado)) {
     if (aviso.fecha !== hoy) delete emails.avisosVigilado[nombre];
@@ -55,6 +68,7 @@ export async function procesarEmails({
   if (emails.enviosHoy.fecha !== hoy) emails.enviosHoy = { fecha: hoy, n: 0 };
   // Se crea aquí para que los estados guardados antes de existir el tope sigan valiendo.
   emails.avisosVigilado ??= {};
+  emails.vigiladosVistos ??= {};
   limpiarRegistros(emails, ofertas, ahora, hoy);
 
   const intentar = async (tipo, mensaje, alEnviar) => {
@@ -87,7 +101,7 @@ export async function procesarEmails({
   if (!emails.inicializado) {
     // Primera ejecución con emails: se toma nota de lo que ya existía, sin avisar de ello.
     for (const oferta of chollazos) emails.alertados[oferta.id] = iso;
-    for (const { clave, oferta } of coincidencias) emails.vigilados[clave] = oferta.precio;
+    for (const { clave, oferta } of coincidencias) { emails.vigilados[clave] = oferta.precio; emails.vigiladosVistos[clave] = iso; }
     emails.inicializado = true;
   } else {
     const bajadas = coincidencias
@@ -95,7 +109,7 @@ export async function procesarEmails({
       .filter(tocaAvisar);
     if (bajadas.length && quedanAlertas()) {
       await intentar('vigilados', alertaVigilados({ coincidencias: bajadas, panelUrl }), () => {
-        for (const { clave, oferta } of bajadas) emails.vigilados[clave] = oferta.precio;
+        for (const { clave, oferta } of bajadas) { emails.vigilados[clave] = oferta.precio; emails.vigiladosVistos[clave] = iso; }
         for (const nombre of new Set(bajadas.map(({ criterio }) => criterio.nombre))) anotarAviso(nombre);
         emails.enviosHoy.n++;
       });

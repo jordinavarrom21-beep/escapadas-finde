@@ -64,12 +64,24 @@ describe('eventos', () => {
     for (const o of [fuera, sinLugar, lejana]) assert.deepEqual(o.eventos, []);
   });
 
-  test('si el conjunto de datos ya no responde, avisa y deja los eventos como estaban', async () => {
+  test('si el portal no responde y no hay agenda guardada, quita los eventos viejos (podrían ser de un finde pasado)', async () => {
     const { ctx, logs } = contexto({ respuestas: () => { throw new Error('HTTP 404 en analisi.transparenciacatalunya.cat'); } });
-    const o = oferta({ lugar: SITGES, eventos: [{ nombre: 'De la ejecución anterior', fecha: '2026-09-19', url: null, municipio: 'Sitges' }] });
+    const o = oferta({ lugar: SITGES, eventos: [{ nombre: 'Del finde pasado', fecha: '2026-09-12', url: null, municipio: 'Sitges' }] });
     await anadirEventos([o], ctx);
-    assert.equal(o.eventos.length, 1);
-    assert.match(logs[0], /Agenda cultural no disponible.*404/);
+    assert.deepEqual(o.eventos, []);
+    assert.match(logs[0], /Agenda cultural no disponible \(HTTP 404.*esta vez sin eventos/);
+  });
+
+  test('si el portal no responde, usa la última agenda guardada aunque tenga días', async () => {
+    const primero = contexto();
+    await anadirEventos([oferta({ lugar: SITGES, fechas: { findeId: '2026-09-25' } })], primero.ctx);
+    // Dos días después, con la misma caché y el portal caído.
+    const { ctx, logs } = contexto({ respuestas: () => { throw new Error('HTTP 503'); }, cache: primero.ctx.cache, ahora: new Date('2026-09-20T08:00:00Z') });
+    const o = oferta({ lugar: SITGES, fechas: { findeId: '2026-09-25' } });
+    await anadirEventos([o], ctx);
+    assert.equal(o.eventos.length, 3);
+    assert.match(logs[0], /se usa la última guardada/);
+    assert.deepEqual(Object.keys(ctx.cache.exportar()).filter((k) => k.startsWith('eventos:')), ['eventos:agenda'], 'una sola clave, no una por día');
   });
 
   test('si la respuesta no es la esperada, tampoco rompe el escaneo', async () => {

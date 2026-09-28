@@ -51,7 +51,7 @@ describe('nomolesten: tarjetas de hotel', () => {
     assert.equal(new Set(hoteles.map((o) => o.id)).size, hoteles.length);
   });
 
-  it('rellena nombre, enlace sin fechas, imagen, lugar y fechas del precio', () => {
+  it('rellena nombre, enlace sin fechas, imagen, lugar y noches del precio', () => {
     const comtal = hotel('castello-dempuries/boutique-hotel-comtal-empuries');
     assert.equal(comtal.tipo, 'hotel');
     assert.equal(comtal.titulo, 'Boutique Hotel Comtal Empúries');
@@ -61,9 +61,12 @@ describe('nomolesten: tarjetas de hotel', () => {
       nombre: "Castelló d'Empúries", region: 'Girona', pais: 'España', codigoPais: 'ES', lat: null, lon: null, iata: null,
     });
     assert.equal(comtal.transporte, 'coche');
-    assert.equal(comtal.fechas.salida, '2026-09-18');
-    assert.equal(comtal.fechas.vuelta, '2026-09-19');
+    // La fecha del enlace es la del precio (esta noche), no la de un viaje: fuera de `fechas`,
+    // o la poda borraría todo Nomolesten cada medianoche y volvería como «nuevo».
+    assert.equal(comtal.fechas.salida, null);
+    assert.equal(comtal.fechas.vuelta, null);
     assert.equal(comtal.noches, 1);
+    assert.ok(comtal.precioTexto.endsWith('(precio de la noche del 18/09)'), comtal.precioTexto);
     assert.equal(comtal.regimen, 'desayuno');
     assert.equal(
       comtal.descripcion,
@@ -79,7 +82,7 @@ describe('nomolesten: tarjetas de hotel', () => {
     assert.equal(macelli.precioAnterior, 287);
     assert.equal(macelli.descuento, 32);
     assert.equal(macelli.unidad, 'noche');
-    assert.equal(macelli.precioTexto, '195 € la noche para 2 adultos con el Club Nomolesten (287 € sin él)');
+    assert.equal(macelli.precioTexto, '195 € la noche para 2 adultos con el Club Nomolesten (287 € sin él) (precio de la noche del 18/09)');
     assert.deepEqual(macelli.etiquetas, ['Oferta Club Nomolesten', 'Club Nomolesten']);
   });
 
@@ -88,7 +91,7 @@ describe('nomolesten: tarjetas de hotel', () => {
     assert.equal(sixtytwo.precio, 295);
     assert.equal(sixtytwo.precioAnterior, null);
     assert.equal(sixtytwo.descuento, null);
-    assert.equal(sixtytwo.precioTexto, '295 € la noche para 2 adultos');
+    assert.equal(sixtytwo.precioTexto, '295 € la noche para 2 adultos (precio de la noche del 18/09)');
     assert.ok(sixtytwo.etiquetas.includes('Ventajas Club Nomolesten'));
   });
 

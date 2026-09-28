@@ -55,16 +55,19 @@ const redondear = ({ lat, lon }) => ({ lat: Number(lat.toFixed(2)), lon: Number(
 const clave = ({ lat, lon }, dia) => `tiempo:${lat},${lon}:${dia}`;
 
 /**
- * Días que ocupa el viaje de una oferta: su puente, su fin de semana o, si no
- * tiene fechas, el próximo fin de semana.
+ * Días que ocupa el viaje de una oferta: su puente, su fin de semana, sus propias
+ * fechas si las tiene (una estancia entre semana) o, si no tiene fechas, el próximo
+ * fin de semana.
  * @returns {{desde: string, hasta: string}|null}
  */
 export function periodoViaje(oferta, ctx) {
-  const { findeId, puenteId } = oferta.fechas;
+  const { salida, vuelta, findeId, puenteId } = oferta.fechas;
   const puente = ctx.puentes.find((p) => p.id === puenteId);
   if (puente) return { desde: puente.desde, hasta: puente.hasta };
-  const finde = findeId ? ctx.findes.find((f) => f.id === findeId) : ctx.findes[0];
-  return finde ? { desde: finde.viernes, hasta: finde.domingo } : null;
+  const finde = findeId && ctx.findes.find((f) => f.id === findeId);
+  if (finde) return { desde: finde.viernes, hasta: finde.domingo };
+  if (salida) return { desde: salida.slice(0, 10), hasta: (vuelta ?? salida).slice(0, 10) };
+  return ctx.findes[0] ? { desde: ctx.findes[0].viernes, hasta: ctx.findes[0].domingo } : null;
 }
 
 /** Día central del periodo: el sábado de un finde, el día de en medio de un puente. */
@@ -112,12 +115,15 @@ async function pedirPrevisiones(puntos, ctx) {
 
 /**
  * Rellena `tiempo` en las ofertas con coordenadas cuyo finde o puente cae dentro
- * de los 16 días de previsión. Si Open-Meteo falla, las deja como estaban.
+ * de los 16 días de previsión. Antes se borra el de la ejecución anterior (podría ser
+ * de un finde ya pasado). Si Open-Meteo falla, se usa la previsión que ya hubiera en
+ * la caché para ese mismo día, aunque tenga más de 3 h.
  */
 export async function anadirTiempo(ofertas, ctx) {
   const hoy = fechaLocal(ctx.ahora);
   const ultimoDia = sumarDias(hoy, DIAS_PREVISION - 1);
   const ahora = ctx.ahora.getTime();
+  for (const oferta of ofertas) oferta.tiempo = null;
 
   const candidatas = [];
   for (const oferta of ofertas) {
@@ -139,7 +145,7 @@ export async function anadirTiempo(ofertas, ctx) {
   if (pendientes.size) await pedirPrevisiones([...pendientes.values()], ctx);
 
   for (const { oferta, punto, dia } of candidatas) {
-    const prevision = ctx.cache.obtener(clave(punto, dia), CADUCIDAD_MS, ahora);
+    const prevision = ctx.cache.obtener(clave(punto, dia), CADUCIDAD_MS, ahora) ?? ctx.cache.obtener(clave(punto, dia));
     if (prevision) oferta.tiempo = prevision;
   }
 }

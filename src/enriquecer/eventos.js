@@ -67,21 +67,26 @@ function urlConsulta(desde, hasta) {
   return `${RECURSO}?${parametros}`;
 }
 
-/** Agenda de los próximos 30 días: una sola petición por ejecución, en caché 6 h. */
+/**
+ * Agenda de los próximos 30 días: una sola petición por ejecución, en caché 6 h bajo
+ * una única clave (antes una por día, que se quedaban meses en data/cache.json). Si
+ * el portal falla, vale la última agenda guardada: sus actos siguen teniendo fecha.
+ */
 async function descargarAgenda(ctx, desde, hasta) {
-  const clave = `eventos:${desde}`;
+  const clave = 'eventos:agenda';
   const ahora = ctx.ahora.getTime();
-  const guardados = ctx.cache.obtener(clave, CADUCIDAD_MS, ahora);
-  if (guardados) return guardados;
+  const fresca = ctx.cache.obtener(clave, CADUCIDAD_MS, ahora);
+  if (fresca?.desde === desde) return fresca.eventos;
   try {
     const filas = await ctx.http.json(urlConsulta(desde, hasta));
     if (!Array.isArray(filas)) throw new Error('respuesta inesperada del portal de datos abiertos');
     const eventos = filas.map(normalizar).filter(Boolean);
-    ctx.cache.guardar(clave, eventos, ahora);
+    ctx.cache.guardar(clave, { desde, eventos }, ahora);
     return eventos;
   } catch (error) {
-    ctx.log(`Agenda cultural no disponible, esta vez sin eventos: ${error.message}`);
-    return null;
+    const anterior = ctx.cache.obtener(clave)?.eventos;
+    ctx.log(`Agenda cultural no disponible (${error.message}): ${anterior ? 'se usa la última guardada' : 'esta vez sin eventos'}`);
+    return anterior ?? null;
   }
 }
 
@@ -90,6 +95,8 @@ async function descargarAgenda(ctx, desde, hasta) {
  * coinciden con el finde o el puente de la oferta, del más cercano al más lejano.
  */
 export async function anadirEventos(ofertas, ctx) {
+  // Los de la ejecución anterior podrían ser de un finde ya pasado.
+  for (const oferta of ofertas) oferta.eventos = [];
   const desde = fechaLocal(ctx.ahora);
   const hasta = sumarDias(desde, DIAS_VENTANA);
   const candidatas = [];

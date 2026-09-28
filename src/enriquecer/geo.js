@@ -55,16 +55,23 @@ export async function geolocalizar(ofertas, ctx, { maxNuevas = 40 } = {}) {
     const clave = `geo:${normalizarTexto(consulta)}`;
     let punto = ctx.cache.obtener(clave, CADUCIDAD_GEO_MS, ahora);
     if (punto === undefined) {
-      if (nuevas >= maxNuevas) { aplazadas++; continue; }
-      if (nuevas > 0) await ctx.http.esperar(PAUSA_NOMINATIM_MS);
-      nuevas++;
-      try {
-        const [resultado] = await ctx.http.json(URL_NOMINATIM + encodeURIComponent(consulta));
-        punto = resultado ? { lat: Number(resultado.lat), lon: Number(resultado.lon) } : null;
-        ctx.cache.guardar(clave, punto, ahora);
-      } catch (error) {
-        ctx.log(`No se ha podido geolocalizar «${consulta}»: ${error.message}`);
-        continue;
+      // Una coordenada caducada sigue valiendo si no se puede renovar: los pueblos no se mueven.
+      const caducada = ctx.cache.obtener(clave);
+      if (nuevas >= maxNuevas) {
+        if (caducada === undefined) { aplazadas++; continue; }
+        punto = caducada;
+      } else {
+        if (nuevas > 0) await ctx.http.esperar(PAUSA_NOMINATIM_MS);
+        nuevas++;
+        try {
+          const [resultado] = await ctx.http.json(URL_NOMINATIM + encodeURIComponent(consulta));
+          punto = resultado ? { lat: Number(resultado.lat), lon: Number(resultado.lon) } : null;
+          ctx.cache.guardar(clave, punto, ahora);
+        } catch (error) {
+          ctx.log(`No se ha podido geolocalizar «${consulta}»: ${error.message}`);
+          if (caducada === undefined) continue;
+          punto = caducada;
+        }
       }
     }
     if (punto) Object.assign(lugar, punto);

@@ -133,7 +133,13 @@ async function obtener(ctx) {
     throw error;
   }
   const ofertas = parsear(html, ctx);
-  if (ofertas) return { ofertas, reemplazar: true };
+  if (ofertas) {
+    // La lista trae ofertas pero no se ha entendido ninguna: la web ha cambiado el formato.
+    // Devolver [] con «reemplazar» borraría las guardadas y la fuente seguiría en «ok».
+    const enLaPagina = JSON.parse(VARIABLE_OFERTAS.exec(html)[1]).length;
+    if (!ofertas.length && enLaPagina) throw new Error(`${enLaPagina} ofertas en la página y ninguna válida (¿ha cambiado el formato?)`);
+    return { ofertas, reemplazar: true };
+  }
   if (DESAFIO.test(html)) throw new Error('Campings.net ha devuelto un desafío anti-bot');
   throw new Error('La página de ofertas de Campings.net no trae la lista de ofertas (¿ha cambiado la web?)');
 }

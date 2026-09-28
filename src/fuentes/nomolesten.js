@@ -90,7 +90,9 @@ function ofertaDe(dato, pagina) {
   const enlace = new URL(dato.href, WEB);
   const escapada = enlace.pathname.startsWith('/escapadas/');
   const lugar = lugarDe(dato.ubicacion);
-  const fechas = fechasDe(enlace.searchParams);
+  // Las fechas del enlace son las del PRECIO (esta noche), no un viaje con fecha: si se
+  // guardaran en `fechas`, la poda borraría todo Nomolesten cada medianoche.
+  const fechasPrecio = fechasDe(enlace.searchParams);
   const incluye = dato.incluye.filter((item) => item !== 'Habitación');
   return crearOferta({
     id: `nomolesten:${enlace.pathname.replace(/^\/|\/$/g, '')}`,
@@ -100,15 +102,14 @@ function ofertaDe(dato, pagina) {
     descripcion: recortar(descripcionDe(dato, incluye)),
     url: `${enlace.origin}${enlace.pathname}`,
     imagen: dato.imagen ? new URL(dato.imagen, WEB).href : null,
-    ...precioDe(dato, enlace.searchParams.get('adults')),
+    ...precioDe(dato, enlace.searchParams.get('adults'), fechasPrecio.salida),
     unidad: 'noche',
-    noches: fechas.salida && fechas.vuelta ? diasEntre(fechas.salida, fechas.vuelta) : null,
+    noches: fechasPrecio.salida && fechasPrecio.vuelta ? diasEntre(fechasPrecio.salida, fechasPrecio.vuelta) : null,
     regimen: regimenDe(dato.desayuno, incluye),
     valoracion: valoracionDe(dato),
     temas: pagina?.temas ?? [],
     transporte: lugar?.pais === 'España' ? 'coche' : null,
     lugar,
-    fechas,
     etiquetas: [
       pagina?.etiqueta,
       dato.desayuno && 'Desayuno incluido',
@@ -150,14 +151,15 @@ function fechasDe(parametros) {
  * precio del Club Nomolesten (basta con registrarse), ese es el precio y el
  * público pasa a ser el anterior; si no, el anterior es el tachado, si lo hay.
  */
-function precioDe(dato, adultos) {
+function precioDe(dato, adultos, dia = null) {
   const para = adultos ? ` para ${adultos} adultos` : '';
+  const cuando = dia ? ` (precio de la noche del ${dia.slice(8, 10)}/${dia.slice(5, 7)})` : '';
   const anterior = dato.esClub ? dato.precioPublico : dato.precioTachado;
   const precioAnterior = anterior > dato.precio ? anterior : null;
   const detalle = dato.esClub && precioAnterior ? ` con el Club Nomolesten (${euros(precioAnterior)} sin él)` : '';
   return {
     precio: dato.precio,
-    precioTexto: `${euros(dato.precio)} la noche${para}${detalle}`,
+    precioTexto: `${euros(dato.precio)} la noche${para}${detalle}${cuando}`,
     precioAnterior,
     descuento: precioAnterior ? Math.round((1 - dato.precio / precioAnterior) * 100) : null,
   };

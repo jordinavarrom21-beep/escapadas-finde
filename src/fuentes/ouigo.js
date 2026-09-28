@@ -184,8 +184,10 @@ function ofertaTarjeta(tarjeta) {
   };
 }
 
-const conBarcelona = (oferta) => /barcelona/.test(oferta.id) || oferta.lugar === null;
-const esTrayectoBarcelona = (oferta) => /barcelona/.test(oferta.id);
+// Por el trayecto del título, no por el id: las tarjetas usan el id numérico de la web
+// («ouigo:tarifa:7117000_7161200»), donde nunca aparece «barcelona».
+const esTrayectoBarcelona = (oferta) => oferta.titulo.includes(ORIGEN);
+const conBarcelona = (oferta) => esTrayectoBarcelona(oferta) || oferta.lugar === null;
 
 /**
  * Ofertas de la portada de OUIGO España. Si alguna promoción tiene origen o

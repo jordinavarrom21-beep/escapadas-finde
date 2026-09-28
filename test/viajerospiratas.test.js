@@ -198,6 +198,12 @@ describe('extraerLugar', () => {
     ['⚡️ Escapadas relámpago: disfruta de un destino en un solo día ⚡️', null],
     ['🏝️ TENERIFE con media pensión ¡4 a 7 noches!', null],
     ['☀️ Viajes para OCTUBRE', null],
+    // Fiestas y comercios no son destinos: se salta al siguiente candidato.
+    ['🎄 Escapada por Navidad a Andorra', 'Andorra'],
+    ['Vuelos en Semana Santa a Roma', 'Roma'],
+    ['Visto en Instagram', null],
+    ['Auriculares por 20€, en MediaMarkt', null],
+    ['Oferta en Booking.com para Sitges', null],
   ];
   for (const [titulo, esperado] of casos) {
     it(`${titulo} → ${esperado}`, () => assert.equal(extraerLugar(titulo), esperado));

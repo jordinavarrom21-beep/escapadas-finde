@@ -20,10 +20,19 @@ export class Cache {
     this.datos[clave] = { t: ahora, v: valor };
   }
 
-  /** Elimina las entradas más antiguas que `maxEdadMs`. */
-  podar(maxEdadMs, ahora = Date.now()) {
+  /**
+   * Elimina las entradas más antiguas que `maxEdadMs`. `porPrefijo` da otra edad a
+   * las claves que empiezan de una forma («tiempo:» → 1 día): las que llevan la fecha
+   * en la clave ya no se vuelven a pedir y, si no, se acumularían durante meses.
+   * @param {number} maxEdadMs
+   * @param {number} [ahora]
+   * @param {Record<string, number>} [porPrefijo]
+   */
+  podar(maxEdadMs, ahora = Date.now(), porPrefijo = {}) {
+    const prefijos = Object.entries(porPrefijo);
     for (const [clave, entrada] of Object.entries(this.datos)) {
-      if (ahora - entrada.t > maxEdadMs) delete this.datos[clave];
+      const edad = prefijos.find(([prefijo]) => clave.startsWith(prefijo))?.[1] ?? maxEdadMs;
+      if (ahora - entrada.t > edad) delete this.datos[clave];
     }
   }
 
