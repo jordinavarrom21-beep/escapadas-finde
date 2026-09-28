@@ -262,6 +262,7 @@ export function rejilla(lista, ctx, { mostradas, clave }) {
     quedan > 0 ? `<button type="button" class="boton boton--mas" data-mas="${esc(clave)}" data-desde="${visibles.length}">Ver más <span class="suave">(quedan ${quedan.toLocaleString('es-ES')})</span></button>` : ''}`;
 }
 
+/** Aviso de lista vacía. Los tres argumentos son HTML: lo que venga del usuario, ya escapado. */
 export function estadoVacio(titulo, texto = '', extra = '') {
   return `<div class="vacio"><p class="vacio__titulo">${titulo}</p>${texto ? `<p>${texto}</p>` : ''}${extra}</div>`;
 }

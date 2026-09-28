@@ -1,7 +1,7 @@
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { anadirEventos } from '../src/enriquecer/eventos.js';
+import { anadirEventos, nombreDeSlug } from '../src/enriquecer/eventos.js';
 import { findesProximos } from '../src/util/fechas.js';
 import { AHORA, crearCtx, leerFixtureJson, oferta } from './ayudas.js';
 
@@ -42,6 +42,14 @@ describe('eventos', () => {
     const o = oferta({ titulo: 'Apartamento junto al mar', lugar: VILANOVA });
     await anadirEventos([o], ctx);
     assert.equal(o.eventos[0].municipio, 'Vilanova i la Geltru');
+  });
+
+  test('los topónimos con apóstrofo lo recuperan', () => {
+    assert.equal(nombreDeSlug('l-escala'), "L'Escala");
+    assert.equal(nombreDeSlug('castell-platja-d-aro'), "Castell Platja d'Aro");
+    assert.equal(nombreDeSlug('l-hospitalet-de-llobregat'), "L'Hospitalet de Llobregat");
+    assert.equal(nombreDeSlug('la-bisbal-d-emporda'), "La Bisbal d'Emporda");
+    assert.equal(nombreDeSlug('sant-carles-de-la-rapita'), 'Sant Carles de la Rapita');
   });
 
   test('una sola descarga por ejecución y caché entre ejecuciones', async () => {

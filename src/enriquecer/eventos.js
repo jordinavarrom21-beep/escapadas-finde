@@ -17,23 +17,40 @@ const CADUCIDAD_MS = 6 * 60 * 60 * 1000;
 /** Rectángulo que envuelve Cataluña: fuera de aquí la agenda no tiene nada. */
 const CATALUNA = { latMin: 40.45, latMax: 42.95, lonMin: 0.1, lonMax: 3.4 };
 /** Palabras que en los topónimos catalanes van en minúscula. */
-const MINUSCULAS = new Set(['de', 'del', 'la', 'les', 'el', 'els', 'i', 'd', 'l', 'sa', 'ses']);
+const MINUSCULAS = new Set(['de', 'del', 'la', 'les', 'el', 'els', 'i', 'sa', 'ses']);
+/** Artículos y preposiciones que en el identificador pierden el apóstrofo («l-escala»). */
+const ELIDIDAS = new Set(['l', 'd', 's']);
 
 const enCataluna = (lugar) =>
   typeof lugar?.lat === 'number' && typeof lugar?.lon === 'number' &&
   lugar.lat >= CATALUNA.latMin && lugar.lat <= CATALUNA.latMax &&
   lugar.lon >= CATALUNA.lonMin && lugar.lon <= CATALUNA.lonMax;
 
-/** «vilanova-i-la-geltru» → «Vilanova i la Geltru». */
-const deSlug = (slug) => slug
-  .split('-')
-  .map((palabra, i) => (i > 0 && MINUSCULAS.has(palabra) ? palabra : palabra.charAt(0).toUpperCase() + palabra.slice(1)))
-  .join(' ');
+const mayuscula = (palabra) => palabra.charAt(0).toUpperCase() + palabra.slice(1);
+
+/**
+ * «vilanova-i-la-geltru» → «Vilanova i la Geltru», «l-escala» → «L'Escala»,
+ * «castell-platja-d-aro» → «Castell Platja d'Aro». Las tildes no están en el identificador.
+ */
+export function nombreDeSlug(slug) {
+  const palabras = slug.split('-').filter(Boolean);
+  const partes = [];
+  for (let i = 0; i < palabras.length; i += 1) {
+    const palabra = palabras[i];
+    if (ELIDIDAS.has(palabra) && i + 1 < palabras.length) {
+      partes.push(`${i === 0 ? mayuscula(palabra) : palabra}'${mayuscula(palabras[i + 1])}`);
+      i += 1;
+    } else {
+      partes.push(i > 0 && MINUSCULAS.has(palabra) ? palabra : mayuscula(palabra));
+    }
+  }
+  return partes.join(' ');
+}
 
 function municipioDe(fila) {
   if (fila.localitat) return fila.localitat;
   const slug = fila.municipi?.split('/').at(-1);
-  return slug ? deSlug(slug) : null;
+  return slug ? nombreDeSlug(slug) : null;
 }
 
 function enlaceDe(fila) {
