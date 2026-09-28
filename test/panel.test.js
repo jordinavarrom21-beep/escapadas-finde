@@ -36,6 +36,15 @@ const ctxBusqueda = {
 const porId = (id) => ofertas.find((o) => o.id === id);
 const buscar = (params, extra = {}) => buscarEscapadas(ofertas, leerFiltrosEscapadas(params), { ...ctxBusqueda, ...extra }).ofertas;
 const nombres = (lista) => lista.map((o) => o.lugar?.nombre);
+const ids = (lista) => lista.map((o) => o.id).sort();
+/**
+ * El filtro devuelve exactamente las de `base` que cumplen la condición (ni más ni menos)
+ * y alguna hay: un `[].every()` es true y dejaría pasar un filtro que no devuelve nada.
+ */
+function soloLasQue(lista, base, cumple) {
+  assert.ok(lista.length > 0, 'la fixture tiene ofertas que cumplen el filtro');
+  assert.deepEqual(ids(lista), ids(base.filter(cumple)));
+}
 
 /** Mismo estado que construye app.js, sin navegador. */
 function estadoPanel(d = datos) {
@@ -82,8 +91,9 @@ describe('vuelos', () => {
     assert.ok(lista.length > 0);
     assert.ok(lista.every((o) => o.vuelo && o.fechas.findeId === siguiente.id && o.vuelo.origen === 'BCN' && o.precio <= 60));
     assert.deepEqual(lista.map((o) => o.precio), [...lista.map((o) => o.precio)].sort((a, b) => a - b));
-    assert.ok(filtrarVuelos(ofertas, { ...f, ideal: true }, ctxBusqueda).every((o) => o.vuelo.horarioIdeal));
-    assert.ok(filtrarVuelos(ofertas, { ...leerFiltrosVuelos(), pais: 'Italia' }, ctxBusqueda).every((o) => o.lugar.pais === 'Italia'));
+    soloLasQue(filtrarVuelos(ofertas, { ...f, ideal: true }, ctxBusqueda), filtrarVuelos(ofertas, f, ctxBusqueda), (o) => o.vuelo.horarioIdeal);
+    const todosVuelos = filtrarVuelos(ofertas, leerFiltrosVuelos(), ctxBusqueda);
+    soloLasQue(filtrarVuelos(ofertas, { ...leerFiltrosVuelos(), pais: 'Italia' }, ctxBusqueda), todosVuelos, (o) => o.lugar.pais === 'Italia');
   });
 
   it('admite el id de un puente en el selector de finde', () => {
@@ -95,8 +105,9 @@ describe('vuelos', () => {
   it('también aplica a los vuelos los filtros de chollo (chollazo, bajada y puntuación)', () => {
     const chollazos = filtrarVuelos(ofertas, leerFiltrosVuelos({ cho: '1' }), ctxBusqueda);
     assert.ok(chollazos.length > 0 && chollazos.every((o) => o.chollazo));
-    assert.ok(filtrarVuelos(ofertas, leerFiltrosVuelos({ pts: '80' }), ctxBusqueda).every((o) => o.puntuacion >= 80));
-    assert.ok(filtrarVuelos(ofertas, leerFiltrosVuelos({ baja: '1' }), ctxBusqueda).every((o) => o.bajada > 0));
+    const vuelos = filtrarVuelos(ofertas, leerFiltrosVuelos(), ctxBusqueda);
+    soloLasQue(filtrarVuelos(ofertas, leerFiltrosVuelos({ pts: '80' }), ctxBusqueda), vuelos, (o) => o.puntuacion >= 80);
+    soloLasQue(filtrarVuelos(ofertas, leerFiltrosVuelos({ baja: '1' }), ctxBusqueda), vuelos, (o) => o.bajada > 0);
   });
 
   it('funciona solo con chollos de vuelos sin campo «vuelo» (Ryanair desactivada)', () => {
@@ -186,13 +197,14 @@ describe('filtros nuevos de escapadas', () => {
   it('precio por persona y noche, descuento, bajada, mínimo histórico, chollazo y puntuación', () => {
     const baratas = buscar({ pnMax: '25' });
     assert.ok(baratas.length > 0 && baratas.every((o) => o.precioNoche <= 25));
-    assert.ok(buscar({ pnMin: '60' }).every((o) => o.precioNoche >= 60));
+    const todas = buscar({});
+    soloLasQue(buscar({ pnMin: '60' }), todas, (o) => o.precioNoche >= 60);
     assert.equal(buscar({ pnMin: '30', pnMax: '25' }).length, 0);
-    assert.ok(buscar({ dto: '35' }).every((o) => o.descuento >= 35));
-    assert.ok(buscar({ baja: '1' }).every((o) => o.bajada > 0));
-    assert.ok(buscar({ hist: '1' }).every((o) => o.minimoHistorico));
-    assert.ok(buscar({ cho: '1' }).every((o) => o.chollazo));
-    assert.ok(buscar({ pts: '70' }).every((o) => o.puntuacion >= 70));
+    soloLasQue(buscar({ dto: '35' }), todas, (o) => o.descuento >= 35);
+    soloLasQue(buscar({ baja: '1' }), todas, (o) => o.bajada > 0);
+    soloLasQue(buscar({ hist: '1' }), todas, (o) => o.minimoHistorico);
+    soloLasQue(buscar({ cho: '1' }), todas, (o) => o.chollazo);
+    soloLasQue(buscar({ pts: '60' }), todas, (o) => o.puntuacion >= 60);
   });
 
   it('alojamiento, valoración mínima y régimen mínimo (media pensión o mejor)', () => {
@@ -213,7 +225,7 @@ describe('filtros nuevos de escapadas', () => {
   });
 
   it('noches exactas, escapada clásica de finde y listas negras de temas y destinos', () => {
-    assert.ok(buscar({ noches: '1' }).every((o) => o.noches === 1));
+    soloLasQue(buscar({ noches: '1' }), buscar({}), (o) => o.noches === 1);
     const clasicas = buscar({ clasica: '1' });
     assert.ok(clasicas.length > 0 && clasicas.every((o) => o.noches === 2));
     const sinSpa = buscar({ notemas: 'spa,playa' });
