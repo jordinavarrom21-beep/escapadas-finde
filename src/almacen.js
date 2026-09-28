@@ -97,24 +97,39 @@ export function validarEstado(estado) {
   return problemas;
 }
 
-/**
- * Lee `data/estado.json`, lo migra y lo valida. Si no existe, el JSON está roto o el
- * estado no cumple el contrato, avisa y empieza de cero: unos datos corruptos no
- * deben parar el vigilante (la copia anterior queda en `<ruta>.bak`).
- */
-export function cargarEstado(ruta, { log = console.warn } = {}) {
-  const deCero = (motivo) => {
-    log(`⚠️  ${ruta}: ${motivo}. Se empieza de cero (la copia anterior está en ${ruta}.bak)`);
-    return estadoInicial();
-  };
+/** Lee, migra y valida un archivo de estado; lanza si no se puede usar. */
+function leerEstadoDe(ruta, porDefecto) {
   let estado;
   try {
-    estado = migrarEstado(cargarJson(ruta, estadoInicial()));
+    estado = migrarEstado(cargarJson(ruta, porDefecto));
   } catch (error) {
-    return deCero(`no se puede leer (${error.message})`);
+    throw Object.assign(new Error(`no se puede leer (${error.message})`), { code: error.code });
   }
   const problemas = validarEstado(estado);
-  return problemas.length ? deCero(`estado no válido (${problemas.join('; ')})`) : estado;
+  if (problemas.length) throw new Error(`estado no válido (${problemas.join('; ')})`);
+  return estado;
+}
+
+/**
+ * Lee `data/estado.json`, lo migra y lo valida. Si no existe, empieza de cero en
+ * silencio (primera ejecución). Si está roto o no cumple el contrato, prueba con la
+ * copia de la ejecución anterior (`<ruta>.bak`) y, si tampoco sirve, avisa y empieza
+ * de cero: unos datos corruptos no deben parar el vigilante.
+ */
+export function cargarEstado(ruta, { log = console.warn } = {}) {
+  try {
+    return leerEstadoDe(ruta, estadoInicial());
+  } catch (error) {
+    try {
+      const copia = leerEstadoDe(`${ruta}.bak`);
+      log(`⚠️  ${ruta}: ${error.message}. Se sigue con la copia anterior (${ruta}.bak)`);
+      return copia;
+    } catch (errorCopia) {
+      const sinCopia = errorCopia.code === 'ENOENT' ? 'no hay copia anterior' : `la copia anterior tampoco sirve: ${errorCopia.message}`;
+      log(`⚠️  ${ruta}: ${error.message}; ${sinCopia}. Se empieza de cero (los archivos rotos quedan en ${ruta} y ${ruta}.bak)`);
+      return estadoInicial();
+    }
+  }
 }
 
 /** Lee un JSON; si el archivo no existe devuelve una copia de `porDefecto`. */

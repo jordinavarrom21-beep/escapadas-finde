@@ -8,7 +8,7 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Cache } from './cache.js';
-import { cargarJson, estadoInicial, guardarJson } from './almacen.js';
+import { cargarEstado, cargarJson, guardarJson } from './almacen.js';
 import { cargarVigilados } from './vigilados.js';
 import { MODULOS, escanear, urlPanel } from './core/scan-pipeline.js';
 
@@ -35,13 +35,21 @@ function leerOpciones(argumentos) {
   };
 }
 
-// Los datos corruptos no deben parar el vigilante: se avisa y se empieza de cero.
+// Los datos corruptos no deben parar el vigilante: se prueba con la copia de la
+// ejecución anterior (<ruta>.bak) y, si tampoco se puede, se avisa y se empieza de cero.
 function leerDatos(ruta, porDefecto) {
+  const nombre = path.relative(RAIZ, ruta);
   try {
     return cargarJson(ruta, porDefecto);
   } catch (error) {
-    console.warn(`⚠️  ${path.relative(RAIZ, ruta)} no se puede leer (${error.message}); se empieza de cero`);
-    return structuredClone(porDefecto);
+    try {
+      const copia = cargarJson(`${ruta}.bak`);
+      console.warn(`⚠️  ${nombre} no se puede leer (${error.message}); se sigue con la copia anterior (.bak)`);
+      return copia;
+    } catch (errorCopia) {
+      console.warn(`⚠️  ${nombre} no se puede leer (${error.message}) y la copia anterior tampoco (${errorCopia.message}); se empieza de cero`);
+      return structuredClone(porDefecto);
+    }
   }
 }
 
@@ -78,7 +86,8 @@ async function principal() {
   const resultado = await escanear({
     ajustes,
     vigilados: cargarVigilados(ruta('vigilados')),
-    estado: leerDatos(ruta('estado'), estadoInicial()),
+    // cargarEstado migra, valida y, si hace falta, recupera la copia anterior.
+    estado: cargarEstado(ruta('estado')),
     cache: new Cache(leerDatos(ruta('cache'), {})),
     historial: leerDatos(ruta('historial'), {}),
     opciones,

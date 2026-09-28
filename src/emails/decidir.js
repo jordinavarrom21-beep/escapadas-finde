@@ -25,10 +25,11 @@ function coincidenciasVigiladas(ofertas, vigilados, ultimoAvisado) {
 
 function limpiarRegistros(emails, ofertas, ahora, hoy) {
   const limite = ahora.getTime() - DIAS_RECORDAR_ALERTADOS * DIA_MS;
-  for (const [id, cuando] of Object.entries(emails.alertados)) {
-    if (Date.parse(cuando) < limite) delete emails.alertados[id];
-  }
   const vivas = new Set(ofertas.map((o) => o.id));
+  for (const [id, cuando] of Object.entries(emails.alertados)) {
+    // Mientras la oferta siga publicada no se olvida el aviso: si no, se repetiría cada 30 días.
+    if (!vivas.has(id) && Date.parse(cuando) < limite) delete emails.alertados[id];
+  }
   for (const clave of Object.keys(emails.vigilados)) {
     if (!vivas.has(clave.slice(clave.indexOf('|') + 1))) delete emails.vigilados[clave];
   }

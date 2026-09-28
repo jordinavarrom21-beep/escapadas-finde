@@ -153,8 +153,25 @@ describe('guardarJson', () => {
     guardarJson(ruta, estado); // la copia se crea al sustituir un archivo que ya existía
     writeFileSync(ruta, 'basura');
 
-    assert.deepEqual(cargarEstado(ruta, { log: () => {} }), estadoInicial());
-    assert.deepEqual(validarEstado(leer(`${ruta}.bak`)), []);
+    const avisos = [];
+    const recuperado = cargarEstado(ruta, { log: (m) => avisos.push(m) });
+    assert.deepEqual(recuperado, estado, 'se sigue con la copia en vez de perder ofertas, historial y avisos');
+    assert.equal(avisos.length, 1);
+    assert.match(avisos[0], /no se puede leer.*Se sigue con la copia anterior/);
+  });
+
+  test('si también la copia está rota, avisa de las dos cosas y empieza de cero', () => {
+    const ruta = rutaNueva();
+    writeFileSync(ruta, 'basura');
+    writeFileSync(`${ruta}.bak`, JSON.stringify({ version: 99, ofertas: {}, fuentes: {}, emails: {} }));
+    const avisos = [];
+    assert.deepEqual(cargarEstado(ruta, { log: (m) => avisos.push(m) }), estadoInicial());
+    assert.match(avisos[0], /la copia anterior tampoco sirve: estado no válido/);
+    const sinCopia = rutaNueva();
+    writeFileSync(sinCopia, 'basura');
+    const otros = [];
+    cargarEstado(sinCopia, { log: (m) => otros.push(m) });
+    assert.match(otros[0], /no hay copia anterior\. Se empieza de cero/);
   });
 });
 

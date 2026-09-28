@@ -115,6 +115,20 @@ describe('emails', () => {
     assert.match(aviso.html, /Web X: falla desde hace 30 h \(HTTP 500\)/);
   });
 
+  test('un chollazo que sigue publicado no se vuelve a avisar pasados 30 días', async () => {
+    const estado = estadoInicial();
+    estado.emails.inicializado = true;
+    const hace40dias = new Date(AHORA.getTime() - 40 * 86_400_000).toISOString();
+    estado.emails.alertados[vuelo.id] = hace40dias;
+    estado.emails.alertados['otra:ya-no-existe'] = hace40dias;
+    const enviados = [];
+    const jueves = new Date('2026-09-17T10:00:00Z');
+    await procesarEmails({ ...base, estado, enviar: async (m) => { enviados.push(m.asunto); }, ahora: jueves });
+    assert.ok(!enviados.some((asunto) => asunto.startsWith('🔥')), 'no repite el aviso del vuelo que sigue publicado');
+    assert.equal(estado.emails.alertados[vuelo.id], hace40dias);
+    assert.equal(estado.emails.alertados['otra:ya-no-existe'], undefined, 'lo de ofertas que ya no existen sí se olvida');
+  });
+
   test('sin transporte no hace nada ni toca el estado', async () => {
     const estado = estadoInicial();
     assert.deepEqual(await procesarEmails({ ...base, estado, enviar: null, ahora: AHORA }), { enviados: [], errores: [] });
