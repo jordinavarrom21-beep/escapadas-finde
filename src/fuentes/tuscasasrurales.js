@@ -68,7 +68,8 @@ function datosDeTarjeta(tarjeta, $) {
     titulo: limpiar(enlace.text()),
     url: limpiar(enlace.attr('href')),
     descripcion: limpiar(tarjeta.find('.ficha-parrafo').first().text()),
-    imagen: limpiar(tarjeta.find('.ficha-imagen img').first().attr('src')),
+    // Solo las fotos de la galería: el corazón de «favoritos» también es un <img> de .ficha-imagen.
+    imagen: limpiar(tarjeta.find('.ficha-imagen swiper-slide img').first().attr('src')),
     ciudad: limpiar(tarjeta.find('.ficha-ciudad').first().text()),
     provincia: limpiar(tarjeta.find('.ficha-provincia').first().text()),
     alquiler: limpiar(tarjeta.find('.ficha-tipo-alquiler').first().text()),

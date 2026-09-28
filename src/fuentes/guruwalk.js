@@ -41,6 +41,9 @@ const DESAFIO = /cf-chl|challenge-platform|just a moment|attention required|capt
 
 const urlCiudad = (ciudad) => `${WEB}/es/${ciudad.slug}`;
 
+/** La web recorta la descripción a mitad de una entidad («…judía.&nb...»): se quita el resto. */
+const sinEntidadCortada = (texto) => texto.replace(/&[#a-zd]{0,8}(?=.{3}$)/i, '');
+
 /**
  * Tours (bloques JSON-LD de tipo `Event`) de una página de ciudad.
  * Lanza un error (marcado como bloqueo si es un desafío anti-bot) si no hay ninguno.
@@ -94,7 +97,7 @@ function ofertaDe(tour, ciudad) {
     fuente: ID,
     tipo: 'actividad',
     titulo: textoPlano(tour.name ?? ''),
-    descripcion: recortar(textoPlano(tour.description ?? '')),
+    descripcion: recortar(sinEntidadCortada(textoPlano(tour.description ?? ''))),
     url: urlLimpia(tour.url),
     imagen: tour.image ? new URL(tour.image, WEB).href : null,
     precio,
@@ -115,9 +118,13 @@ function ofertaDe(tour, ciudad) {
   });
 }
 
-/** Un free tour vale 0 €; si alguna vez llegara otra cosa, solo se acepta en euros. */
+/**
+ * Un free tour vale 0 €; si alguna vez llegara otra cosa, solo se acepta en euros.
+ * Sin precio (null, vacío o «Consultar») es null, no 0: si no, saldría como gratis.
+ */
 function precioDe(oferta) {
-  const precio = Number(oferta?.price);
+  if (oferta?.price == null || String(oferta.price).trim() === '') return null;
+  const precio = Number(oferta.price);
   const moneda = oferta?.priceCurrency ?? 'EUR';
   return Number.isFinite(precio) && precio >= 0 && moneda === 'EUR' ? precio : null;
 }
@@ -145,14 +152,22 @@ const esBloqueo = (error) => error.bloqueo || error.estado === 403 || error.esta
  * el catálogo de las ciudades leídas bien en esta ejecución.
  */
 async function obtener(ctx) {
-  const ofertas = [];
+  const porTour = new Map();
   const ciudadesOk = new Set();
   let ultimoError = null;
   for (const [i, ciudad] of CIUDADES.entries()) {
     if (i) await ctx.http.esperar(PAUSA_MS);
     try {
       // Sin reintentos: ante un 429 lo correcto es esperar a la siguiente ejecución.
-      ofertas.push(...parsear(await ctx.http.texto(urlCiudad(ciudad), { reintentos: 0 }), ctx, ciudad));
+      const ofertas = parsear(await ctx.http.texto(urlCiudad(ciudad), { reintentos: 0 }), ctx, ciudad);
+      // Con tours en la página pero ninguno entendido, la web ha cambiado: la ciudad no
+      // cuenta como leída, para no borrar los tours que ya estaban guardados.
+      if (!ofertas.length) throw new Error('no se ha entendido ningún tour de la página (¿ha cambiado la web?)');
+      // Un tour que sale en varias ciudades (o dos veces) se queda con la primera.
+      for (const oferta of ofertas) {
+        const idTour = oferta.id.split(':')[2];
+        if (!porTour.has(idTour)) porTour.set(idTour, oferta);
+      }
       ciudadesOk.add(ciudad.slug);
     } catch (error) {
       ultimoError = error;
@@ -165,7 +180,7 @@ async function obtener(ctx) {
   }
   if (!ciudadesOk.size) throw new Error(`No se ha podido leer ninguna ciudad de GuruWalk (último error: ${ultimoError.message})`);
   return {
-    ofertas,
+    ofertas: [...porTour.values()],
     reemplazar: (oferta) => ciudadesOk.has(oferta.id?.split(':')[1]),
   };
 }

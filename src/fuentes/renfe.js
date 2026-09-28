@@ -38,14 +38,22 @@ const TEMAS_POR_SECCION = {
 };
 
 const DESAFIO = /cf-chl|challenge-platform|just a moment|attention required|captcha|datadome|awswaf|access denied/i;
-/** «hasta un 90% de descuento» → 90. Se queda con el primero: es el que encabeza la tarjeta. */
-const PORCENTAJE = /(\d{1,3})\s*%/;
+/**
+ * «hasta un 90% de descuento» → 90. Se queda con el primero: es el que encabeza la tarjeta.
+ * El «hasta un» se guarda aparte para que `precioTexto` no lo convierta en un 90 % fijo.
+ */
+const PORCENTAJE = /(hasta\s+(?:un\s+|el\s+)?)?(\d{1,3})\s*%/i;
 /** Solo se acepta un precio si la tarjeta dice «desde X €»; cualquier otro importe es letra pequeña. */
 const PRECIO_DESDE = /desde\s+(?:solo\s+)?([\d.,]+)\s*€/i;
+const EUROS = new Intl.NumberFormat('es-ES', { maximumFractionDigits: 2 });
 const CODIGO = /c[óo]digo:?\s*([A-ZÁÉÍÓÚÑ0-9]{4,})/;
 /** «Centro Botín. Santander» → «Santander»: las tarjetas ponen la ciudad detrás de un punto. */
 const CIUDAD_TRAS_PUNTO = /\.\s*([\p{Lu}][\p{L}·'’\s-]{2,30})$/u;
-const CIUDAD_DESTINO = /\bdestino\s+([\p{Lu}][\p{L}·'’\s-]{2,30})/u;
+/**
+ * «destino San Sebastián presentando tu entrada» → «San Sebastián»: palabras en mayúscula,
+ * con «de», «la»… entre ellas («Santiago de Compostela»), sin arrastrar el resto de la frase.
+ */
+const CIUDAD_DESTINO = /\bdestino\s+(\p{Lu}[\p{L}·'’-]*(?:\s+(?:(?:de|del|la|las|los|el|i)\s+)*\p{Lu}[\p{L}·'’-]*)*)/u;
 
 const limpiar = (texto = '') => textoPlano(texto).replace(/\s+/g, ' ').trim();
 const slug = (texto) => normalizarTexto(texto).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -102,14 +110,32 @@ export function parsear(html, ctx = {}) {
   const log = ctx.log ?? (() => {});
   const tarjetas = promociones(html);
   if (!tarjetas) return null;
-  return tarjetas.flatMap((tarjeta) => {
+  return unirRepetidas(tarjetas.flatMap((tarjeta) => {
     try {
       return [ofertaDe(tarjeta)];
     } catch (error) {
       log(`Promoción descartada (${tarjeta.titulo || 'sin título'}): ${error.message}`);
       return [];
     }
-  });
+  }));
+}
+
+/**
+ * La misma promoción puede salir en «Recién llegadas» y en su sección: queda una sola
+ * oferta por id, con los temas y las etiquetas de todas las secciones en las que sale.
+ */
+function unirRepetidas(ofertas) {
+  const porId = new Map();
+  for (const oferta of ofertas) {
+    const previa = porId.get(oferta.id);
+    if (!previa) {
+      porId.set(oferta.id, oferta);
+      continue;
+    }
+    previa.temas = [...new Set([...previa.temas, ...oferta.temas])];
+    previa.etiquetas = [...new Set([...previa.etiquetas, ...oferta.etiquetas])];
+  }
+  return [...porId.values()];
 }
 
 function ofertaDe(tarjeta) {
@@ -127,7 +153,7 @@ function ofertaDe(tarjeta) {
     url: tarjeta.url,
     imagen: tarjeta.imagen,
     precio,
-    precioTexto: precio != null ? `desde ${precio} €` : descuento != null ? `${descuento} % de descuento` : '',
+    precioTexto: precio != null ? `desde ${EUROS.format(precio)} €` : descuento != null ? textoDescuento(tarjeta.texto, descuento) : '',
     unidad: null,
     descuento,
     transporte: 'tren',
@@ -138,8 +164,14 @@ function ofertaDe(tarjeta) {
 }
 
 function porcentaje(texto) {
-  const valor = Number(PORCENTAJE.exec(texto)?.[1]);
+  const valor = Number(PORCENTAJE.exec(texto)?.[2]);
   return valor > 0 && valor <= 100 ? valor : null;
+}
+
+/** «hasta un 90% de descuento» → «hasta un 90 % de descuento»; «15% de descuento…» → «15 % de descuento». */
+function textoDescuento(texto, descuento) {
+  const hasta = PORCENTAJE.exec(texto)?.[1]?.toLowerCase().replace(/\s+/g, ' ') ?? '';
+  return `${hasta}${descuento} % de descuento`;
 }
 
 /** Ciudad de la promoción: la del final del título o la que marca «destino X» en el texto. */

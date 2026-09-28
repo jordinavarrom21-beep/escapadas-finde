@@ -25,7 +25,8 @@ export const ETIQUETAS_REGIMEN = {
 export const ETIQUETAS_TRANSPORTE = { avion: '✈️ Avión', coche: '🚗 Coche', tren: '🚆 Tren', bus: '🚌 Autobús', ferry: '⛴️ Ferry' };
 
 export const ETIQUETAS_TIPO = {
-  vuelo: 'Vuelo', escapada: 'Escapada', hotel: 'Hotel', paquete: 'Paquete', actividad: 'Actividad', crucero: 'Crucero',
+  // «hotel» es «solo alojamiento» (casa rural, camping, parador…): el tipo concreto va en `alojamiento`.
+  vuelo: 'Vuelo', escapada: 'Escapada', hotel: 'Alojamiento', paquete: 'Paquete', actividad: 'Actividad', crucero: 'Crucero',
 };
 
 export const ETIQUETAS_ALOJAMIENTO = {
