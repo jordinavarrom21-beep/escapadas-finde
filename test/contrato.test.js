@@ -4,7 +4,7 @@
  */
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -17,6 +17,8 @@ import { cargarAjustes, validarAjustes } from '../src/ajustes.js';
 import { AJUSTES } from './ayudas.js';
 
 const RUTA_AJUSTES = fileURLToPath(new URL('../config/ajustes.json', import.meta.url));
+/** La configuración REAL (el resto de tests usan una copia congelada, test/fixtures/ajustes.json). */
+const REALES = JSON.parse(readFileSync(RUTA_AJUSTES, 'utf8'));
 
 /** Oferta mínima válida; cada test rompe un solo campo. */
 const base = (campos = {}) => ({
@@ -179,17 +181,22 @@ describe('contrato de las fuentes', () => {
 
   test('cada fuente configurada en ajustes.json existe', () => {
     const ids = new Set(FUENTES.map((f) => f.id));
-    const desconocidas = Object.keys(AJUSTES.fuentes).filter((id) => !ids.has(id));
+    const desconocidas = Object.keys(REALES.fuentes).filter((id) => !ids.has(id));
     assert.deepEqual(desconocidas, []);
+  });
+
+  test('cada fuente tiene su entrada en ajustes.json (si no, correría cada 60 min sin que nadie lo decida)', () => {
+    const sinConfigurar = FUENTES.map((f) => f.id).filter((id) => !(id in REALES.fuentes));
+    assert.deepEqual(sinConfigurar, []);
   });
 });
 
 describe('contrato de la configuración', () => {
   const sin = (seccion, campos) => ({ ...AJUSTES, [seccion]: { ...AJUSTES[seccion], ...campos } });
 
-  test('config/ajustes.json es válida', () => {
-    assert.deepEqual(validarAjustes(AJUSTES), []);
-    assert.equal(cargarAjustes(RUTA_AJUSTES).origen.nombre, AJUSTES.origen.nombre);
+  test('config/ajustes.json (la real) es válida', () => {
+    assert.deepEqual(validarAjustes(REALES), []);
+    assert.equal(cargarAjustes(RUTA_AJUSTES).origen.nombre, REALES.origen.nombre);
   });
 
   test('el origen necesita nombre y coordenadas numéricas', () => {

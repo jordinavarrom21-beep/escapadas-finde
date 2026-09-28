@@ -83,6 +83,10 @@ async function ejecutarFuente(fuente, { estado, ajustes, env, ahora, opciones, c
       await comprobarRobots(ctx, fuente.urls);
     }
     const resultado = await fuente.obtener(ctx);
+    // Una fuente copiada de otra que no cambió su ID publicaría ofertas «ajenas», y el
+    // «reemplazar» de la original las borraría sin avisar a nadie.
+    const ajenas = resultado.ofertas.filter((o) => o.fuente !== fuente.id);
+    if (ajenas.length) throw new Error(`${ajenas.length} ofertas con fuente «${ajenas[0].fuente}» en vez de «${fuente.id}»`);
     // Una lectura que no trae nada con «reemplazar» borraría todo el catálogo guardado y
     // la fuente quedaría «ok» sin avisar. Casi siempre es que la web ha cambiado: error.
     if (!resultado.ofertas.length && resultado.reemplazar && (previo.total ?? 0) > 0) {
@@ -172,7 +176,7 @@ export async function escanear({
     m.aplicarClasificacion(oferta);
     m.aplicarAlojamiento(oferta);
     m.aplicarZona(oferta);
-    oferta.precioNoche = precioPorPersonaNoche(oferta);
+    oferta.precioNoche = precioPorPersonaNoche(oferta, ajustes.viajeros ?? 2);
     Object.assign(oferta.fechas, m.asignarFechas(oferta, findes, puentes));
   }
   await m.geolocalizar(ofertas, crearCtx('geo'));
@@ -194,7 +198,7 @@ export async function escanear({
   const panelUrl = urlPanel(ajustes, env);
   const salida = {
     ofertas: {
-      generado: ahora.toISOString(), origen: ajustes.origen, aeropuertos: ajustes.vuelos.aeropuertos,
+      generado: ahora.toISOString(), origen: ajustes.origen, aeropuertos: ajustes.vuelos.aeropuertos, viajeros: ajustes.viajeros ?? 2,
       temas: TEMAS, findes, puentes, fuentes: estadoFuentes, ofertas,
     },
     historial: m.seriesPara(historial, ofertas.map((o) => o.id)),

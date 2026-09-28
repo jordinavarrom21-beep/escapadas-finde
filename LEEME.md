@@ -99,10 +99,17 @@ Todo se cambia editando archivos del repo (se puede hacer desde la web de GitHub
 - `origen`: desde dónde calculas el tiempo en coche (por defecto, Barcelona).
 - `vuelos.aeropuertos`, `vuelos.findes`, `vuelos.horarioIdeal` (salida del viernes a partir
   de las 15:00 y vuelta del domingo a partir de las 16:00).
-- `puentes.festivosLocales`: añade aquí los festivos de tu municipio. Por ejemplo, La Mercè
-  ya viene puesta para Barcelona; quítala si no es festivo para ti.
+- `puentes.festivosLocales`: los festivos de tu municipio. `"fecha": "09-24"` se repite todos los
+  años (así viene La Mercè para Barcelona; quítala si no es festivo para ti) y `"2027-06-24"`
+  vale solo para ese año.
+- `viajeros`: cuántos viajáis (2 por defecto). Reparte los precios «por alojamiento» y los
+  totales para calcular el precio por persona y noche.
 - `fuentes.<id>`: `activa`, `intervaloMin`.
 - `emails.chollazos`: umbrales (vuelo de ida y vuelta ≤ 30 €, escapada ≤ 25 € por persona y noche…).
+  Cambiarlos no rompe nada: los tests usan su propia copia de los ajustes.
+- `preferencias`: `temasFavoritos` (suben 10 puntos), `evitarTemas` y `evitarDestinos` (nombre,
+  provincia, comunidad o país: bajan a 0 puntos y nunca avisan como chollazo). Por ejemplo:
+  `"evitarDestinos": ["Andorra"]`.
 
 **`config/vigilados.json`**: tu lista de deseos. Ejemplos:
 
@@ -112,8 +119,13 @@ Todo se cambia editando archivos del repo (se puede hacer desde la web de GitHub
 { "nombre": "Casa rural cerca de Olot", "tema": "rural", "cerca": { "lat": 42.18, "lon": 2.49, "radioKm": 40 } }
 ```
 
-Campos disponibles: `texto`, `tipo` (vuelo, escapada, hotel, paquete), `tema`, `fuente`,
-`aeropuerto`, `precioMax`, `cocheMaxMin`, `cerca` y `puente: true`.
+Campos disponibles (la explicación de cada uno está en el «leeme» del propio archivo): `texto`
+(palabras completas), `tipo`, `tema` o `temas`, `fuente`, `aeropuerto` (solo descarta vuelos que
+publican otro origen), `alojamiento`, `regimenMinimo`, `valoracionMin`, `descuentoMin`,
+`precioMax`, `precioNocheMax`, `noches` (número o `{min, max}`), `cocheMaxMin`, `cerca`, `pais`
+(nombre o código), `region` (provincia o comunidad), `puente: true`, `finde` (fecha del finde o
+del puente), `soloChollazos`, `soloMinimoHistorico`, `ofertaId` y `activo: false` (pausa).
+Si uno está mal escrito, el registro del escaneo lo dice y el resto sigue funcionando.
 
 ## Revisión puntual cada 30 minutos (opcional)
 

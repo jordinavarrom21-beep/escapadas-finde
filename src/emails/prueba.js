@@ -9,6 +9,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { configuracionEnvio, crearTransporte, enviarEmail } from './enviar.js';
 import { alertaChollazos, alertaFuentes, alertaVigilados, resumenSemanal } from './plantillas.js';
+import { cargarAjustes } from '../ajustes.js';
+import { urlPanel } from '../core/scan-pipeline.js';
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const leer = (ruta) => JSON.parse(readFileSync(path.join(RAIZ, ruta), 'utf8'));
@@ -16,11 +18,10 @@ const leer = (ruta) => JSON.parse(readFileSync(path.join(RAIZ, ruta), 'utf8'));
 const rutaDatos = ['site/data/ofertas.json', 'test/fixtures/panel/ofertas.json'].find((r) => existsSync(path.join(RAIZ, r)));
 if (!rutaDatos) throw new Error('No hay datos: ejecuta antes «npm run escanear»');
 const datos = leer(rutaDatos);
-const ajustes = leer('config/ajustes.json');
+const ajustes = cargarAjustes(path.join(RAIZ, 'config/ajustes.json'));
 const ahora = new Date();
-const panelUrl = ajustes.panelUrl ?? (process.env.GITHUB_REPOSITORY
-  ? `https://${process.env.GITHUB_REPOSITORY.split('/')[0]}.github.io/${process.env.GITHUB_REPOSITORY.split('/')[1]}/`
-  : 'http://localhost:8080/');
+// La misma URL que el escaneo; en local, el servidor de scripts/servir.js.
+const panelUrl = urlPanel(ajustes, process.env) ?? 'http://localhost:8080/';
 const { ofertas, findes, puentes } = datos;
 const resumen = resumenSemanal({ ofertas, findes, puentes, ajustes, panelUrl, ahora });
 

@@ -241,8 +241,10 @@ export default {
   archivo temporal y después renombrar).
 - `fusionar(estado, fuenteId, {ofertas, reemplazar}, ahora)`: conserva `vistaPrimera`,
   actualiza `vistaUltima` y aplica `reemplazar`.
-- `podar(estado, ahora, {retencionDias})`: quita las ofertas caducadas, los vuelos
-  cuya salida ya ha pasado y las que no se ven desde hace más de `retencionDias`.
+- `podar(estado, ahora, {retencionDias})`: quita las ofertas caducadas, cualquier oferta
+  (no solo vuelos) cuya salida ya ha pasado y las que no se ven desde hace más de `retencionDias`.
+  Por eso una fuente no debe poner en `fechas` algo que no sea la fecha del viaje (Nomolesten
+  ponía la del precio y la poda la vaciaba cada medianoche).
 
 Otros archivos de `data/`: `cache.json` (Cache), `historial.json`.
 **Todo `data/` se guarda entre ejecuciones en la rama `datos` del repo.**
@@ -263,11 +265,16 @@ Otros archivos de `data/`: `cache.json` (Cache), `historial.json`.
    `anadirEventos` → `enlacesPara` → `registrarPrecios` → `compactar` → `puntuar`.
    El guardián de precios va antes de la referencia para que un precio imposible no
    hunda la mediana ni pase por chollazo.
-6. Escribir `site/data/ofertas.json`, `site/data/historial.json` y `site/data/vigilados.json`.
-7. `procesarEmails` (salvo con `--sin-emails`).
-8. Guardar `data/estado.json`, `data/cache.json` y `data/historial.json`, e imprimir un
-   resumen por fuente. El código de salida es 0 aunque fallen algunas fuentes y 1 si
-   fallan todas.
+6. `procesarEmails` (salvo con `--sin-emails`), dentro de `escanear()` y antes de escribir nada.
+7. La CLI guarda `data/estado.json`, `data/cache.json` y `data/historial.json`, escribe
+   `site/data/ofertas.json`, `site/data/historial.json` y `site/data/vigilados.json`, e imprime
+   un resumen por fuente. El código de salida es 0 aunque fallen algunas fuentes y 1 si fallan
+   todas las que se han ejecutado en esta pasada. Si `escanear()` lanza, no se escribe nada y el
+   workflow no despliega (comprueba que exista `site/data/ofertas.json`).
+8. Antes de todo, la CLI valida `config/ajustes.json` (`cargarAjustes`) y carga el estado con
+   `cargarEstado` (migra, valida y, si está roto, recupera el `.bak`).
+   Una fuente cuyas ofertas no lleven `fuente` igual a su `id` da error: si no, el
+   `reemplazar` de otra fuente podría borrarlas.
 
 ## Datos del panel (`site/data/ofertas.json`)
 
@@ -291,11 +298,18 @@ coinciden: `{vigilados: [{...criterio, coincidencias: [ids]}]}`.
 ## Vigilados (`src/vigilados.js`)
 
 Criterios de `config/vigilados.json` (todos los campos son opcionales salvo `nombre`;
-una oferta coincide si cumple **todos** los que estén presentes):
-`{nombre, texto, tipo, tema, fuente, aeropuerto, precioMax, cocheMaxMin, cerca: {lat, lon, radioKm}, puente: true}`.
-`texto` se busca sin tildes ni mayúsculas en título, lugar y destino.
+una oferta coincide si cumple **todos** los que estén presentes). La lista completa y
+explicada está en el «leeme» del propio archivo y en el typedef `Criterio` de
+`src/vigilados.js`: `nombre, activo, ofertaId, texto, tipo, tema, temas, fuente, aeropuerto,
+alojamiento, regimenMinimo, valoracionMin, descuentoMin, precioMax, precioNocheMax, noches,
+cocheMaxMin, cerca, pais, region, puente, finde, soloChollazos, soloMinimoHistorico`.
+`texto` busca palabras completas sin tildes ni mayúsculas en título, lugar y destino; `pais`
+con dos letras compara el código; `region` vale para la región de la web, la provincia o la
+comunidad; `aeropuerto` solo descarta vuelos que publican otro origen.
 
-- `cargarVigilados(ruta)` y `coincide(oferta, criterio)` → boolean.
+- `cargarVigilados(ruta, log)`: con el JSON roto o sin lista, avisa y devuelve []; descarta
+  lo que no es un objeto y avisa de lo que no coincidiría nunca (`validarVigilado`).
+- `coincide(oferta, criterio)` → boolean.
 
 ## Emails (`src/emails/`)
 

@@ -53,9 +53,10 @@ export async function obtenerFestivos(ctx, anios) {
   const { comunidad, festivosLocales = [] } = ctx.ajustes.puentes;
   const lista = [];
   for (const anio of anios) lista.push(...deNager(await festivosNager(ctx, anio), comunidad));
-  lista.push(...festivosLocales
-    .filter((f) => anios.includes(Number(f.fecha.slice(0, 4))))
-    .map((f) => ({ fecha: f.fecha, nombre: f.nombre, ambito: 'local' })));
+  // «AAAA-MM-DD» vale para ese año; «MM-DD» se repite todos (La Mercè cada 24 de septiembre).
+  lista.push(...festivosLocales.flatMap((f) => (/^\d{2}-\d{2}$/.test(f.fecha)
+    ? anios.map((anio) => ({ fecha: `${anio}-${f.fecha}`, nombre: f.nombre, ambito: 'local' }))
+    : anios.includes(Number(f.fecha.slice(0, 4))) ? [{ fecha: f.fecha, nombre: f.nombre, ambito: 'local' }] : [])));
   const porFecha = new Map();
   for (const festivo of lista.sort((a, b) => PRIORIDAD_AMBITO[a.ambito] - PRIORIDAD_AMBITO[b.ambito])) {
     if (!porFecha.has(festivo.fecha)) porFecha.set(festivo.fecha, festivo);

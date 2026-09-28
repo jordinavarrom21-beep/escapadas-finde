@@ -11,25 +11,32 @@ const PESO_SENALES = 10;       // top chollo, error de tarifa, popularidad en Ch
 const PESO_COMODIDAD = 5;      // horario ideal o poco rato en coche
 const PESO_FECHAS = 5;         // cae en un puente o en el finde que viene
 const TOPE_SIN_PRECIO = 50;
+const PESO_FAVORITO = 10;       // tiene uno de ajustes.preferencias.temasFavoritos
 
 const HORA_MS = 60 * 60 * 1000;
 
-/** Precio por persona y noche cuando se puede deducir; si no, null. */
-export function precioPorPersonaNoche(oferta) {
+/**
+ * Precio por persona y noche cuando se puede deducir; si no, null. Los precios por
+ * alojamiento («noche») y los totales se reparten entre `personas` (ajustes.viajeros).
+ */
+export function precioPorPersonaNoche(oferta, personas = 2) {
   const { precio, unidad, noches } = oferta;
   if (precio == null || oferta.tipo === 'vuelo') return null;
   if (unidad === 'pp/noche') return precio;
-  if (unidad === 'noche') return precio / 2;
+  if (unidad === 'noche') return precio / personas;
   if (unidad === 'pp' && noches) return precio / noches;
-  if (unidad === 'total' && noches) return precio / 2 / noches;
+  if (unidad === 'total' && noches) return precio / personas / noches;
   return null;
 }
+
+/** El que ya calculó el escaneo con los viajeros de los ajustes, o el de 2 personas. */
+const porNocheDe = (oferta) => oferta.precioNoche ?? precioPorPersonaNoche(oferta);
 
 // Grupo de comparación y valor comparable (más bajo = mejor).
 function comparable(oferta) {
   if (oferta.precio == null) return null;
   if (oferta.tipo === 'vuelo') return { grupo: oferta.unidad === 'i/v' ? 'vuelo-iv' : 'vuelo', valor: oferta.precio };
-  const porNoche = precioPorPersonaNoche(oferta);
+  const porNoche = porNocheDe(oferta);
   // Sin precio por noche, cada tipo y unidad por su lado: una entrada de 5 € no compite
   // con un paquete de 7 noches.
   return porNoche == null ? { grupo: `otros:${oferta.tipo}:${oferta.unidad ?? '-'}`, valor: oferta.precio } : { grupo: 'noche', valor: porNoche };
@@ -99,14 +106,40 @@ function puntosFechas(oferta, findeActual) {
  * @param {object} ajustes
  * @param {{ahora?: Date, findeActual?: string|null}} [opciones]
  */
+const normal = (texto) => String(texto ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+
+/**
+ * ¿La oferta es de algo que `ajustes.preferencias` pide evitar? Un tema de `evitarTemas`
+ * o un destino de `evitarDestinos` (nombre, región, provincia o país del lugar).
+ */
+export function esEvitada(oferta, preferencias = {}) {
+  const temas = (preferencias.evitarTemas ?? []).map(normal);
+  const destinos = (preferencias.evitarDestinos ?? []).map(normal).filter(Boolean);
+  if (oferta.temas.some((tema) => temas.includes(normal(tema)))) return true;
+  const lugar = oferta.lugar ?? {};
+  const sitios = [lugar.nombre, lugar.region, lugar.provincia, lugar.comunidad, lugar.pais].map(normal).filter(Boolean);
+  return destinos.some((destino) => sitios.includes(destino));
+}
+
+/** Tiene alguno de los temas favoritos de `ajustes.preferencias`. */
+const esFavorita = (oferta, preferencias = {}) => {
+  const favoritos = (preferencias.temasFavoritos ?? []).map(normal);
+  return favoritos.length > 0 && oferta.temas.some((tema) => favoritos.includes(normal(tema)));
+};
+
 export function puntuar(ofertas, ajustes, { ahora = new Date(), findeActual = null } = {}) {
   const precio = puntosPorPrecio(ofertas);
+  const preferencias = ajustes.preferencias ?? {};
   for (const oferta of ofertas) {
     const resto = puntosBajada(oferta) + puntosDescuento(oferta) + puntosNovedad(oferta, ahora) +
       puntosSenales(oferta) + puntosComodidad(oferta) + puntosFechas(oferta, findeActual);
     const total = precio.has(oferta) ? precio.get(oferta) + resto : Math.min(TOPE_SIN_PRECIO, resto);
-    oferta.puntuacion = Math.round(Math.max(0, Math.min(100, total)));
-    oferta.chollazo = esChollazo(oferta, ajustes);
+    // Preferencias: lo que se quiere evitar va al fondo y nunca avisa como chollazo; los
+    // temas favoritos suben un poco.
+    const evitada = esEvitada(oferta, preferencias);
+    const extra = !evitada && esFavorita(oferta, preferencias) ? PESO_FAVORITO : 0;
+    oferta.puntuacion = evitada ? 0 : Math.round(Math.max(0, Math.min(100, total + extra)));
+    oferta.chollazo = !evitada && esChollazo(oferta, ajustes);
   }
 }
 
@@ -116,6 +149,6 @@ export function esChollazo(oferta, ajustes) {
   if (oferta.etiquetas.includes('error-tarifa') || oferta.puntuacion >= umbrales.puntuacionMin) return true;
   if (oferta.precio == null) return false;
   if (oferta.unidad === 'i/v' && oferta.precio <= umbrales.vueloMax) return true;
-  const porNoche = precioPorPersonaNoche(oferta);
+  const porNoche = porNocheDe(oferta);
   return porNoche != null && porNoche <= umbrales.escapadaNocheMax;
 }

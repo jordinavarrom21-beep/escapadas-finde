@@ -3,7 +3,12 @@ import { readFileSync } from 'node:fs';
 import { Cache } from '../src/cache.js';
 import { crearOferta } from '../src/modelo.js';
 
-export const AJUSTES = JSON.parse(readFileSync(new URL('../config/ajustes.json', import.meta.url), 'utf8'));
+/**
+ * Ajustes congelados para los tests (copia de config/ajustes.json del 28/09/2026). Si los
+ * tests leyeran el archivo real, cambiar un umbral haría fallar `npm test` y el workflow
+ * dejaría de escanear. El archivo real lo valida test/contrato.test.js.
+ */
+export const AJUSTES = JSON.parse(readFileSync(new URL('./fixtures/ajustes.json', import.meta.url), 'utf8'));
 
 /** Viernes 18 de septiembre de 2026, 10:00 en Madrid. */
 export const AHORA = new Date('2026-09-18T08:00:00Z');

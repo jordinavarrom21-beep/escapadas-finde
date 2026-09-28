@@ -9,6 +9,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Cache } from './cache.js';
 import { cargarEstado, cargarJson, guardarJson } from './almacen.js';
+import { cargarAjustes } from './ajustes.js';
 import { cargarVigilados } from './vigilados.js';
 import { MODULOS, escanear, urlPanel } from './core/scan-pipeline.js';
 
@@ -82,7 +83,8 @@ function imprimirInforme({ fuentes, total, podadas, emails, puentes, red }) {
 async function principal() {
   const ruta = (clave) => path.join(RAIZ, RUTAS[clave]);
   const opciones = leerOpciones(process.argv.slice(2));
-  const ajustes = cargarJson(ruta('ajustes'));
+  // Se valida al arrancar: sin «retencionDias», por ejemplo, la poda no quitaría nada.
+  const ajustes = cargarAjustes(ruta('ajustes'));
   const resultado = await escanear({
     ajustes,
     vigilados: cargarVigilados(ruta('vigilados')),
@@ -100,7 +102,10 @@ async function principal() {
   guardarJson(ruta('panelVigilados'), resultado.salida.vigilados);
   imprimirInforme(resultado.informe);
 
-  const ejecutadas = resultado.informe.fuentes.filter((f) => ['ok', 'error'].includes(f.estado));
+  // Solo las que se han ejecutado en ESTA pasada: las demás conservan el estado de antes, y una
+  // en «ok» de hace horas escondería que ahora ha fallado todo (p. ej. sin red).
+  const generado = resultado.salida.ofertas.generado;
+  const ejecutadas = resultado.informe.fuentes.filter((f) => f.ultimoIntento === generado && ['ok', 'error'].includes(f.estado));
   if (ejecutadas.length && ejecutadas.every((f) => f.estado === 'error')) process.exitCode = 1;
 }
 

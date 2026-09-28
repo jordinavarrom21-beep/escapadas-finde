@@ -65,8 +65,9 @@ function problemasPuentes(puentes) {
     problemas.push('puentes.festivosLocales debe ser una lista de {fecha, nombre}');
   } else {
     for (const [i, festivo] of locales.entries()) {
-      exigir(esObjeto(festivo) && esFecha(festivo.fecha) && esTexto(festivo.nombre),
-        `puentes.festivosLocales[${i}] debe ser {fecha: "AAAA-MM-DD", nombre}`);
+      const fechaValida = esFecha(festivo?.fecha) || /^(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(festivo?.fecha ?? '');
+      exigir(esObjeto(festivo) && fechaValida && esTexto(festivo.nombre),
+        `puentes.festivosLocales[${i}] debe ser {fecha: "AAAA-MM-DD" (ese año) o "MM-DD" (todos los años), nombre}`);
     }
   }
   return problemas;

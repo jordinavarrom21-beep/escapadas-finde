@@ -88,7 +88,10 @@ export function marcarEquivalentes(ofertas) {
   }
 
   for (const grupo of agrupar(ofertas)) {
-    const [mejor, ...repetidas] = [...grupo].sort((a, b) => valorComparable(a) - valorComparable(b));
+    const [mejor, ...resto] = [...grupo].sort((a, b) => valorComparable(a) - valorComparable(b));
+    // Dos ofertas de la misma web son cosas distintas (otra habitación, otro régimen): la
+    // hermana de la más barata no se esconde como «duplicada», aunque haya una tercera web.
+    const repetidas = resto.filter((oferta) => oferta.fuente !== mejor.fuente);
     mejor.equivalentes = repetidas.map(resumir);
     for (const oferta of repetidas) {
       oferta.equivalentes = [resumir(mejor)];
