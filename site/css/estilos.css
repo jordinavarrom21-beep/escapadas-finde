@@ -275,6 +275,42 @@ main { padding-block: 18px 40px; min-height: 60vh; }
 .filtros-plegables > summary { display: inline-block; padding: 8px 14px; border: 1px solid var(--borde); border-radius: 10px; background: var(--superficie); }
 .filtros-plegables[open] > summary { margin-bottom: 10px; }
 
+/* Jerarquía: cuatro preguntas arriba (¿cuándo?, ¿qué?, ¿dónde?, ¿cuánto?) y el resto plegado. */
+.bloque { border: 0; margin: 0; padding: 12px 0 0; min-width: 0; display: grid; gap: 10px; border-top: 1px solid var(--borde); }
+.bloque__titulo { font-size: 1rem; font-weight: 800; color: var(--texto); padding: 0; margin: 0; }
+.grupo { display: grid; gap: 8px; padding: 10px 0; border-top: 1px dashed var(--borde); }
+.grupo:first-of-type { border-top: 0; padding-top: 0; }
+.grupo__titulo { font-size: 0.85rem; font-weight: 800; color: var(--texto-suave); text-transform: uppercase; letter-spacing: 0.03em; margin: 0; }
+.filtros__mas > summary .contador { margin-left: 4px; }
+.filtros__ver { display: none; }
+
+/* Atajos de un clic y «lo que tienes puesto». */
+.atajos { margin-bottom: 12px; }
+.atajos .chips__lista { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 6px; scrollbar-width: thin; }
+.chip--atajo { color: var(--texto) !important; text-decoration: none; background: var(--superficie-2); }
+.chip--atajo:hover { border-color: var(--acento); }
+.activos { margin-bottom: 10px; }
+.chip--activo { color: var(--texto) !important; text-decoration: none; border-color: var(--acento); background: color-mix(in srgb, var(--acento) 12%, var(--superficie)); }
+.chip--activo span { font-weight: 800; color: var(--texto-suave); }
+.chip--activo:hover span { color: var(--peligro); }
+.boton--mini { min-height: 36px; padding: 6px 12px; font-size: 0.85rem; }
+.aviso-memoria { margin: 0 0 12px; padding: 8px 12px; border-radius: 10px; background: var(--superficie-2); font-size: 0.9rem; }
+
+@media (max-width: 700px) {
+  /* Objetivos táctiles de 44 px en el móvil. */
+  .chip, .boton, .boton--mini, .interruptor { min-height: 44px; }
+  .boton-icono { width: 44px; height: 44px; }
+  /* «Más filtros» abierto ocupa toda la pantalla, con su botón para volver a los resultados. */
+  .filtros__mas--panel[open] {
+    position: fixed; inset: 0; z-index: 60; overflow-y: auto; overscroll-behavior: contain;
+    padding: 16px 16px 88px; background: var(--superficie);
+  }
+  .filtros__mas--panel[open] > summary { position: sticky; top: -16px; margin: -16px -16px 12px; padding: 16px; background: var(--superficie); border-bottom: 1px solid var(--borde); z-index: 1; }
+  .filtros__mas--panel[open] .filtros__ver {
+    display: block; position: fixed; left: 16px; right: 16px; bottom: max(16px, env(safe-area-inset-bottom)); z-index: 2; width: auto;
+  }
+}
+
 .ubicacion { border: 0; margin: 0; padding: 0; min-width: 0; display: grid; gap: 10px; }
 .ubicacion__fila { display: flex; flex-wrap: wrap; gap: 8px; }
 .combo { position: relative; flex: 1 1 220px; min-width: 0; }

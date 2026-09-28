@@ -3,9 +3,11 @@
  * y resúmenes. Sin DOM, para poder probarla desde Node.
  */
 
-import { diaSemana, fechaLocal, sumarDias } from './fechas.js';
+import { diaSemana, etiquetaDia, fechaLocal, sumarDias } from './fechas.js';
 import { distanciaKm, esMismoPunto, minutosEnCoche, radioKmParaMinutos, tieneCoordenadas } from './geo.js';
-import { ETIQUETAS_ALOJAMIENTO, ETIQUETAS_REGIMEN, duracion, euros, normalizar } from './formato.js';
+import {
+  ETIQUETAS_ALOJAMIENTO, ETIQUETAS_REGIMEN, ETIQUETAS_TIPO, ETIQUETAS_TRANSPORTE, duracion, euros, normalizar,
+} from './formato.js';
 
 export const VISTAS = ['finde', 'vuelos', 'escapadas', 'actividades', 'mapa', 'calendario', 'puentes', 'vigilados', 'fuentes', 'buscar'];
 export const POR_PAGINA = 24;
@@ -78,6 +80,8 @@ export function leerFiltrosComunes(p = {}) {
     desde: dia(p.desde),
     hasta: dia(p.hasta),
     cuando: p.cuando ?? '',
+    // Solo las que ya traen fechas concretas; las flexibles se confirman en la web.
+    soloCerradas: p.cerradas === '1',
   };
 }
 
@@ -266,6 +270,7 @@ function cumpleComunes(o, f, ctx) {
     && (!f.fav || Boolean(ctx.favoritos?.has(o.id)))
     && (!f.sinDescartadas || !ctx.descartadas?.has(o.id))
     && (f.conDuplicadas || !esDuplicada(o))
+    && (!f.soloCerradas || Boolean(o.fechas?.salida))
     && cumpleFechas(o, f, ctx);
 }
 
@@ -704,4 +709,121 @@ export function urlEditarVigilados({ hostname = '', pathname = '/' } = {}) {
   const primero = pathname.split('/').filter(Boolean)[0];
   const repo = primero && !primero.endsWith('.html') ? primero : `${usuario}.github.io`;
   return `https://github.com/${usuario}/${repo}/edit/main/config/vigilados.json`;
+}
+
+// ── Filtros puestos y atajos ─────────────────────────────────────────────────
+
+/**
+ * Atajos de la vista de escapadas: un clic pone varios filtros a la vez. Son enlaces
+ * con su hash, así que también se pueden compartir o guardar en marcadores.
+ */
+export const ATAJOS_ESCAPADAS = [
+  { texto: '💸 Este finde, lo más barato', params: { cuando: 'finde', orden: 'noche' } },
+  { texto: '📉 Por debajo de lo normal', params: { orden: 'ahorro' } },
+  { texto: '🧖 Spa a menos de 2 h', params: { temas: 'spa', h: '2' } },
+  { texto: '👨‍👩‍👧 Con niños', params: { temas: 'familia' } },
+  { texto: '🚆 Sin coche', params: { sincoche: '1' } },
+  { texto: '🔥 Solo chollazos', params: { cho: '1' } },
+  { texto: '📅 Con fechas cerradas', params: { cerradas: '1' } },
+];
+
+/** Parámetros que no filtran (ordenan o acompañan a otro) y no salen como chip. */
+const NO_SON_FILTROS = new Set(['orden', 'lat', 'lon']);
+/** Listas separadas por comas: un chip por cada valor. */
+const LISTAS = new Set(['temas', 'notemas', 'nodest']);
+const textoNochesFiltro = (n) => (n === '3' ? '3 noches o más' : n === '1' ? '1 noche' : `${n} noches`);
+
+/**
+ * Texto de cada filtro para la fila de «lo que tienes puesto». Devuelve null para
+ * los valores que no filtran nada (p. ej. «cru=1», que es lo de fábrica).
+ */
+function textoFiltro(clave, valor, ctx) {
+  const tema = (id) => {
+    const t = ctx.temas?.get(id);
+    return t ? `${t.emoji} ${t.nombre}` : id;
+  };
+  const periodo = (id) => {
+    if (id === 'finde') return 'Este finde';
+    if (id === 'puente') return 'Próximo puente';
+    return ctx.findes?.find((f) => f.id === id)?.etiqueta ?? ctx.puentes?.find((p) => p.id === id)?.nombre ?? id;
+  };
+  const numeroEuros = (v) => euros(Number(v));
+  const textos = {
+    q: () => `«${valor}»`,
+    temas: () => tema(valor),
+    notemas: () => `🚫 ${tema(valor)}`,
+    nodest: () => `🚫 ${valor}`,
+    cuando: () => `📅 ${periodo(valor)}`,
+    finde: () => `📅 ${periodo(valor)}`,
+    lugar: () => `📍 Cerca de ${valor}`,
+    h: () => `🚗 Menos de ${valor} h en coche`,
+    km: () => `📏 Hasta ${valor} km`,
+    max: () => `Hasta ${numeroEuros(valor)}`,
+    pnMin: () => `Desde ${numeroEuros(valor)} por persona y noche`,
+    pnMax: () => `Hasta ${numeroEuros(valor)} por persona y noche`,
+    dto: () => `Descuento del ${valor} % o más`,
+    pts: () => `Puntuación ${valor} o más`,
+    nota: () => `⭐ Valoración ${valor} o más`,
+    noches: () => textoNochesFiltro(valor),
+    clasica: () => '🛏️ Escapada clásica (2 noches)',
+    regimen: () => `Al menos ${(ETIQUETAS_REGIMEN[valor] ?? valor).toLowerCase()}`,
+    aloj: () => ETIQUETAS_ALOJAMIENTO[valor] ?? valor,
+    transporte: () => ETIQUETAS_TRANSPORTE[valor] ?? valor,
+    sincoche: () => '🚆 Sin coche',
+    fuente: () => `Solo ${ctx.fuentes?.get(valor) ?? valor}`,
+    tipo: () => `Solo ${(ETIQUETAS_TIPO[valor] ?? valor).toLowerCase()}`,
+    pais: () => valor,
+    region: () => valor,
+    dest: () => `📍 ${valor}`,
+    aero: () => `✈️ Desde ${valor}`,
+    ideal: () => '🕒 Horario ideal',
+    nuevas: () => '🆕 Solo novedades',
+    fav: () => '⭐ Solo favoritos',
+    cho: () => '🔥 Solo chollazos',
+    baja: () => '↓ Con bajada de precio',
+    hist: () => 'Mínimo histórico',
+    sindesc: () => 'Sin las descartadas',
+    dup: () => 'Con las repetidas',
+    cru: () => (valor === '0' ? '🚢 Con cruceros' : null),
+    cerradas: () => '📅 Solo con fechas cerradas',
+    gratis: () => '🆓 Solo gratis',
+  };
+  return (textos[clave] ?? (() => `${clave}: ${valor}`))();
+}
+
+/**
+ * Lo que tienes puesto en `params`, como chips: [{clave, texto, hash}], donde `hash`
+ * es la misma búsqueda sin ese filtro. Las listas dan un chip por valor; el lugar se
+ * quita con sus coordenadas, y «desde» y «hasta» iguales son un solo día.
+ * @param {string} vista
+ * @param {Record<string, string>} params
+ * @param {{temas?: Map, fuentes?: Map, findes?: object[], puentes?: object[]}} [ctx]
+ */
+export function filtrosActivos(vista, params = {}, ctx = {}) {
+  const sin = (...claves) => crearHash(vista, Object.fromEntries(Object.entries(params).filter(([c]) => !claves.includes(c))));
+  const chips = [];
+  for (const [clave, valor] of Object.entries(params)) {
+    if (!valor || NO_SON_FILTROS.has(clave)) continue;
+    if (LISTAS.has(clave)) {
+      for (const parte of lista(valor)) {
+        const resto = lista(valor).filter((v) => v !== parte).join(',');
+        chips.push({ clave, texto: textoFiltro(clave, parte, ctx), hash: crearHash(vista, { ...params, [clave]: resto }) });
+      }
+      continue;
+    }
+    if (clave === 'desde' || clave === 'hasta') {
+      const { desde, hasta } = params;
+      if (desde && desde === hasta) {
+        if (clave === 'desde') chips.push({ clave: 'desde', texto: `📅 El ${etiquetaDia(desde)}`, hash: sin('desde', 'hasta') });
+        continue;
+      }
+      if (dia(valor)) chips.push({ clave, texto: `📅 ${clave === 'desde' ? 'Desde' : 'Hasta'} el ${etiquetaDia(valor)}`, hash: sin(clave) });
+      continue;
+    }
+    const texto = textoFiltro(clave, valor, ctx);
+    if (texto) chips.push({ clave, texto, hash: clave === 'lugar' ? sin('lugar', 'lat', 'lon') : sin(clave) });
+  }
+  // Un punto sin nombre (solo coordenadas) también es un filtro.
+  if (!params.lugar && params.lat && params.lon) chips.push({ clave: 'lugar', texto: '📍 Cerca del punto elegido', hash: sin('lat', 'lon') });
+  return chips;
 }

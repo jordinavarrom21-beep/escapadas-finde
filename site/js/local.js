@@ -11,6 +11,7 @@ const MAX_BUSQUEDAS = 12;
 const CLAVE_VISITA = 'escapadas:ultimaVisita';
 const CLAVE_REFERENCIA = 'escapadas:referenciaSesion';
 const CLAVE_TEMA = 'escapadas:tema';
+const CLAVE_FILTROS = 'escapadas:filtros';
 
 function leer(almacen, clave) {
   try {
@@ -83,6 +84,27 @@ export function tomarVisitaAnterior(ahora = new Date()) {
   escribir(sesion, CLAVE_REFERENCIA, anterior ?? '');
   escribir(local, CLAVE_VISITA, ahora.toISOString());
   return anterior;
+}
+
+/**
+ * Últimos filtros usados en cada vista ({escapadas: {temas: 'spa'}, …}), para
+ * recuperarlos al volver. Solo se aceptan textos: lo guardado lo pudo tocar cualquiera.
+ */
+export function cargarFiltros(vista) {
+  const todos = leerJson(CLAVE_FILTROS, {});
+  const params = todos && typeof todos === 'object' ? todos[vista] : null;
+  if (!params || typeof params !== 'object' || Array.isArray(params)) return null;
+  const limpios = Object.fromEntries(Object.entries(params).filter(([clave, valor]) => typeof valor === 'string' && valor && clave));
+  return Object.keys(limpios).length ? limpios : null;
+}
+
+/** Guarda los filtros de `vista`; sin filtros, olvida los que hubiera. */
+export function guardarFiltros(vista, params = {}) {
+  const todos = leerJson(CLAVE_FILTROS, {});
+  const actuales = todos && typeof todos === 'object' && !Array.isArray(todos) ? todos : {};
+  if (Object.keys(params).length) actuales[vista] = params;
+  else delete actuales[vista];
+  escribir(local, CLAVE_FILTROS, JSON.stringify(actuales));
 }
 
 /** 'claro', 'oscuro' o null (seguir al sistema). */

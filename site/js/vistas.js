@@ -9,9 +9,9 @@ import {
   ETIQUETAS_ALOJAMIENTO, ETIQUETAS_REGIMEN, ETIQUETAS_TIPO, ETIQUETAS_TRANSPORTE,
 } from './formato.js';
 import {
-  ALOJAMIENTOS, ORDENES_ACTIVIDADES, ORDENES_ESCAPADAS, POR_PAGINA, REGIMENES_ORDEN, actividadesPara,
+  ALOJAMIENTOS, ATAJOS_ESCAPADAS, ORDENES_ACTIVIDADES, ORDENES_ESCAPADAS, POR_PAGINA, REGIMENES_ORDEN, actividadesPara,
   buscarActividades, buscarEscapadas, buscarTexto, chollazos, chollosDeVuelos, crearHash, describirCriterio,
-  destinosDe, destinosDeVuelo, esActividad, esEscapada, filtrarVuelos, leerFiltrosActividades,
+  destinosDe, destinosDeVuelo, esActividad, esEscapada, filtrarVuelos, filtrosActivos, leerFiltrosActividades,
   leerFiltrosComunes, leerFiltrosEscapadas, leerFiltrosVuelos, perfilFavoritos, periodoFinde, planesSorpresa,
   puenteDelFinde, radioBusquedaKm, recomendadas, resumenCalendario, resumenFuentes, resumenPuentes, tieneVuelo,
   urlEditarVigilados, valoresUnicos, vuelosParaMapa,
@@ -21,10 +21,13 @@ import {
 } from './plantillas.js';
 
 const MODOS_VUELOS_CON_FECHA = ['api', 'afiliado'];
+/** Los filtros que van dentro de «Más filtros» (los de arriba se ven siempre). */
 const FILTROS_SECUNDARIOS = [
-  'max', 'pnMin', 'pnMax', 'dto', 'pts', 'nota', 'noches', 'clasica', 'regimen', 'aloj', 'transporte',
-  'sincoche', 'fuente', 'tipo', 'pais', 'region', 'nuevas', 'fav', 'cho', 'baja', 'hist', 'sindesc', 'dup', 'cru',
+  'pnMin', 'dto', 'pts', 'nota', 'noches', 'regimen', 'aloj', 'transporte', 'fuente', 'tipo', 'pais', 'region',
+  'nuevas', 'fav', 'cho', 'baja', 'hist', 'sindesc', 'dup', 'cru',
 ];
+/** Los que van en «Más filtros» de la vista de vuelos. */
+const FILTROS_MAS_VUELOS = ['dto', 'pts', 'cho', 'baja', 'hist', 'nuevas', 'fav', 'sindesc', 'dup'];
 const HORAS_SORPRESA = 3;
 const ACTIVIDADES_FINDE = 4;
 const ETIQUETAS_ORDEN = {
@@ -69,7 +72,8 @@ function seccion(titulo, contenido, enlace = null, atributos = '') {
 }
 
 const resumenResultados = (texto, extra = '') => `<div class="resultados__cabeza" data-resumen="${esc(texto)}"><p class="resultados__cuenta">${esc(texto)}</p>${extra}</div>`;
-const botonLimpiar = (vista) => `<a class="boton boton--suave" href="#/${vista}">Quitar filtros</a>`;
+// «data-olvidar-filtros»: al quitar los filtros también se olvidan los recordados de esa vista.
+const botonLimpiar = (vista) => `<a class="boton boton--suave" href="#/${vista}" data-olvidar-filtros>Quitar filtros</a>`;
 const opciones = (lista, actual, vacia) => `${vacia ? `<option value="">${vacia}</option>` : ''}${
   lista.map(([valor, texto]) => `<option value="${esc(valor)}"${String(valor) === String(actual ?? '') ? ' selected' : ''}>${esc(texto)}</option>`).join('')}`;
 const marcado = (condicion) => (condicion ? ' checked' : '');
@@ -266,13 +270,14 @@ export function vistaVuelos(e, params) {
   const f = leerFiltrosVuelos(params);
   const vuelos = e.datos.ofertas.filter((o) => o.tipo === 'vuelo');
   const paises = valoresUnicos(vuelos, (o) => o.lugar?.pais);
-  const abiertos = FILTROS_SECUNDARIOS.some((clave) => params[clave]);
+  const abiertos = FILTROS_MAS_VUELOS.some((clave) => params[clave]);
   const chips = [
     `<label class="chip"><input type="radio" name="finde" value=""${marcado(!f.finde)}> Todos</label>`,
     ...e.findes.map((finde, i) => `<label class="chip${finde.puenteId ? ' chip--puente' : ''}"><input type="radio" name="finde" value="${esc(finde.id)}"${marcado(f.finde === finde.id)}> ${i === 0 ? 'Este finde · ' : ''}${esc(finde.etiqueta)}</label>`),
     ...e.datos.puentes.map((p) => `<label class="chip chip--puente"><input type="radio" name="finde" value="${esc(p.id)}"${marcado(f.finde === p.id)}> ${etiquetaPuente(p)}</label>`),
   ];
   return `<h1 class="titulo-vista" tabindex="-1">Vuelos</h1>
+${avisoMemoria(e, 'vuelos')}
 <form class="filtros" data-filtros="vuelos" aria-label="Filtros de vuelos">
   <fieldset class="chips chips--desplazables"><legend>Finde o puente</legend><div class="chips__lista">${chips.join('')}</div></fieldset>
   <div class="filtros__fila">
@@ -312,7 +317,7 @@ export function resultadosVuelos(e, params) {
       ? rejilla(vuelos, ctx, { mostradas: mostradas(e, 'vuelos'), clave: 'vuelos' })
       : estadoVacio('Ningún vuelo cumple estos filtros', 'Prueba con otro finde, otro aeropuerto o un precio máximo más alto.', botonLimpiar('vuelos'));
   const resumen = `${contar(vuelos.length, 'vuelo')} con fecha y ${contar(chollos.length, 'chollo')} de vuelos`;
-  return `${resumenResultados(resumen)}
+  return `${filaActivos(e, 'vuelos', params)}${resumenResultados(resumen)}
 ${hayConFecha ? `<h2 class="subtitulo">Vuelos con fecha y hora</h2>` : ''}${conFecha}
 <section class="seccion">
   <div class="seccion__cabeza"><h2>Chollos de vuelos de blogs y comunidades</h2></div>
@@ -359,6 +364,37 @@ function campoUbicacion(e, f) {
 </fieldset>`;
 }
 
+/** Cuántos filtros de «Más filtros» hay puestos (para su contador). */
+export const contarSecundarios = (params = {}) => FILTROS_SECUNDARIOS.filter((clave) => params[clave]).length;
+
+/** Atajos de un clic: enlaces con su hash. */
+function atajosEscapadas(vista) {
+  const enlaces = ATAJOS_ESCAPADAS.map((a) => `<a class="chip chip--atajo" href="${esc(crearHash(vista, a.params))}">${esc(a.texto)}</a>`).join('');
+  return `<nav class="atajos" aria-label="Atajos de búsqueda"><div class="chips__lista chips--desplazables-lista">${enlaces}</div></nav>`;
+}
+
+/**
+ * «Lo que tienes puesto»: un chip por filtro con su ✕ (un enlace a la misma búsqueda
+ * sin él) y «Quitar todos». Va con los resultados para seguir al día al cambiar filtros.
+ */
+function filaActivos(e, vista, params) {
+  const chips = filtrosActivos(vista, params, {
+    temas: e.temas, fuentes: e.fuentes, findes: e.findes, puentes: e.datos.puentes,
+  });
+  if (!chips.length) return '';
+  // Si al quitarlo no queda ninguno, también se olvida la memoria (si no, volvería al entrar).
+  const olvidar = (c) => (c.hash === `#/${vista}` ? ' data-olvidar-filtros' : '');
+  const lista = chips.map((c) => `<a class="chip chip--activo" href="${esc(c.hash)}"${olvidar(c)} aria-label="Quitar el filtro ${esc(c.texto)}">${esc(c.texto)} <span aria-hidden="true">✕</span></a>`).join('');
+  return `<div class="activos" aria-label="Filtros puestos"><div class="chips__lista">${lista}
+  <a class="boton boton--suave boton--mini" href="#/${vista}" data-olvidar-filtros>Quitar todos</a></div></div>`;
+}
+
+/** Aviso de que se han recuperado los filtros de la última vez. */
+function avisoMemoria(e, vista) {
+  if (!e.filtrosRecordados) return '';
+  return `<p class="aviso-memoria" role="status">↩️ Con los filtros de la última vez · <a href="#/${vista}" data-olvidar-filtros>Empezar de cero</a></p>`;
+}
+
 function formularioEscapadas(e, params, vista) {
   const f = leerFiltrosEscapadas(params);
   const escapadas = e.datos.ofertas.filter(esEscapada);
@@ -367,48 +403,64 @@ function formularioEscapadas(e, params, vista) {
   const paises = valoresUnicos(escapadas, (o) => o.lugar?.pais);
   const regiones = valoresUnicos(escapadas.filter((o) => !f.pais || o.lugar?.pais === f.pais), (o) => o.lugar?.region);
   const alojamientos = ALOJAMIENTOS.filter((a) => escapadas.some((o) => o.alojamiento === a)).map((a) => [a, ETIQUETAS_ALOJAMIENTO[a]]);
-  const abiertos = FILTROS_SECUNDARIOS.some((clave) => params[clave]);
-  return `<form class="filtros" data-filtros="${vista}" aria-label="Filtros de escapadas">
-  <div class="filtros__fila">${campoTexto(f)}</div>
-  <fieldset class="chips chips--desplazables"><legend>Temática</legend><div class="chips__lista">${chipsTemas(e, f)}</div></fieldset>
-  <fieldset class="chips chips--desplazables"><legend>Cuándo</legend><div class="chips__lista">${chipsCuando(e, f)}</div></fieldset>
-  <div class="filtros__fila">
-    <label class="campo">📅 Un día concreto <input type="date" name="dia" value="${esc(f.desde && f.desde === f.hasta ? f.desde : '')}"
-      title="Ofertas que se pueden disfrutar ese día, incluidas las de fechas flexibles"></label>
-    <label class="campo">Desde <input type="date" name="desde" value="${esc(f.desde)}"></label>
-    <label class="campo">Hasta <input type="date" name="hasta" value="${esc(f.hasta)}"></label>
-    ${interruptor('clasica', '🛏️ Escapada clásica de finde (2 noches)', f.clasica)}
+  const secundarios = contarSecundarios(params);
+  return `${atajosEscapadas(vista)}
+<form class="filtros" data-filtros="${vista}" aria-label="Filtros de escapadas">
+  <div class="filtros__fila">${campoTexto(f)}
+    <label class="campo">Ordenar por <select name="orden">${opciones(ORDENES_ESCAPADAS.map((o) => [o, ETIQUETAS_ORDEN[o]]), f.orden)}</select></label>
   </div>
-  ${campoUbicacion(e, f)}
-  <details class="filtros__mas"${abiertos ? ' open' : ''}><summary>Más filtros</summary>
+  <fieldset class="bloque"><legend class="bloque__titulo">¿Cuándo?</legend>
+    <div class="chips chips--desplazables"><div class="chips__lista">${chipsCuando(e, f)}</div></div>
+    <div class="filtros__fila">
+      <label class="campo">📅 Un día concreto <input type="date" name="dia" value="${esc(f.desde && f.desde === f.hasta ? f.desde : '')}"></label>
+      <label class="campo">O entre el <input type="date" name="desde" value="${esc(f.desde)}"></label>
+      <label class="campo">y el <input type="date" name="hasta" value="${esc(f.hasta)}"></label>
+      ${interruptor('cerradas', '📅 Solo con fechas cerradas', f.soloCerradas)}
+    </div>
+    <p class="ayuda">Las ofertas con <strong>fechas cerradas</strong> dicen el día exacto («vie 16 – dom 18 oct»). Las de <strong>fechas flexibles</strong> se pueden usar cualquier día hasta que caducan: salen en todas las fechas, pero la disponibilidad exacta la confirma la web del anunciante (el botón de la oferta la abre).</p>
+  </fieldset>
+  <fieldset class="bloque"><legend class="bloque__titulo">¿Qué te apetece?</legend>
+    <div class="chips chips--desplazables"><div class="chips__lista">${chipsTemas(e, f)}</div></div>
+  </fieldset>
+  <div class="bloque"><h2 class="bloque__titulo">¿Dónde?</h2>${campoUbicacion(e, f)}</div>
+  <fieldset class="bloque"><legend class="bloque__titulo">¿Cuánto?</legend>
     <div class="filtros__fila">
       <label class="campo">Precio total máx. (€) <input type="number" name="max" min="0" step="5" inputmode="numeric" placeholder="Sin límite" value="${f.max ?? ''}"></label>
-      ${numero('pnMin', '€/persona y noche desde', f.nocheMin, ' step="5" placeholder="Sin mínimo"')}
-      ${numero('pnMax', '€/persona y noche hasta', f.nocheMax, ' step="5" placeholder="Sin máximo"')}
+      ${numero('pnMax', '€ por persona y noche, máx.', f.nocheMax, ' step="5" placeholder="Sin máximo"')}
+      ${interruptor('clasica', '🛏️ Escapada clásica de finde (2 noches)', f.clasica)}
+    </div>
+  </fieldset>
+  <details class="filtros__mas filtros__mas--panel">
+    <summary>Más filtros <span class="contador" data-contador-mas>${secundarios ? `(${contar(secundarios, 'puesto')})` : ''}</span></summary>
+    <div class="grupo"><h3 class="grupo__titulo">Precio y chollos</h3><div class="filtros__fila">
+      ${numero('pnMin', '€ por persona y noche, mín.', f.nocheMin, ' step="5" placeholder="Sin mínimo"')}
+      ${filtrosChollo(f)}
+    </div></div>
+    <div class="grupo"><h3 class="grupo__titulo">Alojamiento y viaje</h3><div class="filtros__fila">
       <label class="campo">Noches <select name="noches">${opciones([[1, '1 noche'], [2, '2 noches'], [3, '3 o más']], f.noches, 'Cualquiera')}</select></label>
       <label class="campo">Régimen mínimo <select name="regimen">${opciones(REGIMENES_ORDEN.map((r) => [r, `Al menos ${ETIQUETAS_REGIMEN[r].toLowerCase()}`]), f.regimen, 'Cualquiera')}</select></label>
       <label class="campo">Alojamiento <select name="aloj">${opciones(alojamientos, f.alojamiento, 'Cualquiera')}</select></label>
       ${numero('nota', 'Valoración mín. (0–10)', f.nota, ' max="10" step="0.5" placeholder="Cualquiera"')}
+      <label class="campo">Transporte <select name="transporte">${opciones(Object.entries(ETIQUETAS_TRANSPORTE), f.transporte, 'Cualquiera')}</select></label>
+    </div></div>
+    <div class="grupo"><h3 class="grupo__titulo">Zona, web y tipo</h3><div class="filtros__fila">
       <label class="campo">País <select name="pais" data-repintar>${opciones(paises.map((p) => [p, p]), f.pais, 'Todos')}</select></label>
       <label class="campo">Región o provincia <select name="region">${opciones(regiones.map((r) => [r, r]), f.region, 'Todas')}</select></label>
-      <label class="campo">Transporte <select name="transporte">${opciones(Object.entries(ETIQUETAS_TRANSPORTE), f.transporte, 'Cualquiera')}</select></label>
-      <label class="campo">Fuente <select name="fuente">${opciones(fuentes, f.fuente, 'Todas')}</select></label>
+      <label class="campo">Web <select name="fuente">${opciones(fuentes, f.fuente, 'Todas')}</select></label>
       <label class="campo">Tipo <select name="tipo">${opciones(tipos.map((t) => [t, ETIQUETAS_TIPO[t]]), f.tipo, 'Todos')}</select></label>
-      ${filtrosChollo(f)}
-      ${filtrosListas(f)}
       ${interruptorDefecto('cru', '🚢 Ocultar cruceros', f.sinCruceros)}
-    </div>
+    </div></div>
+    <div class="grupo"><h3 class="grupo__titulo">Mis listas</h3><div class="filtros__fila">${filtrosListas(f)}</div></div>
+    <button type="button" class="boton boton--primario filtros__ver" data-cerrar-mas>Ver los resultados</button>
   </details>
   ${bloqueExclusiones(e, f, escapadas)}
   ${bloqueBusquedas(e, vista)}
-  <div class="filtros__fila">
-    <label class="campo">Ordenar por <select name="orden">${opciones(ORDENES_ESCAPADAS.map((o) => [o, ETIQUETAS_ORDEN[o]]), f.orden)}</select></label>
-  </div>
 </form>`;
 }
 
 export function vistaEscapadas(e, params) {
   return `<h1 class="titulo-vista" tabindex="-1">Escapadas</h1>
+${avisoMemoria(e, 'escapadas')}
 ${formularioEscapadas(e, params, 'escapadas')}
 <div id="resultados">${resultadosEscapadas(e, params)}</div>`;
 }
@@ -418,7 +470,7 @@ export function resultadosEscapadas(e, params) {
   const { ofertas, distancias } = buscarEscapadas(e.datos.ofertas, f, contextoBusqueda(e));
   const ctx = ctxTarjetas(e, { distancias, desde: f.punto?.nombre ?? e.datos.origen.nombre });
   const acciones = `<a class="boton boton--suave" href="${crearHash('mapa', params)}">🗺️ Ver en el mapa</a>`;
-  return `${resumenResultados(contar(ofertas.length, 'escapada'), acciones)}
+  return `${filaActivos(e, 'escapadas', params)}${resumenResultados(contar(ofertas.length, 'escapada'), acciones)}
 ${ofertas.length
     ? rejilla(ofertas, ctx, { mostradas: mostradas(e, 'escapadas'), clave: 'escapadas' })
     : estadoVacio('Ninguna escapada cumple estos filtros', 'Prueba a quitar alguna temática, ampliar la distancia o subir el precio máximo.', botonLimpiar('escapadas'))}`;
@@ -433,6 +485,7 @@ export function vistaActividades(e, params) {
   const actividades = e.datos.ofertas.filter(esActividad);
   const lugares = destinosDe(actividades);
   return `<h1 class="titulo-vista" tabindex="-1">Actividades</h1>
+${avisoMemoria(e, 'actividades')}
 <p class="seccion__intro">Entradas, visitas guiadas y free tours cerca de casa o en el destino de tu escapada. El precio es por persona.</p>
 <form class="filtros" data-filtros="actividades" aria-label="Filtros de actividades">
   <div class="filtros__fila">${campoTexto(f)}</div>
@@ -455,7 +508,7 @@ export function resultadosActividades(e, params) {
   const lista = buscarActividades(e.datos.ofertas, f, contextoBusqueda(e));
   const gratis = lista.filter((o) => o.precio === 0).length;
   const resumen = `${contar(lista.length, 'actividad', 'actividades')}${gratis ? ` · ${gratis} ${gratis === 1 ? 'gratuita' : 'gratuitas'}` : ''}`;
-  return `${resumenResultados(resumen)}
+  return `${filaActivos(e, 'actividades', params)}${resumenResultados(resumen)}
 ${lista.length
     ? rejilla(lista, ctxTarjetas(e), { mostradas: mostradas(e, 'actividades'), clave: 'actividades' })
     : estadoVacio('Ninguna actividad cumple estos filtros', 'Prueba a quitar alguna temática, cambiar de lugar o subir el precio máximo.', botonLimpiar('actividades'))}`;

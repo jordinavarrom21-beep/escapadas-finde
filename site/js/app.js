@@ -11,13 +11,13 @@ import {
 } from './filtros.js';
 import { contar, cuentaAtras, escaparHtml as esc, haceCuanto } from './formato.js';
 import {
-  borrarBusqueda, cargarBusquedas, cargarDescartadas, cargarFavoritos, guardarBusqueda,
-  guardarDescartadas, guardarFavoritos, guardarTema, tomarVisitaAnterior,
+  borrarBusqueda, cargarBusquedas, cargarDescartadas, cargarFavoritos, cargarFiltros, guardarBusqueda,
+  guardarDescartadas, guardarFavoritos, guardarFiltros, guardarTema, tomarVisitaAnterior,
 } from './local.js';
 import { destruirMapa, pintarMapa } from './mapa.js';
 import { estadoVacio } from './plantillas.js';
 import { activarUbicacion } from './ubicacion.js';
-import { VISTAS_HTML, contenidoSorpresa, ctxTarjetas, datosMapa, resultadosMapa } from './vistas.js';
+import { VISTAS_HTML, contarSecundarios, contenidoSorpresa, ctxTarjetas, datosMapa, resultadosMapa } from './vistas.js';
 
 const $ = (selector) => document.querySelector(selector);
 const principal = $('#principal');
@@ -26,6 +26,8 @@ const DATOS_ANTIGUOS_MS = 3 * 3_600_000;
 const AVISO_MS = 5000;
 const SALTO_SORPRESA = 3;
 const CAMPOS_QUE_SE_ESCRIBEN = ['number', 'search', 'text'];
+/** Vistas que recuerdan sus últimos filtros al volver a ellas. */
+const VISTAS_CON_MEMORIA = ['escapadas', 'actividades', 'vuelos'];
 const TITULOS = {
   finde: 'Este finde', vuelos: 'Vuelos', escapadas: 'Escapadas', actividades: 'Actividades', mapa: 'Mapa',
   calendario: 'Calendario', puentes: 'Puentes', vigilados: 'Vigilados', fuentes: 'Fuentes', buscar: 'Buscar',
@@ -150,8 +152,27 @@ function prepararMapa(params) {
   pintarMapa($('#mapa'), d, ctxTarjetas(estado, { distancias: d.distancias, desde: d.desde }));
 }
 
+/**
+ * Al entrar sin filtros en una vista con memoria, se recuperan los de la última vez
+ * (con un aviso y un «Empezar de cero»). Con filtros en la URL, mandan los de la URL.
+ */
+function rutaConMemoria() {
+  const ruta = leerRuta(location.hash);
+  estado.filtrosRecordados = false;
+  if (!VISTAS_CON_MEMORIA.includes(ruta.vista)) return ruta;
+  if (Object.keys(ruta.params).length) {
+    guardarFiltros(ruta.vista, ruta.params);
+    return ruta;
+  }
+  const guardados = cargarFiltros(ruta.vista);
+  if (!guardados) return ruta;
+  history.replaceState(null, '', crearHash(ruta.vista, guardados));
+  estado.filtrosRecordados = true;
+  return { vista: ruta.vista, params: guardados };
+}
+
 function render({ enfocar = true } = {}) {
-  const { vista, params } = leerRuta(location.hash);
+  const { vista, params } = rutaConMemoria();
   const cambiaVista = vista !== vistaActual;
   if (cambiaVista) estado.paginas.clear();
   if (dialogo.open) dialogo.close();
@@ -166,6 +187,7 @@ function render({ enfocar = true } = {}) {
   $('#q').value = vista === 'buscar' ? params.q ?? '' : '';
   principal.querySelectorAll('form[data-filtros]').forEach((form) => activarUbicacion(form, estado.datos.origen));
   if (vista === 'mapa') prepararMapa(params);
+  sincronizarMasFiltros(params);
   if (cambiaVista && enfocar) {
     window.scrollTo(0, 0);
     principal.querySelector('.titulo-vista')?.focus({ preventScroll: true });
@@ -176,6 +198,17 @@ function actualizarResultados(vista, params) {
   if (vista === 'mapa') prepararMapa(params);
   else $('#resultados').innerHTML = VISTAS_HTML[vista].resultados(estado, params);
   anunciar($('#resultados [data-resumen]')?.dataset.resumen);
+  sincronizarMasFiltros(params);
+}
+
+/** El contador de «Más filtros» y su botón del móvil siguen a los filtros sin repintar el formulario. */
+function sincronizarMasFiltros(params) {
+  const secundarios = contarSecundarios(params);
+  const contador = principal.querySelector('[data-contador-mas]');
+  if (contador) contador.textContent = secundarios ? `(${contar(secundarios, 'puesto')})` : '';
+  const resumen = $('#resultados [data-resumen]')?.dataset.resumen;
+  const ver = principal.querySelector('[data-cerrar-mas]');
+  if (ver && resumen) ver.textContent = `Ver ${resumen}`;
 }
 
 function paramsDeFormulario(formulario) {
@@ -192,8 +225,15 @@ function paramsDeFormulario(formulario) {
   delete params.dia;
   // Las casillas que vienen marcadas de fábrica («Ocultar cruceros») tienen que dejar
   // constancia en la URL de que se han desmarcado; si no, se volverían a activar solas.
+  // Marcadas son lo normal y no se escriben.
   for (const casilla of formulario.querySelectorAll('input[type="checkbox"][data-defecto]')) {
-    if (!casilla.checked) params[casilla.name] = '0';
+    if (casilla.checked) delete params[casilla.name];
+    else params[casilla.name] = '0';
+  }
+  // Un desplegable en su primera opción (el orden por defecto) tampoco es un filtro:
+  // así la URL y la memoria solo guardan lo que de verdad se ha tocado.
+  for (const lista of formulario.querySelectorAll('select[name]:not([multiple])')) {
+    if (params[lista.name] !== undefined && params[lista.name] === lista.options[0]?.value) delete params[lista.name];
   }
   return params;
 }
@@ -203,6 +243,7 @@ function aplicarFiltros(formulario, { repintar = null } = {}) {
   const vista = formulario.dataset.filtros;
   const params = paramsDeFormulario(formulario);
   history.replaceState(null, '', crearHash(vista, params));
+  if (VISTAS_CON_MEMORIA.includes(vista)) guardarFiltros(vista, params);
   estado.paginas.clear();
   if (!repintar) {
     actualizarResultados(vista, params);
@@ -355,7 +396,8 @@ function mostrarFicha(id, disparador) {
 }
 
 const ACCIONES = '[data-ficha], [data-fav], [data-descartar], [data-mas], [data-sorpresa],'
-  + ' [data-guardar-busqueda], [data-borrar-busqueda], [data-copiar-vigilado], [data-cerrar-ficha], [data-cerrar-novedades]';
+  + ' [data-guardar-busqueda], [data-borrar-busqueda], [data-copiar-vigilado], [data-cerrar-ficha], [data-cerrar-novedades],'
+  + ' [data-olvidar-filtros], [data-cerrar-mas]';
 
 function manejarClic(evento) {
   const objetivo = evento.target.closest(ACCIONES);
@@ -370,7 +412,20 @@ function manejarClic(evento) {
   else if (d.borrarBusqueda) borrarBusquedaGuardada(d.borrarBusqueda);
   else if (d.copiarVigilado) copiarVigilado(d.copiarVigilado, objetivo);
   else if ('cerrarFicha' in d) dialogo.close();
+  else if ('olvidarFiltros' in d) guardarFiltros(leerRuta(objetivo.getAttribute('href')).vista, {}); // el enlace sigue su curso
+  else if ('cerrarMas' in d) cerrarMasFiltros(objetivo);
   else $('#novedades').hidden = true;
+}
+
+/** Cierra «Más filtros» (en el móvil ocupa toda la pantalla) y lleva a los resultados. */
+function cerrarMasFiltros(boton) {
+  const panel = boton.closest('details');
+  if (panel) panel.open = false;
+  // El foco va a donde se lleva la vista (la cuenta de resultados), no al «Más filtros» de arriba.
+  const cuenta = $('#resultados .resultados__cuenta');
+  cuenta?.setAttribute('tabindex', '-1');
+  cuenta?.focus({ preventScroll: true });
+  $('#resultados')?.scrollIntoView({ block: 'start' });
 }
 
 // ── Arranque ─────────────────────────────────────────────────────────────────
