@@ -41,6 +41,13 @@ export function distanciaKm(a, b) {
 const tieneCoordenadas = (lugar) => typeof lugar?.lat === 'number' && typeof lugar?.lon === 'number';
 const clavePunto = ({ lat, lon }) => `${lat.toFixed(3)},${lon.toFixed(3)}`;
 
+/** Baleares y Canarias (cajas que no tocan la península). */
+const ISLAS = [
+  { latMin: 38.6, latMax: 40.2, lonMin: 1.1, lonMax: 4.5 },
+  { latMin: 27.5, latMax: 29.5, lonMin: -18.3, lonMax: -13.3 },
+];
+export const enIsla = ({ lat, lon }) => ISLAS.some((c) => lat >= c.latMin && lat <= c.latMax && lon >= c.lonMin && lon <= c.lonMax);
+
 /**
  * Completa `lugar.lat/lon` de las ofertas que tienen nombre de lugar pero no
  * coordenadas. Hace como mucho `maxNuevas` consultas nuevas por ejecución.
@@ -109,9 +116,14 @@ export async function calcularCoche(ofertas, ctx) {
   const { origen, coche } = ctx.ajustes;
   const ahora = ctx.ahora.getTime();
   const clave = (lugar) => `ruta:${clavePunto(origen)}>${clavePunto(lugar)}`;
+  // A las islas no se llega por carretera: OSRM cuenta el ferry como kilómetros de coche
+  // (y su servidor público no permite excluirlo), así que ni tiempo ni gasolina.
+  for (const oferta of ofertas) {
+    if (tieneCoordenadas(oferta.lugar) && enIsla(oferta.lugar)) Object.assign(oferta, { cocheMin: null, cocheKm: null, cocheEstimado: false });
+  }
   const candidatas = ofertas.filter((o) =>
     o.tipo !== 'vuelo' && !['avion', 'ferry'].includes(o.transporte) &&
-    tieneCoordenadas(o.lugar) && distanciaKm(origen, o.lugar) <= coche.maxKmLineaRecta);
+    tieneCoordenadas(o.lugar) && !enIsla(o.lugar) && distanciaKm(origen, o.lugar) <= coche.maxKmLineaRecta);
 
   const pendientes = new Map();
   for (const { lugar } of candidatas) {

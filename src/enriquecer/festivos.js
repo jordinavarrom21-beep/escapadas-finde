@@ -127,7 +127,9 @@ export function asignarFechas(oferta, findes, puentes) {
   const salida = oferta.fechas.salida?.slice(0, 10) ?? null;
   const vuelta = oferta.fechas.vuelta?.slice(0, 10) ?? null;
   if (!salida) return { findeId: null, puenteId: puentePorEtiqueta(oferta.etiquetas, puentes) };
-  const finde = findes.find((f) => salida >= f.viernes && salida <= f.domingo);
+  // Una estancia de una semana que sale en viernes no es «de fin de semana»: la vuelta
+  // tiene que ser como tarde el lunes (como con los puentes).
+  const finde = findes.find((f) => salida >= f.viernes && salida <= f.domingo && (!vuelta || vuelta <= sumarDias(f.domingo, 1)));
   const puente = puentes.find((p) =>
     salida >= p.salidas[0] && salida <= p.hasta && (!vuelta || (vuelta >= p.desde && vuelta <= sumarDias(p.hasta, 1))));
   return { findeId: finde?.id ?? null, puenteId: puente?.id ?? null };

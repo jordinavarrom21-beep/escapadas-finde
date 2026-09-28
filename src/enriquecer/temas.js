@@ -9,15 +9,22 @@ export const REGLAS_TEMAS = {
   spa: ['spa', 'balneario\\w*', 'wellness', 'termal\\w*', 'jacuzzi', 'hidromasaje', 'circuito de aguas', 'masajes?', 'relax'],
   romantico: ['romantic\\w*', 'parejas?', 'solo adultos', 'solo para adultos', 'adults only', 'lovebox', 'san valentin', 'luna de miel'],
   rural: ['rural\\w*', 'montana\\w*', 'pirineo\\w*', 'naturaleza', 'bosques?', 'parque natural', 'valles?', 'masia', 'sierra', 'hiking'],
-  playa: ['playas?', 'costa', 'calas?', 'primera linea', 'islas?', 'beach', 'mar', 'mediterraneo', 'caribe'],
+  // «Isla Mágica» es un parque de Sevilla, no una isla.
+  playa: ['playas?', 'costa', 'calas?', 'primera linea', 'islas?(?! magica)', 'beach', 'mar', 'mediterraneo', 'caribe'],
   gastronomia: ['gastronom\\w*', 'enoturismo', 'bodegas?', 'vinos?', 'cata', 'catas', 'michelin', 'menu degustacion', 'wine', 'foodie'],
-  familia: ['ninos?', 'familias?', 'familiar\\w*', 'parque acuatico', 'toboganes', 'infantil', 'kids', 'family', 'miniclub'],
+  // «Sagrada Familia» es un templo, no un plan en familia.
+  familia: ['ninos?', '(?<!sagrada )familias?', 'familiar\\w*', 'parque acuatico', 'toboganes', 'infantil', 'kids', 'family', 'miniclub'],
   ciudad: ['ciudad', 'cultural', 'cultura', 'museos?', 'city', 'urbana', 'capital'],
   aventura: ['aventura', 'multiaventura', 'esqui', 'ski', 'nieve', 'senderismo', 'rafting', 'kayak', 'barranquismo', 'escalada', 'forfait', 'surf', 'buceo', 'trekking'],
   parques: ['portaventura', 'port aventura', 'parques? tematicos?', 'warner', 'disney\\w*', 'ferrari land', 'isla magica', 'terra mitica', 'parque de atracciones'],
   eventos: ['navidad', 'navidenos?', 'navidenas?', 'fin de ano', 'nochevieja', 'halloween', 'conciertos?', 'festival\\w*', 'carnaval', 'semana santa', 'reyes magos'],
   mascotas: ['mascotas?', 'perros?', 'pet friendly', 'petfriendly', 'dog friendly', 'admite animales'],
-  singular: ['cabanas?', 'arbol', 'arboles', 'glamping', 'cuevas?', 'castillos?', 'burbujas?', 'iglus?', 'faro', 'tipi', 'yurta', 'insolito', 'singular\\w*'],
+  // Dormir en un árbol o en un castillo, no «árboles centenarios» o «a los pies del castillo».
+  singular: [
+    'cabanas?', '(?:casas?|cabanas?|dormir|noche) (?:en|de|del) (?:el |un |los |unos )?arbol(?:es)?', 'glamping', 'cuevas?',
+    '(?:hotel|dormir en un|noche en un|alojamiento en un) castillo', 'castillo hotel', 'burbujas?', 'iglus?', 'faro', 'tipi',
+    'yurta', 'insolito', 'singular\\w*',
+  ],
 };
 
 // Destinos de vuelo con temática implícita.
@@ -58,11 +65,18 @@ function textoDe(oferta) {
   return normalizarTexto([titulo, descripcion, ...etiquetas, lugar?.nombre, lugar?.region].filter(Boolean).join(' · '));
 }
 
+/** «No se admiten niños ni mascotas», «sin perros»: lo que se niega no es un tema. */
+const NEGACIONES = /\b(?:no|sin)\s+(?:se\s+)?(?:admite[ns]?|acepta[ns]?|permite[ns]?)?\s*(?:ninos?|mascotas?|perros?|animales)(?:\s*(?:,|ni|y|o)\s*(?:ninos?|mascotas?|perros?|animales))*\b/g;
+const SOLO_ADULTOS = /\b(?:solo (?:para )?adultos|adults only)\b/;
+
 function detectarTemas(texto, oferta) {
-  const principal = normalizarTexto(`${oferta.titulo} · ${oferta.descripcion}`);
+  const principal = normalizarTexto(`${oferta.titulo} · ${oferta.descripcion}`).replace(NEGACIONES, ' ');
+  const afirmado = texto.replace(NEGACIONES, ' ');
   const temas = PATRONES_TEMAS
-    .filter(([tema, patron]) => patron.test(TEMAS_SOLO_TEXTO.has(tema) ? principal : texto))
-    .map(([tema]) => tema);
+    .filter(([tema, patron]) => patron.test(TEMAS_SOLO_TEXTO.has(tema) ? principal : afirmado))
+    .map(([tema]) => tema)
+    // Un sitio solo para adultos no es un plan con niños.
+    .filter((tema) => tema !== 'familia' || !SOLO_ADULTOS.test(afirmado));
   if (oferta.tipo === 'vuelo') {
     const destino = normalizarTexto(`${oferta.titulo} ${oferta.lugar?.nombre ?? ''}`);
     if (PATRON_CIUDADES.test(destino)) temas.push('ciudad');
@@ -71,10 +85,16 @@ function detectarTemas(texto, oferta) {
   return [...new Set(temas)];
 }
 
+/**
+ * Noches de la estancia según el título y la descripción (no las etiquetas: algunas
+ * fuentes ponen a la vez todas sus categorías, «1-2 noches» y «3 a 6 noches»). Un rango
+ * no es un número de noches, y «5 días a la semana» es una frecuencia, no una estancia.
+ */
 function detectarNoches(texto) {
+  if (/\b\d{1,2}\s*(?:-|a|o)\s*\d{1,2}\s*(?:noches?|nights?)\b/.test(texto)) return null;
   const noches = texto.match(/\b(\d{1,2})\s*(?:noches?|nights?)\b/);
   if (noches) return Number(noches[1]);
-  const dias = texto.match(/\b(\d{1,2})\s*(?:dias|days)\b/);
+  const dias = texto.match(/\b(\d{1,2})\s*(?:dias|days)\b(?!\s*(?:a la|por|each|per) (?:semana|week))/);
   if (dias && Number(dias[1]) > 1) return Number(dias[1]) - 1;
   return /\b(fin de semana|finde|weekend)\b/.test(texto) ? 2 : null;
 }
@@ -86,7 +106,7 @@ function detectarTransporte(texto, oferta) {
   if (/\b(tren|ave|avlo|renfe|ouigo|iryo)\b/.test(texto)) return 'tren';
   if (/\b(autobus|flixbus|alsa)\b/.test(texto)) return 'bus';
   const pais = normalizarTexto(oferta.lugar?.pais ?? '');
-  const esIsla = /\b(islas?|baleares|canarias|mallorca|menorca|ibiza|tenerife)\b/.test(texto);
+  const esIsla = /\b(islas?(?! magica)|baleares|canarias|mallorca|menorca|ibiza|tenerife)\b/.test(texto);
   return PAISES_EN_COCHE.some((p) => pais.includes(p)) && !esIsla ? 'coche' : null;
 }
 
@@ -99,7 +119,7 @@ export function clasificar(oferta) {
   return {
     temas: detectarTemas(texto, oferta),
     regimen: REGIMENES.find(([, patron]) => patron.test(texto))?.[0] ?? null,
-    noches: oferta.tipo === 'vuelo' ? null : detectarNoches(texto),
+    noches: oferta.tipo === 'vuelo' ? null : detectarNoches(normalizarTexto(`${oferta.titulo} · ${oferta.descripcion}`)),
     transporte: detectarTransporte(texto, oferta),
   };
 }

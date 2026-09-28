@@ -30,7 +30,9 @@ function comparable(oferta) {
   if (oferta.precio == null) return null;
   if (oferta.tipo === 'vuelo') return { grupo: oferta.unidad === 'i/v' ? 'vuelo-iv' : 'vuelo', valor: oferta.precio };
   const porNoche = precioPorPersonaNoche(oferta);
-  return porNoche == null ? { grupo: 'otros', valor: oferta.precio } : { grupo: 'noche', valor: porNoche };
+  // Sin precio por noche, cada tipo y unidad por su lado: una entrada de 5 € no compite
+  // con un paquete de 7 noches.
+  return porNoche == null ? { grupo: `otros:${oferta.tipo}:${oferta.unidad ?? '-'}`, valor: oferta.precio } : { grupo: 'noche', valor: porNoche };
 }
 
 function puntosPorPrecio(ofertas) {

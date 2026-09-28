@@ -4,10 +4,12 @@
  * ahorra respecto a ella. Sin red: solo mira las ofertas que ya están en memoria.
  *
  * Grupos, de más preciso a menos:
- *   1. Vuelos, por ruta: `vuelo:BCN-OPO` (se comparan los precios tal cual).
+ *   1. Vuelos, por ruta y unidad: `vuelo:BCN-OPO:i/v` (ida y vuelta no se compara con solo ida).
  *   2. Escapadas y hoteles, por tema principal y zona: `escapada:spa:girona`
  *      (se compara el precio por persona y noche).
- *   3. Respaldo por tipo: `tipo:escapada` (se comparan los precios tal cual).
+ *   3. Respaldo: por persona y noche si se puede calcular (`noche:hotel`); si no, por
+ *      tipo y unidad (`tipo:escapada:total`), para no comparar un total de 7 noches
+ *      con un precio por noche.
  * Un grupo solo sirve si reúne al menos `MINIMO_GRUPO` ofertas; si ninguno llega,
  * la oferta se queda sin referencia.
  */
@@ -44,7 +46,7 @@ function grupoPreciso(oferta) {
   if (oferta.tipo === 'vuelo') {
     const { origen, destino } = oferta.vuelo ?? {};
     return origen && destino && esPrecio(oferta.precio)
-      ? { grupo: `vuelo:${origen}-${destino}`, valor: oferta.precio }
+      ? { grupo: `vuelo:${origen}-${destino}:${oferta.unidad ?? '-'}`, valor: oferta.precio }
       : null;
   }
   const tema = temaPrincipal(oferta);
@@ -60,8 +62,11 @@ const esBillete = (oferta) =>
 /** Grupos candidatos de una oferta, del más preciso al de respaldo. */
 function candidatos(oferta) {
   if (!esPrecio(oferta.precio)) return [grupoPreciso(oferta)].filter(Boolean);
-  const grupo = esBillete(oferta) ? `transporte:${oferta.transporte}` : `tipo:${oferta.tipo}`;
-  return [grupoPreciso(oferta), { grupo, valor: oferta.precio }].filter(Boolean);
+  const noche = oferta.tipo === 'vuelo' ? null : porNoche(oferta);
+  const respaldo = esPrecio(noche)
+    ? { grupo: `noche:${oferta.tipo}`, valor: noche }
+    : { grupo: `${esBillete(oferta) ? `transporte:${oferta.transporte}` : `tipo:${oferta.tipo}`}:${oferta.unidad ?? 'sin-unidad'}`, valor: oferta.precio };
+  return [grupoPreciso(oferta), respaldo].filter(Boolean);
 }
 
 function referenciaDe({ grupo, valor }, valores) {
