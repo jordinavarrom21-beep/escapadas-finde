@@ -106,7 +106,7 @@ function pintarReloj() {
   const { esFinde, faltaMs } = estadoFinde(new Date());
   // La cuenta atrás va en la portada (no está en las demás vistas).
   const cuenta = $('#cuenta-atras');
-  if (cuenta) cuenta.innerHTML = esFinde ? `${icono('puentes')}¡Es finde!` : `${icono('arena')}Finde en ${esc(cuentaAtras(faltaMs))}`;
+  if (cuenta) cuenta.textContent = esFinde ? ' · ¡Es finde!' : ` · en ${cuentaAtras(faltaMs)}`;
   const generado = estado.datos.generado;
   const antiguo = Date.now() - Date.parse(generado) > DATOS_ANTIGUOS_MS;
   const actualizado = $('#actualizado');
@@ -169,7 +169,8 @@ function pintarNovedades() {
   if (!nuevas) return;
   // Una pastilla junto a «Tu salida», no una franja en todas las vistas.
   const desde = estado.visitaAnterior ? `desde tu última visita (${haceCuanto(estado.visitaAnterior)})` : 'en las últimas 24 h';
-  aviso.innerHTML = `${icono('nuevo')}<span>${contar(nuevas, 'novedad', 'novedades')}</span>`;
+  aviso.innerHTML = `${icono('nuevo')}<span>${nuevas.toLocaleString('es-ES')}<span class="solo-ancho"> ${nuevas === 1 ? 'novedad' : 'novedades'}</span></span>`;
+  aviso.setAttribute('aria-label', `${contar(nuevas, 'novedad', 'novedades')} ${desde}`);
   aviso.title = `${contar(nuevas, 'oferta nueva', 'ofertas nuevas')} ${desde}. Pulsa para verlas.`;
   aviso.hidden = false;
 }
@@ -579,7 +580,10 @@ const dialogoViaje = $('#mi-viaje');
 let origenViaje = null;
 
 function pintarBotonViaje() {
-  $('#boton-viaje').innerHTML = `${icono('pin')}<span>${esc(textoViaje(estado))}</span>`;
+  // En el móvil sobra el «Desde»: así caben «Tu salida» y las novedades en una fila.
+  const texto = textoViaje(estado);
+  $('#boton-viaje').innerHTML = `${icono('pin')}<span><span class="solo-ancho">Desde </span>${esc(texto.replace(/^Desde /, ''))}</span>`;
+  $('#boton-viaje').setAttribute('aria-label', `${texto}. Cambiar salida, viajeros o noches`);
 }
 
 function abrirViaje(disparador) {

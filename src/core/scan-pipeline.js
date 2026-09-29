@@ -10,6 +10,7 @@ import { FUENTES } from '../fuentes/index.js';
 import { TEMAS, completarOferta } from '../modelo.js';
 import { aplicarClasificacion } from '../enriquecer/temas.js';
 import { aplicarAlojamiento } from '../enriquecer/alojamiento.js';
+import { aplicarNinos } from '../enriquecer/ninos.js';
 import { aplicarZona } from '../enriquecer/zona.js';
 import { clasificarVueloSinFecha } from '../enriquecer/vuelos.js';
 import { aplicarAfiliacion, proveedoresActivos } from '../afiliacion.js';
@@ -188,6 +189,7 @@ export async function escanear({
   for (const oferta of ofertas) {
     m.clasificarVueloSinFecha(oferta);
     m.aplicarClasificacion(oferta);
+    aplicarNinos(oferta);
     m.aplicarAlojamiento(oferta);
     m.aplicarZona(oferta);
     oferta.precioNoche = precioPorPersonaNoche(oferta, ajustes.viajeros ?? 2);

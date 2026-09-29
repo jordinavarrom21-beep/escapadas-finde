@@ -61,6 +61,19 @@ const textoBajada = (o) => (o.bajada > 0 && typeof o.precio === 'number'
   ? `Ha bajado ${euros(o.bajada)}: el precio más alto de los últimos 7 días fue ${euros(Math.round((o.precio + o.bajada) * 100) / 100)}`
   : null);
 
+/** Lo que tienen los niños: «Niños gratis», «Niños −60 %», «Tarifa niños»; null si nada especial. */
+export function textoNinos(o) {
+  const n = o.ninos;
+  if (!n?.ventaja) return null;
+  if (n.ventaja === 'gratis') return /^1 niño/.test(n.detalle ?? '') ? '1 niño gratis' : 'Niños gratis';
+  if (n.ventaja === 'descuento') return `Niños −${n.descuento} %`;
+  return 'Tarifa para niños';
+}
+const insigniaNinos = (o) => {
+  const texto = textoNinos(o);
+  return texto && `<span class="insignia insignia--ninos"${o.ninos.detalle ? ` title="${esc(o.ninos.detalle)}"` : ''}>${icono('tema-familia')}${esc(texto)}</span>`;
+};
+
 const insigniaChollazo = (o, clase = 'insignia insignia--chollazo') => `<span class="${clase}"${o.chollazoMotivo ? ` title="${esc(o.chollazoMotivo)}"` : ''}>${icono('fuego')}Chollazo</span>`;
 
 /**
@@ -76,6 +89,7 @@ function insignias(o, ctx, { enFoto = false } = {}) {
     o.patrocinada && `<span class="insignia insignia--patrocinado" title="Un anunciante paga por destacarla; no sube en el orden normal">Patrocinado · ${esc(o.patrocinada.anunciante)}</span>`,
     esNovedad(o, ctx.referencia) && `<span class="insignia insignia--nueva">${icono('nuevo')}Nuevo</span>`,
     o.chollazo && !enFoto && insigniaChollazo(o),
+    insigniaNinos(o),
     minimo && `<span class="insignia insignia--minimo" title="${esc(minimo.detalle)}">${esc(minimo.texto)}</span>`,
     o.bajada > 0 && `<span class="insignia insignia--bajada" title="${esc(textoBajada(o))}">↓ ${euros(o.bajada)}</span>`,
     (!enFoto || o.chollazo) && insigniaReferencia(o),
@@ -405,6 +419,8 @@ function insigniasTarjeta(o, ctx) {
     ctx.misEstados?.get(o.id) === 'reservada' && `<span class="insignia insignia--mio">${icono('check')}Reservada (marcada por ti)</span>`,
     ctx.misEstados?.get(o.id) === 'no-disponible' && `<span class="insignia insignia--alerta">${icono('prohibido')}No disponible (marcada por ti)</span>`,
     o.patrocinada && `<span class="insignia insignia--patrocinado" title="Un anunciante paga por destacarla; no sube en el orden normal">Patrocinado · ${esc(o.patrocinada.anunciante)}</span>`,
+    // Niños gratis o con descuento: es lo que decide a una familia, se ve siempre.
+    insigniaNinos(o),
   ];
   const [mejor] = [
     etiquetas.includes('error-tarifa') && `<span class="insignia insignia--alerta">${icono('alerta')}Error de tarifa</span>`,
@@ -652,6 +668,7 @@ function datosFicha(o, ctx) {
     ['Reserva', textoCaducidad(o)],
     ['Noches', o.noches],
     ['Alojamiento', ETIQUETAS_ALOJAMIENTO[o.alojamiento]],
+    ['Niños', o.ninos && (o.ninos.detalle ? `${o.ninos.detalle}. Confírmalo en la web antes de reservar: suele haber plazas limitadas o condiciones` : 'Plan para ir con niños')],
     ['Valoración', v?.nota >= 0 && `${nota(v.nota)} / 10${v.n ? ` · ${contar(v.n, 'opinión', 'opiniones')}` : ''}`],
     ['Régimen', ETIQUETAS_REGIMEN[o.regimen]],
     ['Transporte', ETIQUETAS_TRANSPORTE[o.transporte]],

@@ -10,6 +10,8 @@ const POR_FUENTE = {
   clubrural: 'casa-rural',
   escapadarural: 'casa-rural',
   campings: 'camping',
+  sandaya: 'camping',
+  huttopia: 'camping',
   paradores: 'parador',
   nomolesten: 'hotel',
   rusticae: 'hotel',

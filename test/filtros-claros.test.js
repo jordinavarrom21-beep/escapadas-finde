@@ -76,7 +76,7 @@ describe('filtros claros: atajos', () => {
       const { vista, params } = leerRuta(crearHash('escapadas', atajo.params));
       assert.equal(vista, 'escapadas');
       const f = leerFiltrosEscapadas(params);
-      const aplicado = f.temas.length || f.horas || f.sinCoche || f.chollazo || f.soloCerradas || f.cuando || params.orden !== undefined;
+      const aplicado = f.temas.length || f.horas || f.sinCoche || f.chollazo || f.soloCerradas || f.ninos || f.alojamiento || f.cuando || params.orden !== undefined;
       assert.ok(aplicado, atajo.texto);
     }
     const spa = leerFiltrosEscapadas(ATAJOS_ESCAPADAS.find((a) => a.texto.includes('Spa')).params);

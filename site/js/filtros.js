@@ -91,6 +91,22 @@ const nombreLugar = (valor) => (valor ?? '').replace(/[<>]/g, '').replace(/\s+/g
 const lista = (valor) => (valor ?? '').split(',').map((parte) => parte.trim()).filter(Boolean);
 const dia = (valor) => (/^\d{4}-\d{2}-\d{2}$/.test(valor ?? '') ? valor : '');
 
+/**
+ * Con niños: 'apto' (cualquier plan para ir con niños), 'ventaja' (niños gratis, con
+ * descuento o con tarifa infantil) o 'gratis' (solo niños gratis). Ver src/enriquecer/ninos.js.
+ */
+export const NINOS = ['apto', 'ventaja', 'gratis'];
+export const ETIQUETAS_NINOS = { apto: 'Para ir con niños', ventaja: 'Niños gratis o con descuento', gratis: 'Niños gratis' };
+
+/** ¿Cumple el filtro de niños `valor`? */
+export function cumpleNinos(o, valor) {
+  if (!valor) return true;
+  if (!o.ninos) return false;
+  if (valor === 'gratis') return o.ninos.ventaja === 'gratis';
+  if (valor === 'ventaja') return Boolean(o.ninos.ventaja);
+  return true;
+}
+
 /** Filtros que valen para cualquier oferta (también para la búsqueda global). */
 export function leerFiltrosComunes(p = {}) {
   return {
@@ -120,6 +136,7 @@ export function leerFiltrosComunes(p = {}) {
     cuando: p.cuando ?? '',
     // Solo las que ya traen fechas concretas; las flexibles se confirman en la web.
     soloCerradas: p.cerradas === '1',
+    ninos: NINOS.includes(p.ninos) ? p.ninos : '',
   };
 }
 
@@ -349,6 +366,7 @@ function cumpleComunes(o, f, ctx) {
     && (f.conDuplicadas || !esDuplicada(o))
     && (!f.soloComprobadas || !sinComprobar(o, ctx))
     && (!f.soloCerradas || Boolean(o.fechas?.salida))
+    && cumpleNinos(o, f.ninos)
     && cumpleFechas(o, f, ctx);
 }
 
@@ -878,7 +896,9 @@ export const ATAJOS_ESCAPADAS = [
   { texto: 'Este finde, lo más barato', icono: 'finde', params: { cuando: 'finde', orden: 'total' } },
   { texto: 'Por debajo de lo normal', icono: 'bajada', params: { orden: 'ahorro' } },
   { texto: 'Spa a menos de 2 h', icono: 'tema-spa', params: { temas: 'spa', h: '2' } },
-  { texto: 'Con niños', icono: 'tema-familia', params: { temas: 'familia' } },
+  { texto: 'Con niños', icono: 'tema-familia', params: { ninos: 'apto' } },
+  { texto: 'Niños gratis o con descuento', icono: 'tema-familia', params: { ninos: 'ventaja' } },
+  { texto: 'Campings', icono: 'camping', params: { aloj: 'camping' } },
   { texto: 'Sin coche', icono: 'tren', params: { sincoche: '1' } },
   { texto: 'Solo chollazos', icono: 'fuego', params: { cho: '1' } },
   { texto: 'Con fechas cerradas', icono: 'calendario', params: { cerradas: '1' } },
@@ -987,6 +1007,7 @@ function textoFiltro(clave, valor, ctx) {
     cru: () => (valor === '0' ? 'Con cruceros' : null),
     cerradas: () => 'Solo con fechas cerradas',
     gratis: () => 'Solo gratis',
+    ninos: () => ETIQUETAS_NINOS[valor] ?? valor,
   };
   return (textos[clave] ?? (() => `${clave}: ${valor}`))();
 }

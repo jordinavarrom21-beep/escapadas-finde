@@ -12,8 +12,12 @@ export const REGLAS_TEMAS = {
   // «Isla Mágica» es un parque de Sevilla, no una isla.
   playa: ['playas?', 'costa', 'calas?', 'primera linea', 'islas?(?! magica)', 'beach', 'mar', 'mediterraneo', 'caribe'],
   gastronomia: ['gastronom\\w*', 'enoturismo', 'bodegas?', 'vinos?', 'cata', 'catas', 'michelin', 'menu degustacion', 'wine', 'foodie'],
-  // «Sagrada Familia» es un templo, no un plan en familia.
-  familia: ['ninos?', '(?<!sagrada )familias?', 'familiar\\w*', 'parque acuatico', 'toboganes', 'infantil', 'kids', 'family', 'miniclub'],
+  // «Sagrada Familia» es un templo y «bodegas familiares», un negocio: no son planes con niños.
+  familia: [
+    'ninos?', 'ninas?', 'en familia', '(?<!sagrada )familias', 'para (?:toda )?la familia', 'parque acuatico', 'toboganes',
+    'infantil\\w*', 'kids', 'family', 'mini ?club',
+    '(?:escapada|viajes?|plan|vacaciones|habitacion(?:es)?|doble|suite|grupos?|ocio|ambiente|parque|actividad(?:es)?) familiar(?:es)?',
+  ],
   ciudad: ['ciudad', 'cultural', 'cultura', 'museos?', 'city', 'urbana', 'capital'],
   aventura: ['aventura', 'multiaventura', 'esqui', 'ski', 'nieve', 'senderismo', 'rafting', 'kayak', 'barranquismo', 'escalada', 'forfait', 'surf', 'buceo', 'trekking'],
   parques: ['portaventura', 'port aventura', 'parques? tematicos?', 'warner', 'disney\\w*', 'ferrari land', 'isla magica', 'terra mitica', 'parque de atracciones'],

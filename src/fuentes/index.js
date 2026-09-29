@@ -13,11 +13,13 @@ import fly4free from './fly4free.js';
 import guruwalk from './guruwalk.js';
 import holidayguru from './holidayguru.js';
 import holidu from './holidu.js';
+import huttopia from './huttopia.js';
 import nomolesten from './nomolesten.js';
 import ouigo from './ouigo.js';
 import paradores from './paradores.js';
 import renfe from './renfe.js';
 import rusticae from './rusticae.js';
+import sandaya from './sandaya.js';
 import ryanair from './ryanair.js';
 import tuscasasrurales from './tuscasasrurales.js';
 import viajerospiratas from './viajerospiratas.js';
@@ -28,7 +30,7 @@ export const FUENTES = [
   // Escapadas, hoteles y paquetes
   buscounchollo, viajerospiratas, holidayguru, atrapalo, weekendesk, nomolesten, rusticae, paradores,
   // Casas rurales, apartamentos y campings
-  escapadarural, clubrural, tuscasasrurales, holidu, campings,
+  escapadarural, clubrural, tuscasasrurales, holidu, campings, sandaya, huttopia,
   // Actividades y experiencias
   civitatis, guruwalk,
   // Transporte

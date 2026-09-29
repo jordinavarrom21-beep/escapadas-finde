@@ -268,6 +268,19 @@ El objetivo es **ofertas de viaje para un fin de semana desde Barcelona**. Con e
 escapadas y paquetes, hoteles y casas rurales, campings, vuelos y transporte barato,
 actividades con precio, y todo lo que llegue por el buzón de newsletters.
 
+**Campings**: Campings.net (ofertas de campings de toda España), **Sandaya** (una oferta por
+camping con su mejor promoción: precio por noche, fin de semana o descuento) y **Huttopia**
+(la promoción del momento en sus campings). De las dos cadenas solo entran los campings a
+menos de 450 km en línea recta del origen. Eurocampings, Pitchup, Vacansoleil y camping.info
+bloquean la lectura con protección anti-bot, y Yelloh! Village, Capfun, Homair, Siblu y
+Eurocamp no publican sus ofertas en el HTML o su robots.txt no lo permite: entran si
+suscribes su newsletter al Gmail del buzón (ya están en la lista de comercios conocidos).
+
+**Ofertas para ir con niños**: se detectan en todas las fuentes (título, descripción, precio
+y etiquetas) y llevan una insignia en la tarjeta: «1 niño gratis», «Niños −60 %» o «Tarifa
+para niños». En Explorar, «¿Vas con niños?» filtra los planes para ir con niños, los que
+tienen niños gratis o con descuento, o solo los de niños gratis; la portada tiene su fila.
+
 **Solo como enlace** (con destino y fechas ya puestos, porque no permiten leer sus
 resultados): Booking, Agoda, Hotels.com, Trivago, Airbnb, Vrbo, Google Flights,
 Skyscanner, KAYAK, Momondo, Kiwi, Expedia, eDreams, Rumbo, Omio, Direct Ferries,
