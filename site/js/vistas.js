@@ -35,6 +35,7 @@ const ETIQUETAS_ORDEN = {
   puntuacion: 'Puntuación',
   total: 'Coste total del viaje',
   persona: 'Coste total por persona',
+  calidad: 'Calidad/precio (nota por persona)',
   comodo: 'Más cómodo (menos viaje)',
   precio: 'Precio publicado (sin igualar unidades)',
   noche: 'Precio por persona y noche',
@@ -494,6 +495,8 @@ function formularioEscapadas(e, params, vista) {
   <div class="bloque"><h2 class="bloque__titulo">¿Dónde?</h2>${campoUbicacion(e, f)}</div>
   <fieldset class="bloque"><legend class="bloque__titulo">¿Cuánto?</legend>
     <div class="filtros__fila">
+      <label class="campo">Presupuesto del viaje (€) <input type="number" name="pres" min="0" step="10" inputmode="numeric" placeholder="Sin límite" value="${f.presupuesto ?? ''}"></label>
+      <label class="campo">Presupuesto <select name="prespor">${opciones([['total', 'en total'], ['persona', 'por persona']], f.presupuestoPor)}</select></label>
       <label class="campo">Precio publicado máx. (€) <input type="number" name="max" min="0" step="5" inputmode="numeric" placeholder="Sin límite" value="${f.max ?? ''}"></label>
       ${numero('pnMax', '€ por persona y noche, máx.', f.nocheMax, ' step="5" placeholder="Sin máximo"')}
       ${interruptor('clasica', '🛏️ Escapada clásica de finde (2 noches)', f.clasica)}
@@ -544,6 +547,7 @@ function explicacionOrden(e, f, costes) {
   const textos = {
     total: `Ordenadas por lo que cuesta el viaje completo desde ${desde} para ${para}: la oferta y, si vas en coche, la gasolina estimada (sin peajes ni aparcamiento).`,
     persona: `Ordenadas por lo que cuesta el viaje completo por persona desde ${desde} (${para}): la oferta y, si vas en coche, la gasolina estimada.`,
+    calidad: `Primero lo que más nota (sobre 10) da por cada euro por persona del viaje completo desde ${desde}. Sin nota o sin total, al final.`,
     comodo: `Primero lo que está a menos tiempo de ${desde}; a igualdad, lo que incluye más (régimen) y lo mejor valorado. Lo que no tiene tiempo de viaje conocido (islas, avión), al final.`,
   };
   if (!textos[f.orden]) return '';
@@ -553,11 +557,11 @@ function explicacionOrden(e, f, costes) {
 
 export function resultadosEscapadas(e, params) {
   const f = leerFiltrosEscapadas(params);
-  const { ofertas, distancias, costes } = buscarEscapadas(e.datos.ofertas, f, contextoBusqueda(e));
+  const { ofertas, distancias, costes, sinTotal } = buscarEscapadas(e.datos.ofertas, f, contextoBusqueda(e));
   const ctx = ctxTarjetas(e, { distancias, desde: f.punto?.nombre ?? nombreSalida(e) });
   const acciones = `<a class="boton boton--suave" href="${crearHash('mapa', params)}">🗺️ Ver en el mapa</a>`;
   return `${filaActivos(e, 'escapadas', params)}${resumenResultados(contar(ofertas.length, 'escapada'), acciones)}
-${explicacionOrden(e, f, costes)}
+${explicacionOrden(e, f, costes)}${f.presupuesto ? `<p class="seccion__intro">💶 Presupuesto: viaje completo (oferta y gasolina estimada) de hasta ${esc(euros(f.presupuesto))} ${f.presupuestoPor === 'persona' ? 'por persona' : 'en total'} para ${esc(contar(e.viaje?.viajeros ?? 2, 'persona'))}.${sinTotal ? ` ${esc(contar(sinTotal, 'oferta'))} sin datos suficientes para un total no se pueden comprobar y no salen.` : ''}</p>` : ''}
 ${ofertas.length
     ? rejilla(ofertas, ctx, { mostradas: mostradas(e, 'escapadas'), clave: 'escapadas' })
     : estadoVacio('Ninguna escapada cumple estos filtros', 'Prueba a quitar alguna temática, ampliar la distancia o subir el precio máximo.', botonLimpiar('escapadas'))}`;

@@ -13,7 +13,7 @@ import {
 export const VISTAS = ['finde', 'vuelos', 'escapadas', 'actividades', 'mapa', 'calendario', 'puentes', 'vigilados', 'fuentes', 'buscar'];
 export const POR_PAGINA = 24;
 export const ORDENES_VUELOS = ['precio', 'puntuacion', 'hora'];
-export const ORDENES_ESCAPADAS = ['puntuacion', 'total', 'persona', 'comodo', 'precio', 'noche', 'ahorro', 'valoracion', 'distancia', 'novedad'];
+export const ORDENES_ESCAPADAS = ['puntuacion', 'total', 'persona', 'calidad', 'comodo', 'precio', 'noche', 'ahorro', 'valoracion', 'distancia', 'novedad'];
 export const ORDENES_ACTIVIDADES = ['puntuacion', 'precio', 'valoracion'];
 /** De menos a más incluido: sirve para el filtro de «régimen mínimo». */
 export const REGIMENES_ORDEN = ['solo-alojamiento', 'desayuno', 'media-pension', 'pension-completa', 'todo-incluido'];
@@ -117,6 +117,9 @@ export function leerFiltrosEscapadas(p = {}) {
     punto: lat != null && lon != null ? { nombre: nombreLugar(p.lugar) || 'Punto elegido', lat, lon } : null,
     horas: [1, 2, 3, 4].includes(horas) ? horas : null,
     km: positivo(p.km),
+    // Presupuesto del viaje completo (coste.js), en total o por persona.
+    presupuesto: positivo(p.pres),
+    presupuestoPor: p.prespor === 'persona' ? 'persona' : 'total',
     // Los cruceros se esconden salvo que se pida verlos («cru=0» apaga el interruptor).
     sinCruceros: p.cru !== '0',
     orden: ORDENES_ESCAPADAS.includes(p.orden) ? p.orden : 'puntuacion',
@@ -418,11 +421,21 @@ function porComodidad(distancias) {
     || porPuntuacion(a, b);
 }
 
+function calidadPrecio(o, costes) {
+  const porPersona = costes.get(o.id)?.porPersona;
+  return o.valoracion?.nota > 0 && porPersona > 0 ? (o.valoracion.nota / porPersona) * 100 : null;
+}
+
+const cabeEnPresupuesto = (coste, f) => coste?.total != null
+  && (f.presupuestoPor === 'persona' ? coste.porPersona : coste.total) <= f.presupuesto;
+
 const comparadoresEscapadas = (distancias, costes) => ({
   // Sin total (falta precio, unidad o cómo llegar) van al final: no se comparan con lo que sí lo tiene.
   total: (a, b) => ascendente(costes.get(a.id)?.total, costes.get(b.id)?.total) || porPuntuacion(a, b),
   persona: (a, b) => ascendente(costes.get(a.id)?.porPersona, costes.get(b.id)?.porPersona) || porPuntuacion(a, b),
   comodo: porComodidad(distancias),
+  // Calidad/precio: nota sobre 10 por cada 100 € por persona. Sin nota o sin total, al final.
+  calidad: (a, b) => descendente(calidadPrecio(a, costes), calidadPrecio(b, costes)) || porPuntuacion(a, b),
   puntuacion: (a, b) => porPuntuacion(a, b) || ascendente(a.precio, b.precio),
   precio: porPrecio,
   noche: (a, b) => ascendente(a.precioNoche, b.precioNoche) || porPuntuacion(a, b),
@@ -443,12 +456,15 @@ const comparadoresEscapadas = (distancias, costes) => ({
 export function buscarEscapadas(ofertas, f, ctx) {
   // Sin un punto en los filtros, desde tu salida (o desde el origen del escaneo).
   const distancias = medirDistancias(ofertas, f.punto ?? ctx.salida ?? null, ctx.origen);
-  const lista = ofertas.filter((o) => esEscapada(o) && cumpleEscapada(o, f, ctx, distancias.get(o.id)));
-  const costes = new Map(['total', 'persona'].includes(f.orden)
+  let lista = ofertas.filter((o) => esEscapada(o) && cumpleEscapada(o, f, ctx, distancias.get(o.id)));
+  const costes = new Map(f.presupuesto || ['total', 'persona', 'calidad'].includes(f.orden)
     ? lista.map((o) => [o.id, costeViaje(o, { viajeros: ctx.viajeros, noches: ctx.noches, distancia: distancias.get(o.id), coche: ctx.coche })])
     : []);
+  // Con presupuesto solo entran las que tienen un total que se puede comprobar.
+  const sinTotal = f.presupuesto ? lista.filter((o) => costes.get(o.id).total == null).length : 0;
+  if (f.presupuesto) lista = lista.filter((o) => cabeEnPresupuesto(costes.get(o.id), f));
   const comparador = comparadoresEscapadas(distancias, costes)[f.orden] ?? porPuntuacion;
-  return { ofertas: lista.sort(comparador), distancias, costes };
+  return { ofertas: lista.sort(comparador), distancias, costes, sinTotal };
 }
 
 // ── Actividades ──────────────────────────────────────────────────────────────
@@ -818,7 +834,7 @@ export function filtrosVigentes(params = {}, { hoy, findes = [], puentes = [] } 
 }
 
 /** Parámetros que no filtran (ordenan o acompañan a otro) y no salen como chip. */
-const NO_SON_FILTROS = new Set(['orden', 'lat', 'lon']);
+const NO_SON_FILTROS = new Set(['orden', 'lat', 'lon', 'prespor']);
 /** Listas separadas por comas: un chip por cada valor. */
 const LISTAS = new Set(['temas', 'notemas', 'nodest']);
 const textoNochesFiltro = (n) => (n === '3' ? '3 noches o más' : n === '1' ? '1 noche' : `${n} noches`);
@@ -848,7 +864,8 @@ function textoFiltro(clave, valor, ctx) {
     lugar: () => `📍 Cerca de ${valor}`,
     h: () => `🚗 Menos de ${valor} h en coche`,
     km: () => `📏 Hasta ${valor} km`,
-    max: () => `Hasta ${numeroEuros(valor)}`,
+    max: () => `Hasta ${numeroEuros(valor)} publicados`,
+    pres: () => `💶 Hasta ${numeroEuros(valor)} ${ctx.params?.prespor === 'persona' ? 'por persona' : 'en total'} (viaje completo)`,
     pnMin: () => `Desde ${numeroEuros(valor)} por persona y noche`,
     pnMax: () => `Hasta ${numeroEuros(valor)} por persona y noche`,
     dto: () => `Descuento del ${valor} % o más`,
@@ -898,7 +915,7 @@ export function filtrosActivos(vista, params = {}, ctx = {}) {
     if (LISTAS.has(clave)) {
       for (const parte of lista(valor)) {
         const resto = lista(valor).filter((v) => v !== parte).join(',');
-        chips.push({ clave, texto: textoFiltro(clave, parte, ctx), hash: crearHash(vista, { ...params, [clave]: resto }) });
+        chips.push({ clave, texto: textoFiltro(clave, parte, { ...ctx, params }), hash: crearHash(vista, { ...params, [clave]: resto }) });
       }
       continue;
     }
@@ -911,7 +928,7 @@ export function filtrosActivos(vista, params = {}, ctx = {}) {
       if (dia(valor)) chips.push({ clave, texto: `📅 ${clave === 'desde' ? 'Desde' : 'Hasta'} el ${etiquetaDia(valor)}`, hash: sin(clave) });
       continue;
     }
-    const texto = textoFiltro(clave, valor, ctx);
+    const texto = textoFiltro(clave, valor, { ...ctx, params });
     if (texto) chips.push({ clave, texto, hash: clave === 'lugar' ? sin('lugar', 'lat', 'lon') : sin(clave) });
   }
   // Un punto sin nombre (solo coordenadas) también es un filtro.

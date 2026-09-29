@@ -81,3 +81,27 @@ describe('coste total en el panel', async () => {
     assert.deepEqual(minutos, [...minutos].sort((a, b) => a - b));
   });
 });
+
+describe('presupuesto y calidad/precio', async () => {
+  const { buscarEscapadas, filtrosActivos, leerFiltrosEscapadas } = await import('../site/js/filtros.js');
+  const conCoche = { ...datos, coche: { consumoL100km: 6.5, precioLitro: 1.8 } };
+  const e = { ...estado(), datos: conCoche };
+  const buscar = (params) => buscarEscapadas(conCoche.ofertas, leerFiltrosEscapadas(params), contextoBusqueda(e));
+
+  it('el presupuesto total o por persona deja solo lo que cabe, con total comprobable', () => {
+    const { ofertas, costes, sinTotal } = buscar({ pres: '300' });
+    assert.ok(ofertas.length > 0);
+    assert.ok(ofertas.every((o) => costes.get(o.id).total <= 300));
+    assert.ok(sinTotal > 0, 'se cuentan las que no se pueden comprobar');
+    const porPersona = buscar({ pres: '100', prespor: 'persona' });
+    assert.ok(porPersona.ofertas.every((o) => porPersona.costes.get(o.id).porPersona <= 100));
+    assert.deepEqual(filtrosActivos('escapadas', { pres: '100', prespor: 'persona' }).map((c) => c.texto), ['💶 Hasta 100 € por persona (viaje completo)']);
+  });
+
+  it('calidad/precio pone primero más nota por euro', () => {
+    const { ofertas, costes } = buscar({ orden: 'calidad' });
+    const valores = ofertas.map((o) => (o.valoracion?.nota && costes.get(o.id).porPersona ? o.valoracion.nota / costes.get(o.id).porPersona : null)).filter((v) => v != null);
+    assert.ok(valores.length > 1);
+    assert.deepEqual(valores, [...valores].sort((a, b) => b - a));
+  });
+});
