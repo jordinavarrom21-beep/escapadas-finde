@@ -46,3 +46,38 @@ describe('tu salida en el panel', () => {
     assert.match(vistaFinde(e, {}), /a menos de 3 h de Girona/);
   });
 });
+
+describe('coste total en el panel', async () => {
+  const { buscarEscapadas, leerFiltrosEscapadas } = await import('../site/js/filtros.js');
+  const { contenidoFicha, tarjeta } = await import('../site/js/plantillas.js');
+  const { resultadosEscapadas } = await import('../site/js/vistas.js');
+  const conCoche = { ...datos, coche: { consumoL100km: 6.5, precioLitro: 1.8 } };
+  const e = { ...estado(), datos: conCoche };
+
+  it('las escapadas se pueden ordenar por coste total y las que no tienen total van al final', () => {
+    const { ofertas, costes } = buscarEscapadas(conCoche.ofertas, leerFiltrosEscapadas({ orden: 'total' }), contextoBusqueda(e));
+    const totales = ofertas.map((o) => costes.get(o.id).total);
+    const conTotal = totales.filter((t) => t != null);
+    assert.ok(conTotal.length > 0, 'la fixture tiene ofertas con total');
+    assert.deepEqual(conTotal, [...conTotal].sort((a, b) => a - b), 'de menor a mayor');
+    assert.ok(totales.indexOf(null) === -1 || totales.slice(totales.indexOf(null)).every((t) => t == null), 'sin total, al final');
+    assert.match(resultadosEscapadas(e, { orden: 'total' }), /Ordenadas por lo que cuesta el viaje completo desde Barcelona para 3 personas/);
+  });
+
+  it('la tarjeta enseña el total y la ficha su desglose con lo estimado', () => {
+    const { ofertas } = buscarEscapadas(conCoche.ofertas, leerFiltrosEscapadas({ orden: 'total' }), contextoBusqueda(e));
+    const [primera] = ofertas;
+    const ctx = ctxTarjetas(e);
+    assert.match(tarjeta(primera, ctx), /💶 (≈ )?\d+\s€ en total para 3 personas · \d+\s€\/persona/);
+    const ficha = contenidoFicha(primera, ctx);
+    assert.match(ficha, /💶 Coste del viaje/);
+    assert.match(ficha, /<tr class="coste__total"><th scope="row">Total/);
+    assert.match(ficha, /data-mi-viaje/);
+  });
+
+  it('lo más cómodo pone primero lo que está más cerca', () => {
+    const { ofertas, distancias } = buscarEscapadas(conCoche.ofertas, leerFiltrosEscapadas({ orden: 'comodo' }), contextoBusqueda(e));
+    const minutos = ofertas.map((o) => distancias.get(o.id)?.minutos).filter((m) => m != null);
+    assert.deepEqual(minutos, [...minutos].sort((a, b) => a - b));
+  });
+});

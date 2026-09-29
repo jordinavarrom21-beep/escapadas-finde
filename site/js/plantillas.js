@@ -3,6 +3,7 @@
  * Todo el texto externo pasa por escaparHtml y los enlaces por urlSegura.
  */
 
+import { costeViaje, resumenCoste } from './coste.js';
 import { diasEntre, etiquetaDia, fechaLocal, horaDe } from './fechas.js';
 import {
   ETIQUETAS_ALOJAMIENTO, ETIQUETAS_REGIMEN, ETIQUETAS_TIPO, ETIQUETAS_TRANSPORTE, ETIQUETAS_UNIDAD, SIN_UNIDAD,
@@ -108,7 +109,8 @@ function tiempo(o) {
     `${emojiTiempo(t.codigo)} ${t.texto ? esc(t.texto) : ''}`.trim(),
     t.maxC != null && grados(t.maxC),
     t.lluviaPct != null && `${t.lluviaPct} % de lluvia`,
-    t.dia && esc(etiquetaDia(t.dia)),
+    // Con «Si vas el sáb 3 oct:» delante, la fecha ya está dicha.
+    !supuesto && t.dia && esc(etiquetaDia(t.dia)),
   ].filter(Boolean);
   return `<p class="dato-extra">${supuesto}${partes.join(' · ')}</p>`;
 }
@@ -266,7 +268,7 @@ export function tarjetaOferta(o, ctx) {
     <h3 class="tarjeta__titulo"><button type="button" class="enlace-ficha" data-ficha="${esc(o.id)}">${esc(o.titulo)}</button></h3>
     <p class="tarjeta__lugar">${textoLugar(o)} ${textoCoche(ctx.distancias?.get(o.id), ctx.desde, o)}</p>
     <p class="tarjeta__detalles">${detalles} ${valoracion(o)}</p>
-    ${conFechasDeViaje(o) ? tiempo(o) : ''}${envolverDato(textoCosteCoche(o, ctx))}${equivalentes(o, ctx)}${conFechasDeViaje(o) ? eventos(o) : ''}
+    ${conFechasDeViaje(o) ? tiempo(o) : ''}${lineaCoste(o, ctx)}${equivalentes(o, ctx)}${conFechasDeViaje(o) ? eventos(o) : ''}
     <div class="insignias">${insignias(o, ctx)}</div>
     ${textoComprobada(o, ctx)}
     <div class="tarjeta__pie">
@@ -305,6 +307,42 @@ function textoComprobada(o, ctx) {
   return f.desactualizada
     ? `<p class="dato-extra comprobada comprobada--antigua" title="Visto por última vez el ${esc(f.cuando)}">⚠️ Sin comprobar en ${web} desde ${esc(f.texto)}: puede haber cambiado o terminado</p>`
     : `<p class="dato-extra comprobada" title="${esc(f.cuando)}">Comprobada en ${web} ${esc(f.texto)}</p>`;
+}
+
+/** El coste del viaje completo con tu salida, viajeros y noches (coste.js). */
+const costeDe = (o, ctx) => costeViaje(o, {
+  viajeros: ctx.viajeros ?? undefined, noches: ctx.noches ?? undefined, distancia: ctx.distancias?.get(o.id), coche: ctx.coche,
+});
+
+/** «Alojamiento 240 € + Gasolina ≈ 29 € (estimado)» para el título de la línea del total. */
+const desgloseCorto = (c) => c.partes.map((p) => `${p.concepto} ${p.estimado ? '≈ ' : ''}${euros(Math.round(p.eur))}${p.estimado ? ' (estimado)' : ''}`).join(' + ');
+
+/**
+ * «💶 ≈ 269 € en total para 4 personas · 67 €/persona»; sin total, la gasolina que calculó el
+ * escaneo (solo desde su origen), y si tampoco, nada.
+ */
+function lineaCoste(o, ctx) {
+  const c = costeDe(o, ctx);
+  if (c.total == null) return envolverDato(textoCosteCoche(o, ctx));
+  return `<p class="dato-extra coste-total" title="${esc(`${desgloseCorto(c)}. Supone: ${c.supuestos.join('; ')}.`)}">💶 ${esc(resumenCoste(c))}</p>`;
+}
+
+/** «Coste del viaje» en la ficha: cada parte, qué es estimado, lo supuesto y lo que falta. */
+function costeFicha(o, ctx) {
+  const c = costeDe(o, ctx);
+  if (!c.partes.length && !c.falta.length) return '';
+  const filas = c.partes.map((p) => `<tr><th scope="row">${esc(p.concepto)}${p.estimado ? ' <span class="etiqueta-estimado">estimado</span>' : ''}</th><td>${esc(p.detalle)}</td><td class="num">${p.estimado ? '≈ ' : ''}${euros(p.eur)}</td></tr>`).join('');
+  const total = c.total != null
+    ? `<tr class="coste__total"><th scope="row">Total${c.estimado ? ' (con estimaciones)' : ''}</th><td>${contar(c.viajeros, 'persona')}${c.noches ? ` · ${contar(c.noches, 'noche')}` : ''}${c.viajeros > 1 ? ` · ${euros(Math.round(c.porPersona))} por persona` : ''}</td><td class="num">${c.estimado ? '≈ ' : ''}${euros(c.total)}</td></tr>`
+    : '';
+  const falta = c.falta.length ? `<p class="coste__falta">Para dar un total falta saber ${esc(enumerar(c.falta))}.</p>` : '';
+  const supuestos = c.supuestos.length ? `<p class="suave">Supone: ${esc(c.supuestos.join('; '))}. Desde ${esc(ctx.desde ?? '')}.</p>` : '';
+  return `<section class="ficha__coste" aria-labelledby="ficha-coste-titulo">
+  <h3 id="ficha-coste-titulo">💶 Coste del viaje</h3>
+  ${filas || total ? `<table class="coste"><tbody>${filas}${total}</tbody></table>` : ''}
+  ${falta}${supuestos}
+  <p><button type="button" class="boton boton--suave boton--mini" data-mi-viaje>Cambiar salida, viajeros o noches</button></p>
+</section>`;
 }
 
 /** Minigráfica SVG del historial de precios (vacía si hay menos de dos puntos). */
@@ -445,7 +483,8 @@ function cocheFicha(o, ctx) {
     const medio = (ETIQUETAS_TRANSPORTE[o.transporte] ?? '').replace(/^\S+\s/, '').toLowerCase();
     return `<p class="ficha__coche">Esta oferta va en ${esc(medio)}. <span class="suave">Para comparar: en coche serían ${esc(viaje)} · ${esc(km)} desde ${esc(ctx.desde)}.</span></p>`;
   }
-  const coste = textoCosteCoche(o, ctx);
+  // Si la tabla del coste del viaje ya lleva la gasolina, no se repite aquí.
+  const coste = costeDe(o, ctx).partes.some((p) => p.concepto.startsWith('Gasolina')) ? '' : textoCosteCoche(o, ctx);
   return `<p class="ficha__coche">🚗 <strong>${viaje}</strong> · ${km} desde ${esc(ctx.desde)}${coste ? `<br>${coste}` : ''}</p>`;
 }
 
@@ -480,6 +519,7 @@ ${textoComprobada(o, ctx)}
 ${vueloFicha(o.vuelo)}
 ${o.descripcion ? `<p class="ficha__descripcion">${esc(o.descripcion)}</p>` : ''}
 ${cocheFicha(o, ctx)}
+${costeFicha(o, ctx)}
 ${tiempo(o)}
 ${equivalentes(o, ctx)}
 ${o.eventos?.length ? `<section class="ficha__eventos"><h3>${conFechasDeViaje(o) ? 'Qué hay esos días por la zona' : 'Qué hay el próximo finde por la zona (si vas entonces)'}</h3>${eventos(o, { conEnlace: true })}</section>` : ''}

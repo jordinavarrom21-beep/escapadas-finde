@@ -3,6 +3,7 @@
  * y resúmenes. Sin DOM, para poder probarla desde Node.
  */
 
+import { costeViaje } from './coste.js';
 import { diaSemana, etiquetaDia, fechaLocal, sumarDias } from './fechas.js';
 import { distanciaKm, esMismoPunto, minutosEnCoche, radioKmParaMinutos, tieneCoordenadas } from './geo.js';
 import {
@@ -12,7 +13,7 @@ import {
 export const VISTAS = ['finde', 'vuelos', 'escapadas', 'actividades', 'mapa', 'calendario', 'puentes', 'vigilados', 'fuentes', 'buscar'];
 export const POR_PAGINA = 24;
 export const ORDENES_VUELOS = ['precio', 'puntuacion', 'hora'];
-export const ORDENES_ESCAPADAS = ['puntuacion', 'precio', 'noche', 'ahorro', 'valoracion', 'distancia', 'novedad'];
+export const ORDENES_ESCAPADAS = ['puntuacion', 'total', 'persona', 'comodo', 'precio', 'noche', 'ahorro', 'valoracion', 'distancia', 'novedad'];
 export const ORDENES_ACTIVIDADES = ['puntuacion', 'precio', 'valoracion'];
 /** De menos a más incluido: sirve para el filtro de «régimen mínimo». */
 export const REGIMENES_ORDEN = ['solo-alojamiento', 'desayuno', 'media-pension', 'pension-completa', 'todo-incluido'];
@@ -406,7 +407,22 @@ function cumpleEscapada(o, f, ctx, distancia) {
     && dentroDelLimite(distancia, f);
 }
 
-const comparadoresEscapadas = (distancias) => ({
+/**
+ * Más cómodo: menos tiempo de viaje desde tu salida y, a igualdad, lo que incluye más
+ * (régimen) y lo mejor valorado. Sin tiempo conocido (islas, avión), al final.
+ */
+function porComodidad(distancias) {
+  return (a, b) => ascendente(distancias.get(a.id)?.minutos, distancias.get(b.id)?.minutos)
+    || descendente(REGIMENES_ORDEN.indexOf(a.regimen), REGIMENES_ORDEN.indexOf(b.regimen))
+    || descendente(a.valoracion?.nota, b.valoracion?.nota)
+    || porPuntuacion(a, b);
+}
+
+const comparadoresEscapadas = (distancias, costes) => ({
+  // Sin total (falta precio, unidad o cómo llegar) van al final: no se comparan con lo que sí lo tiene.
+  total: (a, b) => ascendente(costes.get(a.id)?.total, costes.get(b.id)?.total) || porPuntuacion(a, b),
+  persona: (a, b) => ascendente(costes.get(a.id)?.porPersona, costes.get(b.id)?.porPersona) || porPuntuacion(a, b),
+  comodo: porComodidad(distancias),
   puntuacion: (a, b) => porPuntuacion(a, b) || ascendente(a.precio, b.precio),
   precio: porPrecio,
   noche: (a, b) => ascendente(a.precioNoche, b.precioNoche) || porPuntuacion(a, b),
@@ -428,8 +444,11 @@ export function buscarEscapadas(ofertas, f, ctx) {
   // Sin un punto en los filtros, desde tu salida (o desde el origen del escaneo).
   const distancias = medirDistancias(ofertas, f.punto ?? ctx.salida ?? null, ctx.origen);
   const lista = ofertas.filter((o) => esEscapada(o) && cumpleEscapada(o, f, ctx, distancias.get(o.id)));
-  const comparador = comparadoresEscapadas(distancias)[f.orden] ?? porPuntuacion;
-  return { ofertas: lista.sort(comparador), distancias };
+  const costes = new Map(['total', 'persona'].includes(f.orden)
+    ? lista.map((o) => [o.id, costeViaje(o, { viajeros: ctx.viajeros, noches: ctx.noches, distancia: distancias.get(o.id), coche: ctx.coche })])
+    : []);
+  const comparador = comparadoresEscapadas(distancias, costes)[f.orden] ?? porPuntuacion;
+  return { ofertas: lista.sort(comparador), distancias, costes };
 }
 
 // ── Actividades ──────────────────────────────────────────────────────────────
@@ -767,7 +786,9 @@ export function urlEditarVigilados({ hostname = '', pathname = '/' } = {}) {
  * con su hash, así que también se pueden compartir o guardar en marcadores.
  */
 export const ATAJOS_ESCAPADAS = [
-  { texto: '💸 Este finde, lo más barato', params: { cuando: 'finde', orden: 'noche' } },
+  { texto: '💶 Lo más barato en total', params: { orden: 'total' } },
+  { texto: '🛋️ Lo más cómodo', params: { orden: 'comodo' } },
+  { texto: '💸 Este finde, lo más barato', params: { cuando: 'finde', orden: 'total' } },
   { texto: '📉 Por debajo de lo normal', params: { orden: 'ahorro' } },
   { texto: '🧖 Spa a menos de 2 h', params: { temas: 'spa', h: '2' } },
   { texto: '👨‍👩‍👧 Con niños', params: { temas: 'familia' } },

@@ -33,7 +33,10 @@ const HORAS_SORPRESA = 3;
 const ACTIVIDADES_FINDE = 4;
 const ETIQUETAS_ORDEN = {
   puntuacion: 'Puntuación',
-  precio: 'Precio total',
+  total: 'Coste total del viaje',
+  persona: 'Coste total por persona',
+  comodo: 'Más cómodo (menos viaje)',
+  precio: 'Precio publicado (sin igualar unidades)',
   noche: 'Precio por persona y noche',
   ahorro: 'Más por debajo de lo normal',
   valoracion: 'Mejor valoradas',
@@ -491,7 +494,7 @@ function formularioEscapadas(e, params, vista) {
   <div class="bloque"><h2 class="bloque__titulo">¿Dónde?</h2>${campoUbicacion(e, f)}</div>
   <fieldset class="bloque"><legend class="bloque__titulo">¿Cuánto?</legend>
     <div class="filtros__fila">
-      <label class="campo">Precio total máx. (€) <input type="number" name="max" min="0" step="5" inputmode="numeric" placeholder="Sin límite" value="${f.max ?? ''}"></label>
+      <label class="campo">Precio publicado máx. (€) <input type="number" name="max" min="0" step="5" inputmode="numeric" placeholder="Sin límite" value="${f.max ?? ''}"></label>
       ${numero('pnMax', '€ por persona y noche, máx.', f.nocheMax, ' step="5" placeholder="Sin máximo"')}
       ${interruptor('clasica', '🛏️ Escapada clásica de finde (2 noches)', f.clasica)}
     </div>
@@ -533,12 +536,28 @@ ${formularioEscapadas(e, params, 'escapadas')}
 <div id="resultados">${resultadosEscapadas(e, params)}</div>`;
 }
 
+/** Por qué salen en este orden: qué se suma, desde dónde, para cuántos y qué va al final. */
+function explicacionOrden(e, f, costes) {
+  const desde = f.punto?.nombre ?? nombreSalida(e);
+  const para = `${contar(e.viaje?.viajeros ?? 2, 'persona')} y ${contar(e.viaje?.noches ?? 2, 'noche')} si la oferta no las fija`;
+  const sinTotal = [...costes.values()].filter((c) => c.total == null).length;
+  const textos = {
+    total: `Ordenadas por lo que cuesta el viaje completo desde ${desde} para ${para}: la oferta y, si vas en coche, la gasolina estimada (sin peajes ni aparcamiento).`,
+    persona: `Ordenadas por lo que cuesta el viaje completo por persona desde ${desde} (${para}): la oferta y, si vas en coche, la gasolina estimada.`,
+    comodo: `Primero lo que está a menos tiempo de ${desde}; a igualdad, lo que incluye más (régimen) y lo mejor valorado. Lo que no tiene tiempo de viaje conocido (islas, avión), al final.`,
+  };
+  if (!textos[f.orden]) return '';
+  const alFinal = sinTotal ? ` ${contar(sinTotal, 'oferta')} sin datos suficientes para un total van al final.` : '';
+  return `<p class="seccion__intro explicacion-orden">${esc(textos[f.orden])}${esc(alFinal)} <button type="button" class="enlace-boton" data-mi-viaje>Cambiar salida, viajeros o noches</button></p>`;
+}
+
 export function resultadosEscapadas(e, params) {
   const f = leerFiltrosEscapadas(params);
-  const { ofertas, distancias } = buscarEscapadas(e.datos.ofertas, f, contextoBusqueda(e));
+  const { ofertas, distancias, costes } = buscarEscapadas(e.datos.ofertas, f, contextoBusqueda(e));
   const ctx = ctxTarjetas(e, { distancias, desde: f.punto?.nombre ?? nombreSalida(e) });
   const acciones = `<a class="boton boton--suave" href="${crearHash('mapa', params)}">🗺️ Ver en el mapa</a>`;
   return `${filaActivos(e, 'escapadas', params)}${resumenResultados(contar(ofertas.length, 'escapada'), acciones)}
+${explicacionOrden(e, f, costes)}
 ${ofertas.length
     ? rejilla(ofertas, ctx, { mostradas: mostradas(e, 'escapadas'), clave: 'escapadas' })
     : estadoVacio('Ninguna escapada cumple estos filtros', 'Prueba a quitar alguna temática, ampliar la distancia o subir el precio máximo.', botonLimpiar('escapadas'))}`;

@@ -494,6 +494,16 @@ main { padding-block: 18px 40px; min-height: 60vh; }
 .dato-extra { font-size: 0.82rem; color: var(--texto-suave); overflow-wrap: anywhere; }
 .dato-extra a { color: var(--enlace); }
 .comprobada { font-size: 0.75rem; }
+.coste-total { color: var(--texto); font-weight: 650; }
+.enlace-boton { background: none; border: 0; padding: 0; font: inherit; color: var(--enlace); text-decoration: underline; cursor: pointer; }
+.enlace-boton:focus-visible { outline: 3px solid var(--acento); outline-offset: 2px; border-radius: 4px; }
+.coste { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.coste th, .coste td { text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--borde); vertical-align: top; }
+.coste th { font-weight: 600; }
+.coste .num { text-align: right; white-space: nowrap; }
+.coste__total th, .coste__total td { font-weight: 800; border-bottom: 0; }
+.coste__falta { color: var(--aviso); }
+.etiqueta-estimado { font-size: 0.72rem; font-weight: 600; padding: 1px 6px; border-radius: 999px; background: var(--aviso-suave); color: var(--aviso); }
 .comprobada--antigua { color: var(--aviso); }
 .valoracion { white-space: nowrap; font-weight: 700; color: var(--texto); }
 .precio__noche { flex-basis: 100%; font-size: 0.8rem; color: var(--texto-suave); }
