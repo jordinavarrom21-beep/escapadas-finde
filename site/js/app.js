@@ -583,7 +583,7 @@ function alternarMiEstado(id, nuevo) {
   anunciar(marcado === 'reservada' ? 'Marcada como reservada (solo en este navegador)' : marcado ? 'Marcada como no disponible (solo en este navegador)' : 'Marca quitada');
 }
 
-const ACCIONES = '[data-compartir-busqueda], [data-usar-viaje], [data-mi-estado], [data-abrir-filtros], [data-comparar], [data-vaciar-comparar], [data-mi-viaje], [data-cerrar-viaje], [data-ficha], [data-fav], [data-descartar], [data-mas], [data-sorpresa],'
+const ACCIONES = '[data-actualizar], [data-compartir-busqueda], [data-usar-viaje], [data-mi-estado], [data-abrir-filtros], [data-comparar], [data-vaciar-comparar], [data-mi-viaje], [data-cerrar-viaje], [data-ficha], [data-fav], [data-descartar], [data-mas], [data-sorpresa],'
   + ' [data-guardar-busqueda], [data-borrar-busqueda], [data-copiar-vigilado], [data-cerrar-ficha], [data-cerrar-novedades],'
   + ' [data-olvidar-filtros], [data-cerrar-mas]';
 
@@ -591,7 +591,8 @@ function manejarClic(evento) {
   const objetivo = evento.target.closest(ACCIONES);
   if (!objetivo) return;
   const d = objetivo.dataset;
-  if (d.compartirBusqueda) compartirBusqueda(d.compartirBusqueda);
+  if ('actualizar' in d) location.reload();
+  else if (d.compartirBusqueda) compartirBusqueda(d.compartirBusqueda);
   else if ('usarViaje' in d) usarViajeCompartido();
   else if (d.miEstado) alternarMiEstado(d.oferta, d.miEstado);
   else if ('abrirFiltros' in d) abrirFiltros();
@@ -733,10 +734,47 @@ async function iniciar() {
   pintarNovedades();
   render({ enfocar: false });
   setInterval(pintarReloj, 30_000);
-  if ('serviceWorker' in navigator) {
-    // Sin service worker el panel funciona igual, solo que no se instala ni va sin conexión.
-    navigator.serviceWorker.register('sw.js').catch((error) => console.warn('No se ha podido registrar el service worker:', error));
-  }
+  activarActualizaciones();
+}
+
+/** A mitad de algo (una ficha o «Tu viaje» abiertos, escribiendo): mejor no recargar de golpe. */
+const ocupado = () => dialogo.open || dialogoViaje.open || ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName);
+
+function avisarVersionNueva() {
+  const aviso = $('#novedades');
+  aviso.innerHTML = `<p>✨ Hay una versión nueva del panel.</p>
+<button type="button" class="boton boton--primario" data-actualizar>Actualizar</button>`;
+  aviso.hidden = false;
+}
+
+/**
+ * Versiones nuevas sin tener que recargar a mano: cada despliegue trae un service worker
+ * nuevo (sw.js lleva el SHA) que toma el control en cuanto se instala, y entonces la página
+ * se recarga sola con la interfaz nueva; si estás a mitad de algo, sale «Actualizar».
+ * Al volver a la pestaña o a la app se mira si hay versión nueva.
+ */
+function activarActualizaciones() {
+  // Sin service worker el panel funciona igual, solo que no se instala ni va sin conexión.
+  if (!('serviceWorker' in navigator)) return;
+  // La primera instalación también cambia de controlador, pero entonces no había nada viejo.
+  const habiaVersion = Boolean(navigator.serviceWorker.controller);
+  let recargando = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!habiaVersion || recargando) return;
+    if (ocupado()) {
+      avisarVersionNueva();
+      return;
+    }
+    recargando = true;
+    location.reload();
+  });
+  navigator.serviceWorker.register('sw.js')
+    .then((registro) => {
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') registro.update().catch(() => {});
+      });
+    })
+    .catch((error) => console.warn('No se ha podido registrar el service worker:', error));
 }
 
 iniciar();
