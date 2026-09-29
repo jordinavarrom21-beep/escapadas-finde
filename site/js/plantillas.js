@@ -3,7 +3,7 @@
  * Todo el texto externo pasa por escaparHtml y los enlaces por urlSegura.
  */
 
-import { etiquetaDia, fechaLocal, horaDe } from './fechas.js';
+import { diasEntre, etiquetaDia, fechaLocal, horaDe } from './fechas.js';
 import {
   ETIQUETAS_ALOJAMIENTO, ETIQUETAS_REGIMEN, ETIQUETAS_TIPO, ETIQUETAS_TRANSPORTE, ETIQUETAS_UNIDAD,
   contar, duracion, emojiTiempo, enumerar, escaparHtml as esc, euros, grados, haceCuanto, nota,
@@ -36,13 +36,30 @@ function insigniaReferencia(o) {
   return `<span class="insignia insignia--ahorro" title="${detalle}">Un ${r.ahorroPct} % por debajo de lo normal</span>`;
 }
 
+/** «Precio más bajo en 23 días», con los días de historial que lo respaldan. */
+function textoMinimo(o, ctx) {
+  const serie = ctx.historial?.[o.id];
+  if (!o.minimoHistorico) return null;
+  if (!serie?.length) return { texto: 'Mínimo histórico', detalle: 'El precio más bajo registrado por el vigilante' };
+  const dias = diasEntre(serie[0][0], serie.at(-1)[0]);
+  return {
+    texto: `Precio más bajo en ${dias} días`,
+    detalle: `El más bajo desde el ${etiquetaDia(serie[0][0])} (${serie.length} días con precio; máximo ${euros(Math.max(...serie.map(([, p]) => p)))})`,
+  };
+}
+
+const textoBajada = (o) => (o.bajada > 0 && typeof o.precio === 'number'
+  ? `Ha bajado ${euros(o.bajada)}: el precio más alto de los últimos 7 días fue ${euros(Math.round((o.precio + o.bajada) * 100) / 100)}`
+  : null);
+
 function insignias(o, ctx) {
   const etiquetas = o.etiquetas ?? [];
+  const minimo = textoMinimo(o, ctx);
   const lista = [
     esNovedad(o, ctx.referencia) && '<span class="insignia insignia--nueva">Nuevo</span>',
-    o.chollazo && '<span class="insignia insignia--chollazo">🔥 Chollazo</span>',
-    o.minimoHistorico && '<span class="insignia insignia--minimo">Mínimo histórico</span>',
-    o.bajada > 0 && `<span class="insignia insignia--bajada">↓ ${euros(o.bajada)}</span>`,
+    o.chollazo && `<span class="insignia insignia--chollazo"${o.chollazoMotivo ? ` title="${esc(o.chollazoMotivo)}"` : ''}>🔥 Chollazo</span>`,
+    minimo && `<span class="insignia insignia--minimo" title="${esc(minimo.detalle)}">${esc(minimo.texto)}</span>`,
+    o.bajada > 0 && `<span class="insignia insignia--bajada" title="${esc(textoBajada(o))}">↓ ${euros(o.bajada)}</span>`,
     insigniaReferencia(o),
     etiquetas.includes('error-tarifa') && '<span class="insignia insignia--alerta">Error de tarifa</span>',
     etiquetas.includes('top-chollo') && '<span class="insignia insignia--alerta">Top chollo</span>',
@@ -360,7 +377,7 @@ export function insigniaEstado(estado) {
   return `<span class="estado estado--${clase}"><span class="punto" aria-hidden="true"></span>${esc(texto)}</span>`;
 }
 
-function datosFicha(o) {
+function datosFicha(o, ctx) {
   const v = o.valoracion;
   const filas = [
     ['Fechas de viaje', o.fechas?.salida ? textoFechas(o) : 'Flexibles: la web no publica fechas concretas; la disponibilidad se confirma al reservar'],
@@ -372,7 +389,10 @@ function datosFicha(o) {
     ['Transporte', ETIQUETAS_TRANSPORTE[o.transporte]],
     ['Precio en la web', o.precioTexto],
     ['Por persona y noche', o.precioNoche != null && euros(Math.round(o.precioNoche))],
-    ['Precio habitual', o.referencia && `${euros(o.referencia.mediana)} en ${o.referencia.grupo}`],
+    ['Precio habitual', o.referencia && `${euros(o.referencia.mediana)}: la mediana de ${o.referencia.n ? `${o.referencia.n} ofertas parecidas` : 'las ofertas parecidas'} (${o.referencia.grupo})`],
+    ['Por qué es chollazo', o.chollazo && o.chollazoMotivo],
+    ['Bajada', textoBajada(o)],
+    ['Mínimo', textoMinimo(o, ctx)?.detalle],
     ['Publicada', o.publicada && etiquetaDia(o.publicada)],
     ['Vista por primera vez', o.vistaPrimera && haceCuanto(o.vistaPrimera)],
     ['Puntuación', `${o.puntuacion} / 100`],
@@ -429,7 +449,7 @@ ${tiempo(o)}
 ${equivalentes(o, ctx)}
 ${o.eventos?.length ? `<section class="ficha__eventos"><h3>${conFechasDeViaje(o) ? 'Qué hay esos días por la zona' : 'Qué hay el próximo finde por la zona (si vas entonces)'}</h3>${eventos(o, { conEnlace: true })}</section>` : ''}
 ${queHacerAlli(ctx)}
-<dl class="ficha__datos">${datosFicha(o)}</dl>
+<dl class="ficha__datos">${datosFicha(o, ctx)}</dl>
 <section class="ficha__historial" aria-labelledby="ficha-historial-titulo">
   <h3 id="ficha-historial-titulo">Historial de precios</h3>
   ${serie.length >= 2

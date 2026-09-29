@@ -139,16 +139,34 @@ export function puntuar(ofertas, ajustes, { ahora = new Date(), findeActual = nu
     const evitada = esEvitada(oferta, preferencias);
     const extra = !evitada && esFavorita(oferta, preferencias) ? PESO_FAVORITO : 0;
     oferta.puntuacion = evitada ? 0 : Math.round(Math.max(0, Math.min(100, total + extra)));
-    oferta.chollazo = !evitada && esChollazo(oferta, ajustes);
+    oferta.chollazoMotivo = evitada ? null : motivoChollazo(oferta, ajustes);
+    oferta.chollazo = oferta.chollazoMotivo != null;
   }
 }
 
-/** true si la oferta merece una alerta inmediata según `ajustes.emails.chollazos`. */
-export function esChollazo(oferta, ajustes) {
+const importe = (valor) => valor.toLocaleString('es-ES', { maximumFractionDigits: 2 });
+
+/**
+ * Por qué es un chollazo, en una frase que cualquiera puede comprobar con los datos de
+ * la tarjeta y `ajustes.emails.chollazos`, o null si no lo es.
+ */
+export function motivoChollazo(oferta, ajustes) {
   const umbrales = ajustes.emails.chollazos;
-  if (oferta.etiquetas.includes('error-tarifa') || oferta.puntuacion >= umbrales.puntuacionMin) return true;
-  if (oferta.precio == null) return false;
-  if (oferta.unidad === 'i/v' && oferta.precio <= umbrales.vueloMax) return true;
-  const porNoche = porNocheDe(oferta);
-  return porNoche != null && porNoche <= umbrales.escapadaNocheMax;
+  if (oferta.etiquetas.includes('error-tarifa')) return 'La web lo publica como error de tarifa';
+  if (oferta.precio != null && oferta.unidad === 'i/v' && oferta.precio <= umbrales.vueloMax) {
+    return `Vuelo de ida y vuelta por ${importe(oferta.precio)} €: el límite es ${importe(umbrales.vueloMax)} €`;
+  }
+  const porNoche = oferta.precio == null ? null : porNocheDe(oferta);
+  if (porNoche != null && porNoche <= umbrales.escapadaNocheMax) {
+    // «noche» y «total» son por alojamiento: el reparto entre viajeros es una suposición.
+    const reparto = ['noche', 'total'].includes(oferta.unidad) ? ` (repartiendo entre ${ajustes.viajeros ?? 2} personas)` : '';
+    return `${importe(Math.round(porNoche * 100) / 100)} € por persona y noche${reparto}: el límite es ${importe(umbrales.escapadaNocheMax)} €`;
+  }
+  if (oferta.puntuacion >= umbrales.puntuacionMin) {
+    return `Puntuación ${oferta.puntuacion} de 100 (desde ${umbrales.puntuacionMin}): precio frente a ofertas parecidas, bajada, descuento, novedad y comodidad`;
+  }
+  return null;
 }
+
+/** true si la oferta merece una alerta inmediata según `ajustes.emails.chollazos`. */
+export const esChollazo = (oferta, ajustes) => motivoChollazo(oferta, ajustes) != null;

@@ -147,3 +147,53 @@ describe('calidad: cada oferta dice cuándo se comprobó', () => {
     assert.equal(salida.ofertas.fuentes[0].intervaloMin, 90);
   });
 });
+
+describe('calidad: «mínimo histórico» solo con historial suficiente', () => {
+  it('con dos días de precios no hay mínimo histórico aunque haya bajado; con una semana y 3 días, sí', async () => {
+    const { registrarPrecios } = await import('../src/historial.js');
+    const ahora = new Date('2026-09-18T08:00:00Z');
+    const historial = {
+      'prueba:corta': [['2026-09-16', 120], ['2026-09-17', 110]],
+      'prueba:pocos': [['2026-09-01', 120], ['2026-09-17', 110]],
+      'prueba:larga': [['2026-09-10', 120], ['2026-09-14', 115], ['2026-09-17', 110]],
+    };
+    const [corta, pocos, larga] = ['corta', 'pocos', 'larga'].map((id) => oferta({ id: `prueba:${id}`, precio: 100 }));
+    registrarPrecios(historial, [corta, pocos, larga], ahora);
+    assert.equal(corta.minimoHistorico, false, 'solo 2 días');
+    assert.equal(pocos.minimoHistorico, false, 'solo 2 precios');
+    assert.equal(larga.minimoHistorico, true);
+    assert.equal(corta.bajada, 20, 'la bajada respecto a los últimos 7 días sí se cuenta');
+  });
+});
+
+describe('calidad: cada etiqueta de chollo se explica con datos', async () => {
+  const { motivoChollazo, puntuar } = await import('../src/enriquecer/puntuacion.js');
+  const { AJUSTES } = await import('./ayudas.js');
+
+  it('el motivo del chollazo es una frase comprobable', () => {
+    const vuelo = oferta({ tipo: 'vuelo', precio: 28, unidad: 'i/v' });
+    assert.match(motivoChollazo(vuelo, AJUSTES), /Vuelo de ida y vuelta por 28 €: el límite es \d+ €/);
+    const casa = oferta({ tipo: 'hotel', precio: 40, unidad: 'noche' });
+    assert.match(motivoChollazo(casa, AJUSTES), /20 € por persona y noche \(repartiendo entre 2 personas\): el límite es \d+ €/);
+    const error = oferta({ etiquetas: ['error-tarifa'] });
+    assert.equal(motivoChollazo(error, AJUSTES), 'La web lo publica como error de tarifa');
+    assert.equal(motivoChollazo(oferta({ tipo: 'hotel', precio: 400, unidad: 'noche' }), AJUSTES), null);
+  });
+
+  it('puntuar guarda el motivo y el panel lo enseña', () => {
+    const casa = oferta({ tipo: 'hotel', precio: 40, unidad: 'noche' });
+    puntuar([casa], AJUSTES);
+    assert.equal(casa.chollazo, true);
+    assert.match(casa.chollazoMotivo, /por persona y noche/);
+    assert.match(tarjeta(casa, ctxPara([casa])), /title="20 € por persona y noche[^"]*">🔥 Chollazo/);
+    assert.match(contenidoFicha(casa, ctxPara([casa])), /<dt>Por qué es chollazo<\/dt><dd>20 € por persona y noche/);
+  });
+
+  it('el mínimo dice cuántos días de historial lo respaldan y la bajada, desde qué precio', () => {
+    const o = oferta({ precio: 100, minimoHistorico: true, bajada: 15 });
+    const historial = { [o.id]: [['2026-09-01', 130], ['2026-09-10', 115], ['2026-09-24', 100]] };
+    const html = tarjeta(o, ctxPara([o], { historial }));
+    assert.match(html, /title="El más bajo desde el mar 1 sep \(3 días con precio; máximo 130\s€\)">Precio más bajo en 23 días/);
+    assert.match(html, /title="Ha bajado 15\s€: el precio más alto de los últimos 7 días fue 115\s€">↓ 15\s€/);
+  });
+});

@@ -64,7 +64,10 @@ describe('auditoría: flujo del escaneo', () => {
 
 describe('auditoría: historial de precios', () => {
   test('un precio que nunca ha cambiado no es mínimo histórico; uno que ha bajado, sí', () => {
-    const historial = { 'prueba:plana': [['2026-09-16', 100], ['2026-09-17', 100]], 'prueba:bajada': [['2026-09-16', 120], ['2026-09-17', 110]] };
+    const historial = {
+      'prueba:plana': [['2026-09-08', 100], ['2026-09-16', 100], ['2026-09-17', 100]],
+      'prueba:bajada': [['2026-09-08', 115], ['2026-09-16', 120], ['2026-09-17', 110]],
+    };
     const plana = oferta({ id: 'prueba:plana', precio: 100 });
     const bajada = oferta({ id: 'prueba:bajada', precio: 100 });
     registrarPrecios(historial, [plana, bajada], AHORA);

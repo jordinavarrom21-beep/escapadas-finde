@@ -105,6 +105,7 @@ export function completarOferta(datos) {
     minimoHistorico: false,
     puntuacion: 0,
     chollazo: false,
+    chollazoMotivo: null,
     enlaces: [],
     alojamiento: null,
     valoracion: null,

@@ -61,8 +61,8 @@ un `try/catch`, registran el error con `ctx.log` y descartan solo esa oferta.
 | `etiquetas` | fuente | etiquetas crudas de la web (sirven para temas y filtros) |
 | `publicada`, `caduca` | fuente | fechas ISO 8601 o `null` |
 | `vistaPrimera`, `vistaUltima` | `almacen.js` | ISO UTC |
-| `bajada`, `minimoHistorico` | `historial.js` | € que ha bajado respecto al máximo de los últimos 7 días; `true` si es el precio más bajo registrado (con ≥ 2 días de historial) |
-| `puntuacion`, `chollazo` | `puntuacion.js` | 0–100, y si merece alerta (`esChollazo`; el panel usa este campo) |
+| `bajada`, `minimoHistorico` | `historial.js` | € que ha bajado respecto al máximo de los últimos 7 días; `true` si es el precio más bajo registrado, alguna vez estuvo más alto y hay historial suficiente (≥ 3 días con precio y el primero de hace ≥ 7 días) |
+| `puntuacion`, `chollazo`, `chollazoMotivo` | `puntuacion.js` | 0–100, si merece alerta (`esChollazo`; el panel usa este campo) y por qué, en una frase comprobable (`motivoChollazo`: error de tarifa, vuelo i/v o precio por persona y noche por debajo del límite, o la puntuación) |
 | `enlaces` | `enlaces.js` | `[{etiqueta, url}]`: reservar, comparar, hotel, ruta… |
 | `alojamiento` | fuente o `temas.js` | `hotel` \| `casa-rural` \| `camping` \| `apartamento` \| `parador` \| `balneario` \| `hostal` \| `null` |
 | `valoracion` | fuente | `{nota: 0–10, n: nº de opiniones}` o `null` |
