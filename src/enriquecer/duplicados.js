@@ -77,6 +77,31 @@ function agrupar(ofertas) {
 }
 
 /**
+ * Lo que ve quien compara dos ofertas de la misma web. Si todo coincide (título, precio,
+ * unidad, noches, lugar, régimen, descripción y etiquetas), para esa persona son la misma
+ * oferta publicada dos veces con distinto id (Weekendesk lo hace). Basta con que cambie
+ * una etiqueta («Cena gastronómica») o la descripción para que sean productos distintos.
+ */
+function huella(oferta) {
+  return JSON.stringify([
+    oferta.fuente, normalizarTexto(oferta.titulo).trim(), oferta.precio, oferta.unidad, oferta.noches,
+    normalizarTexto(oferta.lugar?.nombre ?? ''), oferta.regimen, normalizarTexto(oferta.descripcion ?? '').trim(),
+    oferta.fechas?.salida ?? null, oferta.fechas?.vuelta ?? null,
+    [...oferta.etiquetas].filter((e) => e !== ETIQUETA_DUPLICADA).sort(),
+  ]);
+}
+
+/** Las copias idénticas de la misma web: la primera se queda, las demás se marcan «duplicada». */
+function marcarCopias(ofertas) {
+  const vistas = new Set();
+  for (const oferta of [...ofertas].sort((a, b) => (a.id < b.id ? -1 : 1))) {
+    const clave = huella(oferta);
+    if (vistas.has(clave)) oferta.etiquetas.push(ETIQUETA_DUPLICADA);
+    else vistas.add(clave);
+  }
+}
+
+/**
  * Rellena `equivalentes` (y la etiqueta «duplicada» en las repetidas) en todas las
  * ofertas. Es idempotente: cada ejecución parte de cero.
  * @param {import('../modelo.js').Oferta[]} ofertas
@@ -98,5 +123,6 @@ export function marcarEquivalentes(ofertas) {
       oferta.etiquetas.push(ETIQUETA_DUPLICADA);
     }
   }
+  marcarCopias(ofertas.filter((oferta) => !oferta.etiquetas.includes(ETIQUETA_DUPLICADA)));
   return ofertas;
 }

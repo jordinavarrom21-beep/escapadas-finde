@@ -96,3 +96,34 @@ describe('duplicados: marcarEquivalentes', () => {
     assert.deepEqual(sola.etiquetas, ['Spa'], 'la etiqueta de una ejecución anterior se retira');
   });
 });
+
+describe('duplicados: la misma oferta publicada dos veces en la misma web', () => {
+  const lloret = { nombre: 'Lloret de Mar', region: 'Girona', pais: 'España' };
+  const weekendesk = (id, campos = {}) => oferta({
+    id: `weekendesk:${id}`, fuente: 'weekendesk', titulo: 'Relax total en Lloret de Mar', precio: 99, unidad: 'total', noches: 1,
+    lugar: lloret, descripcion: 'Hotel GHT Oasis Park & Spa · 1 noche', etiquetas: ['Hotel 4*', 'Pensión completa'], ...campos,
+  });
+
+  it('si todo lo que se ve coincide, se queda la primera y la otra se marca «duplicada»', () => {
+    const [a, b] = [weekendesk('21976524'), weekendesk('21976522')];
+    marcarEquivalentes([a, b]);
+    assert.deepEqual(b.etiquetas, ['Hotel 4*', 'Pensión completa'], 'la de id menor se queda');
+    assert.ok(a.etiquetas.includes('duplicada'));
+    assert.deepEqual(a.equivalentes, [], 'no es «también en otra web»');
+    marcarEquivalentes([a, b]);
+    assert.equal(a.etiquetas.filter((e) => e === 'duplicada').length, 1, 'idempotente');
+    assert.ok(!b.etiquetas.includes('duplicada'));
+  });
+
+  it('una etiqueta, el precio o la descripción distintos son productos distintos', () => {
+    const base = weekendesk('1');
+    const otras = [
+      weekendesk('2', { etiquetas: ['Hotel 4*', 'Cena gastronómica'] }),
+      weekendesk('3', { precio: 109 }),
+      weekendesk('4', { descripcion: 'Hotel GHT Oasis Park & Spa · habitación superior' }),
+      weekendesk('5', { noches: 2 }),
+    ];
+    marcarEquivalentes([base, ...otras]);
+    for (const o of [base, ...otras]) assert.ok(!o.etiquetas.includes('duplicada'), o.id);
+  });
+});

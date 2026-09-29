@@ -179,7 +179,10 @@ export default {
 - `duplicados.js`
   - `marcarEquivalentes(ofertas)`: la misma escapada en varias webs (mismo alojamiento
     normalizado y localidad). La más barata guarda `equivalentes`; las demás llevan la
-    etiqueta «duplicada». Conservador: ante la duda no agrupa.
+    etiqueta «duplicada». Conservador: ante la duda no agrupa. Además, dos ofertas de la misma
+    web idénticas en todo lo que se ve (título, precio, unidad, noches, lugar, régimen,
+    descripción, fechas y etiquetas) son la misma publicada dos veces: la de id menor se queda y
+    la otra lleva «duplicada» sin `equivalentes`.
 - `tiempo.js` / `eventos.js`
   - `anadirTiempo(ofertas, ctx)`: previsión de Open-Meteo para el finde o puente.
   - `anadirEventos(ofertas, ctx)`: agenda cultural de Cataluña (Socrata) cerca del destino.

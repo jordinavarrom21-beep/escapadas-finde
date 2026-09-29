@@ -46,7 +46,7 @@ function insignias(o, ctx) {
     insigniaReferencia(o),
     etiquetas.includes('error-tarifa') && '<span class="insignia insignia--alerta">Error de tarifa</span>',
     etiquetas.includes('top-chollo') && '<span class="insignia insignia--alerta">Top chollo</span>',
-    esDuplicada(o) && '<span class="insignia">Repetida en otra web</span>',
+    esDuplicada(o) && `<span class="insignia">${o.equivalentes?.length ? 'Repetida en otra web' : 'Repetida en la misma web'}</span>`,
   ];
   return lista.filter(Boolean).join('');
 }
