@@ -1,7 +1,7 @@
 # 🧳 Escapadas Finde
 
-Vigilante 24/7 de **vuelos y escapadas de fin de semana desde Barcelona**. Cada
-30 minutos revisa varias webs de ofertas, las clasifica por temática, calcula
+Vigilante 24/7 de **vuelos y escapadas de fin de semana desde Barcelona**. Varias
+veces al día revisa webs de ofertas (cada una a su ritmo, de 30 minutos a un día), las clasifica por temática, calcula
 el tiempo en coche, detecta puentes y te las enseña en un panel web (también
 desde el móvil). Además te avisa por email.
 
@@ -34,6 +34,8 @@ GitHub Actions (cron cada 30 min, pero GitHub lanza los que puede: ver «Revisi�
   «cerca de Girona a menos de 1 h en coche».
 - **Mapa**, **calendario** de los próximos findes, **historial de precios**, **vigilados**
   y **estado de las fuentes**.
+- Cada oferta dice **cuándo se comprobó** en su web. Si hace más de un día (o de tres
+  intervalos de su web) que no se ve, avisa de que puede haber cambiado o terminado.
 
 **Como app en el móvil o el ordenador**: abre el panel y, en Android o en Chrome/Edge,
 pulsa «Instalar aplicación»; en el iPhone, desde Safari, Compartir → «Añadir a pantalla

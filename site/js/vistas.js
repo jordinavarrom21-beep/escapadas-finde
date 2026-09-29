@@ -47,7 +47,8 @@ export function ctxTarjetas(e, extra = {}) {
   return {
     temas: e.temas, fuentes: e.fuentes, favoritos: e.favoritos, referencia: e.referencia,
     historial: e.historial, distancias: e.distanciasOrigen, desde: e.datos.origen.nombre,
-    viajeros: e.datos.viajeros ?? null, ...extra,
+    viajeros: e.datos.viajeros ?? null, ahora: e.ahora,
+    intervalos: new Map((e.datos.fuentes ?? []).map((f) => [f.id, f.intervaloMin])), ...extra,
   };
 }
 
@@ -642,7 +643,7 @@ ${criterios.join('') || estadoVacio('Aún no vigilas nada', 'Añade criterios co
     <li>Monta la búsqueda en <a href="#/escapadas">Escapadas</a> o <a href="#/vuelos">Vuelos</a> y pulsa «📋 Copiar como vigilado».</li>
     <li>Abre ${enlace} y pulsa el lápiz (✏️) para editarlo.</li>
     <li>Pega el criterio dentro de la lista <code>"vigilados"</code>. Solo <code>nombre</code> es obligatorio; una oferta coincide si cumple <strong>todos</strong> los demás campos que pongas.</li>
-    <li>Guarda con «Commit changes». Se aplicará en la próxima revisión (cada 30 min).</li>
+    <li>Guarda con «Commit changes». Se aplicará en la próxima revisión.</li>
   </ol>
   <p>Campos: <code>texto</code>, <code>tipo</code> (vuelo, escapada, hotel, paquete), <code>tema</code> (${e.datos.temas.map((t) => `<code>${esc(t.id)}</code>`).join(', ')}), <code>fuente</code>, <code>aeropuerto</code>, <code>precioMax</code>, <code>cocheMaxMin</code>, <code>cerca</code> (<code>lat</code>, <code>lon</code>, <code>radioKm</code>) y <code>puente</code>.</p>
   <pre><code>${esc(EJEMPLO_VIGILADOS)}</code></pre>

@@ -117,3 +117,33 @@ describe('calidad: la fecha del viaje no se confunde con la caducidad de la prom
     assert.ok(!tarjeta(o, ctxPara([o])).includes('Promoción hasta'));
   });
 });
+
+describe('calidad: cada oferta dice cuándo se comprobó', () => {
+  const ahora = new Date('2026-09-29T10:00:00Z');
+  const ctx = (ofertas) => ctxPara(ofertas, { ahora, intervalos: new Map([['prueba', 720]]), fuentes: new Map([['prueba', 'Weekendesk']]) });
+
+  it('una vista hace poco dice en qué web y hace cuánto', () => {
+    const o = oferta({ vistaUltima: '2026-09-29T08:00:00Z' });
+    const html = tarjeta(o, ctx([o]));
+    assert.match(html, /Comprobada en Weekendesk hace 2 h/);
+    assert.ok(!html.includes('Sin comprobar'));
+  });
+
+  it('si hace más de 3 intervalos de su fuente (y al menos un día) que no se ve, avisa', () => {
+    const reciente = oferta({ vistaUltima: '2026-09-28T09:00:00Z' }); // 25 h, pero la fuente va cada 12 h: 36 h de margen
+    assert.ok(!tarjeta(reciente, ctx([reciente])).includes('Sin comprobar'));
+    const vieja = oferta({ vistaUltima: '2026-09-27T09:00:00Z' }); // 49 h
+    assert.match(tarjeta(vieja, ctx([vieja])), /⚠️ Sin comprobar en Weekendesk desde hace 2 días: puede haber cambiado o terminado/);
+    assert.match(contenidoFicha(vieja, ctx([vieja])), /Sin comprobar en Weekendesk/);
+  });
+
+  it('el panel recibe el intervalo de cada fuente', async () => {
+    const { escanear } = await import('../src/core/scan-pipeline.js');
+    const { AJUSTES } = await import('./ayudas.js');
+    const fuente = { id: 'prueba', nombre: 'Prueba', web: 'https://ejemplo.es', modo: 'feed', urls: ['https://ejemplo.es/'], obtener: async () => ({ ofertas: [] }) };
+    const modulos = { obtenerFestivos: async () => [], geolocalizar: async () => {}, calcularCoche: async () => {}, calcularCosteCoche: async () => {}, anadirTiempo: async () => {}, anadirEventos: async () => {} };
+    const ajustes = { ...AJUSTES, fuentes: { prueba: { intervaloMin: 90 } } };
+    const { salida } = await escanear({ ajustes, fuentes: [fuente], http: { texto: async () => '', json: async () => ({}), esperar: async () => {} }, modulos, opciones: { sinEmails: true }, log: () => {} });
+    assert.equal(salida.ofertas.fuentes[0].intervaloMin, 90);
+  });
+});

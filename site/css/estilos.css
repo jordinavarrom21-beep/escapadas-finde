@@ -488,6 +488,8 @@ main { padding-block: 18px 40px; min-height: 60vh; }
 
 .dato-extra { font-size: 0.82rem; color: var(--texto-suave); overflow-wrap: anywhere; }
 .dato-extra a { color: var(--enlace); }
+.comprobada { font-size: 0.75rem; }
+.comprobada--antigua { color: var(--aviso); }
 .valoracion { white-space: nowrap; font-weight: 700; color: var(--texto); }
 .precio__noche { flex-basis: 100%; font-size: 0.8rem; color: var(--texto-suave); }
 .insignia--ahorro { background: color-mix(in srgb, var(--exito) 16%, var(--superficie)); color: var(--exito); }

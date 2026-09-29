@@ -218,12 +218,43 @@ export function tarjetaOferta(o, ctx) {
     <p class="tarjeta__detalles">${detalles} ${valoracion(o)}</p>
     ${conFechasDeViaje(o) ? tiempo(o) : ''}${envolverDato(textoCosteCoche(o, ctx))}${equivalentes(o, ctx)}${conFechasDeViaje(o) ? eventos(o) : ''}
     <div class="insignias">${insignias(o, ctx)}</div>
+    ${textoComprobada(o, ctx)}
     <div class="tarjeta__pie">
       ${precio(o)}
       <div class="acciones">${botonFavorito(o, ctx)}${enlaceOferta(o)}</div>
     </div>
   </div>
 </article>`;
+}
+
+/** Sin volver a verla en su web durante más de esto (o de 3 intervalos de su fuente), puede haber cambiado. */
+const HORAS_SIN_COMPROBAR = 24;
+
+/**
+ * Cuándo se vio la oferta en su web por última vez y si ya puede estar desactualizada.
+ * @returns {{texto: string, cuando: string, desactualizada: boolean}|null}
+ */
+export function frescura(o, ctx = {}) {
+  const vista = Date.parse(o.vistaUltima);
+  if (!Number.isFinite(vista)) return null;
+  const ahora = ctx.ahora ?? new Date();
+  const intervaloMin = ctx.intervalos?.get(o.fuente);
+  const limiteHoras = Math.max(HORAS_SIN_COMPROBAR, intervaloMin ? (3 * intervaloMin) / 60 : 0);
+  return {
+    texto: haceCuanto(o.vistaUltima, ahora),
+    cuando: new Date(vista).toLocaleString('es-ES', { timeZone: 'Europe/Madrid', dateStyle: 'medium', timeStyle: 'short' }),
+    desactualizada: (ahora.getTime() - vista) / 3_600_000 > limiteHoras,
+  };
+}
+
+/** «Comprobada en Weekendesk hace 2 h» o el aviso de que puede haber cambiado. */
+function textoComprobada(o, ctx) {
+  const f = frescura(o, ctx);
+  if (!f) return '';
+  const web = esc(ctx.fuentes?.get(o.fuente) ?? o.fuente);
+  return f.desactualizada
+    ? `<p class="dato-extra comprobada comprobada--antigua" title="Visto por última vez el ${esc(f.cuando)}">⚠️ Sin comprobar en ${web} desde ${esc(f.texto)}: puede haber cambiado o terminado</p>`
+    : `<p class="dato-extra comprobada" title="${esc(f.cuando)}">Comprobada en ${web} ${esc(f.texto)}</p>`;
 }
 
 /** Minigráfica SVG del historial de precios (vacía si hay menos de dos puntos). */
@@ -266,6 +297,7 @@ export function tarjetaVuelo(o, ctx) {
   </div>
   <div class="billete__pie">
     <div class="insignias">${extras}${insignias(o, ctx)}</div>
+    ${textoComprobada(o, ctx)}
     <div class="acciones">${botonDescartar(o)}${botonFavorito(o, ctx)}${enlaceOferta(o, 'Reservar')}</div>
   </div>
 </article>`;
@@ -389,6 +421,7 @@ export function contenidoFicha(o, ctx) {
 ${imagen ? `<img class="ficha__imagen" src="${esc(imagen)}" alt="" referrerpolicy="no-referrer">` : ''}
 <div class="ficha__precio">${precio(o)}<span class="acciones">${botonDescartar(o)}${botonFavorito(o, ctx)}</span></div>
 <div class="insignias">${insignias(o, ctx)}</div>
+${textoComprobada(o, ctx)}
 ${vueloFicha(o.vuelo)}
 ${o.descripcion ? `<p class="ficha__descripcion">${esc(o.descripcion)}</p>` : ''}
 ${cocheFicha(o, ctx)}

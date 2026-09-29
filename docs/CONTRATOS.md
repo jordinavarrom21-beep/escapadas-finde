@@ -292,7 +292,7 @@ Otros archivos de `data/`: `cache.json` (Cache), `historial.json`.
   temas: TEMAS,
   findes: Finde[],        // {id, viernes, sabado, domingo, etiqueta, puenteId}
   puentes: Puente[],
-  fuentes: [{ id, nombre, web, modo, estado: 'ok'|'error'|'desactivada'|'bloqueada'|'pendiente', motivo, ultimoOk, error, total, falta: [] }],
+  fuentes: [{ id, nombre, web, modo, estado: 'ok'|'error'|'desactivada'|'bloqueada'|'pendiente', motivo, ultimoOk, error, total, falta: [], intervaloMin }],
   ofertas: Oferta[]       // ordenadas por puntuación descendente
 }
 ```

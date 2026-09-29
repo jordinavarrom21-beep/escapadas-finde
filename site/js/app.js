@@ -24,7 +24,8 @@ import {
 const $ = (selector) => document.querySelector(selector);
 const principal = $('#principal');
 const dialogo = $('#ficha');
-const DATOS_ANTIGUOS_MS = 3 * 3_600_000;
+/** GitHub lanza una revisión cada ~4 h (LEEME, «Revisión puntual»): a las 6 h ya es raro. */
+const DATOS_ANTIGUOS_MS = 6 * 3_600_000;
 const AVISO_MS = 5000;
 const SALTO_SORPRESA = 3;
 const CAMPOS_QUE_SE_ESCRIBEN = ['number', 'search', 'text'];
@@ -88,7 +89,8 @@ function pintarReloj() {
   const generado = estado.datos.generado;
   const antiguo = Date.now() - Date.parse(generado) > DATOS_ANTIGUOS_MS;
   const actualizado = $('#actualizado');
-  actualizado.innerHTML = `${antiguo ? '⚠️ ' : ''}Actualizado <time datetime="${esc(generado)}" title="${esc(new Date(generado).toLocaleString('es-ES'))}">${esc(haceCuanto(generado))}</time>`;
+  // Es la hora de la última revisión; cada web se consulta a su ritmo y cada oferta dice cuándo se comprobó.
+  actualizado.innerHTML = `${antiguo ? '⚠️ ' : ''}Última revisión <time datetime="${esc(generado)}" title="${esc(new Date(generado).toLocaleString('es-ES'))}. Cada web se consulta a su ritmo (de 30 min a 1 día): en cada oferta pone cuándo se comprobó.">${esc(haceCuanto(generado))}</time>`;
   actualizado.classList.toggle('antiguo', antiguo);
 }
 

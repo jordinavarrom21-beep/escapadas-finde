@@ -116,9 +116,10 @@ async function ejecutarFuente(fuente, { estado, ajustes, env, ahora, opciones, c
 
 /**
  * Estado de cada fuente para el panel. `total` son las ofertas suyas que se enseñan
- * ahora (tras la poda); `leidas`, cuántas trajo su última lectura.
+ * ahora (tras la poda); `leidas`, cuántas trajo su última lectura; `intervaloMin`, cada
+ * cuánto se consulta (el panel lo usa para avisar de las ofertas sin comprobar).
  */
-function estadoParaPanel(fuentes, estado) {
+function estadoParaPanel(fuentes, estado, ajustes) {
   const porFuente = {};
   for (const o of Object.values(estado.ofertas)) porFuente[o.fuente] = (porFuente[o.fuente] ?? 0) + 1;
   return fuentes.map((f) => {
@@ -128,6 +129,7 @@ function estadoParaPanel(fuentes, estado) {
       estado: s.estado ?? 'pendiente', motivo: s.motivo ?? null, error: s.error ?? null,
       desdeError: s.desdeError ?? null, ultimoOk: s.ultimoOk ?? null, ultimoIntento: s.ultimoIntento ?? null,
       total: porFuente[f.id] ?? 0, leidas: s.total ?? 0, nuevas: s.nuevas ?? 0, falta: s.falta ?? [],
+      intervaloMin: ajustes.fuentes?.[f.id]?.intervaloMin ?? null,
     };
   });
 }
@@ -194,7 +196,7 @@ export async function escanear({
   m.puntuar(ofertas, ajustes, { ahora, findeActual: findes[0]?.id ?? null });
   ofertas.sort((a, b) => b.puntuacion - a.puntuacion);
 
-  const estadoFuentes = estadoParaPanel(fuentes, estado);
+  const estadoFuentes = estadoParaPanel(fuentes, estado, ajustes);
   const panelUrl = urlPanel(ajustes, env);
   const salida = {
     ofertas: {
