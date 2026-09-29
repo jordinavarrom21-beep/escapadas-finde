@@ -101,7 +101,11 @@ const PARAMS = {
   vigilados: [{}],
   fuentes: [{}],
   buscar: [{ q: 'spa' }, { q: 'roma' }, { q: 'girona' }, { q: 'barato este finde' }, { q: '' }],
+  // Una de cada: vuelo, alojamiento y actividad (con total, sin total y gratis), y un id que ya no existe.
+  comparar: [{}, { ids: [primero((o) => o.tipo === 'vuelo').id, primero((o) => o.tipo === 'hotel').id, primero((o) => o.tipo === 'actividad').id].join(',') },
+    { ids: 'no-existe:1' }],
 };
+PARAMS.escapadas.push({ orden: 'total' }, { orden: 'persona' }, { orden: 'calidad' }, { orden: 'comodo' }, { pres: '200' }, { pres: '80', prespor: 'persona' });
 
 describe('panel con datos reales: cada vista se pinta limpia', () => {
   it('la muestra es variada (si no, la prueba no recorrería las ramas)', () => {

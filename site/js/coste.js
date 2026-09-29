@@ -71,7 +71,8 @@ export function costeViaje(o, { viajeros = 2, noches = 2, distancia = null, coch
       porPersona: total == null ? null : redondear(total / viajeros),
       estimado: redondear(partes.filter((p) => p.estimado).reduce((suma, p) => suma + p.eur, 0)),
       falta, supuestos, viajeros,
-      noches: esBillete(o) ? null : o.noches ?? noches,
+      // Las noches supuestas solo cuentan si el precio es por noche; si no, no se sabe.
+      noches: esBillete(o) ? null : o.noches ?? (['pp/noche', 'noche'].includes(o.unidad) ? noches : null),
     };
   };
   if (typeof o.precio !== 'number' || o.precio <= 0) {

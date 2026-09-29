@@ -148,6 +148,13 @@ function botonFavorito(o, ctx) {
   return `<button type="button" class="boton-icono boton-fav" data-fav="${esc(o.id)}" aria-pressed="${activo}" aria-label="Guardar en favoritos: ${esc(o.titulo)}">${activo ? '★' : '☆'}</button>`;
 }
 
+/** ⚖️ para añadirla a la comparación (hasta 3). */
+function botonComparar(o, ctx) {
+  if (!ctx.comparar) return '';
+  const activo = ctx.comparar.has(o.id);
+  return `<button type="button" class="boton-icono boton-comparar" data-comparar="${esc(o.id)}" aria-pressed="${activo}" title="${activo ? 'Quitar de la comparación' : 'Comparar (hasta 3)'}" aria-label="${activo ? 'Quitar de la comparación' : 'Añadir a la comparación'}: ${esc(o.titulo)}">⚖️</button>`;
+}
+
 /** ✕ para ocultar la oferta en este navegador. */
 function botonDescartar(o) {
   return `<button type="button" class="boton-icono boton-icono--mini boton-descartar" data-descartar="${esc(o.id)}" title="Ocultar esta oferta" aria-label="Ocultar esta oferta: ${esc(o.titulo)}">✕</button>`;
@@ -171,7 +178,7 @@ function matiz(precioTexto = '') {
 export const esPrecioDesde = (o) => !o.fechas?.salida || /\bdesde\b/i.test(o.precioTexto ?? '');
 
 /** Qué certeza hay sobre el precio y la disponibilidad, para la ficha. */
-function certeza(o) {
+export function certeza(o) {
   if (typeof o.precio !== 'number') return 'La web no publica precio: consúltalo al reservar';
   const cuando = o.vistaUltima ? ' cuando se comprobó' : '';
   return esPrecioDesde(o)
@@ -205,7 +212,7 @@ function precio(o) {
 }
 
 /** Fechas del viaje: las concretas o «Fechas flexibles». La caducidad de la promoción va aparte. */
-function textoFechas(o) {
+export function textoFechas(o) {
   const { salida, vuelta } = o.fechas ?? {};
   if (salida) return vuelta ? `${etiquetaDia(salida)} – ${etiquetaDia(vuelta)}` : etiquetaDia(salida);
   return 'Fechas flexibles';
@@ -216,7 +223,7 @@ function textoFechas(o) {
  * No se enseña si la oferta ya tiene fechas (la caducidad es la propia salida) ni si la
  * fecha la ha supuesto el vigilante (las newsletters no la publican).
  */
-function textoCaducidad(o) {
+export function textoCaducidad(o) {
   if (!o.caduca || o.fechas?.salida || (o.etiquetas ?? []).includes('caduca-estimada')) return '';
   return `Promoción hasta el ${etiquetaDia(fechaLocal(o.caduca))}`;
 }
@@ -234,7 +241,7 @@ function textoCoche(distancia, desde, o) {
   return `<span class="coche" title="En línea recta desde ${esc(desde)}">📍 ${Math.round(distancia.km)} km</span>`;
 }
 
-function textoLugar(o) {
+export function textoLugar(o) {
   const l = o.lugar;
   if (!l?.nombre) return '';
   const zona = [l.region, l.pais !== 'España' ? l.pais : null].filter((parte) => parte && parte !== l.nombre).join(', ');
@@ -273,7 +280,7 @@ export function tarjetaOferta(o, ctx) {
     ${textoComprobada(o, ctx)}
     <div class="tarjeta__pie">
       ${precio(o)}
-      <div class="acciones">${botonFavorito(o, ctx)}${enlaceOferta(o)}</div>
+      <div class="acciones">${botonComparar(o, ctx)}${botonFavorito(o, ctx)}${enlaceOferta(o)}</div>
     </div>
   </div>
 </article>`;
@@ -310,7 +317,7 @@ function textoComprobada(o, ctx) {
 }
 
 /** El coste del viaje completo con tu salida, viajeros y noches (coste.js). */
-const costeDe = (o, ctx) => costeViaje(o, {
+export const costeDe = (o, ctx) => costeViaje(o, {
   viajeros: ctx.viajeros ?? undefined, noches: ctx.noches ?? undefined, distancia: ctx.distancias?.get(o.id), coche: ctx.coche,
 });
 
@@ -386,7 +393,7 @@ export function tarjetaVuelo(o, ctx) {
   <div class="billete__pie">
     <div class="insignias">${extras}${insignias(o, ctx)}</div>
     ${textoComprobada(o, ctx)}
-    <div class="acciones">${botonDescartar(o)}${botonFavorito(o, ctx)}${enlaceOferta(o, 'Reservar')}</div>
+    <div class="acciones">${botonDescartar(o)}${botonComparar(o, ctx)}${botonFavorito(o, ctx)}${enlaceOferta(o, 'Reservar')}</div>
   </div>
 </article>`;
 }
@@ -513,7 +520,7 @@ export function contenidoFicha(o, ctx) {
   <p class="tarjeta__lugar">${textoLugar(o)}</p>
 </header>
 ${imagen ? `<img class="ficha__imagen" src="${esc(imagen)}" alt="" referrerpolicy="no-referrer">` : ''}
-<div class="ficha__precio">${precio(o)}<span class="acciones">${botonDescartar(o)}${botonFavorito(o, ctx)}</span></div>
+<div class="ficha__precio">${precio(o)}<span class="acciones">${botonDescartar(o)}${botonComparar(o, ctx)}${botonFavorito(o, ctx)}</span></div>
 <div class="insignias">${insignias(o, ctx)}</div>
 ${textoComprobada(o, ctx)}
 ${vueloFicha(o.vuelo)}

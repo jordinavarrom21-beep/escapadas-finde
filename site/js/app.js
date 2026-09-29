@@ -11,7 +11,7 @@ import {
 } from './filtros.js';
 import { contar, cuentaAtras, escaparHtml as esc, haceCuanto } from './formato.js';
 import {
-  borrarBusqueda, cargarBusquedas, cargarDescartadas, cargarFavoritos, cargarFiltros, cargarSalida, cargarViaje,
+  MAX_COMPARAR, borrarBusqueda, cargarBusquedas, cargarComparar, cargarDescartadas, guardarComparar, cargarFavoritos, cargarFiltros, cargarSalida, cargarViaje,
   guardarBusqueda, guardarDescartadas, guardarFavoritos, guardarFiltros, guardarSalida, guardarTema, guardarViaje,
   tomarVisitaAnterior,
 } from './local.js';
@@ -36,7 +36,7 @@ const CAMPOS_QUE_SE_ESCRIBEN = ['number', 'search', 'text'];
 const VISTAS_CON_MEMORIA = ['escapadas', 'actividades', 'vuelos'];
 const TITULOS = {
   finde: 'Este finde', vuelos: 'Vuelos', escapadas: 'Escapadas', actividades: 'Actividades', mapa: 'Mapa',
-  calendario: 'Calendario', puentes: 'Puentes', vigilados: 'Vigilados', fuentes: 'Fuentes', buscar: 'Buscar',
+  calendario: 'Calendario', puentes: 'Puentes', vigilados: 'Vigilados', fuentes: 'Fuentes', buscar: 'Buscar', comparar: 'Comparar',
 };
 
 let estado = null;
@@ -72,6 +72,7 @@ function crearEstado(datos, historial, vigilados) {
     findes: findes.length ? findes : findesProximos(10, ahora),
     puente: proximoPuente(datos.puentes ?? [], hoy),
     favoritos: cargarFavoritos(),
+    comparar: cargarComparar(),
     descartadas: cargarDescartadas(),
     busquedas: cargarBusquedas(),
     salto: 0,
@@ -210,6 +211,7 @@ function render({ enfocar = true } = {}) {
   principal.querySelectorAll('form[data-filtros]').forEach((form) => activarUbicacion(form, estado.datos.origen, { salida: estado.salida }));
   if (vista === 'mapa') prepararMapa(params);
   sincronizarMasFiltros(params);
+  pintarBarraComparar();
   if (cambiaVista && enfocar) {
     window.scrollTo(0, 0);
     principal.querySelector('.titulo-vista')?.focus({ preventScroll: true });
@@ -386,6 +388,39 @@ function alternarFavorito(id) {
   anunciar(activo ? 'Guardada en favoritos' : 'Quitada de favoritos');
 }
 
+/** Barra flotante «⚖️ Comparar (2)»: solo con algo elegido y fuera de la propia comparación. */
+function pintarBarraComparar() {
+  const barra = $('#barra-comparar');
+  const n = estado.comparar.size;
+  barra.hidden = n === 0 || vistaActual === 'comparar';
+  barra.innerHTML = n ? `<a class="boton boton--primario" href="#/comparar">⚖️ Comparar (${n} de ${MAX_COMPARAR})</a>
+<button type="button" class="boton boton--suave boton--mini" data-vaciar-comparar>Vaciar</button>` : '';
+}
+
+/** Añade o quita una oferta de la comparación (como mucho MAX_COMPARAR). */
+function alternarComparar(id) {
+  const activo = !estado.comparar.has(id);
+  if (activo && estado.comparar.size >= MAX_COMPARAR) {
+    anunciar(`Solo se comparan ${MAX_COMPARAR} a la vez: quita una con ⚖️ antes de añadir otra.`);
+    return;
+  }
+  if (activo) estado.comparar.add(id);
+  else estado.comparar.delete(id);
+  guardarComparar(estado.comparar);
+  if (vistaActual === 'comparar') render({ enfocar: false });
+  document.querySelectorAll(`[data-comparar="${CSS.escape(id)}"].boton-comparar`).forEach((boton) => boton.setAttribute('aria-pressed', String(activo)));
+  pintarBarraComparar();
+  anunciar(activo ? `Añadida a la comparación (${estado.comparar.size} de ${MAX_COMPARAR})` : 'Quitada de la comparación');
+}
+
+function vaciarComparar() {
+  estado.comparar.clear();
+  guardarComparar(estado.comparar);
+  document.querySelectorAll('.boton-comparar').forEach((boton) => boton.setAttribute('aria-pressed', 'false'));
+  pintarBarraComparar();
+  anunciar('Comparación vacía');
+}
+
 function ocultarTarjetas(id) {
   document.querySelectorAll(`[data-descartar="${CSS.escape(id)}"]`)
     .forEach((boton) => boton.closest('.con-motivo, .tarjeta, .billete')?.remove());
@@ -458,7 +493,7 @@ function guardarMiViaje(evento) {
   anunciar(`Guardado en este navegador: ${textoViaje(estado).replace(/^📍 /, '')}.`);
 }
 
-const ACCIONES = '[data-mi-viaje], [data-cerrar-viaje], [data-ficha], [data-fav], [data-descartar], [data-mas], [data-sorpresa],'
+const ACCIONES = '[data-comparar], [data-vaciar-comparar], [data-mi-viaje], [data-cerrar-viaje], [data-ficha], [data-fav], [data-descartar], [data-mas], [data-sorpresa],'
   + ' [data-guardar-busqueda], [data-borrar-busqueda], [data-copiar-vigilado], [data-cerrar-ficha], [data-cerrar-novedades],'
   + ' [data-olvidar-filtros], [data-cerrar-mas]';
 
@@ -466,7 +501,9 @@ function manejarClic(evento) {
   const objetivo = evento.target.closest(ACCIONES);
   if (!objetivo) return;
   const d = objetivo.dataset;
-  if ('miViaje' in d) abrirViaje(objetivo);
+  if (d.comparar) alternarComparar(d.comparar);
+  else if ('vaciarComparar' in d) vaciarComparar();
+  else if ('miViaje' in d) abrirViaje(objetivo);
   else if ('cerrarViaje' in d) dialogoViaje.close();
   else if (d.ficha) mostrarFicha(d.ficha, objetivo);
   else if (d.fav) alternarFavorito(d.fav);

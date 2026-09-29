@@ -14,6 +14,7 @@ const CLAVE_TEMA = 'escapadas:tema';
 const CLAVE_FILTROS = 'escapadas:filtros';
 const CLAVE_SALIDA = 'escapadas:salida';
 const CLAVE_VIAJE = 'escapadas:viaje';
+const CLAVE_COMPARAR = 'escapadas:comparar';
 
 function leer(almacen, clave) {
   try {
@@ -116,6 +117,14 @@ export const guardarSalida = (salida) => escribir(local, CLAVE_SALIDA, JSON.stri
 /** Viajeros y noches ({viajeros, noches}) o null: sin validar (lo hace viaje.js). */
 export const cargarViaje = () => leerJson(CLAVE_VIAJE, null);
 export const guardarViaje = (viaje) => escribir(local, CLAVE_VIAJE, JSON.stringify(viaje));
+
+/** Ofertas elegidas para comparar (como mucho MAX_COMPARAR). */
+export const MAX_COMPARAR = 3;
+export function cargarComparar() {
+  const ids = leerJson(CLAVE_COMPARAR, []);
+  return new Set((Array.isArray(ids) ? ids : []).filter((id) => typeof id === 'string').slice(0, MAX_COMPARAR));
+}
+export const guardarComparar = (ids) => guardarIds(CLAVE_COMPARAR, ids);
 
 /** 'claro', 'oscuro' o null (seguir al sistema). */
 export const temaGuardado = () => leer(local, CLAVE_TEMA);

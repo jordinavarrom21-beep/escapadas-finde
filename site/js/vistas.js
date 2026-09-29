@@ -5,11 +5,11 @@
 
 import { diasEntre, etiquetaDia, etiquetaRango, findesProximos } from './fechas.js';
 import {
-  contar, enumerar, escaparHtml as esc, euros, haceCuanto, urlSegura,
+  contar, duracion, enumerar, escaparHtml as esc, euros, haceCuanto, urlSegura,
   ETIQUETAS_ALOJAMIENTO, ETIQUETAS_REGIMEN, ETIQUETAS_TIPO, ETIQUETAS_TRANSPORTE,
 } from './formato.js';
 import {
-  ALOJAMIENTOS, ATAJOS_ESCAPADAS, ORDENES_ACTIVIDADES, ORDENES_ESCAPADAS, POR_PAGINA, REGIMENES_ORDEN, actividadesPara,
+  ALOJAMIENTOS, ATAJOS_ESCAPADAS, ORDENES_ACTIVIDADES, SIN_COCHE, ORDENES_ESCAPADAS, POR_PAGINA, REGIMENES_ORDEN, actividadesPara,
   buscarActividades, buscarEscapadas, buscarTexto, chollazos, chollosDeVuelos, promocionesDeVuelos, crearHash, describirCriterio,
   destinosDe, destinosDeVuelo, esActividad, esEscapada, filtrarVuelos, filtrosActivos, leerFiltrosActividades, zonasDe,
   leerFiltrosComunes, leerFiltrosEscapadas, leerFiltrosVuelos, perfilFavoritos, periodoFinde, planesSorpresa,
@@ -18,6 +18,7 @@ import {
 } from './filtros.js';
 import { NOCHES, VIAJEROS, aeropuertosCercanos } from './viaje.js';
 import {
+  certeza, costeDe, textoCaducidad, textoFechas, textoLugar,
   ESTADOS_FUENTE, estadoVacio, filaOferta, insigniaEstado, rejilla, tarjeta, tarjetaConMotivo, textoAyudaUbicacion,
 } from './plantillas.js';
 
@@ -98,7 +99,7 @@ export function ctxTarjetas(e, extra = {}) {
     temas: e.temas, fuentes: e.fuentes, favoritos: e.favoritos, referencia: e.referencia,
     historial: e.historial, distancias: e.distanciasOrigen, desde: nombreSalida(e),
     // El coste de coche que calcula el escaneo es desde su origen: desde otra salida no vale.
-    salidaPropia: Boolean(e.salida), ...datosViaje(e), ahora: e.ahora,
+    salidaPropia: Boolean(e.salida), ...datosViaje(e), ahora: e.ahora, comparar: e.comparar ?? null,
     intervalos: new Map((e.datos.fuentes ?? []).map((f) => [f.id, f.intervaloMin])), ...extra,
   };
 }
@@ -776,6 +777,61 @@ export function resultadosBuscar(e, params) {
   return `${resumenResultados(contar(lista.length, 'oferta'))}${rejilla(lista, ctxTarjetas(e), { mostradas: mostradas(e, 'buscar'), clave: 'buscar' })}`;
 }
 
+// ── Comparar ─────────────────────────────────────────────────────────────────
+
+/** Ids de la comparación: los de la URL (enlace compartido) o los elegidos en este navegador. */
+export const idsComparar = (e, params = {}) => (params.ids ? params.ids.split(',').filter(Boolean).slice(0, 3) : [...(e.comparar ?? [])]);
+
+export function vistaComparar(e, params = {}) {
+  const ofertas = idsComparar(e, params).map((id) => e.porId.get(id)).filter(Boolean);
+  const titulo = '<h1 class="titulo-vista" tabindex="-1">Comparar</h1>';
+  if (!ofertas.length) {
+    return `${titulo}${estadoVacio('No has elegido nada para comparar', 'Pulsa ⚖️ en hasta tres ofertas (escapadas, vuelos o actividades) y vuelve aquí.', '<a class="boton boton--primario" href="#/escapadas">Ir a escapadas</a>')}`;
+  }
+  const ctx = ctxTarjetas(e);
+  const costes = ofertas.map((o) => costeDe(o, ctx));
+  const totales = costes.map((c) => c.total).filter((t) => t != null);
+  const minimo = totales.length > 1 ? Math.min(...totales) : null;
+  const celda = (contenido) => `<td>${contenido || '<span class="suave">—</span>'}</td>`;
+  const fila = (nombre, valores) => `<tr><th scope="row">${nombre}</th>${valores.map(celda).join('')}</tr>`;
+  const dist = (o) => {
+    const d = ctx.distancias?.get(o.id);
+    if (!d) return '';
+    return d.minutos != null && !SIN_COCHE.includes(o.transporte)
+      ? `🚗 ${esc(d.minutos < 5 ? 'menos de 5 min' : duracion(d.minutos))}${d.estimado ? ' aprox.' : ''}`
+      : `${Math.round(d.km)} km en línea recta`;
+  };
+  const filas = [
+    fila('Qué es', ofertas.map((o) => `${esc(ETIQUETAS_TIPO[o.tipo] ?? o.tipo)} · ${esc(e.fuentes.get(o.fuente) ?? o.fuente)}`)),
+    fila('Destino', ofertas.map((o) => textoLugar(o))),
+    fila('Fechas', ofertas.map((o) => esc([textoFechas(o), textoCaducidad(o)].filter(Boolean).join(' · ')))),
+    fila(`Viaje completo<br><span class="suave">${esc(contar(ctx.viajeros, 'persona'))} desde ${esc(ctx.desde)}</span>`, costes.map((c) => (c.total != null
+      ? `<strong>${c.estimado ? '≈ ' : ''}${esc(euros(Math.round(c.total)))}</strong>${c.total === minimo ? ' <span class="insignia insignia--ahorro">El más barato</span>' : ''}`
+      : `<span class="suave">Sin total: falta ${esc(enumerar(c.falta))}</span>`))),
+    fila('Por persona', costes.map((c) => (c.porPersona != null ? `${c.estimado ? '≈ ' : ''}${esc(euros(Math.round(c.porPersona)))}` : ''))),
+    fila('Incluye', costes.map((c) => esc(c.partes.map((p) => `${p.concepto}${p.estimado ? ' (estimado)' : ''}`).join(' + ')))),
+    fila('Precio publicado', ofertas.map((o) => esc(o.precioTexto || (typeof o.precio === 'number' ? euros(o.precio) : '')))),
+    fila('Noches', ofertas.map((o, i) => (costes[i].noches ? esc(contar(costes[i].noches, 'noche')) + (o.noches ? '' : ' <span class="suave">(supuestas)</span>') : ''))),
+    fila('Régimen', ofertas.map((o) => esc(ETIQUETAS_REGIMEN[o.regimen] ?? ''))),
+    fila('Alojamiento', ofertas.map((o) => esc(ETIQUETAS_ALOJAMIENTO[o.alojamiento] ?? ''))),
+    fila('Valoración', ofertas.map((o) => (o.valoracion?.nota >= 0 ? `⭐ ${esc(String(o.valoracion.nota).replace('.', ','))}${o.valoracion.n ? ` <span class="suave">(${esc(contar(o.valoracion.n, 'opinión', 'opiniones'))})</span>` : ''}` : ''))),
+    fila('Cómo llegar', ofertas.map((o) => [ETIQUETAS_TRANSPORTE[o.transporte], dist(o)].filter(Boolean).join(' · '))),
+    fila('Certeza', ofertas.map((o) => esc(certeza(o)))),
+    fila('Comprobada', ofertas.map((o) => esc(o.vistaUltima ? haceCuanto(o.vistaUltima, e.ahora) : ''))),
+    fila('', ofertas.map((o) => {
+      const url = urlSegura(o.url);
+      return `<div class="acciones">${url ? `<a class="boton boton--primario boton--mini" href="${esc(url)}" target="_blank" rel="noopener noreferrer">Ver oferta<span class="sr"> (se abre en otra pestaña)</span></a>` : ''}<button type="button" class="boton boton--suave boton--mini" data-comparar="${esc(o.id)}" aria-pressed="true">Quitar</button></div>`;
+    })),
+  ];
+  const cabecera = ofertas.map((o) => `<th scope="col"><button type="button" class="enlace-ficha" data-ficha="${esc(o.id)}">${esc(o.titulo)}</button></th>`).join('');
+  const enlace = crearHash('comparar', { ids: ofertas.map((o) => o.id).join(',') });
+  return `${titulo}
+<p class="seccion__intro">El viaje completo con tu salida, viajeros y noches: lo publicado y lo estimado por separado. <button type="button" class="enlace-boton" data-mi-viaje>Cambiar salida, viajeros o noches</button> · <a href="${esc(enlace)}">Enlace a esta comparación</a></p>
+<div class="comparar__caja" role="region" aria-label="Tabla de comparación" tabindex="0">
+  <table class="comparar"><thead><tr><td></td>${cabecera}</tr></thead><tbody>${filas.join('')}</tbody></table>
+</div>`;
+}
+
 export const VISTAS_HTML = {
   finde: { html: vistaFinde },
   vuelos: { html: vistaVuelos, resultados: resultadosVuelos },
@@ -787,4 +843,5 @@ export const VISTAS_HTML = {
   vigilados: { html: vistaVigilados },
   fuentes: { html: vistaFuentes },
   buscar: { html: vistaBuscar, resultados: resultadosBuscar },
+  comparar: { html: vistaComparar },
 };

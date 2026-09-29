@@ -105,3 +105,23 @@ describe('presupuesto y calidad/precio', async () => {
     assert.deepEqual(valores, [...valores].sort((a, b) => b - a));
   });
 });
+
+describe('comparar', async () => {
+  const { vistaComparar } = await import('../site/js/vistas.js');
+  const conCoche = { ...datos, coche: { consumoL100km: 6.5, precioLitro: 1.8 } };
+  const hoteles = conCoche.ofertas.filter((o) => o.tipo === 'hotel' && typeof o.precio === 'number').slice(0, 3);
+  const e = { ...estado(), datos: conCoche, comparar: new Set(hoteles.map((o) => o.id)) };
+
+  it('una columna por oferta elegida, con el viaje completo y el más barato marcado', () => {
+    const html = vistaComparar(e, {});
+    assert.equal((html.match(/<th scope="col">/g) ?? []).length, 3);
+    assert.match(html, /Viaje completo<br><span class="suave">3 personas desde Barcelona/);
+    assert.match(html, /El más barato/);
+    assert.match(html, /href="#\/comparar\?ids=/, 'enlace para compartir la comparación');
+  });
+
+  it('un enlace compartido manda sobre lo elegido y sin nada elegido lo explica', () => {
+    assert.equal((vistaComparar(e, { ids: hoteles[0].id }).match(/<th scope="col">/g) ?? []).length, 1);
+    assert.match(vistaComparar({ ...e, comparar: new Set() }, {}), /No has elegido nada para comparar/);
+  });
+});
