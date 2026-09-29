@@ -2,6 +2,7 @@
   "name": "escapadas-finde",
   "version": "1.0.0",
   "private": true,
+  "license": "UNLICENSED",
   "description": "Vigilante 24/7 de vuelos y escapadas de fin de semana desde Barcelona",
   "type": "module",
   "engines": {
