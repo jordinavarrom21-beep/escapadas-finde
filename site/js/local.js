@@ -16,6 +16,7 @@ const CLAVE_SALIDA = 'escapadas:salida';
 const CLAVE_VIAJE = 'escapadas:viaje';
 const CLAVE_COMPARAR = 'escapadas:comparar';
 const CLAVE_MIS_ESTADOS = 'escapadas:misEstados';
+const CLAVE_MODO_LISTA = 'escapadas:modoLista';
 
 function leer(almacen, clave) {
   try {
@@ -139,3 +140,6 @@ export const guardarComparar = (ids) => guardarIds(CLAVE_COMPARAR, ids);
 /** 'claro', 'oscuro' o null (seguir al sistema). */
 export const temaGuardado = () => leer(local, CLAVE_TEMA);
 export const guardarTema = (tema) => escribir(local, CLAVE_TEMA, tema);
+
+/** «lista» o «tarjetas»: cómo se ven los resultados (tema.js lo aplica antes de pintar). */
+export const guardarModoLista = (modo) => escribir(local, CLAVE_MODO_LISTA, modo);

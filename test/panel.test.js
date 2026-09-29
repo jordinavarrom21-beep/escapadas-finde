@@ -350,7 +350,7 @@ describe('actividades', () => {
     }
     assert.match(html, /4 actividades · 4 gratuitas/);
     assert.match(html, /<strong class="precio__gratis">Gratis<\/strong> <span class="precio__unidad">propina voluntaria/);
-    assert.match(html, /<li><svg[^]*?<\/svg>2 h 30 min<\/li>/);
+    assert.match(html, /<li><svg[^]*?<\/svg><span>2 h 30 min<\/span><\/li>/);
     assert.match(html, /Actividad · GuruWalk/);
     assert.match(vistaActividades(estadoPanel(), { temas: 'gastronomia', nota: '9.9' }), /Ninguna actividad cumple estos filtros/);
   });
@@ -518,7 +518,7 @@ describe('fechas, formato, geocodificación y plantillas', () => {
     const casaBesalu = porId('chollometro:besalu-casa-rural-para-6-personas-por-18');
     const besalu = tarjeta(casaBesalu, ctxTarjeta);
     assert.match(besalu, /Un 35 % por debajo de lo normal/);
-    assert.match(besalu, /Casa rural<\/li>/);
+    assert.match(besalu, /Casa rural<\/span><\/li>/);
     assert.match(besalu, /class="valoracion" title="Valoración 8 sobre 10/);
     assert.match(besalu, /≈ \d+\s€ de gasolina ida y vuelta · estimado, un coche para 2 personas/);
     // Fechas flexibles: los eventos son los del próximo finde, así que van a la ficha y avisando.
@@ -529,7 +529,7 @@ describe('fechas, formato, geocodificación y plantillas', () => {
 
     const sitges = tarjeta(porId('chollometro:hotel-en-sitges-para-el-festival-de-cine'), ctxTarjeta);
     assert.match(sitges, /También en <a[^>]*>No Molesten<\/a>/);
-    assert.match(sitges, /En la ficha: el tiempo/, 'el tiempo va en la ficha');
+    assert.ok(!/Lluvia ligera/.test(sitges), 'el tiempo va en la ficha');
     assert.match(contenidoFicha(porId('chollometro:hotel-en-sitges-para-el-festival-de-cine'), ctxTarjeta), /Lluvia ligera · 23° · 65 % de lluvia/);
     assert.match(sitges, /sello--chollazo[^>]*>[^]*?Chollazo</);
   });
@@ -638,7 +638,7 @@ describe('vistas nuevas', () => {
     const e = estadoPanel();
     e.busquedas = [{ nombre: 'Spa barato', vista: 'escapadas', hash: '#/escapadas?temas=spa&pnMax=40' }];
     const html = vistaEscapadas(e, { aloj: 'casa-rural', nodest: 'Sitges' });
-    for (const campo of ['q', 'pnMin', 'pnMax', 'dto', 'pts', 'nota', 'aloj', 'region', 'sincoche', 'clasica', 'desde', 'cho', 'sindesc', 'dup', 'cru']) {
+    for (const campo of ['q', 'pnMin', 'precio', 'preciotipo', 'como', 'dto', 'pts', 'nota', 'aloj', 'region', 'clasica', 'desde', 'cho', 'sindesc', 'dup', 'cru']) {
       assert.match(html, new RegExp(`name="${campo}"`), `falta el filtro ${campo}`);
     }
     assert.match(html, /<option value="casa-rural" selected/);

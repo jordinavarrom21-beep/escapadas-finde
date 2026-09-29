@@ -197,6 +197,8 @@ pre code { background: none; padding: 0; }
 }
 .saltar:focus { top: 8px; }
 
+/* «hidden» manda siempre, aunque la clase ponga display (pastillas, barras…). */
+[hidden] { display: none !important; }
 .contenedor { width: 100%; max-width: 1280px; margin-inline: auto; padding-inline: var(--espacio); }
 .suave { color: var(--texto-suave); font-weight: normal; }
 
@@ -318,13 +320,12 @@ pre code { background: none; padding: 0; }
 }
 .marca img { border-radius: 11px; }
 .cabecera__acciones { display: flex; align-items: center; gap: 8px; margin-left: auto; }
-.estado-fuentes {
-  display: inline-flex; align-items: center; gap: 7px; height: 44px; padding: 0 14px;
-  border: 1.5px solid var(--borde); border-radius: var(--radio-chico); background: var(--superficie);
-  color: var(--texto) !important; text-decoration: none; font-weight: 750; font-size: 0.85rem;
-}
-.estado-fuentes:hover { border-color: var(--texto); }
+/* Estado de las webs, en el pie. */
+.estado-fuentes { display: inline-flex; align-items: center; gap: 8px; font-weight: 650; }
 .estado-fuentes--error .punto { background: var(--peligro); }
+.pastilla--novedades { background: var(--acento-suave); color: var(--acento-suave-texto) !important; border-color: transparent; font-weight: 750; text-decoration: none; }
+.pastilla--novedades:hover { text-decoration: underline; text-underline-offset: 3px; }
+.pastilla--novedades[hidden] { display: none; }
 
 .cabecera-info { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding-top: 14px; }
 .cabecera__info { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; flex: 1 1 auto; min-width: 0; }
@@ -384,14 +385,6 @@ input:focus-visible, select:focus-visible { outline: 3px solid color-mix(in srgb
 .navegacion__submenu a { display: flex; width: 100%; border-radius: 10px; }
 .navegacion__texto--corto { display: none; }
 
-.novedades {
-  width: calc(100% - 2 * var(--espacio)); max-width: calc(1280px - 2 * var(--espacio));
-  display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 14px;
-  padding: 10px 10px 10px 18px; background: var(--acento-suave); color: var(--acento-suave-texto); border-radius: var(--radio);
-}
-.novedades p { flex: 1 1 200px; display: flex; align-items: center; gap: 8px; }
-.novedades .boton-icono { background: transparent; border-color: color-mix(in srgb, currentColor 30%, transparent); color: inherit; }
-.novedades[hidden] { display: none; }
 
 /* ── Vistas ───────────────────────────────────────────────────────────────── */
 
@@ -604,7 +597,7 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 .ayuda { font-size: 0.82rem; color: var(--texto-suave); }
 
 .resultados__cabeza { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
-.resultados__cuenta { font-family: var(--fuente-titulos); font-weight: 800; font-size: 1.35rem; letter-spacing: -0.015em; }
+.resultados__cuenta { margin-right: auto; font-family: var(--fuente-titulos); font-weight: 800; font-size: 1.35rem; letter-spacing: -0.015em; }
 .explicacion-orden { font-size: 0.92rem; }
 
 /* ── Tarjetas ─────────────────────────────────────────────────────────────── */
@@ -618,7 +611,7 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 }
 .tarjeta:hover, .billete:hover { transform: translateY(-3px); box-shadow: var(--sombra-alta); }
 
-.tarjeta__media { position: relative; aspect-ratio: 16 / 10; background: var(--foto); overflow: hidden; flex: none; }
+.tarjeta__media { position: relative; aspect-ratio: 16 / 9; background: var(--foto); overflow: hidden; flex: none; }
 .tarjeta__media > .escena, .tarjeta__imagen {
   position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block;
 }
@@ -643,7 +636,7 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 }
 .pastilla-foto .ic { width: 14px; height: 14px; }
 
-.tarjeta__cuerpo { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px 16px; flex: 1; }
+.tarjeta__cuerpo { display: flex; flex-direction: column; gap: 8px; padding: 12px 16px 14px; flex: 1; }
 .tarjeta__cabeza { display: flex; align-items: center; gap: 8px; min-height: 28px; }
 .tarjeta__temas { display: inline-flex; gap: 4px; }
 .tarjeta__temas:empty { display: none; }
@@ -654,7 +647,8 @@ main { padding-block: 22px 56px; min-height: 60vh; }
   color: var(--texto-suave); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .tarjeta__lugar .suave { font-weight: 800; }
-.tarjeta__titulo { font-size: 1.06rem; line-height: 1.3; }
+/* Dos líneas como mucho: el título entero está en la ficha (y en el title del botón). */
+.tarjeta__titulo { font-size: 1.06rem; line-height: 1.3; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
 .enlace-ficha { all: unset; cursor: pointer; font-weight: 750; color: var(--texto); overflow-wrap: anywhere; }
 .enlace-ficha:hover { text-decoration: underline; text-underline-offset: 3px; }
 .enlace-ficha:focus-visible { outline: 3px solid var(--acento); outline-offset: 2px; border-radius: 4px; }
@@ -665,12 +659,13 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 .valoracion { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; font-weight: 800; color: var(--texto); font-size: 0.85rem; }
 .valoracion .ic { width: 15px; height: 15px; color: var(--chollo); fill: currentColor; }
 .tarjeta__pie {
-  margin-top: auto; display: flex; flex-direction: column; gap: 10px;
-  padding-top: 12px; border-top: 1px solid var(--borde);
+  margin-top: auto; display: flex; flex-direction: column; gap: 8px;
+  padding-top: 10px; border-top: 1px solid var(--borde);
 }
 .tarjeta__pie .coste-total { margin: 0; }
 .tarjeta__acciones { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .tarjeta__origen { font-size: 0.78rem; color: var(--texto-suave); line-height: 1.35; min-width: 0; }
+.tarjeta__cabeza .valoracion { font-size: 0.8rem; }
 .acciones { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 
 .precio { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 7px; }
@@ -689,12 +684,91 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 .comprobada { font-size: 0.78rem; }
 .comprobada--antigua { color: var(--aviso); }
 .coste-total {
-  align-items: center; padding: 9px 12px; border-radius: 12px; background: var(--acento-suave);
-  color: var(--acento-suave-texto); font-weight: 750; font-size: 0.86rem;
+  align-items: center; padding: 7px 10px; border-radius: 12px; background: var(--acento-suave);
+  color: var(--acento-suave-texto); font-weight: 750; font-size: 0.84rem;
 }
 .coste-coche { display: inline-flex; gap: 6px; align-items: flex-start; }
-.pista-ficha { font-style: italic; }
 .aviso-afiliado { font-size: 0.8rem; color: var(--texto-suave); }
+
+/* Precio único («Hasta … €» y qué cuenta). */
+.campo-precio { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 12px; }
+.campo-precio .campo { min-width: 0; }
+
+/* Explorar: en pantallas grandes, los filtros a la izquierda y los resultados siempre a la vista. */
+.explorar { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0 24px; align-items: start; }
+.explorar__resultados { min-width: 0; }
+@media (min-width: 1100px) {
+  .explorar { grid-template-columns: 340px minmax(0, 1fr); }
+  .explorar__filtros {
+    position: sticky; top: 84px; max-height: calc(100vh - 100px); overflow-y: auto; overscroll-behavior: contain;
+    border-radius: var(--radio); scrollbar-width: thin;
+  }
+  .explorar__filtros .filtros { margin-bottom: 0; padding: 16px; gap: 14px; }
+  .explorar__filtros .filtros__fila { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; align-items: stretch; }
+  .explorar__filtros .campo { min-width: 0; width: 100%; }
+  .explorar__filtros .chips__lista { flex-wrap: wrap; overflow: visible; }
+  .explorar__filtros .chips--desplazables, .explorar__filtros .chips--desplazables .chips__lista { mask-image: none; -webkit-mask-image: none; padding-right: 0; }
+  .explorar__filtros .ubicacion__fila { flex-direction: column; align-items: stretch; }
+  .explorar__filtros .campo-precio { grid-template-columns: minmax(0, 1fr); }
+  .explorar__filtros .chip { flex: 0 1 auto; max-width: 100%; white-space: normal; }
+  .explorar__filtros .ayuda { font-size: 0.78rem; }
+  .explorar__filtros .filtros__ver { display: none; }
+  .explorar .rejilla { grid-template-columns: repeat(auto-fill, minmax(min(100%, 270px), 1fr)); }
+}
+
+/* Selector «Tarjetas / Lista» de los resultados. */
+.selector-modo { display: inline-flex; padding: 3px; gap: 2px; border-radius: var(--radio-chico); background: var(--superficie-2); border: 1px solid var(--borde); }
+.selector-modo__boton {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 4px 12px; border: 0; border-radius: var(--radio-chico);
+  background: transparent; color: var(--texto-suave); font: inherit; font-size: 0.84rem; font-weight: 700; cursor: pointer;
+}
+.selector-modo__boton .ic { width: 16px; height: 16px; }
+.selector-modo__boton[aria-pressed="true"] { background: var(--superficie); color: var(--texto); box-shadow: var(--sombra); }
+.selector-modo__boton:focus-visible { outline: 3px solid var(--acento); outline-offset: 1px; }
+
+/* Modo lista: una fila por oferta (foto pequeña, datos y precio a la derecha). Los billetes no cambian. */
+.modo-lista #resultados .rejilla { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+.modo-lista #resultados .tarjeta { display: grid; grid-template-columns: 220px minmax(0, 1fr); }
+.modo-lista #resultados .tarjeta:hover { transform: none; }
+.modo-lista #resultados .tarjeta__media { aspect-ratio: auto; height: 100%; min-height: 150px; }
+.modo-lista #resultados .tarjeta__cuerpo {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(200px, 250px); column-gap: 20px; row-gap: 6px; align-content: start;
+}
+.modo-lista #resultados .tarjeta__cuerpo > * { grid-column: 1; }
+.modo-lista #resultados .tarjeta__pie {
+  grid-column: 2; grid-row: 1 / span 8; margin: 0; padding: 0 0 0 20px; border-top: 0; border-left: 1px solid var(--borde); align-self: stretch;
+}
+.modo-lista #resultados .tarjeta__pie .acciones { margin-top: auto; }
+@media (max-width: 719px) {
+  .modo-lista #resultados .tarjeta { grid-template-columns: 112px minmax(0, 1fr); }
+  .modo-lista #resultados .tarjeta__media { min-height: 0; }
+  .modo-lista #resultados .tarjeta__sellos, .modo-lista #resultados .tarjeta__pastillas { display: none; }
+  .modo-lista #resultados .tarjeta__media .boton-fav { top: 6px; right: 6px; }
+  .modo-lista #resultados .tarjeta__cuerpo { display: flex; padding: 10px 12px 12px; }
+  .modo-lista #resultados .tarjeta__pie { padding: 8px 0 0; border-left: 0; border-top: 1px solid var(--borde); }
+  .modo-lista #resultados .tarjeta__temas, .modo-lista #resultados .insignias, .modo-lista #resultados .dato-extra--comparar { display: none; }
+  .modo-lista #resultados .precio strong { font-size: 1.35rem; }
+  /* Precio y «Ver oferta» en una fila; lo demás está en la ficha. */
+  .modo-lista #resultados .tarjeta__pie { flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 10px; }
+  .modo-lista #resultados .precio__noche, .modo-lista #resultados .tarjeta__origen,
+  .modo-lista #resultados .tarjeta__pie .acciones > :not(:last-child) { display: none; }
+  .modo-lista #resultados .tarjeta__pie .coste-total { order: 3; flex-basis: 100%; padding: 4px 8px; font-size: 0.76rem; }
+  .modo-lista #resultados .tarjeta__pie .acciones .boton { min-height: 40px; padding-inline: 14px; }
+  .modo-lista #resultados .tarjeta__datos { font-size: 0.8rem; }
+}
+
+/* En el móvil, las secciones de la portada y de los puentes se deslizan de lado (como un
+   carrusel) en vez de apilar 30 tarjetas: se ve qué hay en cada una sin 25 pantallas de scroll. */
+@media (max-width: 719px) {
+  .carruseles .rejilla {
+    grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: min(82vw, 340px); gap: 12px;
+    overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scrollbar-width: none;
+    margin-inline: calc(-1 * var(--espacio)); padding: 2px var(--espacio) 10px; scroll-padding-inline: var(--espacio);
+  }
+  .carruseles .rejilla::-webkit-scrollbar { display: none; }
+  .carruseles .rejilla > * { scroll-snap-align: start; }
+  .carruseles .tarjeta:hover, .carruseles .billete:hover { transform: none; }
+}
 
 /* Billete de avión: parte principal y talón con borde troquelado. */
 .billete__cuerpo { display: flex; flex: 1; }
@@ -939,6 +1013,9 @@ main { padding-block: 22px 56px; min-height: 60vh; }
   background: var(--banda); color: var(--banda-texto); box-shadow: 0 10px 30px rgb(0 0 0 / 28%);
 }
 .barra-comparar[hidden] { display: none; }
+/* Solo «Filtros» y «Mapa» (sin nada que comparar): pequeña, a la derecha, sin tapar las tarjetas. */
+.barra-comparar--compacta { left: auto; right: var(--espacio); transform: none; padding: 4px; gap: 4px; }
+.barra-comparar--compacta .boton { min-height: 40px; padding: 6px 14px; font-size: 0.86rem; }
 .barra-comparar .boton { min-height: 44px; white-space: nowrap; }
 .barra-comparar .boton--suave { background: var(--banda-2); color: var(--banda-texto) !important; border-color: transparent; }
 .barra-comparar .boton--primario { background: var(--banda-texto); border-color: var(--banda-texto); color: var(--banda) !important; }
@@ -1033,7 +1110,6 @@ main { padding-block: 22px 56px; min-height: 60vh; }
   .cabecera__fila { min-height: 58px; gap: 8px; }
   .marca { font-size: 1.08rem; gap: 8px; }
   .marca img { width: 32px; height: 32px; }
-  .estado-fuentes { height: 40px; padding: 0 12px; }
   .cabecera__acciones .boton-icono { width: 40px; height: 40px; }
 
   /* Salida, cuenta atrás, puente y revisión: una fila que se desliza, no cuatro. */
@@ -1044,8 +1120,6 @@ main { padding-block: 22px 56px; min-height: 60vh; }
   .cabecera__info .pastilla { font-size: 0.8rem; min-height: 40px; }
   .buscador { flex: none; width: 100%; max-width: none; margin: 0; }
   #boton-viaje { order: -1; }
-  .novedades { flex-wrap: nowrap; gap: 8px; margin-top: 10px; padding: 8px 8px 8px 14px; font-size: 0.9rem; }
-  .novedades p { flex: 1 1 auto; }
   main { padding-top: 16px; }
   .barra-comparar {
     left: 8px; right: 8px; transform: none; justify-content: center;
@@ -1054,6 +1128,10 @@ main { padding-block: 22px 56px; min-height: 60vh; }
   .barra-comparar::-webkit-scrollbar { display: none; }
   .barra-comparar .boton { padding-inline: 12px; flex: none; }
   .barra-comparar__texto { display: none; }
+  .barra-comparar--compacta { left: auto; right: var(--espacio); border-radius: 999px; }
+  /* Objetivos táctiles de al menos 40 px. */
+  .selector-modo__boton { min-height: 40px; }
+  .portada__ceja .pastilla, .portada__ceja .pastilla--puente a { min-height: 40px; }
   .ficha { width: 100%; max-width: 100%; max-height: 94vh; margin: auto 0 0; border-radius: 26px 26px 0 0; }
   .ficha__contenido { padding: 0 14px 22px; }
   .buscador-finde { padding: 16px; border-radius: 22px; }
@@ -1065,11 +1143,9 @@ main { padding-block: 22px 56px; min-height: 60vh; }
   .tarjeta:hover, .billete:hover, .finde-celda:hover { transform: none; }
 }
 
-/* Móviles estrechos (320 px): el estado de las fuentes se queda en su punto de color. */
+/* Móviles estrechos (320 px). */
 @media (max-width: 359px) {
   .marca { font-size: 1rem; }
-  .estado-fuentes { width: 40px; padding: 0; justify-content: center; }
-  .estado-fuentes__texto { display: none; }
   /* La ficha en 320 px: el total del coste del viaje («≈ 139,43 €») cabe en su columna. */
   .ficha__lateral { padding: 16px 14px; }
   .coste .num { white-space: normal; }

@@ -70,11 +70,10 @@ describe('calidad: el tiempo y los eventos son los de las fechas del viaje', () 
     assert.match(html, /Qué hay el próximo finde por la zona \(si vas entonces\)/);
   });
 
-  it('con fechas propias se enseñan tal cual en la ficha, y la tarjeta solo avisa de que están', () => {
+  it('con fechas propias se enseñan tal cual en la ficha; la tarjeta se queda con lo que sirve para comparar', () => {
     const tarjetaHtml = tarjeta(conFinde, ctxPara([conFinde]));
     assert.ok(!tarjetaHtml.includes('Despejado'), 'la tarjeta se queda con lo que sirve para comparar');
-    assert.match(tarjetaHtml, /En la ficha: el tiempo y 1 evento</);
-    assert.match(tarjeta(flexible, ctxPara([flexible])), /En la ficha: el tiempo y 1 evento del próximo finde/);
+    assert.ok(!tarjetaHtml.includes('Fira de Tardor'));
     const html = contenidoFicha(conFinde, ctxPara([conFinde]));
     assert.match(html, /Despejado/);
     assert.match(html, /Fira de Tardor/);
@@ -102,7 +101,7 @@ describe('calidad: la fecha del viaje no se confunde con la caducidad de la prom
     const pasadaMedianoche = oferta({ caduca: '2026-09-30T22:30:00.000Z' });
     assert.match(tarjeta(pasadaMedianoche, ctxPara([pasadaMedianoche])), /Promoción hasta el jue 1 oct/);
     const html = tarjeta(o, ctxPara([o]));
-    assert.match(html, /Fechas flexibles<\/li><li>[^]*?Promoción hasta el mié 30 sep<\/li>/, 'en hora de Madrid: las 23:00 del 30');
+    assert.match(html, /Fechas flexibles<\/span><\/li><li>[^]*?Promoción hasta el mié 30 sep<\/span><\/li>/, 'en hora de Madrid: las 23:00 del 30');
     assert.ok(!/Fechas flexibles · hasta el/.test(html));
     const ficha = contenidoFicha(o, ctxPara([o]));
     assert.match(ficha, /<dt>Fechas de viaje<\/dt><dd>Flexibles: la web no publica fechas concretas/);
@@ -129,7 +128,7 @@ describe('calidad: cada oferta dice cuándo se comprobó', () => {
   it('una vista hace poco dice en qué web y hace cuánto', () => {
     const o = oferta({ vistaUltima: '2026-09-29T08:00:00Z' });
     const html = tarjeta(o, ctx([o]));
-    assert.match(html, /Comprobada en Weekendesk hace 2 h/);
+    assert.match(html, /Weekendesk · <span title="[^"]*">comprobada hace 2 h/);
     assert.ok(!html.includes('Sin comprobar'));
   });
 
@@ -198,7 +197,11 @@ describe('calidad: cada etiqueta de chollo se explica con datos', async () => {
     const historial = { [o.id]: [['2026-09-01', 130], ['2026-09-10', 115], ['2026-09-24', 100]] };
     const html = tarjeta(o, ctxPara([o], { historial }));
     assert.match(html, /title="El más bajo desde el mar 1 sep \(3 días con precio; máximo 130\s€\)">Precio más bajo en 23 días/);
-    assert.match(html, /title="Ha bajado 15\s€: el precio más alto de los últimos 7 días fue 115\s€">↓ 15\s€/);
+    // En la tarjeta, solo la etiqueta más fuerte (el mínimo); la bajada, en la ficha.
+    assert.ok(!html.includes('Ha bajado 15'));
+    assert.match(contenidoFicha(o, ctxPara([o], { historial })), /title="Ha bajado 15\s€: el precio más alto de los últimos 7 días fue 115\s€">↓ 15\s€/);
+    const soloBajada = oferta({ precio: 100, bajada: 15 });
+    assert.match(tarjeta(soloBajada, ctxPara([soloBajada])), /title="Ha bajado 15\s€: el precio más alto de los últimos 7 días fue 115\s€">(<svg[^]*?<\/svg>)?Ha bajado 15\s€/);
   });
 });
 

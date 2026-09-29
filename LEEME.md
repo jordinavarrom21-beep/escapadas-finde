@@ -30,8 +30,15 @@ GitHub Actions (cron cada 30 min, pero GitHub lanza los que puede: ver «Revisi�
 - **Vuelos**: por finde o puente, aeropuerto, horario ideal y precio.
 - **Escapadas**: filtros por temática (spa, romántico, rural, playa, gastronomía,
   familia, ciudad, aventura, parques, eventos, mascotas, alojamientos singulares),
-  precio, noches, régimen, transporte y fuente. Incluye un **buscador por ubicación**:
-  «cerca de Girona a menos de 1 h en coche».
+  «¿Cómo vas?» (en coche o sin coche), un solo campo de precio («Hasta … €» contando el precio
+  de la oferta, por persona y noche o el viaje completo), noches, régimen y web. Incluye un
+  **buscador por ubicación**: «cerca de Girona a menos de 1 h en coche». En pantallas grandes
+  los filtros van en un panel a la izquierda y los resultados siempre a la vista.
+- **Tarjetas o lista**: cada tarjeta enseña lo justo (cuándo, qué incluye, una etiqueta, el
+  precio y el total de tu viaje) y el resto está en la ficha; con «Lista», una fila por oferta
+  para comparar muchas de un vistazo. Se enseñan 12 y «Ver más». La nota (0–100) mide lo bueno
+  que es el chollo y la ficha explica qué cuenta. En el móvil, las secciones de «Este finde» y
+  de «Puentes» se deslizan de lado.
 - **Comparar precios** (en la ficha de cada oferta): si el mismo alojamiento está en varias
   webs (p. ej. una casa rural en Escapada Rural y en Tus Casas Rurales), una tabla con el
   precio por persona y noche en cada una, cuál es la más barata y cuánto ahorras en tu viaje;
@@ -39,7 +46,8 @@ GitHub Actions (cron cada 30 min, pero GitHub lanza los que puede: ver «Revisi�
   enlaces para buscarlo en Booking (con tus fechas) y en Google Hoteles o, si es una casa
   rural, un camping o un apartamento, en Google para dar con su propia web.
 - **Mapa**, **calendario** de los próximos findes, **historial de precios**, **vigilados**
-  y **estado de las fuentes**.
+  y **estado de las fuentes** (enlazado en el pie). Las novedades desde tu última visita salen
+  en una pastilla junto a «Tu salida», y la cuenta atrás y el próximo puente, en la portada.
   Calendario, Puentes, Vigilados y Fuentes están en «Más» del menú; en el móvil y la tableta el menú va
   abajo, al alcance del pulgar, y hay modo claro y oscuro.
 - **Tu viaje** (botón «Desde … · 2 personas · 2 noches», debajo de la cabecera): la ciudad desde

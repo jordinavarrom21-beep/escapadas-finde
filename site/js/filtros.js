@@ -11,7 +11,41 @@ import {
 } from './formato.js';
 
 export const VISTAS = ['finde', 'vuelos', 'escapadas', 'actividades', 'mapa', 'calendario', 'puentes', 'vigilados', 'fuentes', 'buscar', 'comparar'];
-export const POR_PAGINA = 24;
+export const POR_PAGINA = 12;
+
+/**
+ * Traduce los campos de formulario que no son parámetros de la URL: el precio único
+ * («precio» + «preciotipo») y «¿Cómo vas?» («como»). Así la URL, la memoria y los enlaces
+ * antiguos siguen usando pres/prespor, max, pnMax, transporte y sincoche. Modifica y devuelve `p`.
+ */
+export function traducirFormulario(p) {
+  if ('precio' in p || 'preciotipo' in p) {
+    const valor = p.precio;
+    const tipo = p.preciotipo ?? 'oferta';
+    delete p.precio;
+    delete p.preciotipo;
+    if (valor) {
+      if (tipo === 'noche') p.pnMax = valor;
+      else if (tipo === 'persona' || tipo === 'total') {
+        p.pres = valor;
+        if (tipo === 'persona') p.prespor = 'persona';
+        else delete p.prespor;
+      } else p.max = valor;
+    }
+  }
+  if ('como' in p) {
+    const como = p.como;
+    delete p.como;
+    if (como === 'coche') {
+      p.transporte = 'coche';
+      delete p.sincoche;
+    } else if (como === 'sincoche') {
+      p.sincoche = '1';
+      if (p.transporte === 'coche') delete p.transporte;
+    }
+  }
+  return p;
+}
 export const ORDENES_VUELOS = ['precio', 'puntuacion', 'hora'];
 export const ORDENES_ESCAPADAS = ['puntuacion', 'total', 'persona', 'calidad', 'comodo', 'precio', 'noche', 'ahorro', 'valoracion', 'distancia', 'novedad'];
 export const ORDENES_ACTIVIDADES = ['puntuacion', 'precio', 'valoracion'];
