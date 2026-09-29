@@ -13,7 +13,7 @@ import {
   buscarActividades, buscarEscapadas, buscarTexto, chollazos, chollosDeVuelos, promocionesDeVuelos, crearHash, describirCriterio,
   destinosDe, destinosDeVuelo, esActividad, esEscapada, filtrarVuelos, filtrosActivos, leerFiltrosActividades, zonasDe,
   leerFiltrosComunes, leerFiltrosEscapadas, leerFiltrosVuelos, perfilFavoritos, periodoFinde, planesSorpresa,
-  puenteDelFinde, radioBusquedaKm, recomendadas, resumenCalendario, resumenFuentes, resumenPuentes, tieneVuelo,
+  puenteDelFinde, radioBusquedaKm, recomendadas, viajeDeParams, resumenCalendario, resumenFuentes, resumenPuentes, tieneVuelo,
   urlEditarVigilados, valoresUnicos, vuelosParaMapa,
 } from './filtros.js';
 import { NOCHES, VIAJEROS, aeropuertosCercanos } from './viaje.js';
@@ -99,7 +99,7 @@ export function ctxTarjetas(e, extra = {}) {
     temas: e.temas, fuentes: e.fuentes, favoritos: e.favoritos, referencia: e.referencia,
     historial: e.historial, distancias: e.distanciasOrigen, desde: nombreSalida(e),
     // El coste de coche que calcula el escaneo es desde su origen: desde otra salida no vale.
-    salidaPropia: Boolean(e.salida), ...datosViaje(e), ahora: e.ahora, comparar: e.comparar ?? null,
+    salidaPropia: Boolean(e.salida), ...datosViaje(e), ahora: e.ahora, comparar: e.comparar ?? null, misEstados: e.misEstados ?? null,
     intervalos: new Map((e.datos.fuentes ?? []).map((f) => [f.id, f.intervaloMin])), ...extra,
   };
 }
@@ -215,6 +215,7 @@ function bloqueBusquedas(e, vista) {
     </label>
     <button type="button" class="boton boton--primario" data-guardar-busqueda="${esc(vista)}">💾 Guardar</button>
     <button type="button" class="boton boton--suave" data-copiar-vigilado="${esc(vista)}">📋 Copiar como vigilado</button>
+    <button type="button" class="boton boton--suave" data-compartir-busqueda="${esc(vista)}">🔗 Compartir esta búsqueda</button>
   </div>
   <p class="ayuda">«Copiar como vigilado» copia el criterio en JSON: pégalo dentro de la lista <code>"vigilados"</code> de <code>config/vigilados.json</code> y recibirás un email cuando baje de precio.</p>
   ${chips ? `<div class="chips__lista">${chips}</div>` : ''}
@@ -395,7 +396,7 @@ export function vistaVuelos(e, params) {
     ...e.datos.puentes.map((p) => `<label class="chip chip--puente"><input type="radio" name="finde" value="${esc(p.id)}"${marcado(f.finde === p.id)}> ${etiquetaPuente(p)}</label>`),
   ];
   return `<h1 class="titulo-vista" tabindex="-1">Vuelos</h1>
-${avisoMemoria(e, 'vuelos')}
+${avisoMemoria(e, 'vuelos')}${avisoViajeCompartido(e, params)}
 ${plegableMovil(e, 'vuelos', params)}<form class="filtros" data-filtros="vuelos" aria-label="Filtros de vuelos">
   <fieldset class="chips chips--desplazables"><legend>Finde o puente</legend><div class="chips__lista">${chips.join('')}</div></fieldset>
   <div class="filtros__fila">
@@ -526,6 +527,20 @@ function plegableMovil(e, vista, params) {
   return `<details class="filtros-plegables filtros-plegables--movil" data-plegable-movil open><summary>⚙️ Filtros${n ? ` <span class="suave">(${contar(n, 'puesto')})</span>` : ''}</summary>`;
 }
 
+/**
+ * Un enlace compartido que trae otra salida, viajeros o noches: se ofrece usarlos (no se
+ * cambian solos: son preferencias de este navegador).
+ */
+export function avisoViajeCompartido(e, params) {
+  const compartido = viajeDeParams(params);
+  if (!compartido) return '';
+  const salida = compartido.salida?.nombre ?? e.datos.origen.nombre;
+  const texto = `${salida}, ${contar(Number(compartido.viaje.viajeros) || 2, 'persona')} y ${contar(Number(compartido.viaje.noches) || 2, 'noche')}`;
+  const actual = `${nombreSalida(e)}, ${contar(e.viaje?.viajeros ?? 2, 'persona')} y ${contar(e.viaje?.noches ?? 2, 'noche')}`;
+  if (texto === actual) return '';
+  return `<p class="aviso-memoria" role="status">🔗 Esta búsqueda se compartió para <strong>${esc(texto)}</strong>; tú la ves para ${esc(actual)}. <button type="button" class="enlace-boton" data-usar-viaje>Usar ${esc(texto)}</button></p>`;
+}
+
 /** Aviso de que se han recuperado los filtros de la última vez. */
 function avisoMemoria(e, vista) {
   if (!e.filtrosRecordados) return '';
@@ -604,7 +619,7 @@ function formularioEscapadas(e, params, vista) {
 
 export function vistaEscapadas(e, params) {
   return `<h1 class="titulo-vista" tabindex="-1">Escapadas</h1>
-${avisoMemoria(e, 'escapadas')}
+${avisoMemoria(e, 'escapadas')}${avisoViajeCompartido(e, params)}
 ${plegableMovil(e, 'escapadas', params)}${formularioEscapadas(e, params, 'escapadas')}</details>
 <div id="resultados">${resultadosEscapadas(e, params)}</div>`;
 }
@@ -646,7 +661,7 @@ export function vistaActividades(e, params) {
   const actividades = e.datos.ofertas.filter(esActividad);
   const lugares = destinosDe(actividades);
   return `<h1 class="titulo-vista" tabindex="-1">Actividades</h1>
-${avisoMemoria(e, 'actividades')}
+${avisoMemoria(e, 'actividades')}${avisoViajeCompartido(e, params)}
 <p class="seccion__intro">Entradas, visitas guiadas y free tours cerca de casa o en el destino de tu escapada. El precio es por persona.</p>
 ${plegableMovil(e, 'actividades', params)}<form class="filtros" data-filtros="actividades" aria-label="Filtros de actividades">
   <div class="filtros__fila">${campoTexto(f)}</div>

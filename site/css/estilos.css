@@ -499,6 +499,8 @@ main { padding-block: 18px 40px; min-height: 60vh; }
 .comprobada { font-size: 0.75rem; }
 .coste-total { color: var(--texto); font-weight: 650; }
 .aviso-afiliado { font-size: 0.8rem; color: var(--texto-suave); }
+.insignia--mio { background: var(--acento-suave); }
+.mi-estado .boton[aria-pressed="true"] { border-color: var(--acento); background: var(--acento-suave); }
 .insignia--patrocinado { background: var(--aviso-suave); color: var(--aviso); }
 .buscador-finde { display: grid; gap: 6px; padding: 14px 16px; margin: 10px 0 18px; border-radius: 14px; background: var(--superficie); border: 1px solid var(--borde); }
 .buscador-finde h2 { font-size: 1.1rem; }

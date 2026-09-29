@@ -15,6 +15,7 @@ const CLAVE_FILTROS = 'escapadas:filtros';
 const CLAVE_SALIDA = 'escapadas:salida';
 const CLAVE_VIAJE = 'escapadas:viaje';
 const CLAVE_COMPARAR = 'escapadas:comparar';
+const CLAVE_MIS_ESTADOS = 'escapadas:misEstados';
 
 function leer(almacen, clave) {
   try {
@@ -117,6 +118,15 @@ export const guardarSalida = (salida) => escribir(local, CLAVE_SALIDA, JSON.stri
 /** Viajeros y noches ({viajeros, noches}) o null: sin validar (lo hace viaje.js). */
 export const cargarViaje = () => leerJson(CLAVE_VIAJE, null);
 export const guardarViaje = (viaje) => escribir(local, CLAVE_VIAJE, JSON.stringify(viaje));
+
+/** Lo que has marcado en cada oferta: 'reservada' o 'no-disponible' ({id: estado}). */
+export const ESTADOS_MIOS = ['reservada', 'no-disponible'];
+export function cargarMisEstados() {
+  const mapa = leerJson(CLAVE_MIS_ESTADOS, {});
+  const entradas = mapa && typeof mapa === 'object' && !Array.isArray(mapa) ? Object.entries(mapa) : [];
+  return new Map(entradas.filter(([id, estado]) => typeof id === 'string' && ESTADOS_MIOS.includes(estado)));
+}
+export const guardarMisEstados = (mapa) => escribir(local, CLAVE_MIS_ESTADOS, JSON.stringify(Object.fromEntries(mapa)));
 
 /** Ofertas elegidas para comparar (como mucho MAX_COMPARAR). */
 export const MAX_COMPARAR = 3;

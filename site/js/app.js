@@ -7,11 +7,12 @@ import { abrirFicha, liberarFicha } from './ficha.js';
 import { diasEntre, estadoFinde, fechaLocal, findesProximos, proximoPuente } from './fechas.js';
 import {
   POR_PAGINA, actividadesCerca, buscarTexto, crearHash, criterioVigilado, filtrosVigentes, leerFiltrosActividades,
-  leerFiltrosComunes, leerFiltrosEscapadas, leerFiltrosVuelos, leerRuta, medirDistancias, referenciaNovedades, resumenFuentes,
+  leerFiltrosComunes, leerFiltrosEscapadas, leerFiltrosVuelos, leerRuta, medirDistancias, paramsViaje, referenciaNovedades,
+  resumenFuentes, viajeDeParams,
 } from './filtros.js';
 import { contar, cuentaAtras, escaparHtml as esc, haceCuanto, urlSegura } from './formato.js';
 import {
-  MAX_COMPARAR, borrarBusqueda, cargarBusquedas, cargarComparar, cargarDescartadas, guardarComparar, cargarFavoritos, cargarFiltros, cargarSalida, cargarViaje,
+  MAX_COMPARAR, borrarBusqueda, cargarBusquedas, cargarComparar, cargarDescartadas, cargarMisEstados, guardarComparar, guardarMisEstados, cargarFavoritos, cargarFiltros, cargarSalida, cargarViaje,
   guardarBusqueda, guardarDescartadas, guardarFavoritos, guardarFiltros, guardarSalida, guardarTema, guardarViaje,
   tomarVisitaAnterior,
 } from './local.js';
@@ -74,6 +75,7 @@ function crearEstado(datos, historial, vigilados) {
     puente: proximoPuente(datos.puentes ?? [], hoy),
     favoritos: cargarFavoritos(),
     comparar: cargarComparar(),
+    misEstados: cargarMisEstados(),
     descartadas: cargarDescartadas(),
     busquedas: cargarBusquedas(),
     salto: 0,
@@ -536,18 +538,52 @@ function guardarMiViaje(evento) {
   const d = Object.fromEntries(new FormData(evento.target));
   const salida = validarSalida({ nombre: d.lugar, lat: d.lat, lon: d.lon });
   const viaje = validarViaje({ viajeros: d.viajeros, noches: d.noches }, estado.datos.viajeros);
+  dialogoViaje.close();
+  aplicarViaje(salida, viaje);
+}
+
+/** Guarda salida, viajeros y noches y rehace distancias, aeropuertos y costes. */
+function aplicarViaje(salida, viaje) {
   guardarSalida(salida);
   guardarViaje(viaje);
   estado.salida = salidaEfectiva(salida, estado.datos.origen);
   estado.viaje = viaje;
   estado.distanciasOrigen = medirDistancias(estado.datos.ofertas, estado.salida, estado.datos.origen);
-  dialogoViaje.close();
   pintarBotonViaje();
   render({ enfocar: false });
   anunciar(`Guardado en este navegador: ${textoViaje(estado).replace(/^📍 /, '')}.`);
 }
 
-const ACCIONES = '[data-abrir-filtros], [data-comparar], [data-vaciar-comparar], [data-mi-viaje], [data-cerrar-viaje], [data-ficha], [data-fav], [data-descartar], [data-mas], [data-sorpresa],'
+/** «Usar …» de un enlace compartido: adopta su salida, viajeros y noches. */
+function usarViajeCompartido() {
+  const compartido = viajeDeParams(leerRuta(location.hash).params);
+  if (!compartido) return;
+  aplicarViaje(validarSalida(compartido.salida), validarViaje(compartido.viaje, estado.datos.viajeros));
+}
+
+/** Copia el enlace de la búsqueda con tu salida, viajeros y noches (quien lo abra elige si los usa). */
+async function compartirBusqueda(vista) {
+  const { params } = leerRuta(location.hash);
+  const hash = crearHash(vista, { ...params, ...paramsViaje(estado.salida, estado.viaje) });
+  const enlace = `${location.origin}${location.pathname}${hash}`;
+  anunciar(await copiarTexto(enlace)
+    ? 'Enlace copiado: abre la misma búsqueda, con tu salida, viajeros y noches.'
+    : `No se ha podido copiar solo. El enlace es: ${enlace}`);
+}
+
+/** «✅ La he reservado» o «🚫 Ya no está disponible» (volver a pulsar lo quita). */
+function alternarMiEstado(id, nuevo) {
+  if (estado.misEstados.get(id) === nuevo) estado.misEstados.delete(id);
+  else estado.misEstados.set(id, nuevo);
+  guardarMisEstados(estado.misEstados);
+  const marcado = estado.misEstados.get(id);
+  document.querySelectorAll(`[data-mi-estado][data-oferta="${CSS.escape(id)}"]`).forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.miEstado === marcado)));
+  const { vista, params } = leerRuta(location.hash);
+  if (VISTAS_HTML[vista].resultados) actualizarResultados(vista, params);
+  anunciar(marcado === 'reservada' ? 'Marcada como reservada (solo en este navegador)' : marcado ? 'Marcada como no disponible (solo en este navegador)' : 'Marca quitada');
+}
+
+const ACCIONES = '[data-compartir-busqueda], [data-usar-viaje], [data-mi-estado], [data-abrir-filtros], [data-comparar], [data-vaciar-comparar], [data-mi-viaje], [data-cerrar-viaje], [data-ficha], [data-fav], [data-descartar], [data-mas], [data-sorpresa],'
   + ' [data-guardar-busqueda], [data-borrar-busqueda], [data-copiar-vigilado], [data-cerrar-ficha], [data-cerrar-novedades],'
   + ' [data-olvidar-filtros], [data-cerrar-mas]';
 
@@ -555,7 +591,10 @@ function manejarClic(evento) {
   const objetivo = evento.target.closest(ACCIONES);
   if (!objetivo) return;
   const d = objetivo.dataset;
-  if ('abrirFiltros' in d) abrirFiltros();
+  if (d.compartirBusqueda) compartirBusqueda(d.compartirBusqueda);
+  else if ('usarViaje' in d) usarViajeCompartido();
+  else if (d.miEstado) alternarMiEstado(d.oferta, d.miEstado);
+  else if ('abrirFiltros' in d) abrirFiltros();
   else if (d.comparar) alternarComparar(d.comparar);
   else if ('vaciarComparar' in d) vaciarComparar();
   else if ('miViaje' in d) abrirViaje(objetivo);

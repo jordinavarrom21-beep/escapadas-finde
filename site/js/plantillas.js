@@ -58,6 +58,8 @@ function insignias(o, ctx) {
   const etiquetas = o.etiquetas ?? [];
   const minimo = textoMinimo(o, ctx);
   const lista = [
+    ctx.misEstados?.get(o.id) === 'reservada' && '<span class="insignia insignia--mio">✅ Reservada (marcada por ti)</span>',
+    ctx.misEstados?.get(o.id) === 'no-disponible' && '<span class="insignia insignia--alerta">🚫 No disponible (marcada por ti)</span>',
     o.patrocinada && `<span class="insignia insignia--patrocinado" title="Un anunciante paga por destacarla; no sube en el orden normal">Patrocinado · ${esc(o.patrocinada.anunciante)}</span>`,
     esNovedad(o, ctx.referencia) && '<span class="insignia insignia--nueva">Nuevo</span>',
     o.chollazo && `<span class="insignia insignia--chollazo"${o.chollazoMotivo ? ` title="${esc(o.chollazoMotivo)}"` : ''}>🔥 Chollazo</span>`,
@@ -164,6 +166,13 @@ function botonComparar(o, ctx) {
   if (!ctx.comparar) return '';
   const activo = ctx.comparar.has(o.id);
   return `<button type="button" class="boton-icono boton-comparar" data-comparar="${esc(o.id)}" aria-pressed="${activo}" title="${activo ? 'Quitar de la comparación' : 'Comparar (hasta 3)'}" aria-label="${activo ? 'Quitar de la comparación' : 'Añadir a la comparación'}: ${esc(o.titulo)}">⚖️</button>`;
+}
+
+/** «✅ La he reservado» y «🚫 Ya no está disponible»: se guardan en este navegador. */
+function botonesMiEstado(o, ctx) {
+  const actual = ctx.misEstados.get(o.id);
+  const boton = (estado, texto) => `<button type="button" class="boton boton--suave boton--mini" data-mi-estado="${estado}" data-oferta="${esc(o.id)}" aria-pressed="${actual === estado}">${texto}</button>`;
+  return `<p class="acciones mi-estado">${boton('reservada', '✅ La he reservado')}${boton('no-disponible', '🚫 Ya no está disponible')}</p>`;
 }
 
 /** ✕ para ocultar la oferta en este navegador. */
@@ -559,6 +568,7 @@ ${imagen ? `<img class="ficha__imagen" src="${esc(imagen)}" alt="" referrerpolic
 <div class="ficha__precio">${precio(o)}<span class="acciones">${botonDescartar(o)}${botonComparar(o, ctx)}${botonFavorito(o, ctx)}</span></div>
 <div class="insignias">${insignias(o, ctx)}</div>
 ${textoComprobada(o, ctx)}
+${ctx.misEstados ? botonesMiEstado(o, ctx) : ''}
 ${vueloFicha(o.vuelo)}
 ${o.descripcion ? `<p class="ficha__descripcion">${esc(o.descripcion)}</p>` : ''}
 ${cocheFicha(o, ctx)}

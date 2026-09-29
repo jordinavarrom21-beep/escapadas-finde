@@ -843,7 +843,27 @@ export function filtrosVigentes(params = {}, { hoy, findes = [], puentes = [] } 
 }
 
 /** Parámetros que no filtran (ordenan o acompañan a otro) y no salen como chip. */
-const NO_SON_FILTROS = new Set(['orden', 'lat', 'lon', 'prespor']);
+const NO_SON_FILTROS = new Set(['orden', 'lat', 'lon', 'prespor', 'sal', 'slat', 'slon', 'vj', 'nc']);
+
+/**
+ * Tu salida, viajeros y noches en los parámetros de un enlace compartido (sal, slat, slon,
+ * vj, nc), para que quien lo abra vea lo mismo si quiere. No son filtros.
+ */
+export function paramsViaje(salida, viaje) {
+  return {
+    ...(salida ? { sal: salida.nombre, slat: salida.lat.toFixed(2), slon: salida.lon.toFixed(2) } : {}),
+    vj: String(viaje.viajeros), nc: String(viaje.noches),
+  };
+}
+
+/** Lo que trae un enlace compartido, o null si no trae nada. Sin validar (lo hace viaje.js). */
+export function viajeDeParams(p = {}) {
+  if (!p.vj && !p.sal) return null;
+  return {
+    salida: p.sal ? { nombre: p.sal, lat: p.slat, lon: p.slon } : null,
+    viaje: { viajeros: p.vj, noches: p.nc },
+  };
+}
 /** Listas separadas por comas: un chip por cada valor. */
 const LISTAS = new Set(['temas', 'notemas', 'nodest']);
 const textoNochesFiltro = (n) => (n === '3' ? '3 noches o más' : n === '1' ? '1 noche' : `${n} noches`);

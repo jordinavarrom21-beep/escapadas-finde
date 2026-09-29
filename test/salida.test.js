@@ -137,3 +137,29 @@ describe('encuéntrame un finde', async () => {
     assert.deepEqual(paramsBuscadorFinde({ cuando: '', pres: '', como: 'coche' }), { cuando: '', temas: '', orden: 'total', transporte: 'coche' });
   });
 });
+
+describe('compartir la búsqueda y marcas propias', async () => {
+  const { filtrosActivos, paramsViaje, viajeDeParams } = await import('../site/js/filtros.js');
+  const { avisoViajeCompartido } = await import('../site/js/vistas.js');
+  const { tarjeta } = await import('../site/js/plantillas.js');
+
+  it('el enlace lleva salida, viajeros y noches, que no cuentan como filtros', () => {
+    const p = paramsViaje(GIRONA, { viajeros: 4, noches: 3 });
+    assert.deepEqual(p, { sal: 'Girona', slat: '41.98', slon: '2.82', vj: '4', nc: '3' });
+    assert.deepEqual(filtrosActivos('escapadas', { temas: 'spa', ...p }).map((c) => c.clave), ['temas']);
+    assert.deepEqual(viajeDeParams(p), { salida: { nombre: 'Girona', lat: '41.98', lon: '2.82' }, viaje: { viajeros: '4', noches: '3' } });
+    assert.equal(viajeDeParams({ temas: 'spa' }), null);
+  });
+
+  it('quien abre el enlace ve para quién era y elige si lo usa; si ya es lo suyo, no se avisa', () => {
+    assert.match(avisoViajeCompartido(estado(), { vj: '4', nc: '3', sal: 'Girona', slat: '41.98', slon: '2.82' }), /se compartió para <strong>Girona, 4 personas y 3 noches<\/strong>; tú la ves para Barcelona, 3 personas y 2 noches/);
+    assert.equal(avisoViajeCompartido(estado(), { vj: '3', nc: '2' }), '');
+  });
+
+  it('«reservada» y «no disponible» se ven en la tarjeta, solo para quien las marcó', () => {
+    const [o] = datos.ofertas;
+    const ctx = ctxTarjetas({ ...estado(), misEstados: new Map([[o.id, 'no-disponible']]) });
+    assert.match(tarjeta(o, ctx), /🚫 No disponible \(marcada por ti\)/);
+    assert.ok(!tarjeta(o, ctxTarjetas(estado())).includes('marcada por ti'));
+  });
+});
