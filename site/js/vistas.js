@@ -5,12 +5,12 @@
 
 import { diasEntre, etiquetaDia, etiquetaRango, findesProximos } from './fechas.js';
 import {
-  contar, escaparHtml as esc, euros, haceCuanto, urlSegura,
+  contar, enumerar, escaparHtml as esc, euros, haceCuanto, urlSegura,
   ETIQUETAS_ALOJAMIENTO, ETIQUETAS_REGIMEN, ETIQUETAS_TIPO, ETIQUETAS_TRANSPORTE,
 } from './formato.js';
 import {
   ALOJAMIENTOS, ATAJOS_ESCAPADAS, ORDENES_ACTIVIDADES, ORDENES_ESCAPADAS, POR_PAGINA, REGIMENES_ORDEN, actividadesPara,
-  buscarActividades, buscarEscapadas, buscarTexto, chollazos, chollosDeVuelos, crearHash, describirCriterio,
+  buscarActividades, buscarEscapadas, buscarTexto, chollazos, chollosDeVuelos, promocionesDeVuelos, crearHash, describirCriterio,
   destinosDe, destinosDeVuelo, esActividad, esEscapada, filtrarVuelos, filtrosActivos, leerFiltrosActividades, zonasDe,
   leerFiltrosComunes, leerFiltrosEscapadas, leerFiltrosVuelos, perfilFavoritos, periodoFinde, planesSorpresa,
   puenteDelFinde, radioBusquedaKm, recomendadas, resumenCalendario, resumenFuentes, resumenPuentes, tieneVuelo,
@@ -56,6 +56,7 @@ export function ctxTarjetas(e, extra = {}) {
 export function contextoBusqueda(e) {
   return {
     origen: e.datos.origen,
+    aeropuertos: e.datos.aeropuertos ?? [],
     finde: e.findes[0],
     puente: e.puente,
     findes: e.findes,
@@ -248,8 +249,9 @@ export function vistaFinde(e, params = {}) {
   const vuelos = hayVuelosConFecha
     ? bloqueVuelos(e, actual, `✈️ Vuelos este finde <span class="suave">(${esc(actual.etiqueta)})</span>`)
       + (siguiente ? bloqueVuelos(e, siguiente, `✈️ Vuelos el finde siguiente <span class="suave">(${esc(siguiente.etiqueta)}${puenteSiguiente ? ' · puente' : ''})</span>`) : '')
-    : seccion('✈️ Chollos de vuelos', rejilla(chollosDeVuelos(e.datos.ofertas, leerFiltrosVuelos(), contextoBusqueda(e)).slice(0, 3), ctx, { mostradas: 3, clave: 'finde-chollos' }),
-      { href: '#/vuelos', texto: 'Ver todos' });
+    : seccion('✈️ Chollos de vuelos <span class="suave">(sin fecha concreta, desde tus aeropuertos)</span>',
+      rejilla(chollosDeVuelos(e.datos.ofertas, leerFiltrosVuelos({ mios: '1' }), contextoBusqueda(e)).slice(0, 3), ctx, { mostradas: 3, clave: 'finde-chollos' }),
+      { href: crearHash('vuelos', { mios: '1' }), texto: 'Ver todos' });
 
   return `<h1 class="titulo-vista" tabindex="-1">Este finde <span class="suave">${esc(etiquetaDia(actual.viernes))} – ${esc(etiquetaDia(actual.domingo))}</span></h1>
 ${favoritos.length ? seccion('⭐ Tus favoritos', rejilla(favoritos, ctx, { mostradas: mostradas(e, 'favoritos'), clave: 'favoritos' })) : ''}
@@ -289,6 +291,7 @@ ${avisoMemoria(e, 'vuelos')}
     <label class="campo">Precio máx. (€) <input type="number" name="max" min="0" step="5" inputmode="numeric" placeholder="Sin límite" value="${f.max ?? ''}"></label>
     <label class="campo">Orden <select name="orden">${opciones([['precio', 'Precio'], ['puntuacion', 'Puntuación'], ['hora', 'Hora de salida']], f.orden)}</select></label>
     <label class="interruptor"><input type="checkbox" name="ideal" value="1"${marcado(f.ideal)}> Solo horario ideal</label>
+    <label class="interruptor"><input type="checkbox" name="mios" value="1"${marcado(f.mios)}> Solo desde ${esc(listaAeropuertos(e))}</label>
   </div>
   <details class="filtros__mas"${abiertos ? ' open' : ''}><summary>Más filtros</summary>
     <div class="filtros__fila">${filtrosChollo(f)}${filtrosListas(f)}</div>
@@ -297,6 +300,9 @@ ${avisoMemoria(e, 'vuelos')}
 </form>
 <div id="resultados">${resultadosVuelos(e, params)}</div>`;
 }
+
+/** «BCN, GRO o REU». */
+const listaAeropuertos = (e) => enumerar(e.datos.aeropuertos ?? [], 'o') || 'mis aeropuertos';
 
 function sinVuelosConFecha(e) {
   const fuentes = e.datos.fuentes.filter((f) => MODOS_VUELOS_CON_FECHA.includes(f.modo) && f.estado !== 'ok');
@@ -313,19 +319,25 @@ export function resultadosVuelos(e, params) {
   const hayConFecha = e.datos.ofertas.some(tieneVuelo);
   const vuelos = filtrarVuelos(e.datos.ofertas, f, contexto);
   const chollos = chollosDeVuelos(e.datos.ofertas, f, contexto);
+  const promociones = promocionesDeVuelos(e.datos.ofertas, f, contexto);
   const conFecha = !hayConFecha
     ? sinVuelosConFecha(e)
     : vuelos.length
       ? rejilla(vuelos, ctx, { mostradas: mostradas(e, 'vuelos'), clave: 'vuelos' })
       : estadoVacio('Ningún vuelo cumple estos filtros', 'Prueba con otro finde, otro aeropuerto o un precio máximo más alto.', botonLimpiar('vuelos'));
-  const resumen = `${contar(vuelos.length, 'vuelo')} con fecha y ${contar(chollos.length, 'chollo')} de vuelos`;
+  const resumen = `${contar(vuelos.length, 'vuelo')} con fecha, ${contar(chollos.length, 'billete')} sin fecha y ${contar(promociones.length, 'promoción', 'promociones')}`;
   return `${filaActivos(e, 'vuelos', params)}${resumenResultados(resumen)}
 ${hayConFecha ? `<h2 class="subtitulo">Vuelos con fecha y hora</h2>` : ''}${conFecha}
 <section class="seccion">
-  <div class="seccion__cabeza"><h2>Chollos de vuelos de blogs y comunidades</h2></div>
-  <p class="seccion__intro">Sin fechas concretas: revisa en cada oferta qué días hay plazas. Aquí no se aplican el finde ni el horario.</p>
-  ${chollos.length ? rejilla(chollos, ctx, { mostradas: mostradas(e, 'chollos'), clave: 'chollos' }) : estadoVacio('No hay chollos de vuelos con estos filtros.')}
-</section>`;
+  <div class="seccion__cabeza"><h2>Billetes sin fecha concreta, de blogs y comunidades</h2></div>
+  <p class="seccion__intro">El precio es el mínimo que publican para unas fechas que no dicen: revisa en cada oferta qué días hay plazas y desde qué aeropuerto sale. Aquí no se aplican el finde ni el horario.</p>
+  ${chollos.length ? rejilla(chollos, ctx, { mostradas: mostradas(e, 'chollos'), clave: 'chollos' }) : estadoVacio('No hay billetes sin fecha con estos filtros.', f.mios ? `Prueba a quitar «Solo desde ${esc(listaAeropuertos(e))}».` : '')}
+</section>
+${promociones.length ? `<section class="seccion">
+  <div class="seccion__cabeza"><h2>Promociones y descuentos de aerolíneas</h2></div>
+  <p class="seccion__intro">Códigos, rebajas y selecciones de «muchos destinos»: no son un billete, sino una forma de pagar menos en la web de la aerolínea.</p>
+  ${rejilla(promociones, ctx, { mostradas: mostradas(e, 'promociones'), clave: 'promociones' })}
+</section>` : ''}`;
 }
 
 // ── Escapadas y mapa ─────────────────────────────────────────────────────────

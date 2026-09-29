@@ -11,6 +11,7 @@ import { TEMAS, completarOferta } from '../modelo.js';
 import { aplicarClasificacion } from '../enriquecer/temas.js';
 import { aplicarAlojamiento } from '../enriquecer/alojamiento.js';
 import { aplicarZona } from '../enriquecer/zona.js';
+import { clasificarVueloSinFecha } from '../enriquecer/vuelos.js';
 import { enlacesPara } from '../enriquecer/enlaces.js';
 import { asignarFechas, calcularPuentes, obtenerFestivos } from '../enriquecer/festivos.js';
 import { calcularCoche, calcularCosteCoche, geolocalizar } from '../enriquecer/geo.js';
@@ -39,7 +40,7 @@ const CADUCIDAD_POR_PREFIJO = { 'tiempo:': DIA_MS, 'eventos:': 2 * DIA_MS };
 
 /** Módulos que usa el escaneo; los tests pueden sustituir cualquiera. */
 export const MODULOS = {
-  obtenerFestivos, calcularPuentes, asignarFechas, aplicarClasificacion, aplicarAlojamiento, aplicarZona,
+  obtenerFestivos, calcularPuentes, asignarFechas, clasificarVueloSinFecha, aplicarClasificacion, aplicarAlojamiento, aplicarZona,
   geolocalizar, calcularCoche, calcularCosteCoche, calcularReferencia, marcarEquivalentes,
   revisarPrecios, anadirTiempo, anadirEventos, enlacesPara, registrarPrecios, compactar, seriesPara, puntuar,
   procesarEmails, crearTransporte, enviarEmail,
@@ -175,6 +176,7 @@ export async function escanear({
   for (const [id, oferta] of Object.entries(estado.ofertas)) estado.ofertas[id] = completarOferta(oferta);
   const ofertas = Object.values(estado.ofertas);
   for (const oferta of ofertas) {
+    m.clasificarVueloSinFecha(oferta);
     m.aplicarClasificacion(oferta);
     m.aplicarAlojamiento(oferta);
     m.aplicarZona(oferta);

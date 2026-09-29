@@ -92,6 +92,8 @@ export function leerFiltrosVuelos(p = {}) {
     finde: p.finde ?? '',
     aero: p.aero ?? '',
     ideal: p.ideal === '1',
+    // Solo los chollos que pueden salir de tus aeropuertos (los que no lo dicen, también).
+    mios: p.mios === '1',
     orden: ORDENES_VUELOS.includes(p.orden) ? p.orden : 'precio',
   };
 }
@@ -304,11 +306,44 @@ export function filtrarVuelos(ofertas, f, ctx = {}) {
     .sort(COMPARADORES_VUELOS[f.orden] ?? porPrecio);
 }
 
-/** Chollos de vuelos sin fechas concretas (blogs y comunidades): no aplican finde ni horario. */
+const PREFIJO_SALIDA = 'sale-de:';
+/** Ciudades de salida que publica un chollo de vuelo («sale-de:Alicante», de src/enriquecer/vuelos.js). */
+export const salidasDe = (o) => (o.etiquetas ?? []).filter((e) => e.startsWith(PREFIJO_SALIDA)).map((e) => e.slice(PREFIJO_SALIDA.length));
+/** Descuentos, códigos o «muchos destinos»: no es un billete que se pueda comparar. */
+export const esPromocion = (o) => (o.etiquetas ?? []).includes('promocion');
+
+/** Ciudad de los aeropuertos más habituales, para comparar con «Salidas desde Barcelona». */
+const CIUDAD_AEROPUERTO = {
+  BCN: 'Barcelona', GRO: 'Girona', REU: 'Reus', MAD: 'Madrid', VLC: 'Valencia', AGP: 'Málaga', ALC: 'Alicante',
+  SVQ: 'Sevilla', BIO: 'Bilbao', PMI: 'Palma de Mallorca', ZAZ: 'Zaragoza', SCQ: 'Santiago', OPO: 'Oporto', LIS: 'Lisboa',
+};
+/** Salidas que no dicen la ciudad: pueden incluir la tuya. */
+const SALIDAS_GENERICAS = ['espana', 'varias ciudades europeas'];
+
+/**
+ * ¿Puede salir de alguno de `aeropuertos` (o de la ciudad de origen)? Si el chollo no dice
+ * desde dónde sale, o da una zona que puede incluirlos («España»), se da por bueno.
+ */
+export function saleDeMisAeropuertos(o, aeropuertos = [], origen = null) {
+  const salidas = salidasDe(o).map(normalizar);
+  if (!salidas.length) return true;
+  const mias = new Set([...aeropuertos, ...aeropuertos.map((a) => CIUDAD_AEROPUERTO[a]), origen?.nombre].filter(Boolean).map(normalizar));
+  return salidas.some((s) => mias.has(s) || SALIDAS_GENERICAS.includes(s));
+}
+
+const cumpleChollo = (o, f, ctx) => esVuelo(o) && !o.vuelo && cumpleComunes(o, f, ctx)
+  && (!f.mios || saleDeMisAeropuertos(o, ctx.aeropuertos, ctx.origen));
+
+/** Billetes de vuelo sin fechas concretas (blogs y comunidades): no aplican finde ni horario. */
 export function chollosDeVuelos(ofertas, f, ctx = {}) {
   return ofertas
-    .filter((o) => esVuelo(o) && !o.vuelo && cumpleComunes(o, f, ctx))
+    .filter((o) => !esPromocion(o) && cumpleChollo(o, f, ctx))
     .sort(f.orden === 'precio' ? porPrecio : porPuntuacion);
+}
+
+/** Promociones de aerolíneas (descuentos, códigos, rebajas): aparte, porque no son billetes. */
+export function promocionesDeVuelos(ofertas, f, ctx = {}) {
+  return ofertas.filter((o) => esPromocion(o) && cumpleChollo(o, f, ctx)).sort(porPuntuacion);
 }
 
 /** El vuelo más barato de cada destino (para el mapa). */
@@ -810,6 +845,7 @@ function textoFiltro(clave, valor, ctx) {
     dest: () => `📍 ${valor}`,
     aero: () => `✈️ Desde ${valor}`,
     ideal: () => '🕒 Horario ideal',
+    mios: () => '🛫 Desde mis aeropuertos',
     nuevas: () => '🆕 Solo novedades',
     fav: () => '⭐ Solo favoritos',
     cho: () => '🔥 Solo chollazos',

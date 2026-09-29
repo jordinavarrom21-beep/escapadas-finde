@@ -121,7 +121,7 @@ describe('vuelos', () => {
     assert.match(html, /Todavía no hay vuelos con fecha y hora/);
     assert.match(html, /Ryanair<\/strong>: bloqueada \(Su robots\.txt prohíbe \/api/);
     assert.match(html, /falta configurar TRAVELPAYOUTS_TOKEN|falta configurar SERPAPI_KEY/);
-    assert.match(html, /Chollos de vuelos de blogs y comunidades/);
+    assert.match(html, /Billetes sin fecha concreta, de blogs y comunidades/);
   });
 
   it('agrupa los destinos del mapa quedándose con el vuelo más barato', () => {

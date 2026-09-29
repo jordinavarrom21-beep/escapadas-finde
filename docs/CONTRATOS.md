@@ -74,7 +74,7 @@ un `try/catch`, registran el error con `ctx.log` y descartan solo esa oferta.
 | `eventos` | `eventos.js` | hasta 3 `{nombre, fecha, url, municipio}` cerca del destino esos días, sin repetir el mismo acto en el mismo municipio (`sinRepetir`). En una oferta sin fechas propias son los del próximo finde: el panel los enseña solo en la ficha y avisando |
 
 Etiquetas especiales (en `etiquetas`) que otros módulos entienden:
-`temperatura:<grados>` (popularidad en Chollometro), `top-chollo` (destacado por la
+`temperatura:<grados>` (popularidad en Chollometro), `promocion` y `sale-de:<ciudad>` (`vuelos.js`), `top-chollo` (destacado por la
 propia web), `error-tarifa` (tarifa errónea detectada, p. ej. en Fly4free), `caduca-estimada` (la
 web no publica hasta cuándo vale y `caduca` la ha supuesto el vigilante, como en el buzón: sirve
 para la poda, pero el panel no la enseña como dato).
@@ -155,6 +155,11 @@ export default {
     título, descripción, etiquetas y lugar. No modifica la oferta.
   - `aplicarClasificacion(oferta)` rellena `regimen`, `noches` y `transporte` solo si
     son `null`, y une los `temas`.
+- `vuelos.js`
+  - `clasificarVueloSinFecha(oferta)`: en los vuelos sin `vuelo` (blogs y comunidades), pasa a
+    `paquete` los que incluyen alojamiento («3 noches en hotel con vuelos»), etiqueta `promocion` los
+    que no son un billete (descuentos, códigos, «muchos destinos») y anota `sale-de:<ciudad>` con las
+    salidas que publica el título (o la descripción, en los paquetes con avión). Idempotente.
 - `zona.js`
   - `aplicarZona(oferta)`: `lugar.provincia` y `lugar.comunidad` en España a partir de lo
     que diga `region` (provincia, comunidad, comarca, zona turística…); null si no se sabe.
@@ -268,7 +273,7 @@ Otros archivos de `data/`: `cache.json` (Cache), `historial.json`.
    dominio (`src/core/source-runner.js`); cada una espacia sus propias peticiones.
 4. `fusionar` los resultados → `podar`.
 5. Enriquecer todas las ofertas, en este orden (cada paso usa lo del anterior):
-   `completarOferta` → `aplicarClasificacion` → `aplicarAlojamiento` → `aplicarZona` → `precioNoche` →
+   `completarOferta` → `clasificarVueloSinFecha` → `aplicarClasificacion` → `aplicarAlojamiento` → `aplicarZona` → `precioNoche` →
    `asignarFechas` → `geolocalizar` → `calcularCoche` → `calcularCosteCoche` →
    `revisarPrecios` → `calcularReferencia` → `marcarEquivalentes` → `anadirTiempo` →
    `anadirEventos` → `enlacesPara` → `registrarPrecios` → `compactar` → `puntuar`.

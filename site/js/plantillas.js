@@ -9,7 +9,7 @@ import {
   contar, duracion, emojiTiempo, enumerar, escaparHtml as esc, euros, grados, haceCuanto, nota,
   puntosMinigrafica, urlSegura,
 } from './formato.js';
-import { SIN_COCHE, duracionActividad, esDuplicada, esNovedad, tieneVuelo } from './filtros.js';
+import { SIN_COCHE, duracionActividad, esDuplicada, esNovedad, salidasDe, tieneVuelo } from './filtros.js';
 
 export const ESTADOS_FUENTE = {
   ok: { texto: 'Funciona', clase: 'ok' },
@@ -236,9 +236,11 @@ function textoLugar(o) {
 /** Tarjeta de escapada, hotel, paquete o chollo de vuelo sin fechas. */
 export function tarjetaOferta(o, ctx) {
   const minutos = duracionActividad(o);
+  const salidas = salidasDe(o);
   const detalles = [
     textoFechas(o),
     textoCaducidad(o) && `⏳ ${textoCaducidad(o)}`,
+    salidas.length && `🛫 Sale de ${enumerar(salidas)}`,
     minutos && `⏱️ ${duracion(minutos)}`,
     o.noches && contar(o.noches, 'noche'),
     ETIQUETAS_ALOJAMIENTO[o.alojamiento],
