@@ -917,7 +917,7 @@ function textoFiltro(clave, valor, ctx) {
     nuevas: () => 'Solo novedades',
     fav: () => 'Solo favoritos',
     cho: () => 'Solo chollazos',
-    baja: () => '↓ Con bajada de precio',
+    baja: () => 'Con bajada de precio',
     hist: () => 'Mínimo histórico',
     sindesc: () => (valor === '0' ? 'Con las descartadas' : null),
     dup: () => 'Con las repetidas',

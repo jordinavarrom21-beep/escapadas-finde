@@ -196,10 +196,15 @@ function prepararMapa(params) {
   pintarMapa($('#mapa'), d, ctxTarjetas(estado, { distancias: d.distancias, desde: d.desde }));
 }
 
-/** El desplegable «Más» del menú se cierra al cambiar de vista o al tocar fuera. */
+/**
+ * El desplegable «Más» del menú se cierra al cambiar de vista, al tocar fuera o al elegir
+ * una de sus vistas (también la que ya está abierta, que no cambia el hash).
+ */
 function cerrarMenuMas(evento = null) {
   const mas = document.querySelector('.navegacion__mas details');
-  if (mas?.open && !(evento && mas.contains(evento.target))) mas.open = false;
+  if (!mas?.open) return;
+  const dentro = evento && mas.contains(evento.target);
+  if (!dentro || evento.target.closest('.navegacion__submenu a')) mas.open = false;
 }
 
 /** La URL manda siempre; en las vistas con memoria, lo que trae se guarda como «lo último». */
@@ -485,6 +490,8 @@ function vaciarComparar() {
 function ocultarTarjetas(id) {
   document.querySelectorAll(`[data-descartar="${CSS.escape(id)}"]`)
     .forEach((boton) => boton.closest('.con-motivo, .tarjeta, .billete')?.remove());
+  // El chollazo destacado de la portada no lleva ✕, pero se puede descartar desde su ficha.
+  document.querySelectorAll(`.destacado [data-ficha="${CSS.escape(id)}"]`).forEach((enlace) => enlace.closest('.destacado')?.remove());
 }
 
 /** La primera vez que se descarta algo se activa el filtro, para que no vuelva a aparecer. */
@@ -635,6 +642,13 @@ function cerrarMasFiltros(boton) {
 function conectarEventos() {
   document.addEventListener('click', manejarClic);
   document.addEventListener('click', cerrarMenuMas);
+  // Escape cierra «Más» y devuelve el foco a su botón.
+  document.querySelector('.navegacion__mas details')?.addEventListener('keydown', (evento) => {
+    const mas = evento.currentTarget;
+    if (evento.key !== 'Escape' || !mas.open) return;
+    mas.open = false;
+    mas.querySelector('summary')?.focus();
+  });
   document.addEventListener('click', (evento) => {
     const enlace = evento.target.closest?.('a[data-clic]');
     if (enlace) contarClic(enlace);
@@ -685,7 +699,10 @@ function conectarEventos() {
   });
   dialogo.addEventListener('close', () => {
     liberarFicha();
-    if (origenFicha?.isConnected) origenFicha.focus();
+    // Si la lista se ha repintado con la ficha abierta (p. ej. al marcarla como reservada), el
+    // botón que la abrió ya no existe: el foco va al de la misma oferta en la lista nueva.
+    const mismo = origenFicha?.dataset?.ficha ? principal.querySelector(`[data-ficha="${CSS.escape(origenFicha.dataset.ficha)}"]`) : null;
+    (origenFicha?.isConnected ? origenFicha : mismo)?.focus();
     origenFicha = null;
   });
   document.addEventListener('error', (evento) => {

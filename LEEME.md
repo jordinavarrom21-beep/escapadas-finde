@@ -34,7 +34,7 @@ GitHub Actions (cron cada 30 min, pero GitHub lanza los que puede: ver «Revisi�
   «cerca de Girona a menos de 1 h en coche».
 - **Mapa**, **calendario** de los próximos findes, **historial de precios**, **vigilados**
   y **estado de las fuentes**.
-  Calendario, Puentes, Vigilados y Fuentes están en «Más» del menú; en el móvil el menú va
+  Calendario, Puentes, Vigilados y Fuentes están en «Más» del menú; en el móvil y la tableta el menú va
   abajo, al alcance del pulgar, y hay modo claro y oscuro.
 - **Tu viaje** (botón «Desde … · 2 personas · 2 noches», debajo de la cabecera): la ciudad desde
   la que sales, cuántos viajáis y cuántas noches si la oferta no las fija. Se guarda solo en
