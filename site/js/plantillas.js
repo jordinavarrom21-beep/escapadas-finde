@@ -236,7 +236,7 @@ function botonFavorito(o, ctx) {
 function botonComparar(o, ctx) {
   if (!ctx.comparar) return '';
   const activo = ctx.comparar.has(o.id);
-  return `<button type="button" class="boton-icono boton-comparar" data-comparar="${esc(o.id)}" aria-pressed="${activo}" title="${activo ? 'Quitar de la comparación' : 'Comparar (hasta 3)'}" aria-label="${activo ? 'Quitar de la comparación' : 'Añadir a la comparación'}: ${esc(o.titulo)}">${icono('comparar')}</button>`;
+  return `<button type="button" class="boton-icono boton-comparar" data-comparar="${esc(o.id)}" aria-pressed="${activo}" title="${activo ? 'Quitar de «Comparar lado a lado»' : 'Comparar lado a lado (hasta 3)'}" aria-label="${activo ? 'Quitar de «Comparar lado a lado»' : 'Añadir a «Comparar lado a lado»'}: ${esc(o.titulo)}">${icono('comparar')}</button>`;
 }
 
 /** «La he reservado» y «Ya no está disponible»: se guardan en este navegador. */

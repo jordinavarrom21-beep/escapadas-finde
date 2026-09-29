@@ -12,7 +12,7 @@ import {
 } from './filtros.js';
 import { contar, cuentaAtras, escaparHtml as esc, haceCuanto, urlSegura } from './formato.js';
 import {
-  MAX_COMPARAR, borrarBusqueda, cargarBusquedas, cargarComparar, cargarDescartadas, cargarMisEstados, guardarComparar, guardarMisEstados, cargarFavoritos, cargarFiltros, cargarSalida, cargarViaje,
+  MAX_COMPARAR, borrarBusqueda, cargarBusquedas, marcarBusquedaVista, cargarComparar, cargarDescartadas, cargarMisEstados, guardarComparar, guardarMisEstados, cargarFavoritos, cargarFiltros, cargarSalida, cargarViaje,
   guardarBusqueda, guardarDescartadas, guardarFavoritos, guardarFiltros, guardarModoLista, guardarSalida, guardarTema, guardarViaje,
   tomarVisitaAnterior,
 } from './local.js';
@@ -22,7 +22,7 @@ import { estadoVacio } from './plantillas.js';
 import { icono } from './iconos.js';
 import { activarUbicacion } from './ubicacion.js';
 import {
-  VISTAS_HTML, contarSecundarios, paramsBuscadorFinde, contenidoSorpresa, contextoBusqueda, ctxTarjetas, datosMapa, formularioViaje, nombreSalida,
+  VISTAS_HTML, contarSecundarios, totalNovedadesGuardadas, paramsBuscadorFinde, contenidoSorpresa, contextoBusqueda, ctxTarjetas, datosMapa, formularioViaje, nombreSalida,
   resultadosMapa, textoViaje,
 } from './vistas.js';
 
@@ -38,8 +38,14 @@ const CAMPOS_QUE_SE_ESCRIBEN = ['number', 'search', 'text'];
 /** Vistas que recuerdan sus últimos filtros al volver a ellas. */
 const VISTAS_CON_MEMORIA = ['escapadas', 'actividades', 'vuelos'];
 const TITULOS = {
-  finde: 'Este finde', vuelos: 'Vuelos', escapadas: 'Escapadas', actividades: 'Actividades', mapa: 'Mapa',
-  calendario: 'Calendario', puentes: 'Puentes', vigilados: 'Vigilados', fuentes: 'Fuentes', buscar: 'Buscar', comparar: 'Comparar',
+  finde: 'Este finde', vuelos: 'Vuelos', escapadas: 'Escapadas', actividades: 'Planes', mapa: 'Mapa',
+  calendario: 'Calendario', puentes: 'Puentes', vigilados: 'Avisos por email', fuentes: 'Estado de las webs', buscar: 'Buscar',
+  comparar: 'Comparar lado a lado', mis: 'Mis cosas',
+};
+/** Qué apartado del menú se marca en cada vista (Inicio, Explorar, Fechas o Mis cosas). */
+const APARTADO = {
+  finde: 'finde', escapadas: 'escapadas', actividades: 'escapadas', vuelos: 'escapadas', mapa: 'escapadas', buscar: 'escapadas',
+  calendario: 'calendario', puentes: 'calendario', mis: 'mis', comparar: 'mis', vigilados: 'mis',
 };
 
 let estado = null;
@@ -179,6 +185,16 @@ function pintarBotonTema() {
   boton.setAttribute('aria-label', oscuro ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro');
 }
 
+/** El número del menú «Mis cosas»: ofertas nuevas que cumplen tus búsquedas guardadas. */
+function pintarAvisoMis() {
+  const aviso = $('#aviso-mis');
+  if (!aviso) return;
+  const n = totalNovedadesGuardadas(estado);
+  aviso.textContent = n > 99 ? '99+' : String(n);
+  aviso.hidden = n === 0;
+  aviso.closest('a')?.setAttribute('aria-label', n ? `Mis cosas: ${n} ${n === 1 ? 'oferta nueva' : 'ofertas nuevas'} en tus búsquedas guardadas` : 'Mis cosas');
+}
+
 /** Marca «Tarjetas» o «Lista» según el modo puesto (una clase en <html>, ver tema.js). */
 function sincronizarModoLista() {
   const lista = document.documentElement.classList.contains('modo-lista');
@@ -241,7 +257,7 @@ const contextoFechas = () => ({ hoy: estado.hoy, findes: estado.findes, puentes:
  * siguen el historial de verdad (antes se reescribía la entrada «sin filtros»).
  */
 function enlacesConMemoria() {
-  for (const enlace of document.querySelectorAll('.navegacion a[data-vista]')) {
+  for (const enlace of document.querySelectorAll('.navegacion a[data-vista], .pestanas a[data-vista]')) {
     const vista = enlace.dataset.vista;
     if (!VISTAS_CON_MEMORIA.includes(vista)) continue;
     const guardados = filtrosVigentes(cargarFiltros(vista) ?? {}, contextoFechas());
@@ -264,7 +280,7 @@ function render({ enfocar = true } = {}) {
   enlacesConMemoria();
   document.title = `${TITULOS[vista]} · Escapadas Finde`;
   document.querySelectorAll('.navegacion a').forEach((a) => {
-    if (a.dataset.vista === vista) a.setAttribute('aria-current', 'page');
+    if (a.dataset.vista === APARTADO[vista]) a.setAttribute('aria-current', 'page');
     else a.removeAttribute('aria-current');
   });
   $('#q').value = vista === 'buscar' ? params.q ?? '' : '';
@@ -274,6 +290,7 @@ function render({ enfocar = true } = {}) {
   if (cambiaVista && esMovil()) principal.querySelectorAll('[data-plegable-movil]').forEach((d) => { d.open = false; });
   sincronizarMasFiltros(params);
   sincronizarModoLista();
+  pintarAvisoMis();
   if (vista === 'finde') {
     pintarReloj();
     pintarPuente();
@@ -400,12 +417,13 @@ function guardarBusquedaActual(vista) {
   }
   estado.busquedas = guardarBusqueda({ nombre, vista, hash: location.hash || crearHash(vista, {}) });
   render({ enfocar: false });
-  anunciar(`Búsqueda «${nombre}» guardada en este navegador.`);
+  anunciar(`Búsqueda «${nombre}» guardada: en «Mis cosas» verás las ofertas nuevas que la cumplan.`);
 }
 
 function borrarBusquedaGuardada(nombre) {
   estado.busquedas = borrarBusqueda(nombre);
   render({ enfocar: false });
+  pintarAvisoMis();
   anunciar(`Búsqueda «${nombre}» borrada.`);
 }
 
@@ -440,7 +458,7 @@ async function copiarVigilado(vista, boton) {
   caja.textContent = json;
   boton.closest('details')?.append(caja);
   anunciar(copiado
-    ? 'Criterio copiado: pégalo en config/vigilados.json, dentro de la lista "vigilados".'
+    ? 'Criterio copiado para los avisos por email: pégalo en config/vigilados.json, dentro de la lista "vigilados".'
     : 'No se ha podido copiar solo: tienes el criterio debajo del botón para copiarlo a mano.');
 }
 
@@ -473,7 +491,7 @@ function pintarBarraComparar() {
     if (vistaActual === 'mapa') acciones.push(`<a class="boton boton--suave" href="${esc(crearHash('escapadas', params))}">${icono('lista')}Lista</a>`);
   }
   if (n && vistaActual !== 'comparar') {
-    acciones.push(`<a class="boton boton--primario" href="#/comparar">${icono('comparar')}Comparar (${n}${esMovil() ? '' : ` de ${MAX_COMPARAR}`})</a>`,
+    acciones.push(`<a class="boton boton--primario" href="#/comparar">${icono('comparar')}${esMovil() ? `Comparar (${n})` : `Comparar lado a lado (${n} de ${MAX_COMPARAR})`}</a>`,
       `<button type="button" class="boton boton--suave boton--mini" data-vaciar-comparar aria-label="Vaciar la comparación">${icono('cerrar')}<span class="barra-comparar__texto">Vaciar</span></button>`);
   }
   barra.hidden = acciones.length === 0;
@@ -626,7 +644,7 @@ function alternarMiEstado(id, nuevo) {
 
 const ACCIONES = '[data-actualizar], [data-compartir-busqueda], [data-usar-viaje], [data-mi-estado], [data-abrir-filtros], [data-comparar], [data-vaciar-comparar], [data-mi-viaje], [data-cerrar-viaje], [data-ficha], [data-fav], [data-descartar], [data-mas], [data-sorpresa],'
   + ' [data-guardar-busqueda], [data-borrar-busqueda], [data-copiar-vigilado], [data-cerrar-ficha], [data-cerrar-novedades],'
-  + ' [data-olvidar-filtros], [data-cerrar-mas], [data-modo-lista]';
+  + ' [data-olvidar-filtros], [data-cerrar-mas], [data-modo-lista], [data-abrir-busqueda]';
 
 function manejarClic(evento) {
   const objetivo = evento.target.closest(ACCIONES);
@@ -653,6 +671,11 @@ function manejarClic(evento) {
   else if ('olvidarFiltros' in d) guardarFiltros(leerRuta(objetivo.getAttribute('href')).vista, {}); // el enlace sigue su curso
   else if ('cerrarMas' in d) cerrarMasFiltros(objetivo);
   else if (d.modoLista) cambiarModoLista(d.modoLista);
+  else if (d.abrirBusqueda) {
+    // El enlace sigue su curso; desde ahora, lo que aparezca es lo nuevo.
+    estado.busquedas = marcarBusquedaVista(d.abrirBusqueda);
+    pintarAvisoMis();
+  }
   else $('#novedades').hidden = true;
 }
 

@@ -59,15 +59,27 @@ export const guardarFavoritos = (favoritos) => guardarIds(CLAVE_FAVORITOS, favor
 export const cargarDescartadas = () => cargarIds(CLAVE_DESCARTADAS);
 export const guardarDescartadas = (descartadas) => guardarIds(CLAVE_DESCARTADAS, descartadas);
 
-/** Búsquedas guardadas: [{nombre, vista, hash}], la última primero. */
+/**
+ * Búsquedas guardadas: [{nombre, vista, hash, visto}], la última primero. `visto` (ISO) es
+ * cuándo se miró por última vez: lo que aparece después cuenta como nuevo en «Mis cosas».
+ */
 export function cargarBusquedas() {
   const lista = leerJson(CLAVE_BUSQUEDAS, []);
-  return Array.isArray(lista) ? lista.filter((b) => b?.nombre && b?.hash) : [];
+  return Array.isArray(lista)
+    ? lista.filter((b) => b?.nombre && b?.hash).map((b) => ({ ...b, visto: typeof b.visto === 'string' ? b.visto : null }))
+    : [];
 }
 
 /** Guarda (o reemplaza si se repite el nombre) y devuelve la lista actualizada. */
-export function guardarBusqueda({ nombre, vista, hash }) {
-  const lista = [{ nombre, vista, hash }, ...cargarBusquedas().filter((b) => b.nombre !== nombre)].slice(0, MAX_BUSQUEDAS);
+export function guardarBusqueda({ nombre, vista, hash }, ahora = new Date()) {
+  const lista = [{ nombre, vista, hash, visto: ahora.toISOString() }, ...cargarBusquedas().filter((b) => b.nombre !== nombre)].slice(0, MAX_BUSQUEDAS);
+  escribir(local, CLAVE_BUSQUEDAS, JSON.stringify(lista));
+  return lista;
+}
+
+/** Al abrirla desde «Mis cosas»: lo que cumple a partir de ahora es lo nuevo. */
+export function marcarBusquedaVista(nombre, ahora = new Date()) {
+  const lista = cargarBusquedas().map((b) => (b.nombre === nombre ? { ...b, visto: ahora.toISOString() } : b));
   escribir(local, CLAVE_BUSQUEDAS, JSON.stringify(lista));
   return lista;
 }
