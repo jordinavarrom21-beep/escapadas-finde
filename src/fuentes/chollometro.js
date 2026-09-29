@@ -16,14 +16,24 @@ const PAUSA_MS = 2000;
 
 const CATEGORIA_VIAJES = /\b(?:viajes?|vuelos?|hoteles?|vacaciones|escapadas?)\b/;
 
-// Palabras que dejan claro que es una oferta de viaje (sobre el título sin tildes).
-const VIAJE = new RegExp(`\\b(?:${[
-  'hotel(?:es)?', 'hostal(?:es)?', 'apartamentos?', 'paradore?s?', 'resorts?', 'casas? rurale?s?', 'balnearios?',
-  'vuelos?', 'billetes? de (?:avion|tren|autobus|barco|ferry)', 'cruceros?', 'ferry', 'escapadas?', '\\d+ noches?',
+// Palabras que dejan claro que es una oferta de viaje (sobre el título sin tildes), sea cual
+// sea la categoría: nadie vende un «balneario» ni un «crucero» en Electrónica.
+const FUERTES = [
+  'hostal(?:es)?', 'apartamentos?', 'paradore?s?', 'resorts?', 'casas? rurale?s?', 'balnearios?',
+  'billetes? de (?:avion|tren|autobus|barco|ferry)', 'cruceros?', 'ferry', 'escapadas?',
   'parques? tematicos?', 'port ?aventura', 'ferrari land', 'disneyland', 'parque warner',
-  'renfe', 'ouigo', 'iryo', 'ryanair', 'vueling', 'iberia', 'air europa', 'easyjet', 'volotea', 'binter',
   'booking', 'airbnb', 'edreams', 'logitravel', 'expedia', 'atrapalo', 'destinia',
-].join('|')})\\b`, 'i');
+];
+// Palabras que también aparecen en productos («ADI HOGAR Y HOSTELERÍA IBERIA», «Joystick de
+// vuelo», «Bolsa de cabina easyJet», el disco «Hotel California», «Raid hasta 90 noches»):
+// solo cuentan si Chollometro publica el chollo en su categoría de viajes.
+const DEBILES = [
+  'hotel(?:es)?', 'vuelos?', '\\d+ noches?',
+  'renfe', 'ouigo', 'iryo', 'ryanair', 'vueling', 'iberia', 'air europa', 'easyjet', 'volotea', 'binter',
+];
+const palabras = (lista) => new RegExp(`\\b(?:${lista.join('|')})\\b`, 'i');
+const VIAJE_FUERTE = palabras(FUERTES);
+const VIAJE = palabras([...FUERTES, ...DEBILES]);
 const AVE = /\bAVE\b/;
 
 // Productos que mencionan viajes sin serlo («Maleta de cabina Ryanair», «Dron con 30 min de vuelo»).
@@ -62,16 +72,16 @@ function separarTemperatura(tituloRss) {
 
 /**
  * true si un item del RSS es una oferta de viaje: por su categoría o por las
- * palabras de su título. Si lo primero que nombra el título es un producto
- * (maleta, mochila, dron…), no lo es.
+ * palabras de su título (las que también salen en productos, solo en la categoría de
+ * viajes). Si lo primero que nombra el título es un producto (maleta, mochila, dron…), no lo es.
  * @param {{category?: string|string[], title?: string}} item
  */
 export function esDeViajes(item) {
   const titulo = sinTildes(separarTemperatura(textoDe(item.title)).titulo);
-  const viaje = Math.min(posicion(VIAJE, titulo), posicion(AVE, titulo));
+  const enViajes = [item.category ?? []].flat().some((categoria) => CATEGORIA_VIAJES.test(textoPlano(textoDe(categoria)).toLowerCase()));
+  const viaje = Math.min(posicion(enViajes ? VIAJE : VIAJE_FUERTE, titulo), posicion(AVE, titulo));
   if (posicion(PRODUCTO, titulo) < viaje) return false;
-  if (viaje < Infinity) return true;
-  return [item.category ?? []].flat().some((categoria) => CATEGORIA_VIAJES.test(textoPlano(textoDe(categoria)).toLowerCase()));
+  return viaje < Infinity || enViajes;
 }
 
 const tipoDe = (titulo) => TIPOS.find(([, patron]) => patron.test(sinTildes(titulo)))?.[0] ?? 'escapada';
@@ -184,6 +194,13 @@ export default {
     if (errores.length === URLS_FEEDS.length) {
       throw new Error(`No responde ningún feed de Chollometro: ${errores[0].message}`);
     }
-    return { ofertas: deduplicar(ofertas) };
+    const unicas = deduplicar(ofertas);
+    // Los feeds solo traen lo último: lo guardado que no vuelve a salir caduca por retencionDias.
+    // Pero lo que ya no pasa el filtro de viajes (un táper que entró por «Iberia») se retira ya.
+    // Sin ofertas no se devuelve: 0 con «reemplazar» se tomaría por un cambio en la web.
+    return unicas.length ? { ofertas: unicas, reemplazar: (guardada) => !sigueSiendoDeViajes(guardada) } : { ofertas: unicas };
   },
 };
+
+/** Vuelve a pasar el filtro a una oferta ya guardada: sus etiquetas conservan las categorías del RSS. */
+export const sigueSiendoDeViajes = (oferta) => esDeViajes({ title: oferta.titulo, category: oferta.etiquetas });

@@ -103,6 +103,20 @@ describe('esDeViajes', () => {
     assert.equal(es('Autobús turístico teledirigido - Action', 'Juguetes, familia e hijos'), false);
   });
 
+  it('las marcas y palabras que también nombran productos solo cuentan en la categoría de viajes', () => {
+    // Todos llegaron al panel como «vuelos» u «hoteles» el 28-09-2026.
+    assert.equal(es('Taper hermético de vidrio cuadricular de 76 cl, ADI HOGAR Y HOSTELERÍA IBERIA.'), false);
+    assert.equal(es('Thrustmaster T.Flight Hotas X - Joystick y Acelerador Vuelo - PC', 'Gaming'), false);
+    assert.equal(es('American Tourister Take2Cabin - Easyjet Bolsa de Cabina 36 x 20 x 45 cm', 'Moda y accesorios'), false);
+    assert.equal(es('Eagles Hotel California (40th Anniversary) Edición limitada (CD)', 'Cine, libros, cultura y ocio'), false);
+    assert.equal(es('Raid Líquido Eléctrico Eucalipto, hasta 90 noches de protección', 'Supermercado y alimentación'), false);
+    assert.equal(es('Recopilación Joaquín Sabina: 19 Días y 500 Noches', 'Cine, libros, cultura y ocio'), false);
+    // En viajes, o con palabras que solo nombran viajes, siguen entrando.
+    assert.equal(es('Ryanair 20 € de descuento en vuelos de ida y vuelta', 'Viajes'), true);
+    assert.equal(es('Entradas a PortAventura Park por 26€', 'Cine, libros, cultura y ocio'), true);
+    assert.equal(es('ESCAPADA GASTRONÓMICA en La Seu d’Urgell', 'Cine, libros, cultura y ocio'), true);
+  });
+
   it('lo decide lo que nombra primero el título', () => {
     assert.equal(es('Vuelos a Tokio con maleta facturada', 'Viajes'), true);
   });
@@ -137,7 +151,11 @@ describe('obtener', () => {
     assert.equal(ctx.esperas.length, 1);
     assert.deepEqual(ofertas.map((o) => o.id), ['chollometro:3000001', 'chollometro:3000002']);
     assert.ok(ofertas[0].etiquetas.includes('temperatura:182'));
-    assert.equal(reemplazar, undefined);
+    // Solo retira lo guardado que ya no pasa el filtro: lo demás caduca por retencionDias.
+    assert.equal(typeof reemplazar, 'function');
+    assert.equal(reemplazar(ofertas[0]), false);
+    const taper = { titulo: 'Taper hermético ADI HOGAR Y HOSTELERÍA IBERIA', etiquetas: ['temperatura:189', 'Hogar, vivienda y oficina', 'Alcampo'] };
+    assert.equal(reemplazar(taper), true);
   });
 
   it('sigue con un feed si el otro falla y lanza un error si fallan los dos', async () => {
