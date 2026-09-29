@@ -19,6 +19,7 @@ import {
 import { salidaEfectiva, validarSalida, validarViaje } from './viaje.js';
 import { destruirMapa, pintarMapa } from './mapa.js';
 import { estadoVacio } from './plantillas.js';
+import { icono } from './iconos.js';
 import { activarUbicacion } from './ubicacion.js';
 import {
   VISTAS_HTML, contarSecundarios, paramsBuscadorFinde, contenidoSorpresa, contextoBusqueda, ctxTarjetas, datosMapa, formularioViaje, nombreSalida,
@@ -97,12 +98,12 @@ function crearEstado(datos, historial, vigilados) {
 
 function pintarReloj() {
   const { esFinde, faltaMs } = estadoFinde(new Date());
-  $('#cuenta-atras').textContent = esFinde ? '🎉 ¡Es finde!' : `⏳ Faltan ${cuentaAtras(faltaMs)} para el finde`;
+  $('#cuenta-atras').innerHTML = esFinde ? `${icono('puentes')}¡Es finde!` : `${icono('arena')}Finde en ${esc(cuentaAtras(faltaMs))}`;
   const generado = estado.datos.generado;
   const antiguo = Date.now() - Date.parse(generado) > DATOS_ANTIGUOS_MS;
   const actualizado = $('#actualizado');
   // Es la hora de la última revisión; cada web se consulta a su ritmo y cada oferta dice cuándo se comprobó.
-  actualizado.innerHTML = `${antiguo ? '⚠️ ' : ''}Última revisión <time datetime="${esc(generado)}" title="${esc(new Date(generado).toLocaleString('es-ES'))}. Cada web se consulta a su ritmo (de 30 min a 1 día): en cada oferta pone cuándo se comprobó.">${esc(haceCuanto(generado))}</time>`;
+  actualizado.innerHTML = `${antiguo ? icono('alerta') : ''}Revisado <time datetime="${esc(generado)}" title="${esc(new Date(generado).toLocaleString('es-ES'))}. Cada web se consulta a su ritmo (de 30 min a 1 día): en cada oferta pone cuándo se comprobó.">${esc(haceCuanto(generado))}</time>`;
   actualizado.classList.toggle('antiguo', antiguo);
 }
 
@@ -115,7 +116,7 @@ function pintarAvisoComercial() {
   const patrocinadas = estado.datos.ofertas.some((o) => o.patrocinada);
   const nombres = proveedores.map((id) => estado.fuentes.get(id) ?? id.charAt(0).toUpperCase() + id.slice(1));
   $('#aviso-comercial').textContent = proveedores.length || patrocinadas
-    ? `${proveedores.length ? `Los enlaces a ${nombres.join(', ')} son de afiliado («🔗 Enlace de afiliado»): si reservas, la web puede pagarnos una comisión. ` : ''}${patrocinadas ? 'Las ofertas patrocinadas llevan «Patrocinado». ' : ''}Nada de esto cambia tu precio ni el orden de las ofertas, que depende solo de precio, fechas y calidad.`
+    ? `${proveedores.length ? `Los enlaces a ${nombres.join(', ')} son de afiliado («Enlace de afiliado»): si reservas, la web puede pagarnos una comisión. ` : ''}${patrocinadas ? 'Las ofertas patrocinadas llevan «Patrocinado». ' : ''}Nada de esto cambia tu precio ni el orden de las ofertas, que depende solo de precio, fechas y calidad.`
     : 'Ahora mismo ningún enlace es de afiliado y no hay ofertas patrocinadas: el orden depende solo de precio, fechas y calidad.';
 }
 
@@ -139,7 +140,7 @@ function pintarCabecera() {
   if (p) {
     const faltan = diasEntre(estado.hoy, p.desde);
     const cuando = faltan <= 0 ? 'ahora' : faltan === 1 ? 'mañana' : `en ${faltan} días`;
-    aviso.innerHTML = `<a href="${crearHash('vuelos', { finde: p.id })}">🎉 Puente de ${esc(p.nombre)} · ${esc(p.etiqueta)} (${cuando})</a>`;
+    aviso.innerHTML = `<a href="${crearHash('vuelos', { finde: p.id })}" title="Puente de ${esc(p.nombre)}">${icono('puentes')}Puente ${esc(p.etiqueta)} · ${cuando}</a>`;
     aviso.hidden = false;
   }
   const r = resumenFuentes(estado.datos.fuentes);
@@ -155,9 +156,9 @@ function pintarNovedades() {
   const aviso = $('#novedades');
   if (!nuevas) return;
   const desde = estado.visitaAnterior ? `desde tu última visita (${haceCuanto(estado.visitaAnterior)})` : 'en las últimas 24 h';
-  aviso.innerHTML = `<p>🆕 <strong>${contar(nuevas, 'novedad', 'novedades')}</strong> ${esc(desde)}</p>
+  aviso.innerHTML = `<p>${icono('nuevo')}<span><strong>${contar(nuevas, 'novedad', 'novedades')}</strong> ${esc(desde)}</span></p>
 <a class="boton boton--primario" href="#/buscar?nuevas=1">Verlas</a>
-<button type="button" class="boton-icono" data-cerrar-novedades aria-label="Ocultar el aviso de novedades">✕</button>`;
+<button type="button" class="boton-icono" data-cerrar-novedades aria-label="Ocultar el aviso de novedades">${icono('cerrar')}</button>`;
   aviso.hidden = false;
 }
 
@@ -168,7 +169,7 @@ function temaEfectivo() {
 function pintarBotonTema() {
   const oscuro = temaEfectivo() === 'dark';
   const boton = $('#cambiar-tema');
-  boton.textContent = oscuro ? '☀️' : '🌙';
+  boton.innerHTML = icono(oscuro ? 'sol' : 'luna');
   boton.setAttribute('aria-label', oscuro ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro');
 }
 
@@ -193,6 +194,12 @@ function prepararMapa(params) {
   const d = datosMapa(estado, params);
   $('#resultados').innerHTML = resultadosMapa(estado, params, d);
   pintarMapa($('#mapa'), d, ctxTarjetas(estado, { distancias: d.distancias, desde: d.desde }));
+}
+
+/** El desplegable «Más» del menú se cierra al cambiar de vista o al tocar fuera. */
+function cerrarMenuMas(evento = null) {
+  const mas = document.querySelector('.navegacion__mas details');
+  if (mas?.open && !(evento && mas.contains(evento.target))) mas.open = false;
 }
 
 /** La URL manda siempre; en las vistas con memoria, lo que trae se guarda como «lo último». */
@@ -224,6 +231,7 @@ function render({ enfocar = true } = {}) {
   const cambiaVista = vista !== vistaActual;
   if (cambiaVista) estado.paginas.clear();
   if (dialogo.open) dialogo.close();
+  cerrarMenuMas();
   if (vista !== 'mapa') destruirMapa();
   vistaActual = vista;
   principal.innerHTML = VISTAS_HTML[vista].html(estado, params);
@@ -412,10 +420,7 @@ function alternarFavorito(id) {
   if (activo) estado.favoritos.add(id);
   else estado.favoritos.delete(id);
   guardarFavoritos(estado.favoritos);
-  document.querySelectorAll(`[data-fav="${CSS.escape(id)}"]`).forEach((boton) => {
-    boton.setAttribute('aria-pressed', String(activo));
-    boton.textContent = activo ? '★' : '☆';
-  });
+  document.querySelectorAll(`[data-fav="${CSS.escape(id)}"]`).forEach((boton) => boton.setAttribute('aria-pressed', String(activo)));
   anunciar(activo ? 'Guardada en favoritos' : 'Quitada de favoritos');
 }
 
@@ -423,8 +428,8 @@ function alternarFavorito(id) {
 const VISTAS_CON_BARRA = ['escapadas', 'vuelos', 'actividades', 'mapa'];
 
 /**
- * Barra flotante de abajo: «⚖️ Comparar (2 de 3)» con algo elegido (fuera de la propia
- * comparación) y, en el móvil, «⚙️ Filtros» y el cambio entre lista y mapa sin perder filtros.
+ * Barra flotante de abajo: «Comparar (2 de 3)» con algo elegido (fuera de la propia
+ * comparación) y, en el móvil, «Filtros» y el cambio entre lista y mapa sin perder filtros.
  */
 function pintarBarraComparar() {
   const barra = $('#barra-comparar');
@@ -432,19 +437,19 @@ function pintarBarraComparar() {
   const { params } = leerRuta(location.hash);
   const acciones = [];
   if (esMovil() && VISTAS_CON_BARRA.includes(vistaActual)) {
-    acciones.push('<button type="button" class="boton boton--suave" data-abrir-filtros>⚙️ Filtros</button>');
-    if (vistaActual === 'escapadas') acciones.push(`<a class="boton boton--suave" href="${esc(crearHash('mapa', params))}">🗺️ Mapa</a>`);
-    if (vistaActual === 'mapa') acciones.push(`<a class="boton boton--suave" href="${esc(crearHash('escapadas', params))}">📋 Lista</a>`);
+    acciones.push(`<button type="button" class="boton boton--suave" data-abrir-filtros>${icono('filtros')}Filtros</button>`);
+    if (vistaActual === 'escapadas') acciones.push(`<a class="boton boton--suave" href="${esc(crearHash('mapa', params))}">${icono('mapa')}Mapa</a>`);
+    if (vistaActual === 'mapa') acciones.push(`<a class="boton boton--suave" href="${esc(crearHash('escapadas', params))}">${icono('lista')}Lista</a>`);
   }
   if (n && vistaActual !== 'comparar') {
-    acciones.push(`<a class="boton boton--primario" href="#/comparar">⚖️ Comparar (${n}${esMovil() ? '' : ` de ${MAX_COMPARAR}`})</a>`,
-      `<button type="button" class="boton boton--suave boton--mini" data-vaciar-comparar aria-label="Vaciar la comparación">Vaciar</button>`);
+    acciones.push(`<a class="boton boton--primario" href="#/comparar">${icono('comparar')}Comparar (${n}${esMovil() ? '' : ` de ${MAX_COMPARAR}`})</a>`,
+      `<button type="button" class="boton boton--suave boton--mini" data-vaciar-comparar aria-label="Vaciar la comparación">${icono('cerrar')}<span class="barra-comparar__texto">Vaciar</span></button>`);
   }
   barra.hidden = acciones.length === 0;
   barra.innerHTML = acciones.join('');
 }
 
-/** «⚙️ Filtros» de la barra: despliega los filtros y lleva a ellos. */
+/** «Filtros» de la barra: despliega los filtros y lleva a ellos. */
 function abrirFiltros() {
   const plegable = principal.querySelector('[data-plegable-movil], .filtros-plegables');
   if (!plegable) return;
@@ -457,7 +462,7 @@ function abrirFiltros() {
 function alternarComparar(id) {
   const activo = !estado.comparar.has(id);
   if (activo && estado.comparar.size >= MAX_COMPARAR) {
-    anunciar(`Solo se comparan ${MAX_COMPARAR} a la vez: quita una con ⚖️ antes de añadir otra.`);
+    anunciar(`Solo se comparan ${MAX_COMPARAR} a la vez: quita una antes de añadir otra.`);
     return;
   }
   if (activo) estado.comparar.add(id);
@@ -520,7 +525,7 @@ const dialogoViaje = $('#mi-viaje');
 let origenViaje = null;
 
 function pintarBotonViaje() {
-  $('#boton-viaje').textContent = textoViaje(estado);
+  $('#boton-viaje').innerHTML = `${icono('pin')}<span>${esc(textoViaje(estado))}</span>`;
 }
 
 function abrirViaje(disparador) {
@@ -551,7 +556,7 @@ function aplicarViaje(salida, viaje) {
   estado.distanciasOrigen = medirDistancias(estado.datos.ofertas, estado.salida, estado.datos.origen);
   pintarBotonViaje();
   render({ enfocar: false });
-  anunciar(`Guardado en este navegador: ${textoViaje(estado).replace(/^📍 /, '')}.`);
+  anunciar(`Guardado en este navegador: ${textoViaje(estado)}.`);
 }
 
 /** «Usar …» de un enlace compartido: adopta su salida, viajeros y noches. */
@@ -571,7 +576,7 @@ async function compartirBusqueda(vista) {
     : `No se ha podido copiar solo. El enlace es: ${enlace}`);
 }
 
-/** «✅ La he reservado» o «🚫 Ya no está disponible» (volver a pulsar lo quita). */
+/** «La he reservado» o «Ya no está disponible» (volver a pulsar lo quita). */
 function alternarMiEstado(id, nuevo) {
   if (estado.misEstados.get(id) === nuevo) estado.misEstados.delete(id);
   else estado.misEstados.set(id, nuevo);
@@ -629,6 +634,7 @@ function cerrarMasFiltros(boton) {
 
 function conectarEventos() {
   document.addEventListener('click', manejarClic);
+  document.addEventListener('click', cerrarMenuMas);
   document.addEventListener('click', (evento) => {
     const enlace = evento.target.closest?.('a[data-clic]');
     if (enlace) contarClic(enlace);
@@ -742,7 +748,7 @@ const ocupado = () => dialogo.open || dialogoViaje.open || ['INPUT', 'TEXTAREA',
 
 function avisarVersionNueva() {
   const aviso = $('#novedades');
-  aviso.innerHTML = `<p>✨ Hay una versión nueva del panel.</p>
+  aviso.innerHTML = `<p>${icono('nuevo')}<span>Hay una versión nueva del panel.</span></p>
 <button type="button" class="boton boton--primario" data-actualizar>Actualizar</button>`;
   aviso.hidden = false;
 }

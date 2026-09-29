@@ -27,7 +27,7 @@ export const ETIQUETAS_REGIMEN = {
   'todo-incluido': 'Todo incluido',
 };
 
-export const ETIQUETAS_TRANSPORTE = { avion: '✈️ Avión', coche: '🚗 Coche', tren: '🚆 Tren', bus: '🚌 Autobús', ferry: '⛴️ Ferry' };
+export const ETIQUETAS_TRANSPORTE = { avion: 'Avión', coche: 'Coche', tren: 'Tren', bus: 'Autobús', ferry: 'Ferry' };
 
 export const ETIQUETAS_TIPO = {
   // «hotel» es «solo alojamiento» (casa rural, camping, parador…): el tipo concreto va en `alojamiento`.
@@ -35,28 +35,14 @@ export const ETIQUETAS_TIPO = {
 };
 
 export const ETIQUETAS_ALOJAMIENTO = {
-  hotel: '🏨 Hotel',
-  'casa-rural': '🏡 Casa rural',
-  camping: '⛺ Camping',
-  apartamento: '🏢 Apartamento',
-  parador: '🏰 Parador',
-  balneario: '♨️ Balneario',
-  hostal: '🛏️ Hostal',
+  hotel: 'Hotel',
+  'casa-rural': 'Casa rural',
+  camping: 'Camping',
+  apartamento: 'Apartamento',
+  parador: 'Parador',
+  balneario: 'Balneario',
+  hostal: 'Hostal',
 };
-
-/** Emoji del código de tiempo de Open-Meteo (WMO). */
-export function emojiTiempo(codigo) {
-  if (!Number.isFinite(codigo)) return '';
-  if (codigo === 0) return '☀️';
-  if (codigo <= 2) return '🌤️';
-  if (codigo === 3) return '☁️';
-  if (codigo <= 48) return '🌫️';
-  if (codigo <= 67) return '🌧️';
-  if (codigo <= 77) return '❄️';
-  if (codigo <= 82) return '🌦️';
-  if (codigo <= 86) return '🌨️';
-  return '⛈️';
-}
 
 /** 21 → «21°». */
 export const grados = (valor) => (Number.isFinite(valor) ? `${Math.round(valor)}°` : '');

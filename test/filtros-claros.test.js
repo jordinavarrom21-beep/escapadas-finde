@@ -36,7 +36,7 @@ describe('filtros claros: lo que tienes puesto', () => {
   it('un chip por filtro, con su texto y el enlace a la misma búsqueda sin él', () => {
     const params = { temas: 'spa,rural', max: '200', fuente: 'atrapalo', orden: 'precio' };
     const chips = filtrosActivos('escapadas', params, ctx);
-    assert.deepEqual(chips.map((c) => c.texto), ['🧖 Relax y spa', '🌲 Rural y naturaleza', `Hasta ${euros(200)} publicados`, 'Solo Atrápalo']);
+    assert.deepEqual(chips.map((c) => c.texto), ['Relax y spa', 'Rural y naturaleza', `Hasta ${euros(200)} publicados`, 'Solo Atrápalo']);
     // Quitar «spa» deja «rural» y todo lo demás, orden incluido.
     assert.deepEqual(leerRuta(chips[0].hash).params, { temas: 'rural', max: '200', fuente: 'atrapalo', orden: 'precio' });
     assert.deepEqual(leerRuta(chips[2].hash).params, { temas: 'spa,rural', fuente: 'atrapalo', orden: 'precio' });
@@ -44,16 +44,16 @@ describe('filtros claros: lo que tienes puesto', () => {
 
   it('el lugar se quita con sus coordenadas, y un solo día es un solo chip', () => {
     const chips = filtrosActivos('escapadas', { lugar: 'Girona', lat: '41.98', lon: '2.82', h: '2', desde: '2026-10-16', hasta: '2026-10-16' }, ctx);
-    assert.deepEqual(chips.map((c) => c.texto), ['📍 Cerca de Girona', '🚗 Menos de 2 h en coche', '📅 El vie 16 oct']);
+    assert.deepEqual(chips.map((c) => c.texto), ['Cerca de Girona', 'Menos de 2 h en coche', 'El vie 16 oct']);
     assert.deepEqual(leerRuta(chips[0].hash).params, { h: '2', desde: '2026-10-16', hasta: '2026-10-16' });
     assert.deepEqual(leerRuta(chips[2].hash).params, { lugar: 'Girona', lat: '41.98', lon: '2.82', h: '2' });
     const rango = filtrosActivos('escapadas', { desde: '2026-10-16', hasta: '2026-10-18' }, ctx);
-    assert.deepEqual(rango.map((c) => c.texto), ['📅 Desde el vie 16 oct', '📅 Hasta el dom 18 oct']);
+    assert.deepEqual(rango.map((c) => c.texto), ['Desde el vie 16 oct', 'Hasta el dom 18 oct']);
   });
 
   it('no enseña lo que no filtra: el orden ni «ocultar cruceros» (que es lo de fábrica)', () => {
     assert.deepEqual(filtrosActivos('escapadas', { orden: 'precio', cru: '1' }, ctx), []);
-    assert.deepEqual(filtrosActivos('escapadas', { cru: '0' }, ctx).map((c) => c.texto), ['🚢 Con cruceros']);
+    assert.deepEqual(filtrosActivos('escapadas', { cru: '0' }, ctx).map((c) => c.texto), ['Con cruceros']);
     assert.deepEqual(filtrosActivos('escapadas', {}, ctx), []);
   });
 
@@ -64,7 +64,7 @@ describe('filtros claros: lo que tienes puesto', () => {
 
   it('los resultados llevan la fila de chips y «Quitar todos» olvida la memoria', () => {
     const html = resultadosEscapadas(estado(), { temas: 'spa' });
-    assert.match(html, /class="chip chip--activo" href="#\/escapadas" data-olvidar-filtros aria-label="Quitar el filtro 🧖 Relax y spa"/);
+    assert.match(html, /class="chip chip--activo" href="#\/escapadas" data-olvidar-filtros aria-label="Quitar el filtro Relax y spa"/);
     assert.match(html, /href="#\/escapadas" data-olvidar-filtros>Quitar todos<\/a>/);
     assert.doesNotMatch(resultadosEscapadas(estado(), {}), /chip--activo/);
   });
@@ -96,7 +96,7 @@ describe('filtros claros: jerarquía del formulario', () => {
   it('arriba, cuatro preguntas y la explicación de fechas cerradas y flexibles', () => {
     const titulos = [...html.matchAll(/class="bloque__titulo">([^<]+)</g)].map(([, t]) => t);
     assert.deepEqual(titulos, ['¿Cuándo?', '¿Qué te apetece?', '¿Dónde?', '¿Cuánto?']);
-    assert.match(html, /name="cerradas" value="1"> 📅 Solo con fechas cerradas/);
+    assert.match(html, /name="cerradas" value="1"> Solo con fechas cerradas/);
     assert.match(html, /la disponibilidad exacta la confirma la web del anunciante/);
   });
 

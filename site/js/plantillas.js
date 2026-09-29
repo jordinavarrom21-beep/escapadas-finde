@@ -7,10 +7,11 @@ import { costeViaje, resumenCoste } from './coste.js';
 import { diasEntre, etiquetaDia, fechaLocal, horaDe } from './fechas.js';
 import {
   ETIQUETAS_ALOJAMIENTO, ETIQUETAS_REGIMEN, ETIQUETAS_TIPO, ETIQUETAS_TRANSPORTE, ETIQUETAS_UNIDAD, SIN_UNIDAD,
-  contar, duracion, emojiTiempo, enumerar, escaparHtml as esc, euros, grados, haceCuanto, nota,
+  contar, duracion, enumerar, escaparHtml as esc, euros, grados, haceCuanto, nota,
   puntosMinigrafica, urlSegura,
 } from './formato.js';
 import { SIN_COCHE, duracionActividad, esDuplicada, esNovedad, salidasDe, tieneVuelo } from './filtros.js';
+import { escena, icono, iconoTema, iconoTiempo, tipoEscena } from './iconos.js';
 
 export const ESTADOS_FUENTE = {
   ok: { texto: 'Funciona', clase: 'ok' },
@@ -21,21 +22,27 @@ export const ESTADOS_FUENTE = {
 };
 
 const colorTema = (o) => (o.temas?.[0] ? `var(--tema-${o.temas[0]})` : 'var(--acento)');
+/** Un dato con su icono delante; el texto va en un <span> para que no se parta en trozos. */
+const conIcono = (nombre, contenido) => `${icono(nombre)}<span>${contenido}</span>`;
 const envolverDato = (contenido) => (contenido ? `<p class="dato-extra">${contenido}</p>` : '');
 
-/** Emojis de las temáticas; en la tarjeta, como mucho 3 (la ficha las enseña todas). */
-function temasEmoji(o, ctx, max = Infinity) {
+/** Iconos de las temáticas; en la tarjeta, como mucho 3 (la ficha las enseña todas). */
+function temasIconos(o, ctx, max = Infinity) {
   return (o.temas ?? []).map((id) => ctx.temas.get(id)).filter(Boolean).slice(0, max)
-    .map((t) => `<span class="emoji-tema" title="${esc(t.nombre)}" role="img" aria-label="${esc(t.nombre)}">${t.emoji}</span>`)
+    .map((t) => `<span class="tema-icono" style="--color-tema:var(--tema-${esc(t.id)})" title="${esc(t.nombre)}" role="img" aria-label="${esc(t.nombre)}">${iconoTema(t.id)}</span>`)
     .join('');
+}
+
+/** Detalle de la comparación con ofertas parecidas («lo normal en … es 70 €»). */
+function detalleReferencia(r) {
+  return `Lo normal en ${esc(r.grupo ?? 'ofertas parecidas')}${r.n ? ` (${r.n})` : ''} es ${euros(r.mediana)}`;
 }
 
 /** «Un 23 % por debajo de lo normal», comparando con ofertas parecidas. */
 function insigniaReferencia(o) {
   const r = o.referencia;
   if (!(r?.ahorroPct > 0)) return '';
-  const detalle = `Lo normal en ${esc(r.grupo ?? 'ofertas parecidas')}${r.n ? ` (${r.n})` : ''} es ${euros(r.mediana)}`;
-  return `<span class="insignia insignia--ahorro" title="${detalle}">Un ${r.ahorroPct} % por debajo de lo normal</span>`;
+  return `<span class="insignia insignia--ahorro" title="${detalleReferencia(r)}">${icono('bajada')}Un ${r.ahorroPct} % por debajo de lo normal</span>`;
 }
 
 /** «Precio más bajo en 23 días», con los días de historial que lo respaldan. */
@@ -54,23 +61,37 @@ const textoBajada = (o) => (o.bajada > 0 && typeof o.precio === 'number'
   ? `Ha bajado ${euros(o.bajada)}: el precio más alto de los últimos 7 días fue ${euros(Math.round((o.precio + o.bajada) * 100) / 100)}`
   : null);
 
-function insignias(o, ctx) {
+const insigniaChollazo = (o, clase = 'insignia insignia--chollazo') => `<span class="${clase}"${o.chollazoMotivo ? ` title="${esc(o.chollazoMotivo)}"` : ''}>${icono('fuego')}Chollazo</span>`;
+
+/**
+ * Las insignias de la oferta. En la tarjeta, el chollazo (o, si no lo es, lo que baja de lo
+ * normal) va como sello sobre la foto: `enFoto` los quita de aquí para no repetirlos.
+ */
+function insignias(o, ctx, { enFoto = false } = {}) {
   const etiquetas = o.etiquetas ?? [];
   const minimo = textoMinimo(o, ctx);
   const lista = [
-    ctx.misEstados?.get(o.id) === 'reservada' && '<span class="insignia insignia--mio">✅ Reservada (marcada por ti)</span>',
-    ctx.misEstados?.get(o.id) === 'no-disponible' && '<span class="insignia insignia--alerta">🚫 No disponible (marcada por ti)</span>',
+    ctx.misEstados?.get(o.id) === 'reservada' && `<span class="insignia insignia--mio">${icono('check')}Reservada (marcada por ti)</span>`,
+    ctx.misEstados?.get(o.id) === 'no-disponible' && `<span class="insignia insignia--alerta">${icono('prohibido')}No disponible (marcada por ti)</span>`,
     o.patrocinada && `<span class="insignia insignia--patrocinado" title="Un anunciante paga por destacarla; no sube en el orden normal">Patrocinado · ${esc(o.patrocinada.anunciante)}</span>`,
-    esNovedad(o, ctx.referencia) && '<span class="insignia insignia--nueva">Nuevo</span>',
-    o.chollazo && `<span class="insignia insignia--chollazo"${o.chollazoMotivo ? ` title="${esc(o.chollazoMotivo)}"` : ''}>🔥 Chollazo</span>`,
+    esNovedad(o, ctx.referencia) && `<span class="insignia insignia--nueva">${icono('nuevo')}Nuevo</span>`,
+    o.chollazo && !enFoto && insigniaChollazo(o),
     minimo && `<span class="insignia insignia--minimo" title="${esc(minimo.detalle)}">${esc(minimo.texto)}</span>`,
     o.bajada > 0 && `<span class="insignia insignia--bajada" title="${esc(textoBajada(o))}">↓ ${euros(o.bajada)}</span>`,
-    insigniaReferencia(o),
-    etiquetas.includes('error-tarifa') && '<span class="insignia insignia--alerta">Error de tarifa</span>',
+    (!enFoto || o.chollazo) && insigniaReferencia(o),
+    etiquetas.includes('error-tarifa') && `<span class="insignia insignia--alerta">${icono('alerta')}Error de tarifa</span>`,
     etiquetas.includes('top-chollo') && '<span class="insignia insignia--alerta">Top chollo</span>',
-    esDuplicada(o) && `<span class="insignia">${o.equivalentes?.length ? 'Repetida en otra web' : 'Repetida en la misma web'}</span>`,
+    esDuplicada(o) && `<span class="insignia">${icono('repetir')}${o.equivalentes?.length ? 'Repetida en otra web' : 'Repetida en la misma web'}</span>`,
   ];
   return lista.filter(Boolean).join('');
+}
+
+/** El sello que va sobre la foto: chollazo o, si no lo es, cuánto baja de lo normal. */
+function selloFoto(o) {
+  if (o.chollazo) return insigniaChollazo(o, 'sello sello--chollazo');
+  const r = o.referencia;
+  if (r?.ahorroPct > 0) return `<span class="sello" title="Un ${r.ahorroPct} % por debajo de lo normal. ${detalleReferencia(r)}">${icono('bajada')}−${r.ahorroPct} % de lo normal</span>`;
+  return '';
 }
 
 /** «También en Atrápalo por 86 €». */
@@ -83,19 +104,20 @@ function equivalentes(o, ctx) {
   const precio = typeof primera.precio === 'number' ? ` por ${euros(primera.precio)}` : '';
   const resto = lista.length > 1 ? ` y en ${contar(lista.length - 1, 'web')} más` : '';
   const enlace = url ? `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${nombre}</a>` : nombre;
-  return `<p class="dato-extra">🔁 También en ${enlace}${precio}${resto}</p>`;
+  return `<p class="dato-extra">${conIcono('repetir', `También en ${enlace}${precio}${resto}`)}</p>`;
 }
 
 /** Tren, bus, avión o ferry: la oferta ya dice cómo se llega y el coche no es el plan. */
 const conTransporteIncluido = (o) => SIN_COCHE.includes(o.transporte);
 
-/** «⛽ ≈ 34 € de gasolina ida y vuelta · estimado, un coche para 2 personas» (sin etiqueta: se envuelve fuera). */
+/** «≈ 34 € de gasolina ida y vuelta · estimado, un coche para 2 personas» (sin etiqueta: se envuelve fuera). */
 function textoCosteCoche(o, ctx) {
   // El del escaneo es desde su origen: con otra salida lo da el coste del viaje (coste.js).
-  if (!(o.costeCoche?.eur > 0) || conTransporteIncluido(o) || ctx.salidaPropia) return '';
+  // Menos de medio euro («≈ 0 €») es ir a la misma ciudad: no es un dato útil.
+  if (!(o.costeCoche?.eur >= 0.5) || conTransporteIncluido(o) || ctx.salidaPropia) return '';
   const personas = ctx.viajeros ? ` para ${contar(ctx.viajeros, 'persona')}` : '';
   const litros = o.costeCoche.litros ? `: ${o.costeCoche.litros.toLocaleString('es-ES', { maximumFractionDigits: 1 })} l` : '';
-  return `<span class="coste-coche" title="Estimación con el consumo y el precio medio del carburante${litros}. Sin peajes ni aparcamiento.">⛽ ≈ ${euros(Math.round(o.costeCoche.eur))} de gasolina ida y vuelta · estimado, un coche${personas}</span>`;
+  return `<span class="coste-coche" title="Estimación con el consumo y el precio medio del carburante${litros}. Sin peajes ni aparcamiento.">${conIcono('gasolina', `≈ ${euros(Math.round(o.costeCoche.eur))} de gasolina ida y vuelta · estimado, un coche${personas}`)}</span>`;
 }
 
 /**
@@ -104,19 +126,27 @@ function textoCosteCoche(o, ctx) {
  */
 const conFechasDeViaje = (o) => Boolean(o.fechas?.salida || o.fechas?.findeId || o.fechas?.puenteId);
 
-/** «☀️ 24° · 10 % de lluvia» del finde o puente de la oferta. */
+/** «24° · 10 % de lluvia» del finde o puente de la oferta, con su icono. */
 function tiempo(o) {
   const t = o.tiempo;
   if (!t) return '';
   const supuesto = !conFechasDeViaje(o) && t.dia ? `Si vas el ${esc(etiquetaDia(t.dia))}: ` : '';
   const partes = [
-    `${emojiTiempo(t.codigo)} ${t.texto ? esc(t.texto) : ''}`.trim(),
+    t.texto && esc(t.texto),
     t.maxC != null && grados(t.maxC),
     t.lluviaPct != null && `${t.lluviaPct} % de lluvia`,
     // Con «Si vas el sáb 3 oct:» delante, la fecha ya está dicha.
     !supuesto && t.dia && esc(etiquetaDia(t.dia)),
   ].filter(Boolean);
-  return `<p class="dato-extra">${supuesto}${partes.join(' · ')}</p>`;
+  return `<p class="dato-extra">${iconoTiempo(t.codigo)}<span>${supuesto}${partes.join(' · ')}</span></p>`;
+}
+
+/** El tiempo en corto sobre la foto, solo si es el de las fechas de la propia oferta. */
+function tiempoFoto(o) {
+  const t = o.tiempo;
+  if (!t || !conFechasDeViaje(o) || t.maxC == null) return '';
+  const cuando = t.dia ? `Previsión para el ${etiquetaDia(t.dia)}` : 'Previsión';
+  return `<span class="pastilla-foto" title="${esc(cuando)}">${iconoTiempo(t.codigo)}${grados(t.maxC)}${t.texto ? ` · ${esc(t.texto.toLowerCase())}` : ''}</span>`;
 }
 
 /**
@@ -125,7 +155,7 @@ function tiempo(o) {
  */
 function pistaFicha(o) {
   const hay = [o.tiempo && 'el tiempo', o.eventos?.length && contar(o.eventos.length, 'evento')].filter(Boolean);
-  return hay.length ? `<p class="dato-extra pista-ficha">En la ficha: ${esc(enumerar(hay))}${conFechasDeViaje(o) ? '' : ' del próximo finde'}</p>` : '';
+  return hay.length ? `<p class="dato-extra pista-ficha">${conIcono('info', `En la ficha: ${esc(enumerar(hay))}${conFechasDeViaje(o) ? '' : ' del próximo finde'}`)}</p>` : '';
 }
 
 /** Hasta tres eventos cerca del destino esos días. */
@@ -143,12 +173,12 @@ function eventos(o, { conEnlace = false } = {}) {
   return `<ul class="eventos" aria-label="Eventos esos días">${filas.join('')}</ul>`;
 }
 
-/** «⭐ 8,6» con el número de opiniones. */
+/** Estrella y nota, con el número de opiniones en el título. */
 function valoracion(o) {
   const v = o.valoracion;
   if (!(v?.nota >= 0)) return '';
   const opiniones = v.n ? ` (${contar(v.n, 'opinión', 'opiniones')})` : '';
-  return `<span class="valoracion" title="Valoración ${nota(v.nota)} sobre 10${opiniones}">⭐ ${nota(v.nota)}</span>`;
+  return `<span class="valoracion" title="Valoración ${nota(v.nota)} sobre 10${opiniones}">${icono('estrella')}${nota(v.nota)}</span>`;
 }
 
 function puntuacion(o) {
@@ -158,26 +188,26 @@ function puntuacion(o) {
 
 function botonFavorito(o, ctx) {
   const activo = ctx.favoritos.has(o.id);
-  return `<button type="button" class="boton-icono boton-fav" data-fav="${esc(o.id)}" aria-pressed="${activo}" aria-label="Guardar en favoritos: ${esc(o.titulo)}">${activo ? '★' : '☆'}</button>`;
+  return `<button type="button" class="boton-icono boton-fav" data-fav="${esc(o.id)}" aria-pressed="${activo}" aria-label="Guardar en favoritos: ${esc(o.titulo)}">${icono('corazon')}</button>`;
 }
 
-/** ⚖️ para añadirla a la comparación (hasta 3). */
+/** Para añadirla a la comparación (hasta 3). */
 function botonComparar(o, ctx) {
   if (!ctx.comparar) return '';
   const activo = ctx.comparar.has(o.id);
-  return `<button type="button" class="boton-icono boton-comparar" data-comparar="${esc(o.id)}" aria-pressed="${activo}" title="${activo ? 'Quitar de la comparación' : 'Comparar (hasta 3)'}" aria-label="${activo ? 'Quitar de la comparación' : 'Añadir a la comparación'}: ${esc(o.titulo)}">⚖️</button>`;
+  return `<button type="button" class="boton-icono boton-comparar" data-comparar="${esc(o.id)}" aria-pressed="${activo}" title="${activo ? 'Quitar de la comparación' : 'Comparar (hasta 3)'}" aria-label="${activo ? 'Quitar de la comparación' : 'Añadir a la comparación'}: ${esc(o.titulo)}">${icono('comparar')}</button>`;
 }
 
-/** «✅ La he reservado» y «🚫 Ya no está disponible»: se guardan en este navegador. */
+/** «La he reservado» y «Ya no está disponible»: se guardan en este navegador. */
 function botonesMiEstado(o, ctx) {
   const actual = ctx.misEstados.get(o.id);
-  const boton = (estado, texto) => `<button type="button" class="boton boton--suave boton--mini" data-mi-estado="${estado}" data-oferta="${esc(o.id)}" aria-pressed="${actual === estado}">${texto}</button>`;
-  return `<p class="acciones mi-estado">${boton('reservada', '✅ La he reservado')}${boton('no-disponible', '🚫 Ya no está disponible')}</p>`;
+  const boton = (estado, nombre, texto) => `<button type="button" class="boton boton--suave boton--mini" data-mi-estado="${estado}" data-oferta="${esc(o.id)}" aria-pressed="${actual === estado}">${icono(nombre)}${texto}</button>`;
+  return `<p class="acciones mi-estado">${boton('reservada', 'check', 'La he reservado')}${boton('no-disponible', 'prohibido', 'Ya no está disponible')}</p>`;
 }
 
 /** ✕ para ocultar la oferta en este navegador. */
 function botonDescartar(o) {
-  return `<button type="button" class="boton-icono boton-icono--mini boton-descartar" data-descartar="${esc(o.id)}" title="Ocultar esta oferta" aria-label="Ocultar esta oferta: ${esc(o.titulo)}">✕</button>`;
+  return `<button type="button" class="boton-icono boton-icono--mini boton-descartar" data-descartar="${esc(o.id)}" title="Ocultar esta oferta" aria-label="Ocultar esta oferta: ${esc(o.titulo)}">${icono('cerrar')}</button>`;
 }
 
 /** Un enlace pagado (afiliado o patrocinado) lleva rel="sponsored", como piden los buscadores. */
@@ -189,12 +219,12 @@ const atributosClic = (o, afiliado) => ` data-clic="${esc(o.fuente)}" data-clic-
 function enlaceOferta(o, texto = 'Ver oferta') {
   const url = urlSegura(o.urlReserva ?? o.url);
   const pagado = Boolean(o.afiliado || o.patrocinada);
-  return url ? `<a class="boton boton--primario" href="${esc(url)}" target="_blank" rel="${relEnlace(pagado)}"${atributosClic(o, o.afiliado)}>${texto}<span class="sr"> (se abre en otra pestaña${o.afiliado ? '; enlace de afiliado' : ''})</span></a>` : '';
+  return url ? `<a class="boton boton--primario" href="${esc(url)}" target="_blank" rel="${relEnlace(pagado)}"${atributosClic(o, o.afiliado)}>${texto}${icono('externo')}<span class="sr"> (se abre en otra pestaña${o.afiliado ? '; enlace de afiliado' : ''})</span></a>` : '';
 }
 
-/** «🔗 Enlace de afiliado» en la tarjeta; la explicación completa, en la ficha. */
+/** «Enlace de afiliado» en la tarjeta; la explicación completa, en la ficha. */
 const TEXTO_AFILIADO = 'Si reservas por este enlace, la web puede pagarnos una comisión. No cambia tu precio ni el orden de las ofertas.';
-const avisoAfiliado = (o) => (o.afiliado ? `<p class="dato-extra aviso-afiliado" title="${esc(TEXTO_AFILIADO)}">🔗 Enlace de afiliado</p>` : '');
+const avisoAfiliado = (o) => (o.afiliado ? `<p class="dato-extra aviso-afiliado" title="${esc(TEXTO_AFILIADO)}">${conIcono('enlace', 'Enlace de afiliado')}</p>` : '');
 
 /** Lo que añade la web al «Gratis» («con propina voluntaria»), sin repetir la palabra. */
 function matiz(precioTexto = '') {
@@ -262,57 +292,112 @@ export function textoCaducidad(o) {
 function textoCoche(distancia, desde, o) {
   if (!distancia) return '';
   if (conTransporteIncluido(o)) {
-    return `<span class="coche" title="Distancia en línea recta desde ${esc(desde)}">📍 ${Math.round(distancia.km)} km</span>`;
+    return `<span class="coche" title="Distancia en línea recta desde ${esc(desde)}">${icono('pin')}${Math.round(distancia.km)} km</span>`;
   }
   if (distancia.minutos != null) {
     // «0 min aprox.» es la propia ciudad de salida: se dice así.
     const tiempo = distancia.minutos < 5 ? 'menos de 5 min' : `${duracion(distancia.minutos)}${distancia.estimado ? ' aprox.' : ''}`;
-    return `<span class="coche" title="En coche desde ${esc(desde)}">🚗 ${tiempo}</span>`;
+    return `<span class="coche" title="En coche desde ${esc(desde)}">${icono('coche')}${tiempo}</span>`;
   }
-  return `<span class="coche" title="En línea recta desde ${esc(desde)}">📍 ${Math.round(distancia.km)} km</span>`;
+  return `<span class="coche" title="En línea recta desde ${esc(desde)}">${icono('pin')}${Math.round(distancia.km)} km</span>`;
 }
 
+/** «Roses, Girona»: el destino y su zona (y el país si no es España). */
 export function textoLugar(o) {
   const l = o.lugar;
   if (!l?.nombre) return '';
   const zona = [l.region, l.pais !== 'España' ? l.pais : null].filter((parte) => parte && parte !== l.nombre).join(', ');
-  return `📍 ${esc(l.nombre)}${zona ? `<span class="suave">, ${esc(zona)}</span>` : ''}`;
+  return `${esc(l.nombre)}${zona ? `<span class="suave">, ${esc(zona)}</span>` : ''}`;
+}
+
+/** La foto de la oferta, con la ilustración debajo por si no hay foto o no carga. */
+function mediaOferta(o) {
+  const url = urlSegura(o.imagen);
+  return `${escena(tipoEscena(o))}${url ? `<img class="tarjeta__imagen" src="${esc(url)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" width="480" height="300">` : ''}`;
+}
+
+/** Lo que va sobre la foto: sello, favorito, tiempo en coche y el tiempo que hará. */
+function cabeceraFoto(o, ctx) {
+  const coche = textoCoche(ctx.distancias?.get(o.id), ctx.desde, o);
+  const pastillas = [coche && `<span class="pastilla-foto">${coche}</span>`, tiempoFoto(o)].filter(Boolean).join('');
+  const sello = selloFoto(o);
+  return `<div class="tarjeta__media">${mediaOferta(o)}
+    ${sello ? `<div class="tarjeta__sellos">${sello}</div>` : ''}
+    ${botonFavorito(o, ctx)}
+    ${pastillas ? `<div class="tarjeta__pastillas">${pastillas}</div>` : ''}
+  </div>`;
+}
+
+/** Los datos de la oferta en una línea de iconos: fechas, noches, alojamiento, régimen… */
+function datosTarjeta(o) {
+  const minutos = duracionActividad(o);
+  const salidas = salidasDe(o);
+  const dato = (nombre, texto) => (texto ? `<li>${icono(nombre)}${esc(texto)}</li>` : '');
+  return [
+    dato('calendario', textoFechas(o)),
+    dato('arena', textoCaducidad(o)),
+    salidas.length ? dato('despegue', `Sale de ${enumerar(salidas)}`) : '',
+    minutos ? dato('reloj', duracion(minutos)) : '',
+    o.noches ? dato('noches', contar(o.noches, 'noche')) : '',
+    dato(o.alojamiento, ETIQUETAS_ALOJAMIENTO[o.alojamiento]),
+    dato('cubiertos', ETIQUETAS_REGIMEN[o.regimen]),
+    dato(o.transporte, ETIQUETAS_TRANSPORTE[o.transporte]),
+  ].join('');
 }
 
 /** Tarjeta de escapada, hotel, paquete o chollo de vuelo sin fechas. */
 export function tarjetaOferta(o, ctx) {
-  const minutos = duracionActividad(o);
-  const salidas = salidasDe(o);
-  const detalles = [
-    textoFechas(o),
-    textoCaducidad(o) && `⏳ ${textoCaducidad(o)}`,
-    salidas.length && `🛫 Sale de ${enumerar(salidas)}`,
-    minutos && `⏱️ ${duracion(minutos)}`,
-    o.noches && contar(o.noches, 'noche'),
-    ETIQUETAS_ALOJAMIENTO[o.alojamiento],
-    ETIQUETAS_REGIMEN[o.regimen],
-    ETIQUETAS_TRANSPORTE[o.transporte],
-  ].filter(Boolean).map(esc).join(' · ');
-  const url = urlSegura(o.imagen);
+  const valor = valoracion(o);
   return `<article class="tarjeta" style="--color-tema:${colorTema(o)}">
-  ${url ? `<img class="tarjeta__imagen" src="${esc(url)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" width="480" height="270">` : ''}
+  ${cabeceraFoto(o, ctx)}
   <div class="tarjeta__cuerpo">
     <div class="tarjeta__cabeza">
-      <span class="tarjeta__temas">${temasEmoji(o, ctx, 3)}</span>
-      <span class="tarjeta__origen">${esc(ETIQUETAS_TIPO[o.tipo] ?? o.tipo)} · ${esc(ctx.fuentes.get(o.fuente) ?? o.fuente)}</span>
+      <span class="tarjeta__temas">${temasIconos(o, ctx, 3)}</span>
+      <span class="tarjeta__lugar">${textoLugar(o) || esc(ETIQUETAS_TIPO[o.tipo] ?? o.tipo)}</span>
       ${puntuacion(o)}
       ${botonDescartar(o)}
     </div>
     <h3 class="tarjeta__titulo"><button type="button" class="enlace-ficha" data-ficha="${esc(o.id)}">${esc(o.titulo)}</button></h3>
-    <p class="tarjeta__lugar">${textoLugar(o)} ${textoCoche(ctx.distancias?.get(o.id), ctx.desde, o)}</p>
-    <p class="tarjeta__detalles">${detalles} ${valoracion(o)}</p>
-    ${lineaCoste(o, ctx)}${equivalentes(o, ctx)}${pistaFicha(o)}
-    <div class="insignias">${insignias(o, ctx)}</div>
-    ${textoComprobada(o, ctx)}${avisoAfiliado(o)}
+    <ul class="tarjeta__datos">${datosTarjeta(o)}${valor ? `<li>${valor}</li>` : ''}</ul>
+    <div class="insignias">${insignias(o, ctx, { enFoto: true })}</div>
+    ${equivalentes(o, ctx)}${pistaFicha(o)}
     <div class="tarjeta__pie">
       ${precio(o)}
-      <div class="acciones">${botonComparar(o, ctx)}${botonFavorito(o, ctx)}${enlaceOferta(o)}</div>
+      ${lineaCoste(o, ctx)}
+      <div class="acciones">${botonComparar(o, ctx)}${enlaceOferta(o)}</div>
     </div>
+    <p class="tarjeta__origen">${esc(ETIQUETAS_TIPO[o.tipo] ?? o.tipo)} · ${esc(ctx.fuentes.get(o.fuente) ?? o.fuente)}</p>
+    ${textoComprobada(o, ctx)}${avisoAfiliado(o)}
+  </div>
+</article>`;
+}
+
+/**
+ * La tarjeta grande y oscura de la portada para el mejor chollazo: foto, precio, cuánto
+ * baja de lo normal y el viaje completo.
+ */
+export function tarjetaDestacada(o, ctx, etiqueta = 'Chollazo destacado') {
+  const c = costeDe(o, ctx);
+  const r = o.referencia;
+  const minimo = textoMinimo(o, ctx);
+  const ahorro = [r?.ahorroPct > 0 && `Un ${r.ahorroPct} % por debajo de lo normal`, minimo?.texto].filter(Boolean).join(' · ');
+  const coche = textoCoche(ctx.distancias?.get(o.id), ctx.desde, o);
+  const pastillas = [coche && `<span class="pastilla-foto">${coche}</span>`, tiempoFoto(o)].filter(Boolean).join('');
+  const total = c.total != null
+    ? `Viaje para ${esc(contar(c.viajeros, 'persona'))}: <strong>${c.estimado ? '≈ ' : ''}${esc(euros(Math.round(c.total)))}</strong>`
+    : esc(`${ETIQUETAS_TIPO[o.tipo] ?? o.tipo} · ${ctx.fuentes.get(o.fuente) ?? o.fuente}`);
+  return `<article class="destacado" style="--color-tema:${colorTema(o)}">
+  <div class="tarjeta__media">${mediaOferta(o)}
+    <div class="tarjeta__sellos"><span class="sello sello--chollazo"${o.chollazoMotivo ? ` title="${esc(o.chollazoMotivo)}"` : ''}>${icono('fuego')}${esc(etiqueta)}</span></div>
+    ${botonFavorito(o, ctx)}
+    ${pastillas ? `<div class="tarjeta__pastillas">${pastillas}</div>` : ''}
+  </div>
+  <div class="destacado__cuerpo">
+    <p class="destacado__lugar">${textoLugar(o) || esc(ctx.fuentes.get(o.fuente) ?? o.fuente)}</p>
+    <h2 class="destacado__titulo"><button type="button" class="enlace-ficha" data-ficha="${esc(o.id)}">${esc(o.titulo)}</button></h2>
+    ${precio(o)}
+    ${ahorro ? `<p class="destacado__ahorro">${icono('bajada')}<span>${esc(ahorro)}</span></p>` : ''}
+    <div class="destacado__pie"><span>${total}</span>${enlaceOferta(o)}</div>
   </div>
 </article>`;
 }
@@ -343,7 +428,7 @@ function textoComprobada(o, ctx) {
   if (!f) return '';
   const web = esc(ctx.fuentes?.get(o.fuente) ?? o.fuente);
   return f.desactualizada
-    ? `<p class="dato-extra comprobada comprobada--antigua" title="Visto por última vez el ${esc(f.cuando)}">⚠️ Sin comprobar en ${web} desde ${esc(f.texto)}: puede haber cambiado o terminado</p>`
+    ? `<p class="dato-extra comprobada comprobada--antigua" title="Visto por última vez el ${esc(f.cuando)}">${conIcono('alerta', `Sin comprobar en ${web} desde ${esc(f.texto)}: puede haber cambiado o terminado`)}</p>`
     : `<p class="dato-extra comprobada" title="${esc(f.cuando)}">Comprobada en ${web} ${esc(f.texto)}</p>`;
 }
 
@@ -356,13 +441,13 @@ export const costeDe = (o, ctx) => costeViaje(o, {
 const desgloseCorto = (c) => c.partes.map((p) => `${p.concepto} ${p.estimado ? '≈ ' : ''}${euros(Math.round(p.eur))}${p.estimado ? ' (estimado)' : ''}`).join(' + ');
 
 /**
- * «💶 ≈ 269 € en total para 4 personas · 67 €/persona»; sin total, la gasolina que calculó el
+ * «≈ 269 € en total para 4 personas · 67 €/persona»; sin total, la gasolina que calculó el
  * escaneo (solo desde su origen), y si tampoco, nada.
  */
 function lineaCoste(o, ctx) {
   const c = costeDe(o, ctx);
   if (c.total == null) return envolverDato(textoCosteCoche(o, ctx));
-  return `<p class="dato-extra coste-total" title="${esc(`${desgloseCorto(c)}. Supone: ${c.supuestos.join('; ')}.`)}">💶 ${esc(resumenCoste(c))}</p>`;
+  return `<p class="dato-extra coste-total" title="${esc(`${desgloseCorto(c)}. Supone: ${c.supuestos.join('; ')}.`)}">${conIcono('cartera', esc(resumenCoste(c)))}</p>`;
 }
 
 /** «Coste del viaje» en la ficha: cada parte, qué es estimado, lo supuesto y lo que falta. */
@@ -376,7 +461,7 @@ function costeFicha(o, ctx) {
   const falta = c.falta.length ? `<p class="coste__falta">Para dar un total falta saber ${esc(enumerar(c.falta))}.</p>` : '';
   const supuestos = c.supuestos.length ? `<p class="suave">Supone: ${esc(c.supuestos.join('; '))}. Desde ${esc(ctx.desde ?? '')}.</p>` : '';
   return `<section class="ficha__coste" aria-labelledby="ficha-coste-titulo">
-  <h3 id="ficha-coste-titulo">💶 Coste del viaje</h3>
+  <h3 id="ficha-coste-titulo">${icono('cartera')}Coste del viaje</h3>
   ${filas || total ? `<table class="coste"><tbody>${filas}${total}</tbody></table>` : ''}
   ${falta}${supuestos}
   <p><button type="button" class="boton boton--suave boton--mini" data-mi-viaje>Cambiar salida, viajeros o noches</button></p>
@@ -401,16 +486,16 @@ function tramo(nombre, t, conNumero = false) {
 export function tarjetaVuelo(o, ctx) {
   const v = o.vuelo;
   const extras = [
-    v.horarioIdeal && '<span class="insignia insignia--ideal">Horario ideal</span>',
-    v.patron === 'puente' && '<span class="insignia insignia--puente">Puente</span>',
-    v.nuevaRuta && '<span class="insignia insignia--nueva">Nueva ruta</span>',
+    v.horarioIdeal && `<span class="insignia insignia--ideal">${icono('reloj')}Horario ideal</span>`,
+    v.patron === 'puente' && `<span class="insignia insignia--puente">${icono('puentes')}Puente</span>`,
+    v.nuevaRuta && `<span class="insignia insignia--nueva">${icono('nuevo')}Nueva ruta</span>`,
   ].filter(Boolean).join('');
   const desglose = v.ida?.precio != null && v.vuelta?.precio != null ? `<p class="billete__desglose">${euros(v.ida.precio)} + ${euros(v.vuelta.precio)}</p>` : '';
   const pais = o.lugar?.pais ? `<span class="suave">, ${esc(o.lugar.pais)}</span>` : '';
   return `<article class="billete">
   <div class="billete__cuerpo">
     <div class="billete__principal">
-      <p class="billete__ruta" aria-label="De ${esc(v.origen)} a ${esc(v.destino)}"><span>${esc(v.origen)}</span><span class="billete__avion" aria-hidden="true">✈</span><span>${esc(v.destino)}</span></p>
+      <p class="billete__ruta" aria-label="De ${esc(v.origen)} a ${esc(v.destino)}"><span>${esc(v.origen)}</span><span class="billete__avion" aria-hidden="true">${icono('avion')}</span><span>${esc(v.destino)}</span></p>
       <h3 class="tarjeta__titulo"><button type="button" class="enlace-ficha" data-ficha="${esc(o.id)}">${esc(o.lugar?.nombre ?? o.titulo)}</button>${pais}</h3>
       <dl class="billete__tramos">${tramo('Ida', v.ida)}${tramo('Vuelta', v.vuelta)}</dl>
     </div>
@@ -431,10 +516,10 @@ export function tarjetaVuelo(o, ctx) {
 
 export const tarjeta = (o, ctx) => (tieneVuelo(o) ? tarjetaVuelo(o, ctx) : tarjetaOferta(o, ctx));
 
-/** Tarjeta con la frase que explica por qué se recomienda («porque te gusta el spa…»). */
+/** Tarjeta con la frase que explica por qué se recomienda («porque te gustan los planes de spa…»). */
 export function tarjetaConMotivo({ oferta, motivos }, ctx) {
   const frase = enumerar(motivos);
-  return `<div class="con-motivo">${tarjeta(oferta, ctx)}${frase ? `<p class="motivo">✨ Porque ${esc(frase)}.</p>` : ''}</div>`;
+  return `<div class="con-motivo">${tarjeta(oferta, ctx)}${frase ? `<p class="motivo">${icono('nuevo')}<span>Porque ${esc(frase)}.</span></p>` : ''}</div>`;
 }
 
 /** Rejilla de tarjetas con botón «Ver más» (`clave` identifica la lista para paginar). */
@@ -461,7 +546,7 @@ export function filaActividad(o) {
   const minutos = duracionActividad(o);
   return `<li class="fila"><button type="button" class="enlace-ficha" data-ficha="${esc(o.id)}">${esc(o.titulo)}</button>
   <span class="fila__precio">${o.precio === 0 ? 'Gratis' : euros(o.precio)}</span>${
-  minutos ? `<span class="suave">⏱️ ${esc(duracion(minutos))}</span>` : ''}${valoracion(o)}</li>`;
+  minutos ? `<span class="suave">${icono('reloj')} ${esc(duracion(minutos))}</span>` : ''}${valoracion(o)}</li>`;
 }
 
 /** «Qué hacer allí»: hasta tres actividades en el mismo lugar que la oferta de la ficha. */
@@ -469,7 +554,7 @@ function queHacerAlli(ctx) {
   const lista = ctx.actividades ?? [];
   if (!lista.length) return '';
   return `<section class="ficha__actividades" aria-labelledby="ficha-actividades-titulo">
-  <h3 id="ficha-actividades-titulo">🎟️ Qué hacer allí</h3>
+  <h3 id="ficha-actividades-titulo">${icono('actividades')}Qué hacer allí</h3>
   <ul class="filas">${lista.map(filaActividad).join('')}</ul>
 </section>`;
 }
@@ -518,12 +603,12 @@ function cocheFicha(o, ctx) {
   const km = d.kmCoche != null ? `${Math.round(d.kmCoche)} km por carretera` : `${Math.round(d.km)} km en línea recta`;
   if (conTransporteIncluido(o)) {
     // Solo como comparación explícita: la oferta va en tren, bus, avión o ferry.
-    const medio = (ETIQUETAS_TRANSPORTE[o.transporte] ?? '').replace(/^\S+\s/, '').toLowerCase();
-    return `<p class="ficha__coche">Esta oferta va en ${esc(medio)}. <span class="suave">Para comparar: en coche serían ${esc(viaje)} · ${esc(km)} desde ${esc(ctx.desde)}.</span></p>`;
+    const medio = (ETIQUETAS_TRANSPORTE[o.transporte] ?? '').toLowerCase();
+    return `<p class="ficha__coche">${conIcono(o.transporte, `Esta oferta va en ${esc(medio)}. <span class="suave">Para comparar: en coche serían ${esc(viaje)} · ${esc(km)} desde ${esc(ctx.desde)}.</span>`)}</p>`;
   }
   // Si la tabla del coste del viaje ya lleva la gasolina, no se repite aquí.
   const coste = costeDe(o, ctx).partes.some((p) => p.concepto.startsWith('Gasolina')) ? '' : textoCosteCoche(o, ctx);
-  return `<p class="ficha__coche">🚗 <strong>${viaje}</strong> · ${km} desde ${esc(ctx.desde)}${coste ? `<br>${coste}` : ''}</p>`;
+  return `<p class="ficha__coche">${conIcono('coche', `<strong>${viaje}</strong> · ${km} desde ${esc(ctx.desde)}${coste ? `<br>${coste}` : ''}`)}</p>`;
 }
 
 function vueloFicha(v) {
@@ -541,7 +626,7 @@ function enlacesFicha(o) {
     .map((e, i) => {
       const pagado = Boolean(e.afiliado || (e.propia && o.patrocinada));
       const clic = ` data-clic="${esc(e.afiliado ?? (e.propia ? o.fuente : 'enlace'))}" data-clic-tipo="${e.afiliado ? 'afiliado' : e.propia && o.patrocinada ? 'patrocinado' : 'normal'}" data-clic-oferta="${esc(o.tipo)}"`;
-      return `<li><a class="boton ${i ? '' : 'boton--primario'}" href="${esc(e.url)}" target="_blank" rel="${relEnlace(pagado)}"${clic}>${esc(e.etiqueta)}${e.afiliado ? ' <span class="suave">(afiliado)</span>' : ''}<span class="sr"> (se abre en otra pestaña)</span></a></li>`;
+      return `<li><a class="boton ${i ? 'boton--mini' : 'boton--primario'}" href="${esc(e.url)}" target="_blank" rel="${relEnlace(pagado)}"${clic}>${esc(e.etiqueta)}${e.afiliado ? ' <span class="suave">(afiliado)</span>' : ''}${i ? '' : icono('externo')}<span class="sr"> (se abre en otra pestaña)</span></a></li>`;
     })
     .join('');
 }
@@ -549,43 +634,53 @@ function enlacesFicha(o) {
 /** Aviso de la ficha cuando alguno de sus enlaces es de afiliado o la oferta está patrocinada. */
 function avisoPagoFicha(o) {
   const avisos = [
-    (o.afiliado || (o.enlaces ?? []).some((e) => e.afiliado)) && `🔗 Los enlaces marcados «(afiliado)» son de afiliado. ${TEXTO_AFILIADO}`,
-    o.patrocinada && `📣 Oferta patrocinada por ${o.patrocinada.anunciante}: se marca así y no sube en el orden normal.`,
+    (o.afiliado || (o.enlaces ?? []).some((e) => e.afiliado)) && `Los enlaces marcados «(afiliado)» son de afiliado. ${TEXTO_AFILIADO}`,
+    o.patrocinada && `Oferta patrocinada por ${o.patrocinada.anunciante}: se marca así y no sube en el orden normal.`,
   ].filter(Boolean);
-  return avisos.map((a) => `<p class="aviso-afiliado">${esc(a)}</p>`).join('');
+  return avisos.map((a) => `<p class="aviso-afiliado dato-extra">${conIcono('info', esc(a))}</p>`).join('');
 }
 
-/** Contenido de la ficha (modal) de una oferta; la gráfica se dibuja después en #ficha-grafica. */
+/**
+ * Contenido de la ficha (modal) de una oferta: a la izquierda qué es, dónde y qué hay allí;
+ * a la derecha el precio, el enlace, el coste del viaje y el historial (la gráfica se dibuja
+ * después en #ficha-grafica).
+ */
 export function contenidoFicha(o, ctx) {
   const imagen = urlSegura(o.imagen);
   const serie = ctx.historial?.[o.id] ?? [];
-  return `<header class="ficha__cabeza" style="--color-tema:${colorTema(o)}">
-  <p class="tarjeta__origen">${temasEmoji(o, ctx)} ${esc(ETIQUETAS_TIPO[o.tipo] ?? o.tipo)} · ${esc(ctx.fuentes.get(o.fuente) ?? o.fuente)}</p>
-  <h2 id="ficha-titulo">${esc(o.titulo)}</h2>
-  <p class="tarjeta__lugar">${textoLugar(o)}</p>
-</header>
-${imagen ? `<img class="ficha__imagen" src="${esc(imagen)}" alt="" referrerpolicy="no-referrer">` : ''}
-<div class="ficha__precio">${precio(o)}<span class="acciones">${botonDescartar(o)}${botonComparar(o, ctx)}${botonFavorito(o, ctx)}</span></div>
-<div class="insignias">${insignias(o, ctx)}</div>
-${textoComprobada(o, ctx)}
-${ctx.misEstados ? botonesMiEstado(o, ctx) : ''}
-${vueloFicha(o.vuelo)}
-${o.descripcion ? `<p class="ficha__descripcion">${esc(o.descripcion)}</p>` : ''}
-${cocheFicha(o, ctx)}
-${costeFicha(o, ctx)}
-${tiempo(o)}
-${equivalentes(o, ctx)}
-${o.eventos?.length ? `<section class="ficha__eventos"><h3>${conFechasDeViaje(o) ? 'Qué hay esos días por la zona' : 'Qué hay el próximo finde por la zona (si vas entonces)'}</h3>${eventos(o, { conEnlace: true })}</section>` : ''}
-${queHacerAlli(ctx)}
-<dl class="ficha__datos">${datosFicha(o, ctx)}</dl>
-<section class="ficha__historial" aria-labelledby="ficha-historial-titulo">
-  <h3 id="ficha-historial-titulo">Historial de precios</h3>
-  ${serie.length >= 2
+  return `<div class="ficha__cuerpo" style="--color-tema:${colorTema(o)}">
+<div class="ficha__principal">
+  <header class="ficha__cabeza">
+    <p class="tarjeta__origen">${temasIconos(o, ctx)} ${esc(ETIQUETAS_TIPO[o.tipo] ?? o.tipo)} · ${esc(ctx.fuentes.get(o.fuente) ?? o.fuente)}</p>
+    <h2 id="ficha-titulo">${esc(o.titulo)}</h2>
+    <p class="tarjeta__lugar">${textoLugar(o)}</p>
+  </header>
+  <div class="ficha__media">${escena(tipoEscena(o))}${imagen ? `<img class="ficha__imagen" src="${esc(imagen)}" alt="" referrerpolicy="no-referrer">` : ''}</div>
+  <div class="insignias">${insignias(o, ctx)}</div>
+  ${vueloFicha(o.vuelo)}
+  ${o.descripcion ? `<p class="ficha__descripcion">${esc(o.descripcion)}</p>` : ''}
+  ${cocheFicha(o, ctx)}
+  ${tiempo(o)}
+  ${equivalentes(o, ctx)}
+  ${o.eventos?.length ? `<section class="ficha__eventos"><h3>${icono('puentes')}${conFechasDeViaje(o) ? 'Qué hay esos días por la zona' : 'Qué hay el próximo finde por la zona (si vas entonces)'}</h3>${eventos(o, { conEnlace: true })}</section>` : ''}
+  ${queHacerAlli(ctx)}
+  <dl class="ficha__datos">${datosFicha(o, ctx)}</dl>
+</div>
+<aside class="ficha__lateral" aria-label="Precio y reserva">
+  <div class="ficha__precio">${precio(o)}<span class="acciones">${botonDescartar(o)}${botonComparar(o, ctx)}${botonFavorito(o, ctx)}</span></div>
+  ${textoComprobada(o, ctx)}
+  <h3 class="sr">Enlaces</h3>
+  <ul class="ficha__enlaces">${enlacesFicha(o)}</ul>
+  ${avisoPagoFicha(o)}
+  ${costeFicha(o, ctx)}
+  <section class="ficha__historial" aria-labelledby="ficha-historial-titulo">
+    <h3 id="ficha-historial-titulo">${icono('bajada')}Historial de precios</h3>
+    ${serie.length >= 2
     ? `<div class="ficha__grafica"><canvas id="ficha-grafica" role="img" aria-label="Evolución del precio en ${serie.length} días"></canvas></div>
        <p class="suave">Mínimo ${euros(Math.min(...serie.map(([, p]) => p)))} · máximo ${euros(Math.max(...serie.map(([, p]) => p)))} · desde el ${esc(etiquetaDia(serie[0][0]))}</p>`
     : '<p class="suave">Aún no hay historial suficiente (hacen falta al menos dos días).</p>'}
-</section>
-<h3>Enlaces</h3>
-<ul class="ficha__enlaces">${enlacesFicha(o)}</ul>
-${avisoPagoFicha(o)}`;
+  </section>
+  ${ctx.misEstados ? botonesMiEstado(o, ctx) : ''}
+</aside>
+</div>`;
 }

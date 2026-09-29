@@ -690,7 +690,7 @@ function textoNoches(noches) {
 export function describirCriterio(c, { temas = [], origen = null, periodos = [] } = {}) {
   const nombreTema = (id) => {
     const tema = temas.find((t) => t.id === id);
-    return tema ? `${tema.emoji} ${tema.nombre}` : `tema ${id}`;
+    return tema ? tema.nombre : `tema ${id}`;
   };
   const cerca = c.cerca && (esMismoPunto(c.cerca, origen) ? origen.nombre : `${c.cerca.lat.toFixed(2)}, ${c.cerca.lon.toFixed(2)}`);
   const periodo = periodos.find((p) => p.id === c.finde);
@@ -811,15 +811,15 @@ export function urlEditarVigilados({ hostname = '', pathname = '/' } = {}) {
  * con su hash, así que también se pueden compartir o guardar en marcadores.
  */
 export const ATAJOS_ESCAPADAS = [
-  { texto: '💶 Lo más barato en total', params: { orden: 'total' } },
-  { texto: '🛋️ Lo más cómodo', params: { orden: 'comodo' } },
-  { texto: '💸 Este finde, lo más barato', params: { cuando: 'finde', orden: 'total' } },
-  { texto: '📉 Por debajo de lo normal', params: { orden: 'ahorro' } },
-  { texto: '🧖 Spa a menos de 2 h', params: { temas: 'spa', h: '2' } },
-  { texto: '👨‍👩‍👧 Con niños', params: { temas: 'familia' } },
-  { texto: '🚆 Sin coche', params: { sincoche: '1' } },
-  { texto: '🔥 Solo chollazos', params: { cho: '1' } },
-  { texto: '📅 Con fechas cerradas', params: { cerradas: '1' } },
+  { texto: 'Lo más barato en total', icono: 'cartera', params: { orden: 'total' } },
+  { texto: 'Lo más cómodo', icono: 'coche', params: { orden: 'comodo' } },
+  { texto: 'Este finde, lo más barato', icono: 'finde', params: { cuando: 'finde', orden: 'total' } },
+  { texto: 'Por debajo de lo normal', icono: 'bajada', params: { orden: 'ahorro' } },
+  { texto: 'Spa a menos de 2 h', icono: 'tema-spa', params: { temas: 'spa', h: '2' } },
+  { texto: 'Con niños', icono: 'tema-familia', params: { temas: 'familia' } },
+  { texto: 'Sin coche', icono: 'tren', params: { sincoche: '1' } },
+  { texto: 'Solo chollazos', icono: 'fuego', params: { cho: '1' } },
+  { texto: 'Con fechas cerradas', icono: 'calendario', params: { cerradas: '1' } },
 ];
 
 /**
@@ -875,7 +875,7 @@ const textoNochesFiltro = (n) => (n === '3' ? '3 noches o más' : n === '1' ? '1
 function textoFiltro(clave, valor, ctx) {
   const tema = (id) => {
     const t = ctx.temas?.get(id);
-    return t ? `${t.emoji} ${t.nombre}` : id;
+    return t ? t.nombre : id;
   };
   const periodo = (id) => {
     if (id === 'finde') return 'Este finde';
@@ -886,44 +886,44 @@ function textoFiltro(clave, valor, ctx) {
   const textos = {
     q: () => `«${valor}»`,
     temas: () => tema(valor),
-    notemas: () => `🚫 ${tema(valor)}`,
-    nodest: () => `🚫 ${valor}`,
-    cuando: () => `📅 ${periodo(valor)}`,
-    finde: () => `📅 ${periodo(valor)}`,
-    lugar: () => `📍 Cerca de ${valor}`,
-    h: () => `🚗 Menos de ${valor} h en coche`,
-    km: () => `📏 Hasta ${valor} km`,
+    notemas: () => `Sin ${tema(valor)}`,
+    nodest: () => `Sin ${valor}`,
+    cuando: () => periodo(valor),
+    finde: () => periodo(valor),
+    lugar: () => `Cerca de ${valor}`,
+    h: () => `Menos de ${valor} h en coche`,
+    km: () => `Hasta ${valor} km`,
     max: () => `Hasta ${numeroEuros(valor)} publicados`,
-    pres: () => `💶 Hasta ${numeroEuros(valor)} ${ctx.params?.prespor === 'persona' ? 'por persona' : 'en total'} (viaje completo)`,
+    pres: () => `Hasta ${numeroEuros(valor)} ${ctx.params?.prespor === 'persona' ? 'por persona' : 'en total'} (viaje completo)`,
     pnMin: () => `Desde ${numeroEuros(valor)} por persona y noche`,
     pnMax: () => `Hasta ${numeroEuros(valor)} por persona y noche`,
     dto: () => `Descuento del ${valor} % o más`,
     pts: () => `Puntuación ${valor} o más`,
-    nota: () => `⭐ Valoración ${valor} o más`,
+    nota: () => `Valoración ${valor} o más`,
     noches: () => textoNochesFiltro(valor),
-    clasica: () => '🛏️ Escapada clásica (2 noches)',
+    clasica: () => 'Escapada clásica (2 noches)',
     regimen: () => `Al menos ${(ETIQUETAS_REGIMEN[valor] ?? valor).toLowerCase()}`,
     aloj: () => ETIQUETAS_ALOJAMIENTO[valor] ?? valor,
     transporte: () => ETIQUETAS_TRANSPORTE[valor] ?? valor,
-    sincoche: () => '🚆 Sin coche',
+    sincoche: () => 'Sin coche',
     fuente: () => `Solo ${ctx.fuentes?.get(valor) ?? valor}`,
     tipo: () => `Solo ${(ETIQUETAS_TIPO[valor] ?? valor).toLowerCase()}`,
     pais: () => valor,
     region: () => valor,
-    dest: () => `📍 ${valor}`,
-    aero: () => `✈️ Desde ${valor}`,
-    ideal: () => '🕒 Horario ideal',
-    mios: () => '🛫 Desde mis aeropuertos',
-    nuevas: () => '🆕 Solo novedades',
-    fav: () => '⭐ Solo favoritos',
-    cho: () => '🔥 Solo chollazos',
+    dest: () => valor,
+    aero: () => `Desde ${valor}`,
+    ideal: () => 'Horario ideal',
+    mios: () => 'Desde mis aeropuertos',
+    nuevas: () => 'Solo novedades',
+    fav: () => 'Solo favoritos',
+    cho: () => 'Solo chollazos',
     baja: () => '↓ Con bajada de precio',
     hist: () => 'Mínimo histórico',
-    sindesc: () => (valor === '0' ? '✕ Con las descartadas' : null),
+    sindesc: () => (valor === '0' ? 'Con las descartadas' : null),
     dup: () => 'Con las repetidas',
-    cru: () => (valor === '0' ? '🚢 Con cruceros' : null),
-    cerradas: () => '📅 Solo con fechas cerradas',
-    gratis: () => '🆓 Solo gratis',
+    cru: () => (valor === '0' ? 'Con cruceros' : null),
+    cerradas: () => 'Solo con fechas cerradas',
+    gratis: () => 'Solo gratis',
   };
   return (textos[clave] ?? (() => `${clave}: ${valor}`))();
 }
@@ -944,23 +944,23 @@ export function filtrosActivos(vista, params = {}, ctx = {}) {
     if (LISTAS.has(clave)) {
       for (const parte of lista(valor)) {
         const resto = lista(valor).filter((v) => v !== parte).join(',');
-        chips.push({ clave, texto: textoFiltro(clave, parte, { ...ctx, params }), hash: crearHash(vista, { ...params, [clave]: resto }) });
+        chips.push({ clave, valor: parte, texto: textoFiltro(clave, parte, { ...ctx, params }), hash: crearHash(vista, { ...params, [clave]: resto }) });
       }
       continue;
     }
     if (clave === 'desde' || clave === 'hasta') {
       const { desde, hasta } = params;
       if (desde && desde === hasta) {
-        if (clave === 'desde') chips.push({ clave: 'desde', texto: `📅 El ${etiquetaDia(desde)}`, hash: sin('desde', 'hasta') });
+        if (clave === 'desde') chips.push({ clave: 'desde', texto: `El ${etiquetaDia(desde)}`, hash: sin('desde', 'hasta') });
         continue;
       }
-      if (dia(valor)) chips.push({ clave, texto: `📅 ${clave === 'desde' ? 'Desde' : 'Hasta'} el ${etiquetaDia(valor)}`, hash: sin(clave) });
+      if (dia(valor)) chips.push({ clave, texto: `${clave === 'desde' ? 'Desde' : 'Hasta'} el ${etiquetaDia(valor)}`, hash: sin(clave) });
       continue;
     }
     const texto = textoFiltro(clave, valor, { ...ctx, params });
     if (texto) chips.push({ clave, texto, hash: clave === 'lugar' ? sin('lugar', 'lat', 'lon') : sin(clave) });
   }
   // Un punto sin nombre (solo coordenadas) también es un filtro.
-  if (!params.lugar && params.lat && params.lon) chips.push({ clave: 'lugar', texto: '📍 Cerca del punto elegido', hash: sin('lat', 'lon') });
+  if (!params.lugar && params.lat && params.lon) chips.push({ clave: 'lugar', texto: 'Cerca del punto elegido', hash: sin('lat', 'lon') });
   return chips;
 }
