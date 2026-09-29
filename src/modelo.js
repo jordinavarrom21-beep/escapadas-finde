@@ -48,6 +48,7 @@ export function validarOferta(o) {
   if (o.regimen !== null && !REGIMENES.includes(o.regimen)) errores.push(`régimen no válido: ${o.regimen}`);
   if (o.transporte !== null && !TRANSPORTES.includes(o.transporte)) errores.push(`transporte no válido: ${o.transporte}`);
   if (o.alojamiento !== null && !ALOJAMIENTOS.includes(o.alojamiento)) errores.push(`alojamiento no válido: ${o.alojamiento}`);
+  if (o.estrellas !== null && !(Number.isInteger(o.estrellas) && o.estrellas >= 1 && o.estrellas <= 5)) errores.push(`estrellas no válidas: ${o.estrellas}`);
   if (o.establecimiento !== null && !(typeof o.establecimiento === 'string' && o.establecimiento.trim())) errores.push('establecimiento no válido');
   if (!Array.isArray(o.temas) || o.temas.some((t) => !IDS_TEMAS.has(t))) errores.push(`temas no válidos: ${o.temas}`);
   if (o.lugar && ((o.lugar.lat != null && !esNumero(o.lugar.lat)) || (o.lugar.lon != null && !esNumero(o.lugar.lon)))) {
@@ -117,6 +118,8 @@ export function completarOferta(datos) {
     alojamiento: null,
     establecimiento: null,
     ninos: null,
+    estrellas: null,
+    historialPorNoche: false,
     valoracion: null,
     precioNoche: null,
     referencia: null,
@@ -166,5 +169,6 @@ export function completarOferta(datos) {
  * @property {boolean} chollazo
  * @property {{etiqueta: string, url: string}[]} enlaces
  * @property {string|null} establecimiento  nombre propio del alojamiento («Can Salvà»), solo si la web lo da como dato
+ * @property {number|null} estrellas  categoría del alojamiento (1–5), de la fuente o de enriquecer/categoria.js
  * @property {{ventaja: 'gratis'|'descuento'|'reducido'|null, descuento: number|null, detalle: string|null}|null} ninos  para ir con niños (enriquecer/ninos.js)
  */

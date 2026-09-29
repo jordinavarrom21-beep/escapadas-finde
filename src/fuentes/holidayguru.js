@@ -70,6 +70,8 @@ function datosDeTarjetas($) {
       precio: parsearPrecio(precio),
       precioTexto: precio.replace(/\bEUR\b/, '€').replace(/p\.\s?P\./, 'por persona'),
       publicada: fechaCorta(tarjeta.find('.date').first().text()),
+      // «Categoría del hotel: 4 estrellas», en la etiqueta accesible de los puntos.
+      estrellas: Number(tarjeta.find('[aria-label^="Categoría del hotel"]').first().attr('aria-label')?.match(/(\d)\s*estrellas/)?.[1]) || null,
       etiquetas: [],
     };
   });
@@ -110,6 +112,8 @@ function datosDeOfertaRsc(oferta) {
     precioAnterior: euros(oferta.initialPrice),
     caduca: oferta.expiryDate ?? null,
     pais: oferta.accommodations?.[0]?.hotel?.location?.address?.country ?? null,
+    // `rating` es la categoría del hotel (0 si no tiene): la misma que la web pinta como «4 estrellas».
+    estrellas: oferta.accommodations?.[0]?.hotel?.rating || null,
     etiquetas: [oferta.badge, ...(oferta.tags ?? []).map((etiqueta) => etiqueta.tag?.name)],
   };
 }
@@ -158,6 +162,8 @@ function ofertaDe(dato) {
     precioAnterior: dato.precioAnterior ?? null,
     descuento: descuento(dato.precio, dato.precioAnterior),
     transporte: tipo === 'vuelo' ? 'avion' : null,
+    estrellas: Number.isInteger(dato.estrellas) && dato.estrellas >= 1 && dato.estrellas <= 5 ? dato.estrellas : null,
+    noches: tipo === 'vuelo' ? null : nochesDe(subtitulo),
     lugar: nombreLugar
       ? { nombre: nombreLugar, region: null, pais: dato.pais ?? null, codigoPais: null, lat: null, lon: null, iata: null }
       : null,
@@ -168,6 +174,17 @@ function ofertaDe(dato) {
 }
 
 const limpiar = (texto = '') => texto.replace(/\s+/g, ' ').trim();
+
+/**
+ * Noches de la estancia según el subtítulo: «Noche ampliable…» o «Noche con desayunos…»
+ * es una noche (el precio es el de esa noche); «2-3 noches en hotel…», la mínima.
+ */
+export function nochesDe(subtitulo) {
+  const texto = normalizarTexto(subtitulo);
+  const numero = Number(texto.match(/\b(\d{1,2})(?:\s?-\s?\d{1,2})?\s+noches?\b/)?.[1]);
+  if (numero > 0) return numero;
+  return /^noche\b/.test(texto) ? 1 : null;
+}
 
 function limpiarUrl(href) {
   if (!href) throw new Error('sin enlace');
