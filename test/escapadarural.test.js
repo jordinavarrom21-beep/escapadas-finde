@@ -59,6 +59,7 @@ describe('escapadarural: parsear (páginas reales)', () => {
   it('rellena precio, lugar, imagen y etiquetas de una casa en oferta', () => {
     const haza = porId(ofertas, '65d734b152d65');
     assert.equal(haza.titulo, 'Casa Rural Muralla De Haza');
+    assert.equal(haza.establecimiento, 'Casa Rural Muralla De Haza');
     assert.equal(haza.url, `${WEB}/casa-rural/burgos/casa-rural-muralla-de-haza`);
     assert.equal(haza.precio, 26);
     assert.equal(haza.precioTexto, '26 € por persona y noche (aprox.)');

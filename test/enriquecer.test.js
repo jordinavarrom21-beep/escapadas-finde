@@ -77,6 +77,31 @@ describe('enlaces', () => {
   test('oferta sin lugar: sin enlaces', () => {
     assert.deepEqual(enlacesPara(oferta({ titulo: 'Descuento general' }), { origen: ORIGEN, ahora: AHORA }), []);
   });
+
+  test('con el nombre propio del alojamiento: ese alojamiento en Booking y Google, sin quitar sitio a los demás', () => {
+    const lugar = { nombre: "Vilobí d'Onyar", lat: 41.88, lon: 2.74 };
+    const casa = oferta({ tipo: 'hotel', titulo: 'Can Salvà', establecimiento: 'Can Salvà', alojamiento: 'casa-rural', lugar });
+    const enlaces = enlacesPara(casa, { origen: ORIGEN, ahora: AHORA });
+    const propios = enlaces.filter((e) => e.grupo === 'este-alojamiento');
+    assert.deepEqual(propios.map((e) => e.etiqueta), ['Este alojamiento en Booking', 'Su web y opiniones en Google']);
+    assert.match(propios[0].url, /ss=Can%20Salv%C3%A0%2C%20Vilob%C3%AD%20d'Onyar&checkin=2026-09-18&checkout=2026-09-20/);
+    assert.equal(propios[1].url, "https://www.google.com/search?q=Can%20Salv%C3%A0%2C%20Vilob%C3%AD%20d'Onyar&hl=es");
+    assert.equal(enlaces.length - propios.length, enlacesPara({ ...casa, establecimiento: null }, { origen: ORIGEN, ahora: AHORA }).length,
+      'no cuentan para el máximo: la ruta en coche sigue');
+    assert.ok(enlaces.some((e) => e.etiqueta === 'Cómo llegar en coche'));
+
+    // Un hotel (o un pack de hotel) va a Google Hoteles; si el nombre ya lleva la localidad, no se repite.
+    const parador = oferta({ tipo: 'hotel', titulo: 'Escapada otoñal', establecimiento: 'Parador de Cardona', alojamiento: 'parador', lugar: { nombre: 'Cardona' } });
+    const google = enlacesPara(parador, { origen: ORIGEN, ahora: AHORA }).find((e) => e.grupo === 'este-alojamiento' && e.etiqueta.includes('Google'));
+    assert.deepEqual(google, { etiqueta: 'Precios en Google Hoteles', grupo: 'este-alojamiento', url: 'https://www.google.com/travel/search?q=Parador%20de%20Cardona&hl=es&gl=es' });
+
+    // Sin nombre propio (título de pack), sin lugar, o en vuelos y actividades: nada.
+    for (const o of [
+      oferta({ tipo: 'escapada', titulo: 'Relax total en Lloret de Mar', lugar: { nombre: 'Lloret de Mar' } }),
+      oferta({ tipo: 'hotel', titulo: 'Can Salvà', establecimiento: 'Can Salvà' }),
+      oferta({ tipo: 'actividad', titulo: 'Visita', establecimiento: 'Museo', lugar: { nombre: 'Girona' } }),
+    ]) assert.ok(!enlacesPara(o, { origen: ORIGEN, ahora: AHORA }).some((e) => e.grupo === 'este-alojamiento'), o.titulo);
+  });
 });
 
 describe('festivos y puentes', () => {

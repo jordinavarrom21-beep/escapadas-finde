@@ -32,6 +32,12 @@ GitHub Actions (cron cada 30 min, pero GitHub lanza los que puede: ver «Revisi�
   familia, ciudad, aventura, parques, eventos, mascotas, alojamientos singulares),
   precio, noches, régimen, transporte y fuente. Incluye un **buscador por ubicación**:
   «cerca de Girona a menos de 1 h en coche».
+- **Comparar precios** (en la ficha de cada oferta): si el mismo alojamiento está en varias
+  webs (p. ej. una casa rural en Escapada Rural y en Tus Casas Rurales), una tabla con el
+  precio por persona y noche en cada una, cuál es la más barata y cuánto ahorras en tu viaje;
+  la tarjeta lo resume en una línea. Si la web da el nombre propio del alojamiento, además
+  enlaces para buscarlo en Booking (con tus fechas) y en Google Hoteles o, si es una casa
+  rural, un camping o un apartamento, en Google para dar con su propia web.
 - **Mapa**, **calendario** de los próximos findes, **historial de precios**, **vigilados**
   y **estado de las fuentes**.
   Calendario, Puentes, Vigilados y Fuentes están en «Más» del menú; en el móvil y la tableta el menú va

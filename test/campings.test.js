@@ -32,6 +32,7 @@ describe('campings: parsear (página real)', () => {
   it('rellena título, descuento, lugar, caducidad y etiquetas', () => {
     const pena = porId('14504');
     assert.equal(pena.titulo, 'Camping Peña Montañesa: Reserva anticipada');
+    assert.equal(pena.establecimiento, 'Camping Peña Montañesa');
     assert.equal(pena.descuento, 5);
     assert.equal(pena.precioTexto, '5 % de descuento');
     assert.deepEqual(pena.lugar, { nombre: 'Huesca', region: 'Aragón', pais: 'España', codigoPais: 'ES', lat: 42.434299, lon: 0.131402, iata: null });

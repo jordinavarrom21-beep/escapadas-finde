@@ -66,10 +66,11 @@ un `try/catch`, registran el error con `ctx.log` y descartan solo esa oferta.
 | `enlaces` | `enlaces.js` | `[{etiqueta, url}]`: reservar, comparar, hotel, ruta… |
 | `alojamiento` | fuente o `temas.js` | `hotel` \| `casa-rural` \| `camping` \| `apartamento` \| `parador` \| `balneario` \| `hostal` \| `null` |
 | `valoracion` | fuente | `{nota: 0–10, n: nº de opiniones}` o `null` |
+| `establecimiento` | fuente | nombre propio del alojamiento («Can Salvà», «Parador de Cardona») solo si la web lo publica como dato aparte (no se saca de títulos de pack); `null` si no. Sirve para buscar ese mismo alojamiento en otras webs |
 | `precioNoche` | `puntuacion.js` | precio por persona y noche cuando se puede deducir (`precioPorPersonaNoche`) |
 | `referencia` | `referencia.js` | `{mediana, ahorroPct, grupo, n}`: comparación con ofertas parecidas |
 | `urlReserva`, `afiliado`, `patrocinada` | `afiliacion.js` | la `url` con el identificador de afiliado de un proveedor activo y aprobado (o igual que `url`), qué proveedor (`null` si ninguno) y `{anunciante}` si alguien paga por ella. `url` se queda limpia. No cambian la puntuación ni el orden |
-| `equivalentes` | `duplicados.js` | la misma oferta en otras webs: `[{fuente, precio, unidad, url}]` |
+| `equivalentes` | `duplicados.js` | el mismo alojamiento en otras webs, de la más barata a la más cara: `[{id, fuente, precio, unidad, precioNoche, url}]` |
 | `costeCoche` | `geo.js` | `{eur, litros}` del viaje de ida y vuelta desde `ajustes.origen`, solo si se va en coche (`transporte` `coche` o `null`): una oferta de tren, bus, avión o ferry no gasta gasolina (`vaEnCoche`) |
 | `tiempo` | `tiempo.js` | `{dia, maxC, minC, lluviaPct, codigo, texto}` del finde o puente asignado |
 | `eventos` | `eventos.js` | hasta 3 `{nombre, fecha, url, municipio}` cerca del destino esos días, sin repetir el mismo acto en el mismo municipio (`sinRepetir`). En una oferta sin fechas propias son los del próximo finde: el panel los enseña solo en la ficha y avisando |
@@ -172,7 +173,10 @@ export default {
     en comparar, alojamiento, actividades y llegar (Google Flights, Skyscanner, Booking,
     Trivago, Civitatis, GetYourGuide, GuruWalk, Omio, Direct Ferries, Google Maps…), con
     destino y fechas ya rellenados cuando se conocen. Solo se construyen URLs: nunca se
-    consultan esas webs. Las actividades no reciben enlaces a más actividades.
+    consultan esas webs. Las actividades no reciben enlaces a más actividades. Si la oferta
+    tiene `establecimiento`, además (fuera de `max`) los del grupo `este-alojamiento`: ese mismo
+    alojamiento en Booking con las fechas y en Google Hoteles (o, en casas rurales, campings y
+    apartamentos, una búsqueda en Google para dar con su web), buscando «nombre, localidad».
 - `precios.js` (guardián)
   - `revisarPrecios(ofertas, log)` → nº de ofertas con un precio no creíble (negativo,
     por debajo del mínimo de su tipo o < 8 €/noche por persona; los billetes de bus, tren
@@ -183,9 +187,13 @@ export default {
     comparando con la mediana de su grupo (ruta de vuelo, billetes por transporte,
     tipo + zona…). Sin red.
 - `duplicados.js`
-  - `marcarEquivalentes(ofertas)`: la misma escapada en varias webs (mismo alojamiento
-    normalizado y localidad). La más barata guarda `equivalentes`; las demás llevan la
-    etiqueta «duplicada». Conservador: ante la duda no agrupa. Además, dos ofertas de la misma
+  - `marcarEquivalentes(ofertas)`: la misma escapada en varias webs: mismo alojamiento
+    normalizado (sin «Can», «Cal», «Casa» o «Rural» delante y con «Masía» = «Mas», si lo que
+    queda tiene al menos 4 letras) en la misma localidad escrita de cualquier forma (sin tildes,
+    apóstrofos ni signos) y a menos de 25 km; o con el nombre exacto en localidades distintas a
+    menos de 4 km (municipio en una web, pedanía en otra). Nunca en provincias distintas. Cada
+    una guarda en `equivalentes` las de las otras webs (la primera es la más barata del grupo);
+    todas menos la más barata llevan la etiqueta «duplicada». Conservador: ante la duda no agrupa. Además, dos ofertas de la misma
     web idénticas en todo lo que se ve (título, precio, unidad, noches, lugar, régimen,
     descripción, fechas y etiquetas) son la misma publicada dos veces: la de id menor se queda y
     la otra lleva «duplicada» sin `equivalentes`.

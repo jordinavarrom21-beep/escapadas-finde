@@ -102,6 +102,8 @@ function ofertaDe(resultado, etiquetasPagina) {
     fuente: ID,
     tipo: 'escapada',
     titulo: limpiar(resultado.label),
+    // El título es el del plan («Escapada romántica en Figueres…»); el hotel viene aparte.
+    establecimiento: limpiar(hotel.label) || null,
     descripcion: recortar([descripcionHotel(hotel), ...(resultado.programIntro ?? [])].filter(Boolean).join(' · ')),
     url: new URL(resultado.uri, WEB).href,
     imagen: resultado.imageUrl ?? resultado.images?.[0]?.url ?? null,

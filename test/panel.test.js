@@ -542,6 +542,74 @@ describe('fechas, formato, geocodificación y plantillas', () => {
     };
     const html = tarjeta(pelada, ctxTarjeta);
     assert.ok(!/por debajo de lo normal|También en|de gasolina ida y vuelta|class="eventos"|class="valoracion"|por persona y noche/.test(html));
+    assert.ok(!/class="comparador"/.test(contenidoFicha(pelada, ctxTarjeta)), 'sin otras webs ni nombre propio: sin «Comparar precios»');
+  });
+});
+
+describe('comparar precios del mismo alojamiento', () => {
+  const base = porId('chollometro:besalu-casa-rural-para-6-personas-por-18');
+  const fuentes = new Map([['tuscasasrurales', 'Tus Casas Rurales'], ['escapadarural', 'Escapada Rural'], ['clubrural', 'Clubrural']]);
+  const ctx = { temas, fuentes, favoritos: new Set(), historial: {}, viajeros: 2, noches: 2, distancias: new Map(), desde: origen.nombre };
+  const casa = (campos) => ({
+    ...base, tipo: 'hotel', fuente: 'tuscasasrurales', id: 'tuscasasrurales:1', titulo: 'Cal Saragossa', precio: 27, unidad: 'pp/noche',
+    precioNoche: 27, noches: null, url: 'https://www.tuscasasrurales.com/cal-saragossa', urlReserva: null, afiliado: null, patrocinada: null,
+    enlaces: [], equivalentes: [], establecimiento: 'Cal Saragossa', ...campos,
+  });
+  const otra = { id: 'escapadarural:2', fuente: 'escapadarural', precio: 40, unidad: 'pp/noche', precioNoche: 40, url: 'https://www.escapadarural.com/casa-rural/lleida/cal-saragossa' };
+
+  it('la tarjeta dice si es la más barata, si hay otra web más barata o si cuesta lo mismo', () => {
+    assert.match(tarjeta(casa({ equivalentes: [otra] }), ctx),
+      /La más barata de 2 webs<\/strong>: en <a href="https:\/\/www\.escapadarural\.com[^"]*" target="_blank" rel="noopener noreferrer">Escapada Rural<\/a>, 40\s€ \(13\s€ más\)/);
+    const cara = casa({ fuente: 'escapadarural', id: 'escapadarural:2', precio: 40, precioNoche: 40, equivalentes: [{ ...otra, id: 'tuscasasrurales:1', fuente: 'tuscasasrurales', precio: 27, precioNoche: 27 }] });
+    assert.match(tarjeta(cara, ctx), /Más barata en <a[^>]*>Tus Casas Rurales<\/a><\/strong>: 27\s€ por persona y noche \(13\s€ menos\)/);
+    assert.match(tarjeta(casa({ equivalentes: [{ ...otra, precio: 27.4, precioNoche: 27.4 }] }), ctx), /Mismo precio en <a[^>]*>Escapada Rural<\/a>/);
+    // Si una no tiene precio por persona y noche no se compara: solo «También en».
+    assert.match(tarjeta(casa({ equivalentes: [{ ...otra, unidad: 'total', precioNoche: null }] }), ctx), /También en <a[^>]*>Escapada Rural<\/a> por 40\s€/);
+  });
+
+  it('la ficha ordena las webs, marca la más barata y calcula el ahorro del viaje', () => {
+    const cara = casa({ fuente: 'escapadarural', id: 'escapadarural:2', precio: 40, precioNoche: 40, url: otra.url,
+      equivalentes: [{ ...otra, id: 'tuscasasrurales:1', fuente: 'tuscasasrurales', precio: 27, precioNoche: 27, url: 'https://www.tuscasasrurales.com/cal-saragossa' }] });
+    // Con `porId`, el enlace de la otra web es el de reserva (con su afiliado, si lo hay).
+    const porIdFicha = new Map([['tuscasasrurales:1', { urlReserva: 'https://www.tuscasasrurales.com/cal-saragossa?aff=1', afiliado: 'tcr' }]]);
+    const html = contenidoFicha(cara, { ...ctx, porId: porIdFicha });
+    const comparador = html.slice(html.indexOf('class="comparador"'), html.indexOf('</section>', html.indexOf('class="comparador"')));
+    assert.match(comparador, /El mismo alojamiento en 2 webs, por persona y noche/);
+    const filas = [...comparador.matchAll(/<tr class="([^"]*)">\s*<th scope="row">([^<]*)/g)].map((m) => [m[2].trim(), m[1]]);
+    assert.deepEqual(filas, [['Tus Casas Rurales', 'comparador__fila--mejor'], ['Escapada Rural', 'comparador__fila--actual']]);
+    assert.match(comparador, /Más barata<\/span>/);
+    assert.match(comparador, /40\s€<\/strong> <span class="comparador__dif">\+13\s€<\/span>/);
+    assert.match(comparador, /href="https:\/\/www\.tuscasasrurales\.com\/cal-saragossa\?aff=1" target="_blank" rel="sponsored noopener noreferrer"[^>]*>Ver <span class="suave">\(afiliado\)<\/span>/);
+    assert.match(comparador, /En <strong>Tus Casas Rurales<\/strong> ahorras ≈ 13\s€ por persona y noche \(≈ 52\s€ para 2 personas y 2 noches\)/);
+    assert.match(html, /Los enlaces marcados «\(afiliado\)» son de afiliado/, 'el aviso de afiliado también cuenta el comparador');
+
+    const barata = contenidoFicha(casa({ equivalentes: [otra] }), ctx);
+    assert.match(barata, /Aquí es la más barata: en Escapada Rural cuesta ≈ 13\s€ más por persona y noche/);
+
+    // Empatada con otra web y una tercera más cara: la diferencia es con la más cara, no «0 € más».
+    const empate = casa({ equivalentes: [{ ...otra, fuente: 'clubrural', id: 'clubrural:3', precio: 27, precioNoche: 27 }, otra] });
+    const html3 = contenidoFicha(empate, ctx);
+    assert.match(html3, /Aquí es la más barata \(igual que en Clubrural\): en Escapada Rural cuesta ≈ 13\s€ más/);
+    assert.equal((html3.match(/class="comparador__mejor"/g) ?? []).length, 2, 'las dos más baratas');
+    assert.match(tarjeta(empate, ctx), /La más barata de 3 webs<\/strong>, igual que en <a[^>]*>Clubrural<\/a>/);
+  });
+
+  it('los enlaces para buscar este alojamiento van en «Comparar precios», no entre los demás', () => {
+    const enlaces = [
+      { etiqueta: 'Hoteles en Booking', url: 'https://www.booking.com/searchresults.es.html?ss=Guixers', grupo: 'alojamiento' },
+      { etiqueta: 'Este alojamiento en Booking', url: 'https://www.booking.com/searchresults.es.html?ss=Cal%20Saragossa%2C%20Guixers', grupo: 'este-alojamiento' },
+      { etiqueta: 'Su web y opiniones en Google', url: 'https://www.google.com/search?q=Cal%20Saragossa', grupo: 'este-alojamiento' },
+    ];
+    const html = contenidoFicha(casa({ enlaces }), ctx);
+    const comparador = html.slice(html.indexOf('class="comparador"'), html.indexOf('class="ficha__mas-enlaces"'));
+    assert.match(comparador, /Solo lo hemos visto en Tus Casas Rurales\. Compara su precio en:/);
+    assert.match(comparador, />Este alojamiento en Booking/);
+    assert.match(comparador, />Su web y opiniones en Google/);
+    const resto = html.slice(html.indexOf('class="ficha__mas-enlaces"'));
+    assert.match(resto, /Organiza el viaje/);
+    assert.match(resto, />Hoteles en Booking/);
+    assert.ok(!resto.includes('Este alojamiento en Booking'));
+    assert.ok(html.indexOf('>Ver la oferta') < html.indexOf('class="comparador"'), 'primero el botón de la oferta');
   });
 });
 

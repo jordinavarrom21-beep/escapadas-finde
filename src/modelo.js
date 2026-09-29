@@ -48,6 +48,7 @@ export function validarOferta(o) {
   if (o.regimen !== null && !REGIMENES.includes(o.regimen)) errores.push(`régimen no válido: ${o.regimen}`);
   if (o.transporte !== null && !TRANSPORTES.includes(o.transporte)) errores.push(`transporte no válido: ${o.transporte}`);
   if (o.alojamiento !== null && !ALOJAMIENTOS.includes(o.alojamiento)) errores.push(`alojamiento no válido: ${o.alojamiento}`);
+  if (o.establecimiento !== null && !(typeof o.establecimiento === 'string' && o.establecimiento.trim())) errores.push('establecimiento no válido');
   if (!Array.isArray(o.temas) || o.temas.some((t) => !IDS_TEMAS.has(t))) errores.push(`temas no válidos: ${o.temas}`);
   if (o.lugar && ((o.lugar.lat != null && !esNumero(o.lugar.lat)) || (o.lugar.lon != null && !esNumero(o.lugar.lon)))) {
     errores.push('coordenadas no válidas');
@@ -114,6 +115,7 @@ export function completarOferta(datos) {
     patrocinada: null,
     enlaces: [],
     alojamiento: null,
+    establecimiento: null,
     valoracion: null,
     precioNoche: null,
     referencia: null,
@@ -162,4 +164,5 @@ export function completarOferta(datos) {
  * @property {number} puntuacion
  * @property {boolean} chollazo
  * @property {{etiqueta: string, url: string}[]} enlaces
+ * @property {string|null} establecimiento  nombre propio del alojamiento («Can Salvà»), solo si la web lo da como dato
  */

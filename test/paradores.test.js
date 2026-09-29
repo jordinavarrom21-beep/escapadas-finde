@@ -54,6 +54,7 @@ describe('paradores: parsear (listado real)', () => {
     assert.deepEqual(amigo.etiquetas, ['Exclusiva Amigos de Paradores', 'Destacada', 'top-chollo']);
     assert.match(amigo.imagen, /^https:\/\/www\.paradores\.es\/sites\/default\/files\//);
     assert.equal(amigo.lugar, null);
+    assert.equal(amigo.establecimiento, null, 'promoción general: ningún parador concreto');
 
     const mediaPension = porNid(primera, 788);
     assert.equal(mediaPension.descuento, 15);
@@ -68,6 +69,7 @@ describe('paradores: parsear (listado real)', () => {
   it('solo pone lugar cuando la promoción es de un parador concreto', () => {
     assert.deepEqual(porNid(segunda, 20955).lugar, { nombre: 'La Palma', region: null, pais: 'España', lat: null, lon: null });
     assert.equal(porNid(segunda, 20973).lugar.nombre, 'Ibiza');
+    assert.equal(porNid(segunda, 20973).establecimiento, 'Parador de Ibiza');
     assert.equal(porNid(segunda, 804).lugar.nombre, 'Sos del Rey Católico', 'sacado del nombre de la imagen');
     assert.equal(porNid(segunda, 803).lugar, null, 'Islas Canarias no es un parador concreto');
   });
@@ -75,6 +77,7 @@ describe('paradores: parsear (listado real)', () => {
   it('paradorDe busca en título, descripción e imagen', () => {
     assert.equal(paradorDe({ titulo: 'Especial Indianos 2027 Parador de La Palma' }), 'La Palma');
     assert.equal(paradorDe({ titulo: 'X', descripcion: 'Descuento del 20% para ti en el Parador de Ibiza' }), 'Ibiza');
+    assert.equal(paradorDe({ titulo: 'Escapada al Parador del Saler' }, { completo: true }), 'Parador del Saler');
     assert.equal(paradorDe({ titulo: 'Sos Medieval', imagen: '/img/Parador%20de%20Sos%20del%20Rey%20Cato%CC%81lico%20120.jpg' }), 'Sos del Rey Católico');
     assert.equal(paradorDe({ titulo: 'Oferta no reembolsable', descripcion: 'Consigue un 15% en Paradores.' }), null);
   });

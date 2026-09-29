@@ -99,6 +99,8 @@ function ofertaDe(dato, pagina) {
     fuente: 'nomolesten',
     tipo: escapada ? 'escapada' : 'hotel',
     titulo: escapada && dato.alojamiento ? `${sinPuntoFinal(dato.nombre)} · ${dato.alojamiento}` : dato.nombre,
+    // Una escapada sin alojamiento se titula con el plan, no con el hotel.
+    establecimiento: (escapada ? dato.alojamiento : dato.nombre) || null,
     descripcion: recortar(descripcionDe(dato, incluye)),
     url: `${enlace.origin}${enlace.pathname}`,
     imagen: dato.imagen ? new URL(dato.imagen, WEB).href : null,

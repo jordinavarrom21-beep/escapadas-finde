@@ -55,6 +55,7 @@ describe('nomolesten: tarjetas de hotel', () => {
     const comtal = hotel('castello-dempuries/boutique-hotel-comtal-empuries');
     assert.equal(comtal.tipo, 'hotel');
     assert.equal(comtal.titulo, 'Boutique Hotel Comtal Empúries');
+    assert.equal(comtal.establecimiento, 'Boutique Hotel Comtal Empúries');
     assert.equal(comtal.url, 'https://nomolesten.com/hoteles-con-encanto/castello-dempuries/boutique-hotel-comtal-empuries');
     assert.match(comtal.imagen, /^https:\/\/pro\.nomolesten\.com\/storage\/hotels\/758\//);
     assert.deepEqual(comtal.lugar, {
@@ -129,6 +130,7 @@ describe('nomolesten: escapadas', () => {
   it('une el nombre de la escapada y del alojamiento, y lo que incluye', () => {
     assert.equal(priorat.tipo, 'escapada');
     assert.equal(priorat.titulo, 'Escapada al Priorat con una cena incluida · El Palauet del Priorat');
+    assert.equal(priorat.establecimiento, 'El Palauet del Priorat', 'el alojamiento, no el nombre del plan');
     assert.equal(priorat.precio, 239);
     assert.equal(priorat.lugar.nombre, 'Cornudella de montsant');
     assert.deepEqual(priorat.temas, ['gastronomia']);

@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { marcarEquivalentes, nombreAlojamiento } from '../src/enriquecer/duplicados.js';
+import { marcarEquivalentes, nombreAlojamiento, nucleoNombre } from '../src/enriquecer/duplicados.js';
 import { oferta } from './ayudas.js';
 
 const BESALU = { nombre: 'Besalú', region: 'Girona', pais: 'España' };
@@ -34,9 +34,9 @@ describe('duplicados: marcarEquivalentes', () => {
     const barata = casa({ fuente: 'weekendesk', titulo: 'Mas Bassó 4*', precio: 100, url: 'https://www.weekendesk.es/b' });
     marcarEquivalentes([cara, barata]);
 
-    assert.deepEqual(barata.equivalentes, [{ fuente: 'nomolesten', precio: 120, unidad: 'noche', url: 'https://nomolesten.com/a' }]);
+    assert.deepEqual(barata.equivalentes, [{ id: cara.id, fuente: 'nomolesten', precio: 120, unidad: 'noche', precioNoche: 60, url: 'https://nomolesten.com/a' }]);
     assert.deepEqual(barata.etiquetas, []);
-    assert.deepEqual(cara.equivalentes, [{ fuente: 'weekendesk', precio: 100, unidad: 'noche', url: 'https://www.weekendesk.es/b' }]);
+    assert.deepEqual(cara.equivalentes, [{ id: barata.id, fuente: 'weekendesk', precio: 100, unidad: 'noche', precioNoche: 50, url: 'https://www.weekendesk.es/b' }]);
     assert.deepEqual(cara.etiquetas, ['duplicada']);
   });
 
@@ -83,9 +83,66 @@ describe('duplicados: marcarEquivalentes', () => {
     const [nomolesten, barata, weekendesk] = ofertas;
     assert.deepEqual(barata.equivalentes.map((e) => e.precio), [100, 120]);
     assert.deepEqual(barata.etiquetas, []);
-    for (const o of [nomolesten, weekendesk]) {
-      assert.deepEqual(o.etiquetas, ['duplicada'], o.fuente);
-      assert.deepEqual(o.equivalentes.map((e) => e.fuente), ['atrapalo']);
+    for (const o of [nomolesten, weekendesk]) assert.deepEqual(o.etiquetas, ['duplicada'], o.fuente);
+    // Cada una ve las otras webs, de la más barata a la más cara: la primera es siempre la más barata.
+    assert.deepEqual(nomolesten.equivalentes.map((e) => e.fuente), ['atrapalo', 'weekendesk']);
+    assert.deepEqual(weekendesk.equivalentes.map((e) => e.fuente), ['atrapalo', 'nomolesten']);
+  });
+
+  it('cada web escribe el pueblo a su manera: apóstrofos, tildes y espacios no cuentan', () => {
+    const lugar = (nombre) => ({ nombre, region: 'Girona', pais: 'España' });
+    const a = casa({ fuente: 'escapadarural', titulo: 'Can Salvà', precio: 31, unidad: 'pp/noche', lugar: lugar("Vilobí d'Onyar") });
+    const b = casa({ fuente: 'tuscasasrurales', titulo: 'Can Salvà', precio: 28, unidad: 'pp/noche', lugar: lugar('Vilobi d Onyar') });
+    const c = casa({ fuente: 'escapadarural', titulo: 'Cal Gorguixé', precio: 29, unidad: 'pp/noche', lugar: lugar("Castell de l'Areny") });
+    const d = casa({ fuente: 'tuscasasrurales', titulo: 'Cal Gorguixé', precio: 24, unidad: 'pp/noche', lugar: lugar('Castell de l´Areny') });
+    marcarEquivalentes([a, b, c, d]);
+    assert.deepEqual([a, b, c, d].map((o) => o.equivalentes.length), [1, 1, 1, 1]);
+    assert.deepEqual([a, b, c, d].map((o) => o.etiquetas.includes('duplicada')), [true, false, true, false]);
+  });
+
+  it('«Can», «Cal», «Casa», «Rural» delante y «Masía» por «Mas» no cambian el alojamiento', () => {
+    assert.equal(nucleoNombre('can mas vila'), 'mas vila');
+    assert.equal(nucleoNombre('rural mas vila'), 'mas vila');
+    assert.equal(nucleoNombre('masia ca l estrada'), nucleoNombre('mas ca l estrada'));
+    assert.equal(nucleoNombre('can ros'), 'can ros', 'lo que queda es demasiado corto: el nombre entero');
+
+    const fogars = { nombre: 'Fogars de la Selva', region: 'Barcelona', pais: 'España' };
+    const a = casa({ fuente: 'tuscasasrurales', titulo: 'Rural Mas Vila', precio: 32, unidad: 'pp/noche', lugar: fogars });
+    const b = casa({ fuente: 'escapadarural', titulo: 'Can Mas Vila', precio: 35, unidad: 'pp/noche', lugar: fogars });
+    const c = casa({ fuente: 'tuscasasrurales', titulo: 'Can Ros', precio: 30, unidad: 'pp/noche', lugar: fogars });
+    const d = casa({ fuente: 'escapadarural', titulo: 'Cal Ros', precio: 33, unidad: 'pp/noche', lugar: fogars });
+    marcarEquivalentes([a, b, c, d]);
+    assert.deepEqual(a.equivalentes.map((e) => e.fuente), ['escapadarural']);
+    assert.deepEqual(b.etiquetas, ['duplicada']);
+    assert.deepEqual([c.equivalentes, d.equivalentes], [[], []], '«ros» solo no distingue una casa de otra');
+  });
+
+  it('usa las coordenadas: pueblos vecinos con el mismo nombre exacto sí, homónimos lejanos y otra provincia no', () => {
+    const lugar = (nombre, lat, lon, provincia = 'Girona') => ({ nombre, region: provincia, provincia, pais: 'España', lat, lon });
+    // Una web lo pone en el municipio y otra en la pedanía, a 2 km.
+    const municipio = casa({ fuente: 'escapadarural', titulo: 'Mas Rossell', precio: 39, unidad: 'pp/noche', lugar: lugar('Santa Pau', 42.144, 2.570) });
+    const pedania = casa({ fuente: 'tuscasasrurales', titulo: 'Mas Rossell', precio: 41, unidad: 'pp/noche', lugar: lugar('Can Coromines', 42.150, 2.590) });
+    marcarEquivalentes([municipio, pedania]);
+    assert.deepEqual(municipio.equivalentes.map((e) => e.fuente), ['tuscasasrurales']);
+
+    // Solo el núcleo igual («Can Mas Vila» / «Rural Mas Vila») en pueblos distintos: no.
+    const a = casa({ fuente: 'escapadarural', titulo: 'Can Mas Vila', precio: 35, unidad: 'pp/noche', lugar: lugar('Santa Pau', 42.144, 2.570) });
+    const b = casa({ fuente: 'tuscasasrurales', titulo: 'Rural Mas Vila', precio: 32, unidad: 'pp/noche', lugar: lugar('Can Coromines', 42.150, 2.590) });
+    marcarEquivalentes([a, b]);
+    assert.deepEqual([a.equivalentes, b.equivalentes], [[], []]);
+
+    // Dos «Villanueva» a cientos de km, o el mismo nombre de pueblo en otra provincia: no.
+    const lejos = [
+      casa({ fuente: 'escapadarural', titulo: 'El Molino Viejo', precio: 30, unidad: 'pp/noche', lugar: lugar('Villanueva', 37.9, -4.7, 'Córdoba') }),
+      casa({ fuente: 'tuscasasrurales', titulo: 'El Molino Viejo', precio: 35, unidad: 'pp/noche', lugar: lugar('Villanueva', 43.3, -5.6, 'Córdoba') }),
+    ];
+    const otraProvincia = [
+      casa({ fuente: 'escapadarural', titulo: 'El Molino Viejo', precio: 30, unidad: 'pp/noche', lugar: { nombre: 'Villanueva', provincia: 'Córdoba' } }),
+      casa({ fuente: 'tuscasasrurales', titulo: 'El Molino Viejo', precio: 35, unidad: 'pp/noche', lugar: { nombre: 'Villanueva', provincia: 'Asturias' } }),
+    ];
+    for (const pareja of [lejos, otraProvincia]) {
+      marcarEquivalentes(pareja);
+      assert.deepEqual(pareja.map((o) => o.equivalentes.length), [0, 0]);
     }
   });
 

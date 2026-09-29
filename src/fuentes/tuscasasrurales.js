@@ -89,6 +89,7 @@ function ofertaDe(datos) {
     fuente: ID,
     tipo: 'hotel',
     titulo: datos.titulo,
+    establecimiento: datos.titulo || null,
     descripcion: recortar(datos.descripcion),
     url: new URL(datos.url, `${WEB}/`).href,
     imagen: datos.imagen ? new URL(datos.imagen, `${WEB}/`).href : null,

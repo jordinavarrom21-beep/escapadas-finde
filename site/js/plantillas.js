@@ -94,17 +94,60 @@ function selloFoto(o) {
   return '';
 }
 
-/** «También en Atrápalo por 86 €». */
+/** Precio por persona y noche de una oferta o de un resumen de `equivalentes` (null si no se sabe). */
+const porNoche = (x) => (Number.isFinite(x?.precioNoche) && x.precioNoche > 0 ? x.precioNoche : null);
+const nombreWeb = (fuente, ctx) => esc(ctx.fuentes?.get(fuente) ?? fuente);
+/** El nombre de la otra web enlazando a la oferta en ella. */
+function webEnlazada(f, ctx) {
+  const url = urlSegura(f.url);
+  return url ? `<a href="${esc(url)}" target="_blank" rel="${relEnlace(Boolean(f.afiliado))}">${nombreWeb(f.fuente, ctx)}</a>` : nombreWeb(f.fuente, ctx);
+}
+/** «El mismo alojamiento» en casas y hoteles; en un paquete o una actividad, «la misma oferta». */
+const loMismo = (o) => (o.tipo === 'hotel' ? 'El mismo alojamiento' : 'La misma oferta');
+
+/**
+ * Esta oferta y la misma en otras webs (`equivalentes`), de la más barata a la más cara.
+ * Solo se ordena y se dice cuál es más barata si todas tienen precio por persona y noche:
+ * si no, se compararía un total con un precio por noche. Con `ctx.porId`, los enlaces de
+ * las otras webs son los de reserva (con afiliado, si lo hay).
+ */
+export function comparativa(o, ctx = {}) {
+  const otras = (o.equivalentes ?? []).map((e) => {
+    const completa = ctx.porId?.get(e.id);
+    return { ...e, url: completa?.urlReserva ?? e.url, afiliado: completa?.afiliado ?? null };
+  });
+  if (!otras.length) return null;
+  const filas = [{ fuente: o.fuente, precio: o.precio, unidad: o.unidad, precioNoche: o.precioNoche, url: o.urlReserva ?? o.url, afiliado: o.afiliado, actual: true }, ...otras];
+  const comparable = filas.every((f) => porNoche(f) != null);
+  // Orden estable: a igual precio, esta oferta va primero.
+  if (comparable) filas.sort((a, b) => Math.round(porNoche(a)) - Math.round(porNoche(b)));
+  return { filas, comparable, minimo: comparable ? Math.round(porNoche(filas[0])) : null };
+}
+
+/** En la tarjeta, una línea: «Más barata en Tus Casas Rurales: 27 € por persona y noche (13 € menos)». */
 function equivalentes(o, ctx) {
-  const lista = o.equivalentes ?? [];
-  if (!lista.length) return '';
-  const [primera] = lista;
-  const nombre = esc(ctx.fuentes?.get(primera.fuente) ?? primera.fuente);
-  const url = urlSegura(primera.url);
-  const precio = typeof primera.precio === 'number' ? ` por ${euros(primera.precio)}` : '';
-  const resto = lista.length > 1 ? ` y en ${contar(lista.length - 1, 'web')} más` : '';
-  const enlace = url ? `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${nombre}</a>` : nombre;
-  return `<p class="dato-extra">${conIcono('repetir', `También en ${enlace}${precio}${resto}`)}</p>`;
+  const c = comparativa(o, ctx);
+  if (!c) return '';
+  const otras = c.filas.filter((f) => !f.actual);
+  const [otra] = otras;
+  const resto = otras.length > 1 ? ` y en ${contar(otras.length - 1, 'web')} más` : '';
+  let texto;
+  const web = webEnlazada(otra, ctx);
+  if (!c.comparable) {
+    texto = `También en ${web}${typeof otra.precio === 'number' ? ` por ${euros(otra.precio)}` : ''}${resto}`;
+  } else {
+    const diferencia = Math.round(porNoche(o)) - Math.round(porNoche(otra));
+    const suPrecio = euros(Math.round(porNoche(otra)));
+    const todasIguales = otras.every((f) => Math.round(porNoche(f)) === Math.round(porNoche(o)));
+    texto = diferencia > 0
+      ? `<strong>Más barata en ${web}</strong>: ${suPrecio} por persona y noche (${euros(diferencia)} menos)`
+      : diferencia < 0
+        ? `<strong>La más barata de ${c.filas.length} webs</strong>: en ${web}, ${suPrecio} (${euros(-diferencia)} más)`
+        : todasIguales
+          ? `Mismo precio en ${web}${resto}`
+          : `<strong>La más barata de ${c.filas.length} webs</strong>, igual que en ${web}`;
+  }
+  return `<p class="dato-extra dato-extra--comparar">${conIcono('balanza', texto)}</p>`;
 }
 
 /** Tren, bus, avión o ferry: la oferta ya dice cómo se llega y el coche no es el plan. */
@@ -616,8 +659,10 @@ function vueloFicha(v) {
   return `<dl class="billete__tramos ficha__tramos">${tramo('Ida', v.ida, true)}${tramo('Vuelta', v.vuelta, true)}</dl>`;
 }
 
+/** Los enlaces de la ficha como <li>: el primero, el de la oferta (botón grande). */
 function enlacesFicha(o) {
-  const enlaces = [...(o.enlaces ?? [])];
+  // Los de buscar este mismo alojamiento van en «Comparar precios».
+  const enlaces = (o.enlaces ?? []).filter((e) => e.grupo !== 'este-alojamiento');
   const propia = o.urlReserva ?? o.url;
   if (!enlaces.some((e) => e.url === propia || e.url === o.url)) enlaces.unshift({ etiqueta: 'Ver la oferta', url: propia, afiliado: o.afiliado, propia: true });
   return enlaces
@@ -627,14 +672,75 @@ function enlacesFicha(o) {
       const pagado = Boolean(e.afiliado || (e.propia && o.patrocinada));
       const clic = ` data-clic="${esc(e.afiliado ?? (e.propia ? o.fuente : 'enlace'))}" data-clic-tipo="${e.afiliado ? 'afiliado' : e.propia && o.patrocinada ? 'patrocinado' : 'normal'}" data-clic-oferta="${esc(o.tipo)}"`;
       return `<li><a class="boton ${i ? 'boton--mini' : 'boton--primario'}" href="${esc(e.url)}" target="_blank" rel="${relEnlace(pagado)}"${clic}>${esc(e.etiqueta)}${e.afiliado ? ' <span class="suave">(afiliado)</span>' : ''}${i ? '' : icono('externo')}<span class="sr"> (se abre en otra pestaña)</span></a></li>`;
-    })
-    .join('');
+    });
+}
+
+/**
+ * «Comparar precios»: la misma oferta en otras webs (la más barata, la diferencia y lo que
+ * ahorras en tu viaje) y enlaces para buscar este mismo alojamiento en Booking y Google.
+ */
+function comparadorFicha(o, ctx) {
+  const c = comparativa(o, ctx);
+  const buscar = (o.enlaces ?? [])
+    .filter((e) => e.grupo === 'este-alojamiento')
+    .map((e) => ({ ...e, url: urlSegura(e.url) }))
+    .filter((e) => e.url);
+  if (!c && !buscar.length) return '';
+  const enlace = (url, afiliado, texto, sr) => `<a class="boton boton--mini" href="${esc(url)}" target="_blank" rel="${relEnlace(Boolean(afiliado))}" data-clic="${esc(afiliado ?? 'enlace')}" data-clic-tipo="${afiliado ? 'afiliado' : 'normal'}" data-clic-oferta="${esc(o.tipo)}">${texto}${afiliado ? ' <span class="suave">(afiliado)</span>' : ''}${icono('externo')}<span class="sr">${sr} (se abre en otra pestaña)</span></a>`;
+  let tabla = '';
+  let resumen = '';
+  if (c) {
+    const todasIguales = c.comparable && c.filas.every((f) => Math.round(porNoche(f)) === c.minimo);
+    const filas = c.filas.map((f) => {
+      const mejor = c.comparable && !todasIguales && Math.round(porNoche(f)) === c.minimo;
+      const precioFila = c.comparable
+        ? `<strong>${euros(Math.round(porNoche(f)))}</strong>${Math.round(porNoche(f)) > c.minimo ? ` <span class="comparador__dif">+${euros(Math.round(porNoche(f)) - c.minimo)}</span>` : ''}`
+        : typeof f.precio === 'number' ? `<strong>${euros(f.precio)}</strong><span class="comparador__unidad">${esc(ETIQUETAS_UNIDAD[f.unidad] ?? SIN_UNIDAD)}</span>` : '<span class="suave">Sin precio</span>';
+      const url = urlSegura(f.url);
+      const accion = f.actual ? '<span class="suave">Esta oferta</span>' : url ? enlace(url, f.afiliado, 'Ver', ` en ${nombreWeb(f.fuente, ctx)}`) : '';
+      return `<tr class="${[mejor && 'comparador__fila--mejor', f.actual && 'comparador__fila--actual'].filter(Boolean).join(' ')}">
+        <th scope="row">${nombreWeb(f.fuente, ctx)}${mejor ? ' <span class="comparador__mejor">Más barata</span>' : ''}</th>
+        <td class="num">${precioFila}</td><td class="comparador__accion">${accion}</td></tr>`;
+    }).join('');
+    const leyenda = c.comparable ? ', por persona y noche' : ': cada web da el precio a su manera';
+    tabla = `<table class="coste comparador__tabla">
+      <caption class="comparador__leyenda">${loMismo(o)} en ${c.filas.length} webs${leyenda}</caption>
+      <tbody>${filas}</tbody></table>`;
+    if (c.comparable) {
+      const yo = Math.round(porNoche(o));
+      const otras = c.filas.filter((f) => !f.actual);
+      const noches = o.noches ?? ctx.noches ?? 1;
+      const viajeros = ctx.viajeros ?? 2;
+      const total = (eur) => (viajeros > 1 || noches > 1 ? ` (≈ ${euros(eur * viajeros * noches)} para ${contar(viajeros, 'persona')} y ${contar(noches, 'noche')})` : '');
+      if (todasIguales) resumen = `Mismo precio en las ${c.filas.length} webs donde la hemos visto.`;
+      else if (yo > c.minimo) resumen = `En <strong>${nombreWeb(c.filas[0].fuente, ctx)}</strong> ahorras ≈ ${euros(yo - c.minimo)} por persona y noche${total(yo - c.minimo)}.`;
+      else {
+        // La más barata (quizá empatada con otra web): la diferencia es con la siguiente más cara.
+        const empatadas = otras.filter((f) => Math.round(porNoche(f)) === yo).map((f) => nombreWeb(f.fuente, ctx));
+        const siguiente = otras.find((f) => Math.round(porNoche(f)) > yo);
+        const diferencia = Math.round(porNoche(siguiente)) - yo;
+        resumen = `Aquí es la más barata${empatadas.length ? ` (igual que en ${enumerar(empatadas)})` : ''}: en ${nombreWeb(siguiente.fuente, ctx)} cuesta ≈ ${euros(diferencia)} más por persona y noche${total(diferencia)}.`;
+      }
+      resumen = `<p class="comparador__ahorro">${conIcono('cartera', resumen)}</p>`;
+    }
+  }
+  const textoBuscar = c ? 'Búscalo también con tus fechas en:' : `Solo lo hemos visto en ${nombreWeb(o.fuente, ctx)}. Compara su precio en:`;
+  const busqueda = buscar.length
+    ? `<p class="comparador__buscar">${textoBuscar}</p>
+    <ul class="comparador__enlaces">${buscar.map((e) => `<li>${enlace(e.url, e.afiliado, esc(e.etiqueta), '')}</li>`).join('')}</ul>`
+    : '';
+  const aviso = c ? '<p class="suave comparador__nota">Precio publicado por cada web en su última revisión: puede ser para otras fechas o haber cambiado.</p>' : '';
+  return `<section class="comparador" aria-labelledby="ficha-comparador-titulo">
+  <h3 id="ficha-comparador-titulo">${icono('balanza')}Comparar precios</h3>
+  ${tabla}${resumen}${aviso}${busqueda}
+</section>`;
 }
 
 /** Aviso de la ficha cuando alguno de sus enlaces es de afiliado o la oferta está patrocinada. */
-function avisoPagoFicha(o) {
+function avisoPagoFicha(o, ctx) {
   const avisos = [
-    (o.afiliado || (o.enlaces ?? []).some((e) => e.afiliado)) && `Los enlaces marcados «(afiliado)» son de afiliado. ${TEXTO_AFILIADO}`,
+    (o.afiliado || (o.enlaces ?? []).some((e) => e.afiliado) || comparativa(o, ctx)?.filas.some((f) => f.afiliado))
+      && `Los enlaces marcados «(afiliado)» son de afiliado. ${TEXTO_AFILIADO}`,
     o.patrocinada && `Oferta patrocinada por ${o.patrocinada.anunciante}: se marca así y no sube en el orden normal.`,
   ].filter(Boolean);
   return avisos.map((a) => `<p class="aviso-afiliado dato-extra">${conIcono('info', esc(a))}</p>`).join('');
@@ -647,6 +753,7 @@ function avisoPagoFicha(o) {
  */
 export function contenidoFicha(o, ctx) {
   const imagen = urlSegura(o.imagen);
+  const enlaces = enlacesFicha(o);
   const serie = ctx.historial?.[o.id] ?? [];
   return `<div class="ficha__cuerpo" style="--color-tema:${colorTema(o)}">
 <div class="ficha__principal">
@@ -661,7 +768,6 @@ export function contenidoFicha(o, ctx) {
   ${o.descripcion ? `<p class="ficha__descripcion">${esc(o.descripcion)}</p>` : ''}
   ${cocheFicha(o, ctx)}
   ${tiempo(o)}
-  ${equivalentes(o, ctx)}
   ${o.eventos?.length ? `<section class="ficha__eventos"><h3>${icono('puentes')}${conFechasDeViaje(o) ? 'Qué hay esos días por la zona' : 'Qué hay el próximo finde por la zona (si vas entonces)'}</h3>${eventos(o, { conEnlace: true })}</section>` : ''}
   ${queHacerAlli(ctx)}
   <dl class="ficha__datos">${datosFicha(o, ctx)}</dl>
@@ -669,9 +775,14 @@ export function contenidoFicha(o, ctx) {
 <aside class="ficha__lateral" aria-label="Precio y reserva">
   <div class="ficha__precio">${precio(o)}<span class="acciones">${botonDescartar(o)}${botonComparar(o, ctx)}${botonFavorito(o, ctx)}</span></div>
   ${textoComprobada(o, ctx)}
-  <h3 class="sr">Enlaces</h3>
-  <ul class="ficha__enlaces">${enlacesFicha(o)}</ul>
-  ${avisoPagoFicha(o)}
+  <h3 class="sr">Reservar</h3>
+  <ul class="ficha__enlaces">${enlaces[0] ?? ''}</ul>
+  ${comparadorFicha(o, ctx)}
+  ${enlaces.length > 1 ? `<section class="ficha__mas-enlaces" aria-labelledby="ficha-enlaces-titulo">
+    <h3 id="ficha-enlaces-titulo">${icono('enlace')}Organiza el viaje</h3>
+    <ul class="ficha__enlaces ficha__enlaces--resto">${enlaces.slice(1).join('')}</ul>
+  </section>` : ''}
+  ${avisoPagoFicha(o, ctx)}
   ${costeFicha(o, ctx)}
   <section class="ficha__historial" aria-labelledby="ficha-historial-titulo">
     <h3 id="ficha-historial-titulo">${icono('bajada')}Historial de precios</h3>
