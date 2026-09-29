@@ -161,6 +161,21 @@ function matiz(precioTexto = '') {
   return resto ? ` <span class="precio__unidad">${esc(resto)}</span>` : '';
 }
 
+/**
+ * Sin fechas concretas (o si la web dice «desde»), el importe es el mínimo publicado: el de
+ * unas fechas concretas puede ser otro y la disponibilidad no está confirmada.
+ */
+export const esPrecioDesde = (o) => !o.fechas?.salida || /\bdesde\b/i.test(o.precioTexto ?? '');
+
+/** Qué certeza hay sobre el precio y la disponibilidad, para la ficha. */
+function certeza(o) {
+  if (typeof o.precio !== 'number') return 'La web no publica precio: consúltalo al reservar';
+  const cuando = o.vistaUltima ? ' cuando se comprobó' : '';
+  return esPrecioDesde(o)
+    ? `Precio mínimo que publicaba la web${cuando}; el de tus fechas y la disponibilidad se confirman al reservar`
+    : `Precio para estas fechas según la web${cuando}; puede cambiar hasta que reserves`;
+}
+
 /** Cómo sale el «≈ por persona y noche» a partir de lo que publica la web. */
 function calculoPorNoche(o) {
   const noches = o.noches ? ` entre ${contar(o.noches, 'noche')}` : '';
@@ -177,7 +192,8 @@ function precio(o) {
   const noche = o.precioNoche != null && o.unidad !== 'pp/noche'
     ? ` <span class="precio__noche" title="${esc(calculoPorNoche(o))}">≈ ${euros(Math.round(o.precioNoche))} por persona y noche</span>`
     : '';
-  return `<p class="precio"><strong>${euros(o.precio)}</strong>${unidad ? ` <span class="precio__unidad">${unidad}</span>` : ''}${
+  const desde = esPrecioDesde(o) ? '<span class="precio__desde" title="Precio mínimo publicado: depende de las fechas y la disponibilidad">desde </span>' : '';
+  return `<p class="precio">${desde}<strong>${euros(o.precio)}</strong>${unidad ? ` <span class="precio__unidad">${unidad}</span>` : ''}${
     o.precioAnterior > o.precio ? ` <s class="precio__anterior">${euros(o.precioAnterior)}</s>` : ''}${
     o.descuento ? ` <span class="precio__descuento">−${o.descuento} %</span>` : ''}${noche}</p>`;
 }
@@ -397,6 +413,7 @@ function datosFicha(o, ctx) {
     ['Régimen', ETIQUETAS_REGIMEN[o.regimen]],
     ['Transporte', ETIQUETAS_TRANSPORTE[o.transporte]],
     ['Precio en la web', o.precioTexto],
+    ['Certeza', certeza(o)],
     ['Por persona y noche', o.precioNoche != null && euros(Math.round(o.precioNoche))],
     ['Precio habitual', o.referencia && `${euros(o.referencia.mediana)}: la mediana de ${o.referencia.n ? `${o.referencia.n} ofertas parecidas` : 'las ofertas parecidas'} (${o.referencia.grupo})`],
     ['Por qué es chollazo', o.chollazo && o.chollazoMotivo],

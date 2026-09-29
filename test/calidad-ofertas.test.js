@@ -217,3 +217,17 @@ describe('calidad: siempre se sabe a qué corresponde el precio', () => {
     assert.match(tarjeta(o, ctxPara([o])), /title="Cálculo: 99\s€ en total entre 1 noche y entre 2 personas">≈ 50\s€ por persona y noche/);
   });
 });
+
+describe('calidad: precio confirmado o mínimo publicado', () => {
+  it('sin fechas concretas el precio es «desde» y la ficha lo explica', () => {
+    const o = oferta({ precio: 37, unidad: 'pp', vistaUltima: '2026-09-29T08:00:00Z' });
+    assert.match(tarjeta(o, ctxPara([o])), /<span class="precio__desde"[^>]*>desde <\/span><strong>37\s€/);
+    assert.match(contenidoFicha(o, ctxPara([o])), /<dt>Certeza<\/dt><dd>Precio mínimo que publicaba la web cuando se comprobó; el de tus fechas y la disponibilidad se confirman al reservar/);
+  });
+
+  it('con fechas concretas es el precio de esas fechas', () => {
+    const o = oferta({ precio: 25.49, unidad: 'pp', precioTexto: '25,49 € por persona, solo ida', fechas: { salida: '2026-10-02T07:20:00' } });
+    assert.ok(!tarjeta(o, ctxPara([o])).includes('precio__desde'));
+    assert.match(contenidoFicha(o, ctxPara([o])), /Precio para estas fechas según la web/);
+  });
+});
