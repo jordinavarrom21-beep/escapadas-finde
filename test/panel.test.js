@@ -519,7 +519,7 @@ describe('fechas, formato, geocodificación y plantillas', () => {
     assert.match(besalu, /Un 35 % por debajo de lo normal/);
     assert.match(besalu, /🏡 Casa rural/);
     assert.match(besalu, /⭐ 8/);
-    assert.match(besalu, /de coche ida y vuelta para 2 personas/);
+    assert.match(besalu, /≈ \d+\s€ de gasolina ida y vuelta · estimado, un coche para 2 personas/);
     assert.match(besalu, /Mercat medieval de Besalú/);
     assert.match(besalu, /por persona y noche/);
     assert.match(besalu, /data-descartar="chollometro:besalu/);
@@ -537,7 +537,7 @@ describe('fechas, formato, geocodificación y plantillas', () => {
       valoracion: null, precioNoche: null, alojamiento: null,
     };
     const html = tarjeta(pelada, ctxTarjeta);
-    assert.ok(!/por debajo de lo normal|También en|de coche ida y vuelta|class="eventos"|⭐|por persona y noche/.test(html));
+    assert.ok(!/por debajo de lo normal|También en|de gasolina ida y vuelta|class="eventos"|⭐|por persona y noche/.test(html));
   });
 });
 

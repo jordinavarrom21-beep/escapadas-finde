@@ -9,7 +9,7 @@ import {
   contar, duracion, emojiTiempo, enumerar, escaparHtml as esc, euros, grados, haceCuanto, nota,
   puntosMinigrafica, urlSegura,
 } from './formato.js';
-import { duracionActividad, esDuplicada, esNovedad, tieneVuelo } from './filtros.js';
+import { SIN_COCHE, duracionActividad, esDuplicada, esNovedad, tieneVuelo } from './filtros.js';
 
 export const ESTADOS_FUENTE = {
   ok: { texto: 'Funciona', clase: 'ok' },
@@ -64,12 +64,15 @@ function equivalentes(o, ctx) {
   return `<p class="dato-extra">🔁 También en ${enlace}${precio}${resto}</p>`;
 }
 
-/** «⛽ 34 € de coche ida y vuelta para 2 personas» (sin etiqueta: se envuelve fuera). */
+/** Tren, bus, avión o ferry: la oferta ya dice cómo se llega y el coche no es el plan. */
+const conTransporteIncluido = (o) => SIN_COCHE.includes(o.transporte);
+
+/** «⛽ ≈ 34 € de gasolina ida y vuelta · estimado, un coche para 2 personas» (sin etiqueta: se envuelve fuera). */
 function textoCosteCoche(o, ctx) {
-  if (!(o.costeCoche?.eur > 0)) return '';
+  if (!(o.costeCoche?.eur > 0) || conTransporteIncluido(o)) return '';
   const personas = ctx.viajeros ? ` para ${contar(ctx.viajeros, 'persona')}` : '';
-  const litros = o.costeCoche.litros ? ` · ${o.costeCoche.litros.toLocaleString('es-ES', { maximumFractionDigits: 1 })} l` : '';
-  return `<span class="coste-coche" title="Combustible de ida y vuelta${litros}">⛽ ${euros(Math.round(o.costeCoche.eur))} de coche ida y vuelta${personas}</span>`;
+  const litros = o.costeCoche.litros ? `: ${o.costeCoche.litros.toLocaleString('es-ES', { maximumFractionDigits: 1 })} l` : '';
+  return `<span class="coste-coche" title="Estimación con el consumo y el precio medio del carburante${litros}. Sin peajes ni aparcamiento.">⛽ ≈ ${euros(Math.round(o.costeCoche.eur))} de gasolina ida y vuelta · estimado, un coche${personas}</span>`;
 }
 
 /** «☀️ 24° · 10 % de lluvia» del finde o puente de la oferta. */
@@ -152,8 +155,11 @@ function textoFechas(o) {
   return o.caduca ? `Fechas flexibles · hasta el ${etiquetaDia(o.caduca)}` : 'Fechas flexibles';
 }
 
-function textoCoche(distancia, desde) {
+function textoCoche(distancia, desde, o) {
   if (!distancia) return '';
+  if (conTransporteIncluido(o)) {
+    return `<span class="coche" title="Distancia en línea recta desde ${esc(desde)}">📍 ${Math.round(distancia.km)} km</span>`;
+  }
   if (distancia.minutos != null) {
     return `<span class="coche" title="En coche desde ${esc(desde)}">🚗 ${duracion(distancia.minutos)}${distancia.estimado ? ' aprox.' : ''}</span>`;
   }
@@ -189,7 +195,7 @@ export function tarjetaOferta(o, ctx) {
       ${botonDescartar(o)}
     </div>
     <h3 class="tarjeta__titulo"><button type="button" class="enlace-ficha" data-ficha="${esc(o.id)}">${esc(o.titulo)}</button></h3>
-    <p class="tarjeta__lugar">${textoLugar(o)} ${textoCoche(ctx.distancias?.get(o.id), ctx.desde)}</p>
+    <p class="tarjeta__lugar">${textoLugar(o)} ${textoCoche(ctx.distancias?.get(o.id), ctx.desde, o)}</p>
     <p class="tarjeta__detalles">${detalles} ${valoracion(o)}</p>
     ${tiempo(o)}${envolverDato(textoCosteCoche(o, ctx))}${equivalentes(o, ctx)}${eventos(o)}
     <div class="insignias">${insignias(o, ctx)}</div>
@@ -327,6 +333,11 @@ function cocheFicha(o, ctx) {
   if (!d) return '';
   const viaje = d.minutos != null ? `${duracion(d.minutos)} en coche${d.estimado ? ' (estimado)' : ''}` : 'No se llega en coche';
   const km = d.kmCoche != null ? `${Math.round(d.kmCoche)} km por carretera` : `${Math.round(d.km)} km en línea recta`;
+  if (conTransporteIncluido(o)) {
+    // Solo como comparación explícita: la oferta va en tren, bus, avión o ferry.
+    const medio = (ETIQUETAS_TRANSPORTE[o.transporte] ?? '').replace(/^\S+\s/, '').toLowerCase();
+    return `<p class="ficha__coche">Esta oferta va en ${esc(medio)}. <span class="suave">Para comparar: en coche serían ${esc(viaje)} · ${esc(km)} desde ${esc(ctx.desde)}.</span></p>`;
+  }
   const coste = textoCosteCoche(o, ctx);
   return `<p class="ficha__coche">🚗 <strong>${viaje}</strong> · ${km} desde ${esc(ctx.desde)}${coste ? `<br>${coste}` : ''}</p>`;
 }

@@ -73,6 +73,17 @@ describe('geo: calcularCosteCoche', () => {
     assert.equal(ctx.cache.obtener('carburante:barcelona:gasoleo'), 1.882);
   });
 
+  it('las que ya incluyen tren, bus, avión o ferry no tienen coste de coche', async () => {
+    const { ctx } = crearCtx();
+    const [bus, tren, ferry, avion, coche, sinTransporte] = ['bus', 'tren', 'ferry', 'avion', 'coche', null]
+      .map((transporte) => oferta({ cocheKm: 100, transporte }));
+    await calcularCosteCoche([bus, tren, ferry, avion, coche, sinTransporte], ctx);
+
+    for (const o of [bus, tren, ferry, avion]) assert.equal(o.costeCoche, null, o.transporte);
+    assert.deepEqual(coche.costeCoche, { eur: 20.2, litros: 13 });
+    assert.deepEqual(sinTransporte.costeCoche, { eur: 20.2, litros: 13 });
+  });
+
   it('sin ofertas con kilómetros no se pide nada y el coste queda vacío', async () => {
     const { ctx, peticiones } = crearCtx({ respuestas: ministerio });
     const vuelo = oferta({ tipo: 'vuelo', costeCoche: { eur: 99, litros: 99 } });

@@ -69,7 +69,7 @@ un `try/catch`, registran el error con `ctx.log` y descartan solo esa oferta.
 | `precioNoche` | `puntuacion.js` | precio por persona y noche cuando se puede deducir (`precioPorPersonaNoche`) |
 | `referencia` | `referencia.js` | `{mediana, ahorroPct, grupo, n}`: comparación con ofertas parecidas |
 | `equivalentes` | `duplicados.js` | la misma oferta en otras webs: `[{fuente, precio, unidad, url}]` |
-| `costeCoche` | `geo.js` | `{eur, litros}` del viaje de ida y vuelta desde `ajustes.origen` |
+| `costeCoche` | `geo.js` | `{eur, litros}` del viaje de ida y vuelta desde `ajustes.origen`, solo si se va en coche (`transporte` `coche` o `null`): una oferta de tren, bus, avión o ferry no gasta gasolina (`vaEnCoche`) |
 | `tiempo` | `tiempo.js` | `{dia, maxC, minC, lluviaPct, codigo, texto}` del finde o puente asignado |
 | `eventos` | `eventos.js` | hasta 3 `{nombre, fecha, url, municipio}` cerca del destino esos días |
 
@@ -201,7 +201,8 @@ export default {
     (`ruta:<lat>,<lon>` redondeado a 3 decimales, 180 días). Si OSRM falla, estima
     con línea recta × 1,3 a `velocidadMediaKmh` y marca `cocheEstimado`.
   - `calcularCosteCoche(ofertas, ctx)`: `costeCoche` `{eur, litros}` (ida y vuelta) con el consumo de
-    `ajustes.coche` y el precio del carburante del Ministerio (caché diaria).
+    `ajustes.coche` y el precio del carburante del Ministerio (caché diaria). Solo en las ofertas a las
+    que se va en coche (`vaEnCoche`); el panel enseña el de las demás solo como comparación en la ficha.
   - `distanciaKm(a, b)`: haversine.
 - `puntuacion.js`
   - `puntuar(ofertas, ajustes)`: asigna `puntuacion` (0–100) a todas.

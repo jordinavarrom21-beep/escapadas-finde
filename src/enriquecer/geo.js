@@ -194,13 +194,20 @@ async function precioDelLitro(ctx) {
 }
 
 /**
+ * ¿Se llega en coche propio? Una oferta que ya incluye el tren, el bus, el avión o el
+ * ferry (o una actividad que va en uno) no gasta gasolina: el coste de coche sería
+ * un dato inventado que además no se puede comparar con el precio del billete.
+ */
+export const vaEnCoche = (oferta) => oferta.transporte == null || oferta.transporte === 'coche';
+
+/**
  * Rellena `costeCoche` `{eur, litros}` del viaje de ida y vuelta desde el origen
- * en las ofertas que tienen `cocheKm`.
+ * en las ofertas que tienen `cocheKm` y a las que se va en coche.
  */
 export async function calcularCosteCoche(ofertas, ctx) {
   const { coche } = ctx.ajustes;
   for (const oferta of ofertas) oferta.costeCoche = null;
-  const candidatas = ofertas.filter((oferta) => oferta.cocheKm > 0);
+  const candidatas = ofertas.filter((oferta) => oferta.cocheKm > 0 && vaEnCoche(oferta));
   if (!candidatas.length) return;
 
   const precioLitro = await precioDelLitro(ctx);

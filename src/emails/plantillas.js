@@ -4,6 +4,7 @@
  */
 import { TEMAS } from '../modelo.js';
 import { esChollazo } from '../enriquecer/puntuacion.js';
+import { vaEnCoche } from '../enriquecer/geo.js';
 import { resumenVigilados } from '../vigilados.js';
 import { etiquetaDia } from '../util/fechas.js';
 
@@ -39,7 +40,8 @@ function detalle(oferta) {
   else if (oferta.lugar?.nombre) partes.push(oferta.lugar.nombre);
   if (!oferta.vuelo && oferta.fechas.salida) partes.push(etiquetaDia(oferta.fechas.salida));
   if (oferta.noches) partes.push(`${oferta.noches} ${oferta.noches === 1 ? 'noche' : 'noches'}`);
-  if (oferta.cocheMin != null) partes.push(`🚗 ${duracionCoche(oferta.cocheMin)}${oferta.cocheEstimado ? ' aprox.' : ''}`);
+  // Una oferta de tren, bus, avión o ferry no se hace en coche: su tiempo en coche despistaría.
+  if (oferta.cocheMin != null && vaEnCoche(oferta)) partes.push(`🚗 ${duracionCoche(oferta.cocheMin)}${oferta.cocheEstimado ? ' aprox.' : ''}`);
   const temas = oferta.temas.map((t) => EMOJI_TEMA[t]).filter(Boolean).join('');
   if (temas) partes.push(temas);
   return partes.join(' · ');
