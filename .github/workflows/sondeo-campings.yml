@@ -5,7 +5,7 @@ on:
     branches: [claude/cool-mendel-5qf0bs]
     paths: ['.github/workflows/sondeo-campings.yml', 'scripts/sondeo-campings.mjs']
 permissions:
-  contents: read
+  contents: write
 jobs:
   sondeo:
     runs-on: ubuntu-latest
@@ -16,3 +16,11 @@ jobs:
         with:
           node-version: 24
       - run: node scripts/sondeo-campings.mjs
+      - name: Guardar en la rama sondeo-campings
+        run: |
+          git config user.name "sondeo" && git config user.email "sondeo@users.noreply.github.com"
+          git checkout --orphan sondeo-campings
+          git rm -rq --cached .
+          git add sondeo
+          git commit -qm "Sondeo de campings"
+          git push -f origin sondeo-campings
