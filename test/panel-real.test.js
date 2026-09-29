@@ -162,3 +162,15 @@ describe('panel con datos reales: cada vista se pinta limpia', () => {
     revisarHtml(contenidoSorpresa(e, {}), 'sorpresa', e);
   });
 });
+
+describe('panel con datos reales: la portada no repite ofertas', () => {
+  it('cada oferta sale como mucho una vez entre todos los bloques de la portada', () => {
+    const e = estadoPanel();
+    e.favoritos = new Set(datos.ofertas.filter((o) => o.chollazo).slice(0, 2).map((o) => o.id));
+    const html = VISTAS_HTML.finde.html(e, {});
+    const ids = [...html.matchAll(/data-descartar="([^"]+)"/g)].map((m) => m[1]);
+    assert.ok(ids.length > 5, 'la portada tiene ofertas');
+    const repetidas = ids.filter((id, i) => ids.indexOf(id) !== i);
+    assert.deepEqual(repetidas, []);
+  });
+});

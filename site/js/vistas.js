@@ -231,25 +231,47 @@ function bloqueVuelos(e, finde, titulo) {
   return seccion(titulo, contenido, vuelos.length > 3 ? { href: crearHash('vuelos', { finde: finde.id }), texto: `Ver los ${vuelos.length}` } : null);
 }
 
-function bloquePuente(e) {
+/**
+ * La portada no repite una oferta en varios bloques: cada bloque se queda con las que
+ * aún no han salido (hasta `max`) y las apunta en `vistos`.
+ */
+function sinVistas(lista, vistos, max = Infinity) {
+  if (!vistos) return lista.slice(0, max);
+  const nuevas = lista.filter((o) => !vistos.has(o.id)).slice(0, max);
+  for (const o of nuevas) vistos.add(o.id);
+  return nuevas;
+}
+
+function bloquePuente(e, vistos = null) {
   const p = e.puente;
   if (!p) return '';
   const faltan = diasEntre(e.hoy, p.desde);
   const cuando = faltan <= 0 ? 'ya ha empezado' : faltan === 1 ? 'empieza mañana' : `empieza en ${faltan} días`;
   const vuelos = filtrarVuelos(e.datos.ofertas, { ...leerFiltrosVuelos(), finde: p.id, orden: 'puntuacion' }, contextoBusqueda(e)).slice(0, 3);
   const { ofertas } = buscarEscapadas(e.datos.ofertas, leerFiltrosEscapadas({ cuando: 'puente' }), contextoBusqueda(e));
-  const lista = [...vuelos, ...ofertas.slice(0, 6 - vuelos.length)];
+  const lista = sinVistas([...vuelos, ...ofertas], vistos, 6);
   return seccion(`🎉 Próximo puente: ${esc(p.nombre)}`,
     `<p class="seccion__intro">${esc(etiquetaDia(p.desde))} – ${esc(etiquetaDia(p.hasta))} · ${contar(p.dias, 'día')} libres · ${cuando}</p>
      ${lista.length ? rejilla(lista, ctxTarjetas(e), { mostradas: 6, clave: 'finde-puente' }) : estadoVacio('Aún no hay ofertas para este puente.')}
      <p class="enlaces-linea"><a href="${crearHash('puentes', {})}">Todos los puentes</a> · <a href="${crearHash('vuelos', { finde: p.id })}">Vuelos del puente</a> · <a href="${crearHash('escapadas', { cuando: 'puente' })}">Escapadas del puente</a></p>`);
 }
 
+/** Chollazos que no han salido arriba, y después el puente sin repetir tampoco estos. */
+function bloqueChollazos(e, ctx, top, vistos) {
+  const mostrados = top.slice(0, e.paginas.get('chollazos') ?? 6);
+  for (const o of mostrados) vistos.add(o.id);
+  return `${seccion('🔥 Chollazos', top.length
+    ? rejilla(top, ctx, { mostradas: e.paginas.get('chollazos') ?? 6, clave: 'chollazos' })
+    : estadoVacio('Ahora mismo no hay más chollazos.', 'Aparecen aquí las ofertas que cumplen los límites de chollazo (y que no han salido más arriba).'))}
+${bloquePuente(e, vistos)}`;
+}
+
 /** Planes de la sorpresa (se repinta solo al pulsar «Otra ronda»). */
-export function contenidoSorpresa(e, params = {}) {
+export function contenidoSorpresa(e, params = {}, vistos = null) {
   const f = leerFiltrosEscapadas(params);
   const { ofertas, distancias } = buscarEscapadas(e.datos.ofertas, f, contextoBusqueda(e));
-  const planes = planesSorpresa(ofertas, { distancias }, { salto: e.salto ?? 0, horasMax: HORAS_SORPRESA });
+  // Ni tus favoritos (ya salen arriba) ni lo que haya salido antes en la portada.
+  const planes = sinVistas(planesSorpresa(ofertas.filter((o) => !e.favoritos?.has(o.id) && !vistos?.has(o.id)), { distancias }, { salto: e.salto ?? 0, horasMax: HORAS_SORPRESA }), vistos);
   if (!planes.length) {
     return estadoVacio(`No hay planes a menos de ${HORAS_SORPRESA} h con estos filtros.`, 'Prueba a quitar alguna temática o a subir el precio máximo.');
   }
@@ -257,16 +279,16 @@ export function contenidoSorpresa(e, params = {}) {
   return `<div class="rejilla">${planes.map((o) => tarjeta(o, ctx)).join('')}</div>`;
 }
 
-function bloqueSorpresa(e, params) {
+function bloqueSorpresa(e, params, vistos) {
   return seccion('✨ Sorpréndeme',
     `<p class="seccion__intro">Tres planes de temáticas distintas a menos de ${HORAS_SORPRESA} h de ${esc(nombreSalida(e))}, con los filtros que tengas puestos.</p>
      <p class="enlaces-linea"><button type="button" class="boton boton--primario" data-sorpresa>✨ Otra ronda</button></p>
-     <div id="sorpresa">${contenidoSorpresa(e, params)}</div>`);
+     <div id="sorpresa">${contenidoSorpresa(e, params, vistos)}</div>`);
 }
 
 /** «🎟️ Actividades para este finde»: tres o cuatro planes sueltos que se pueden reservar ya. */
-function bloqueActividades(e, finde) {
-  const lista = actividadesPara(e.datos.ofertas, periodoFinde(finde), { max: ACTIVIDADES_FINDE, descartadas: e.descartadas });
+function bloqueActividades(e, finde, vistos = null) {
+  const lista = sinVistas(actividadesPara(e.datos.ofertas, periodoFinde(finde), { max: ACTIVIDADES_FINDE * 3, descartadas: e.descartadas }), vistos, ACTIVIDADES_FINDE);
   if (!lista.length) return '';
   return seccion('🎟️ Actividades para este finde',
     `<p class="seccion__intro">Entradas, visitas y free tours para estos días, con el precio por persona.</p>
@@ -274,7 +296,7 @@ function bloqueActividades(e, finde) {
     { href: crearHash('actividades', {}), texto: 'Ver todas' });
 }
 
-function bloqueRecomendado(e, params) {
+function bloqueRecomendado(e, params, vistos = null) {
   const perfil = perfilFavoritos(e.datos.ofertas, e.favoritos);
   if (!perfil.total) {
     return seccion('💚 Recomendado para ti',
@@ -282,7 +304,8 @@ function bloqueRecomendado(e, params) {
   }
   const f = leerFiltrosEscapadas(params);
   const { ofertas, distancias } = buscarEscapadas(e.datos.ofertas, f, contextoBusqueda(e));
-  const lista = recomendadas(ofertas, perfil, { ...contextoBusqueda(e), distancias }, { max: 6 });
+  const lista = recomendadas(ofertas.filter((o) => !vistos?.has(o.id)), perfil, { ...contextoBusqueda(e), distancias }, { max: 6 });
+  for (const r of lista) vistos?.add(r.oferta.id);
   const ctx = ctxTarjetas(e, { distancias, desde: f.punto?.nombre ?? nombreSalida(e) });
   const gustos = perfil.temas.slice(0, 2).map(({ valor }) => e.temas.get(valor)?.nombre ?? valor).join(', ');
   return seccion('💚 Recomendado para ti',
@@ -335,28 +358,28 @@ export function vistaFinde(e, params = {}) {
   const top = chollazos(e.datos.ofertas).filter((o) => !e.descartadas.has(o.id));
   const favoritos = e.datos.ofertas.filter((o) => e.favoritos.has(o.id));
   const puenteSiguiente = siguiente && puenteDelFinde(siguiente, e.datos.puentes);
+  // Cada bloque se pinta en orden y no repite lo que ya ha salido más arriba.
+  const vistos = new Set(favoritos.map((o) => o.id));
+  const sorpresa = bloqueSorpresa(e, params, vistos);
 
   const vuelos = hayVuelosConFecha
     ? bloqueVuelos(e, actual, `✈️ Vuelos este finde <span class="suave">(${esc(actual.etiqueta)})</span>`)
       + (siguiente ? bloqueVuelos(e, siguiente, `✈️ Vuelos el finde siguiente <span class="suave">(${esc(siguiente.etiqueta)}${puenteSiguiente ? ' · puente' : ''})</span>`) : '')
     : seccion('✈️ Chollos de vuelos <span class="suave">(sin fecha concreta, desde tus aeropuertos)</span>',
-      rejilla(chollosDeVuelos(e.datos.ofertas, leerFiltrosVuelos({ mios: '1' }), contextoBusqueda(e)).slice(0, 3), ctx, { mostradas: 3, clave: 'finde-chollos' }),
+      rejilla(sinVistas(chollosDeVuelos(e.datos.ofertas, leerFiltrosVuelos({ mios: '1' }), contextoBusqueda(e)), vistos, 3), ctx, { mostradas: 3, clave: 'finde-chollos' }),
       { href: crearHash('vuelos', { mios: '1' }), texto: 'Ver todos' });
 
   return `<h1 class="titulo-vista" tabindex="-1">Este finde <span class="suave">${esc(etiquetaDia(actual.viernes))} – ${esc(etiquetaDia(actual.domingo))}</span></h1>
 ${buscadorFinde(e)}
 ${favoritos.length ? seccion('⭐ Tus favoritos', rejilla(favoritos, ctx, { mostradas: mostradas(e, 'favoritos'), clave: 'favoritos' })) : ''}
-${bloqueSorpresa(e, params)}
+${sorpresa}
 ${vuelos}
 ${seccion('🏡 Mejores escapadas para este finde', escapadas.length
-    ? rejilla(escapadas.slice(0, 6), ctx, { mostradas: 6, clave: 'finde-escapadas' })
+    ? rejilla(sinVistas(escapadas, vistos, 6), ctx, { mostradas: 6, clave: 'finde-escapadas' })
     : estadoVacio('No hay escapadas para este finde.'), { href: crearHash('escapadas', { cuando: 'finde' }), texto: `Ver las ${escapadas.length}` })}
-${bloqueActividades(e, actual)}
-${bloqueRecomendado(e, params)}
-${seccion('🔥 Chollazos', top.length
-    ? rejilla(top, ctx, { mostradas: e.paginas.get('chollazos') ?? 6, clave: 'chollazos' })
-    : estadoVacio('Ahora mismo no hay chollazos.', 'Aparecen aquí las ofertas con una puntuación muy alta.'))}
-${bloquePuente(e)}`;
+${bloqueActividades(e, actual, vistos)}
+${bloqueRecomendado(e, params, vistos)}
+${bloqueChollazos(e, ctx, top.filter((o) => !vistos.has(o.id)), vistos)}`;
 }
 
 // ── Vuelos ───────────────────────────────────────────────────────────────────
