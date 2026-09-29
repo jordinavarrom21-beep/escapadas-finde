@@ -63,7 +63,7 @@ describe('almacén', () => {
 
 describe('historial', () => {
   test('mínimo del día, bajada y mínimo histórico', () => {
-    const historial = { 'prueba:h': [['2026-09-15', 80], ['2026-09-16', 70]] };
+    const historial = { 'prueba:h': [['2026-09-10', 75], ['2026-09-15', 80], ['2026-09-16', 70]] };
     const o = oferta({ id: 'prueba:h', precio: 65 });
     registrarPrecios(historial, [o], AHORA);
     registrarPrecios(historial, [{ ...o, precio: 90 }], AHORA);

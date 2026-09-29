@@ -3,16 +3,17 @@
  * y resúmenes. Sin DOM, para poder probarla desde Node.
  */
 
+import { costeViaje } from './coste.js';
 import { diaSemana, etiquetaDia, fechaLocal, sumarDias } from './fechas.js';
 import { distanciaKm, esMismoPunto, minutosEnCoche, radioKmParaMinutos, tieneCoordenadas } from './geo.js';
 import {
   ETIQUETAS_ALOJAMIENTO, ETIQUETAS_REGIMEN, ETIQUETAS_TIPO, ETIQUETAS_TRANSPORTE, duracion, euros, normalizar,
 } from './formato.js';
 
-export const VISTAS = ['finde', 'vuelos', 'escapadas', 'actividades', 'mapa', 'calendario', 'puentes', 'vigilados', 'fuentes', 'buscar'];
+export const VISTAS = ['finde', 'vuelos', 'escapadas', 'actividades', 'mapa', 'calendario', 'puentes', 'vigilados', 'fuentes', 'buscar', 'comparar'];
 export const POR_PAGINA = 24;
 export const ORDENES_VUELOS = ['precio', 'puntuacion', 'hora'];
-export const ORDENES_ESCAPADAS = ['puntuacion', 'precio', 'noche', 'ahorro', 'valoracion', 'distancia', 'novedad'];
+export const ORDENES_ESCAPADAS = ['puntuacion', 'total', 'persona', 'calidad', 'comodo', 'precio', 'noche', 'ahorro', 'valoracion', 'distancia', 'novedad'];
 export const ORDENES_ACTIVIDADES = ['puntuacion', 'precio', 'valoracion'];
 /** De menos a más incluido: sirve para el filtro de «régimen mínimo». */
 export const REGIMENES_ORDEN = ['solo-alojamiento', 'desayuno', 'media-pension', 'pension-completa', 'todo-incluido'];
@@ -92,6 +93,8 @@ export function leerFiltrosVuelos(p = {}) {
     finde: p.finde ?? '',
     aero: p.aero ?? '',
     ideal: p.ideal === '1',
+    // Solo los chollos que pueden salir de tus aeropuertos (los que no lo dicen, también).
+    mios: p.mios === '1',
     orden: ORDENES_VUELOS.includes(p.orden) ? p.orden : 'precio',
   };
 }
@@ -114,6 +117,9 @@ export function leerFiltrosEscapadas(p = {}) {
     punto: lat != null && lon != null ? { nombre: nombreLugar(p.lugar) || 'Punto elegido', lat, lon } : null,
     horas: [1, 2, 3, 4].includes(horas) ? horas : null,
     km: positivo(p.km),
+    // Presupuesto del viaje completo (coste.js), en total o por persona.
+    presupuesto: positivo(p.pres),
+    presupuestoPor: p.prespor === 'persona' ? 'persona' : 'total',
     // Los cruceros se esconden salvo que se pida verlos («cru=0» apaga el interruptor).
     sinCruceros: p.cru !== '0',
     orden: ORDENES_ESCAPADAS.includes(p.orden) ? p.orden : 'puntuacion',
@@ -304,11 +310,44 @@ export function filtrarVuelos(ofertas, f, ctx = {}) {
     .sort(COMPARADORES_VUELOS[f.orden] ?? porPrecio);
 }
 
-/** Chollos de vuelos sin fechas concretas (blogs y comunidades): no aplican finde ni horario. */
+const PREFIJO_SALIDA = 'sale-de:';
+/** Ciudades de salida que publica un chollo de vuelo («sale-de:Alicante», de src/enriquecer/vuelos.js). */
+export const salidasDe = (o) => (o.etiquetas ?? []).filter((e) => e.startsWith(PREFIJO_SALIDA)).map((e) => e.slice(PREFIJO_SALIDA.length));
+/** Descuentos, códigos o «muchos destinos»: no es un billete que se pueda comparar. */
+export const esPromocion = (o) => (o.etiquetas ?? []).includes('promocion');
+
+/** Ciudad de los aeropuertos más habituales, para comparar con «Salidas desde Barcelona». */
+const CIUDAD_AEROPUERTO = {
+  BCN: 'Barcelona', GRO: 'Girona', REU: 'Reus', MAD: 'Madrid', VLC: 'Valencia', AGP: 'Málaga', ALC: 'Alicante',
+  SVQ: 'Sevilla', BIO: 'Bilbao', PMI: 'Palma de Mallorca', ZAZ: 'Zaragoza', SCQ: 'Santiago', OPO: 'Oporto', LIS: 'Lisboa',
+};
+/** Salidas que no dicen la ciudad: pueden incluir la tuya. */
+const SALIDAS_GENERICAS = ['espana', 'varias ciudades europeas'];
+
+/**
+ * ¿Puede salir de alguno de `aeropuertos` (o de la ciudad de origen)? Si el chollo no dice
+ * desde dónde sale, o da una zona que puede incluirlos («España»), se da por bueno.
+ */
+export function saleDeMisAeropuertos(o, aeropuertos = [], origen = null) {
+  const salidas = salidasDe(o).map(normalizar);
+  if (!salidas.length) return true;
+  const mias = new Set([...aeropuertos, ...aeropuertos.map((a) => CIUDAD_AEROPUERTO[a]), origen?.nombre].filter(Boolean).map(normalizar));
+  return salidas.some((s) => mias.has(s) || SALIDAS_GENERICAS.includes(s));
+}
+
+const cumpleChollo = (o, f, ctx) => esVuelo(o) && !o.vuelo && cumpleComunes(o, f, ctx)
+  && (!f.mios || saleDeMisAeropuertos(o, ctx.aeropuertos, ctx.origen));
+
+/** Billetes de vuelo sin fechas concretas (blogs y comunidades): no aplican finde ni horario. */
 export function chollosDeVuelos(ofertas, f, ctx = {}) {
   return ofertas
-    .filter((o) => esVuelo(o) && !o.vuelo && cumpleComunes(o, f, ctx))
+    .filter((o) => !esPromocion(o) && cumpleChollo(o, f, ctx))
     .sort(f.orden === 'precio' ? porPrecio : porPuntuacion);
+}
+
+/** Promociones de aerolíneas (descuentos, códigos, rebajas): aparte, porque no son billetes. */
+export function promocionesDeVuelos(ofertas, f, ctx = {}) {
+  return ofertas.filter((o) => esPromocion(o) && cumpleChollo(o, f, ctx)).sort(porPuntuacion);
 }
 
 /** El vuelo más barato de cada destino (para el mapa). */
@@ -371,7 +410,32 @@ function cumpleEscapada(o, f, ctx, distancia) {
     && dentroDelLimite(distancia, f);
 }
 
-const comparadoresEscapadas = (distancias) => ({
+/**
+ * Más cómodo: menos tiempo de viaje desde tu salida y, a igualdad, lo que incluye más
+ * (régimen) y lo mejor valorado. Sin tiempo conocido (islas, avión), al final.
+ */
+function porComodidad(distancias) {
+  return (a, b) => ascendente(distancias.get(a.id)?.minutos, distancias.get(b.id)?.minutos)
+    || descendente(REGIMENES_ORDEN.indexOf(a.regimen), REGIMENES_ORDEN.indexOf(b.regimen))
+    || descendente(a.valoracion?.nota, b.valoracion?.nota)
+    || porPuntuacion(a, b);
+}
+
+function calidadPrecio(o, costes) {
+  const porPersona = costes.get(o.id)?.porPersona;
+  return o.valoracion?.nota > 0 && porPersona > 0 ? (o.valoracion.nota / porPersona) * 100 : null;
+}
+
+const cabeEnPresupuesto = (coste, f) => coste?.total != null
+  && (f.presupuestoPor === 'persona' ? coste.porPersona : coste.total) <= f.presupuesto;
+
+const comparadoresEscapadas = (distancias, costes) => ({
+  // Sin total (falta precio, unidad o cómo llegar) van al final: no se comparan con lo que sí lo tiene.
+  total: (a, b) => ascendente(costes.get(a.id)?.total, costes.get(b.id)?.total) || porPuntuacion(a, b),
+  persona: (a, b) => ascendente(costes.get(a.id)?.porPersona, costes.get(b.id)?.porPersona) || porPuntuacion(a, b),
+  comodo: porComodidad(distancias),
+  // Calidad/precio: nota sobre 10 por cada 100 € por persona. Sin nota o sin total, al final.
+  calidad: (a, b) => descendente(calidadPrecio(a, costes), calidadPrecio(b, costes)) || porPuntuacion(a, b),
   puntuacion: (a, b) => porPuntuacion(a, b) || ascendente(a.precio, b.precio),
   precio: porPrecio,
   noche: (a, b) => ascendente(a.precioNoche, b.precioNoche) || porPuntuacion(a, b),
@@ -390,10 +454,17 @@ const comparadoresEscapadas = (distancias) => ({
  * @returns {{ofertas: object[], distancias: Map}}
  */
 export function buscarEscapadas(ofertas, f, ctx) {
-  const distancias = medirDistancias(ofertas, f.punto, ctx.origen);
-  const lista = ofertas.filter((o) => esEscapada(o) && cumpleEscapada(o, f, ctx, distancias.get(o.id)));
-  const comparador = comparadoresEscapadas(distancias)[f.orden] ?? porPuntuacion;
-  return { ofertas: lista.sort(comparador), distancias };
+  // Sin un punto en los filtros, desde tu salida (o desde el origen del escaneo).
+  const distancias = medirDistancias(ofertas, f.punto ?? ctx.salida ?? null, ctx.origen);
+  let lista = ofertas.filter((o) => esEscapada(o) && cumpleEscapada(o, f, ctx, distancias.get(o.id)));
+  const costes = new Map(f.presupuesto || ['total', 'persona', 'calidad'].includes(f.orden)
+    ? lista.map((o) => [o.id, costeViaje(o, { viajeros: ctx.viajeros, noches: ctx.noches, distancia: distancias.get(o.id), coche: ctx.coche })])
+    : []);
+  // Con presupuesto solo entran las que tienen un total que se puede comprobar.
+  const sinTotal = f.presupuesto ? lista.filter((o) => costes.get(o.id).total == null).length : 0;
+  if (f.presupuesto) lista = lista.filter((o) => cabeEnPresupuesto(costes.get(o.id), f));
+  const comparador = comparadoresEscapadas(distancias, costes)[f.orden] ?? porPuntuacion;
+  return { ofertas: lista.sort(comparador), distancias, costes, sinTotal };
 }
 
 // ── Actividades ──────────────────────────────────────────────────────────────
@@ -633,7 +704,9 @@ export function describirCriterio(c, { temas = [], origen = null, periodos = [] 
     c.regimenMinimo && `${ETIQUETAS_REGIMEN[c.regimenMinimo] ?? c.regimenMinimo} o mejor`,
     c.fuente && `fuente ${c.fuente}`,
     c.aeropuerto && `desde ${c.aeropuerto}`,
-    c.precioMax && `hasta ${euros(c.precioMax)}`,
+    c.precioMax && `hasta ${euros(c.precioMax)} publicados`,
+    c.presupuestoMax && `viaje completo hasta ${euros(c.presupuestoMax)} ${c.presupuestoPor === 'persona' ? 'por persona' : 'en total'}${c.viajeros ? ` (${c.viajeros} ${c.viajeros === 1 ? 'persona' : 'personas'})` : ''}`,
+    (c.desde || c.hasta) && `${c.desde ? `del ${etiquetaDia(c.desde)}` : ''}${c.desde && c.hasta ? ' ' : ''}${c.hasta ? `al ${etiquetaDia(c.hasta)}` : ''}`,
     c.precioNocheMax && `hasta ${euros(c.precioNocheMax)} por persona y noche`,
     c.valoracionMin && `valoración ${c.valoracionMin} o más`,
     c.descuentoMin && `descuento del ${c.descuentoMin} % o más`,
@@ -679,7 +752,7 @@ export const marcaVigilado = (criterio) => `json:${encodeURIComponent(JSON.strin
  * lleve dentro la marca de `marcaVigilado`. Solo incluye lo que entiende
  * src/vigilados.js; el resto de filtros se pierde.
  */
-export function criterioVigilado(nombre, f, { vista = 'escapadas' } = {}) {
+export function criterioVigilado(nombre, f, { vista = 'escapadas', salida = null, viajeros = null } = {}) {
   if (vista.startsWith('json:')) return JSON.parse(decodeURIComponent(vista.slice('json:'.length)));
   const criterio = {
     nombre: nombre.trim() || 'Mi búsqueda',
@@ -696,10 +769,17 @@ export function criterioVigilado(nombre, f, { vista = 'escapadas' } = {}) {
     precioMax: f.max ?? undefined,
     precioNocheMax: f.nocheMax ?? undefined,
     noches: f.noches ?? undefined,
-    cocheMaxMin: f.horas ? f.horas * 60 : undefined,
-    cerca: f.punto
-      ? { lat: Number(f.punto.lat.toFixed(4)), lon: Number(f.punto.lon.toFixed(4)), radioKm: Math.round(radioBusquedaKm(f) ?? 100) }
+    // El tiempo en coche del escaneo es desde su origen: desde otro punto (el de los filtros
+    // o tu salida) se vigila un radio equivalente alrededor de ese punto.
+    cocheMaxMin: f.horas && !(f.punto ?? salida) ? f.horas * 60 : undefined,
+    cerca: (f.punto ?? (f.horas || f.km ? salida : null))
+      ? { lat: Number((f.punto ?? salida).lat.toFixed(4)), lon: Number((f.punto ?? salida).lon.toFixed(4)), radioKm: Math.round(radioBusquedaKm(f) ?? 100) }
       : undefined,
+    desde: f.desde || undefined,
+    hasta: f.hasta || undefined,
+    presupuestoMax: f.presupuesto ?? undefined,
+    presupuestoPor: f.presupuesto && f.presupuestoPor === 'persona' ? 'persona' : undefined,
+    viajeros: f.presupuesto && viajeros ? viajeros : undefined,
     pais: f.pais || undefined,
     region: f.region || undefined,
     // «cuando» es 'finde', 'puente' o el id de un finde o de un puente concretos (su
@@ -731,7 +811,9 @@ export function urlEditarVigilados({ hostname = '', pathname = '/' } = {}) {
  * con su hash, así que también se pueden compartir o guardar en marcadores.
  */
 export const ATAJOS_ESCAPADAS = [
-  { texto: '💸 Este finde, lo más barato', params: { cuando: 'finde', orden: 'noche' } },
+  { texto: '💶 Lo más barato en total', params: { orden: 'total' } },
+  { texto: '🛋️ Lo más cómodo', params: { orden: 'comodo' } },
+  { texto: '💸 Este finde, lo más barato', params: { cuando: 'finde', orden: 'total' } },
   { texto: '📉 Por debajo de lo normal', params: { orden: 'ahorro' } },
   { texto: '🧖 Spa a menos de 2 h', params: { temas: 'spa', h: '2' } },
   { texto: '👨‍👩‍👧 Con niños', params: { temas: 'familia' } },
@@ -761,7 +843,27 @@ export function filtrosVigentes(params = {}, { hoy, findes = [], puentes = [] } 
 }
 
 /** Parámetros que no filtran (ordenan o acompañan a otro) y no salen como chip. */
-const NO_SON_FILTROS = new Set(['orden', 'lat', 'lon']);
+const NO_SON_FILTROS = new Set(['orden', 'lat', 'lon', 'prespor', 'sal', 'slat', 'slon', 'vj', 'nc']);
+
+/**
+ * Tu salida, viajeros y noches en los parámetros de un enlace compartido (sal, slat, slon,
+ * vj, nc), para que quien lo abra vea lo mismo si quiere. No son filtros.
+ */
+export function paramsViaje(salida, viaje) {
+  return {
+    ...(salida ? { sal: salida.nombre, slat: salida.lat.toFixed(2), slon: salida.lon.toFixed(2) } : {}),
+    vj: String(viaje.viajeros), nc: String(viaje.noches),
+  };
+}
+
+/** Lo que trae un enlace compartido, o null si no trae nada. Sin validar (lo hace viaje.js). */
+export function viajeDeParams(p = {}) {
+  if (!p.vj && !p.sal) return null;
+  return {
+    salida: p.sal ? { nombre: p.sal, lat: p.slat, lon: p.slon } : null,
+    viaje: { viajeros: p.vj, noches: p.nc },
+  };
+}
 /** Listas separadas por comas: un chip por cada valor. */
 const LISTAS = new Set(['temas', 'notemas', 'nodest']);
 const textoNochesFiltro = (n) => (n === '3' ? '3 noches o más' : n === '1' ? '1 noche' : `${n} noches`);
@@ -791,7 +893,8 @@ function textoFiltro(clave, valor, ctx) {
     lugar: () => `📍 Cerca de ${valor}`,
     h: () => `🚗 Menos de ${valor} h en coche`,
     km: () => `📏 Hasta ${valor} km`,
-    max: () => `Hasta ${numeroEuros(valor)}`,
+    max: () => `Hasta ${numeroEuros(valor)} publicados`,
+    pres: () => `💶 Hasta ${numeroEuros(valor)} ${ctx.params?.prespor === 'persona' ? 'por persona' : 'en total'} (viaje completo)`,
     pnMin: () => `Desde ${numeroEuros(valor)} por persona y noche`,
     pnMax: () => `Hasta ${numeroEuros(valor)} por persona y noche`,
     dto: () => `Descuento del ${valor} % o más`,
@@ -810,6 +913,7 @@ function textoFiltro(clave, valor, ctx) {
     dest: () => `📍 ${valor}`,
     aero: () => `✈️ Desde ${valor}`,
     ideal: () => '🕒 Horario ideal',
+    mios: () => '🛫 Desde mis aeropuertos',
     nuevas: () => '🆕 Solo novedades',
     fav: () => '⭐ Solo favoritos',
     cho: () => '🔥 Solo chollazos',
@@ -840,7 +944,7 @@ export function filtrosActivos(vista, params = {}, ctx = {}) {
     if (LISTAS.has(clave)) {
       for (const parte of lista(valor)) {
         const resto = lista(valor).filter((v) => v !== parte).join(',');
-        chips.push({ clave, texto: textoFiltro(clave, parte, ctx), hash: crearHash(vista, { ...params, [clave]: resto }) });
+        chips.push({ clave, texto: textoFiltro(clave, parte, { ...ctx, params }), hash: crearHash(vista, { ...params, [clave]: resto }) });
       }
       continue;
     }
@@ -853,7 +957,7 @@ export function filtrosActivos(vista, params = {}, ctx = {}) {
       if (dia(valor)) chips.push({ clave, texto: `📅 ${clave === 'desde' ? 'Desde' : 'Hasta'} el ${etiquetaDia(valor)}`, hash: sin(clave) });
       continue;
     }
-    const texto = textoFiltro(clave, valor, ctx);
+    const texto = textoFiltro(clave, valor, { ...ctx, params });
     if (texto) chips.push({ clave, texto, hash: clave === 'lugar' ? sin('lugar', 'lat', 'lon') : sin(clave) });
   }
   // Un punto sin nombre (solo coordenadas) también es un filtro.

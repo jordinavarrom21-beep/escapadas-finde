@@ -1,7 +1,7 @@
 # 🧳 Escapadas Finde
 
-Vigilante 24/7 de **vuelos y escapadas de fin de semana desde Barcelona**. Cada
-30 minutos revisa varias webs de ofertas, las clasifica por temática, calcula
+Vigilante 24/7 de **vuelos y escapadas de fin de semana desde Barcelona**. Varias
+veces al día revisa webs de ofertas (cada una a su ritmo, de 30 minutos a un día), las clasifica por temática, calcula
 el tiempo en coche, detecta puentes y te las enseña en un panel web (también
 desde el móvil). Además te avisa por email.
 
@@ -34,6 +34,16 @@ GitHub Actions (cron cada 30 min, pero GitHub lanza los que puede: ver «Revisi�
   «cerca de Girona a menos de 1 h en coche».
 - **Mapa**, **calendario** de los próximos findes, **historial de precios**, **vigilados**
   y **estado de las fuentes**.
+- **Tu viaje** (botón «📍 Desde … · 2 personas · 2 noches» de la cabecera): la ciudad desde
+  la que sales, cuántos viajáis y cuántas noches si la oferta no las fija. Se guarda solo en
+  tu navegador y no pide tu ubicación salvo que pulses «Usar mi ubicación». Desde el origen
+  de `config/ajustes.json` los tiempos en coche son reales; desde otra ciudad, estimados.
+- **Coste total del viaje**: la oferta para tus viajeros y noches más la gasolina estimada
+  (sin peajes ni aparcamiento). La ficha separa lo publicado de lo estimado y dice qué falta
+  cuando no se puede dar un total. Las escapadas se ordenan por coste total, por persona o
+  por comodidad.
+- Cada oferta dice **cuándo se comprobó** en su web. Si hace más de un día (o de tres
+  intervalos de su web) que no se ve, avisa de que puede haber cambiado o terminado.
 
 **Como app en el móvil o el ordenador**: abre el panel y, en Android o en Chrome/Edge,
 pulsa «Instalar aplicación»; en el iPhone, desde Safari, Compartir → «Añadir a pantalla
@@ -124,8 +134,60 @@ Campos disponibles (la explicación de cada uno está en el «leeme» del propio
 publican otro origen), `alojamiento`, `regimenMinimo`, `valoracionMin`, `descuentoMin`,
 `precioMax`, `precioNocheMax`, `noches` (número o `{min, max}`), `cocheMaxMin`, `cerca`, `pais`
 (nombre o código), `region` (provincia o comunidad), `puente: true`, `finde` (fecha del finde o
-del puente), `soloChollazos`, `soloMinimoHistorico`, `ofertaId` y `activo: false` (pausa).
+del puente), `desde`/`hasta` (fechas), `presupuestoMax` con `presupuestoPor` («total» o «persona») y
+`viajeros` (el viaje completo, con la gasolina desde el origen), `soloChollazos`, `soloMinimoHistorico`,
+`ofertaId` y `activo: false` (pausa).
+
+Por ejemplo, «dos personas, menos de 180 €, a unas 2 h de Girona, cualquier finde de octubre, con spa»:
+
+```json
+{ "nombre": "Spa en octubre", "tema": "spa", "cerca": { "lat": 41.98, "lon": 2.82, "radioKm": 123 },
+  "desde": "2026-10-01", "hasta": "2026-10-31", "presupuestoMax": 180, "viajeros": 2 }
+```
+
+El panel lo genera con «📋 Copiar como vigilado» y, en Vigilados, dice si los avisos por email
+están activos de verdad (con los secretos del correo) o no.
 Si uno está mal escrito, el registro del escaneo lo dice y el resto sigue funcionando.
+
+## Buscadores y enlaces para compartir
+
+El panel vive en `#/…` (una sola página para los buscadores). Por eso cada escaneo escribe
+también **páginas estáticas con URL legible**, sin JavaScript y con datos propios (coste del
+viaje completo, tiempo de viaje, fechas, cuándo se comprobó), solo si tienen al menos 5 ofertas:
+
+- `escapadas/`, `escapadas/menos-de-100-euros/`, `escapadas/este-finde/`, `escapadas/spa/`,
+  `escapadas/con-ninos/`, `escapadas/rurales/`, `escapadas/romanticas/`, `escapadas/sin-coche/`
+- `vuelos/` (chollos que salen de tu origen) y `actividades/gratis/`
+- `sitemap.xml` con todas ellas
+
+Cada una tiene su `canonical`, enlaza al panel con esos filtros puestos y no copia las
+descripciones de los proveedores. Las combinaciones de filtros siguen en `#/…` y no se
+indexan. Los enlaces antiguos (`#/finde`, `#/escapadas?…`) siguen funcionando igual.
+
+Para que Google las encuentre: en [Search Console](https://search.google.com/search-console)
+añade `https://<tu-usuario>.github.io/escapadas-finde/` y envía `sitemap.xml`. Un `robots.txt`
+dentro de `escapadas-finde/` no serviría: los buscadores solo leen el de la raíz del dominio.
+
+## Afiliación y patrocinios (`config/afiliacion.json`)
+
+Ahora mismo **no hay ningún enlace de afiliado**: el panel lo dice en el pie. Para activarlo
+con un proveedor (Civitatis, Booking, GetYourGuide…):
+
+1. Date de alta en su programa y espera a que **aprueben** tu cuenta; lee sus condiciones
+   (p. ej. https://www.civitatis.com/es/afiliados/): no todos permiten cualquier uso ni pagan
+   lo mismo por todo.
+2. En `config/afiliacion.json` pon `activo: true`, `aprobado: true` y tu identificador en
+   `parametros` (se añade a sus enlaces conservando los demás parámetros).
+3. En el siguiente escaneo sus enlaces llevan el identificador, `rel="sponsored"` y la marca
+   «🔗 Enlace de afiliado», y el pie lo explica. Un proveedor a medias (sin aprobar o sin
+   identificador) no marca nada y el registro del escaneo lo avisa.
+
+- **Patrocinadas**: `{"ofertaId": "...", "anunciante": "...", "hasta": "AAAA-MM-DD"}` en
+  `patrocinadas`. Se marcan «Patrocinado» y **no suben** en el orden: la puntuación no las ve.
+- **Clics**: sin `medicion.url` no se mide nada. Si pones la dirección de un contador (p. ej.
+  GoatCounter), añade su dominio a `connect-src` en `site/index.html`. Se envían proveedor,
+  tipo de enlace, tipo de oferta y vista, nunca datos personales. **Un clic no es una venta**:
+  las reservas y comisiones solo las confirma el panel de cada proveedor.
 
 ## Revisión puntual cada 30 minutos (opcional)
 

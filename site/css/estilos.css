@@ -214,6 +214,10 @@ pre code { background: none; padding: 0; }
 .cabecera__info { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
 .pastilla { padding: 4px 12px; border-radius: var(--radio-chico); background: var(--acento-suave); font-weight: 700; font-size: 0.875rem; }
 .pastilla--puente { background: var(--puente-suave); }
+.pastilla--viaje { border: 1px solid var(--borde, transparent); color: inherit; font: inherit; font-weight: 700; font-size: 0.875rem; cursor: pointer; min-height: 32px; }
+.pastilla--viaje:hover { text-decoration: underline; text-underline-offset: 3px; }
+.pastilla--viaje:focus-visible { outline: 3px solid var(--acento); outline-offset: 2px; }
+.ficha--viaje { max-width: 560px; }
 .pastilla--puente a { color: var(--puente) !important; text-decoration: none; }
 .cabecera__actualizado { font-size: 0.8rem; color: var(--texto-suave); }
 .cabecera__actualizado.antiguo { color: var(--aviso); font-weight: 700; }
@@ -274,6 +278,9 @@ main { padding-block: 18px 40px; min-height: 60vh; }
 .filtros-plegables { margin-bottom: 12px; }
 .filtros-plegables > summary { display: inline-block; padding: 8px 14px; border: 1px solid var(--borde); border-radius: 10px; background: var(--superficie); }
 .filtros-plegables[open] > summary { margin-bottom: 10px; }
+@media (min-width: 720px) {
+  .filtros-plegables--movil > summary { display: none; }
+}
 
 /* Jerarquía: cuatro preguntas arriba (¿cuándo?, ¿qué?, ¿dónde?, ¿cuánto?) y el resto plegado. */
 .bloque { border: 0; margin: 0; padding: 12px 0 0; min-width: 0; display: grid; gap: 10px; border-top: 1px solid var(--borde); }
@@ -356,6 +363,7 @@ main { padding-block: 18px 40px; min-height: 60vh; }
 .precio strong { font-size: 1.35rem; font-weight: 800; letter-spacing: -0.01em; }
 .precio__consultar { font-size: 1rem !important; }
 .precio__unidad { font-size: 0.8rem; color: var(--texto-suave); }
+.precio__desde { font-size: 0.8rem; color: var(--texto-suave); }
 .precio__gratis { color: var(--exito); }
 .precio__anterior { font-size: 0.85rem; color: var(--texto-suave); }
 .precio__descuento { font-size: 0.8rem; font-weight: 800; color: var(--exito); }
@@ -488,6 +496,40 @@ main { padding-block: 18px 40px; min-height: 60vh; }
 
 .dato-extra { font-size: 0.82rem; color: var(--texto-suave); overflow-wrap: anywhere; }
 .dato-extra a { color: var(--enlace); }
+.comprobada { font-size: 0.75rem; }
+.coste-total { color: var(--texto); font-weight: 650; }
+/* Páginas estáticas para buscadores (src/paginas.js). */
+.guia { display: grid; gap: 12px; max-width: 900px; }
+.lista-guia { display: grid; gap: 12px; padding-left: 1.4em; }
+.fila-guia { padding: 12px; border: 1px solid var(--borde); border-radius: 12px; background: var(--superficie); }
+.fila-guia h3 { font-size: 1.02rem; margin-bottom: 4px; }
+.aviso-afiliado { font-size: 0.8rem; color: var(--texto-suave); }
+.insignia--mio { background: var(--acento-suave); }
+.mi-estado .boton[aria-pressed="true"] { border-color: var(--acento); background: var(--acento-suave); }
+.insignia--patrocinado { background: var(--aviso-suave); color: var(--aviso); }
+.buscador-finde { display: grid; gap: 6px; padding: 14px 16px; margin: 10px 0 18px; border-radius: 14px; background: var(--superficie); border: 1px solid var(--borde); }
+.buscador-finde h2 { font-size: 1.1rem; }
+.buscador-finde .filtros__fila { align-items: end; }
+.boton-comparar[aria-pressed="true"] { background: var(--acento-suave); border-color: var(--acento); }
+.barra-comparar { position: fixed; left: 50%; transform: translateX(-50%); bottom: max(16px, env(safe-area-inset-bottom)); z-index: 20; display: flex; gap: 8px; align-items: center; padding: 8px; border-radius: 999px; background: var(--superficie); box-shadow: 0 6px 24px rgb(0 0 0 / 22%); }
+.barra-comparar[hidden] { display: none; }
+.barra-comparar .boton { min-height: 40px; white-space: nowrap; }
+.barra-comparar:not([hidden]) ~ .aviso-flotante { bottom: 76px; }
+.comparar__caja { overflow-x: auto; }
+.comparar { border-collapse: collapse; min-width: 640px; width: 100%; font-size: 0.92rem; }
+.comparar th, .comparar td { text-align: left; vertical-align: top; padding: 8px; border-bottom: 1px solid var(--borde); }
+.comparar tbody th { width: 150px; font-weight: 650; color: var(--texto-suave); }
+.comparar thead th { font-size: 1rem; }
+.enlace-boton { background: none; border: 0; padding: 0; font: inherit; color: var(--enlace); text-decoration: underline; cursor: pointer; }
+.enlace-boton:focus-visible { outline: 3px solid var(--acento); outline-offset: 2px; border-radius: 4px; }
+.coste { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.coste th, .coste td { text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--borde); vertical-align: top; }
+.coste th { font-weight: 600; }
+.coste .num { text-align: right; white-space: nowrap; }
+.coste__total th, .coste__total td { font-weight: 800; border-bottom: 0; }
+.coste__falta { color: var(--aviso); }
+.etiqueta-estimado { font-size: 0.72rem; font-weight: 600; padding: 1px 6px; border-radius: 999px; background: var(--aviso-suave); color: var(--aviso); }
+.comprobada--antigua { color: var(--aviso); }
 .valoracion { white-space: nowrap; font-weight: 700; color: var(--texto); }
 .precio__noche { flex-basis: 100%; font-size: 0.8rem; color: var(--texto-suave); }
 .insignia--ahorro { background: color-mix(in srgb, var(--exito) 16%, var(--superficie)); color: var(--exito); }
@@ -537,6 +579,33 @@ main { padding-block: 18px 40px; min-height: 60vh; }
   box-shadow: var(--sombra); text-align: center;
 }
 .aviso-flotante:empty { display: none; }
+
+/* ── Móvil: la cabecera en tres líneas cortas para llegar antes a las ofertas ── */
+
+@media (max-width: 719px) {
+  .cabecera { padding-top: 8px; }
+  .marca { font-size: 1.05rem; gap: 8px; }
+  .marca img { width: 28px; height: 28px; }
+  .estado-fuentes { height: 36px; padding: 0 10px; }
+  /* Salida, cuenta atrás, puente y revisión: una fila que se desliza, no cuatro. */
+  .cabecera__info { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; gap: 6px; margin-top: 6px; padding-bottom: 2px; }
+  .cabecera__info::-webkit-scrollbar { display: none; }
+  .cabecera__info > * { flex: none; white-space: nowrap; }
+  .cabecera__info .pastilla { font-size: 0.78rem; padding: 3px 10px; }
+  #boton-viaje { order: -1; min-height: 30px; }
+  .buscador { padding-block: 6px 8px; }
+  .buscador input, .buscador .boton { min-height: 40px; }
+  .novedades { flex-wrap: nowrap; gap: 8px; margin-top: 8px; padding-block: 6px; font-size: 0.9rem; }
+  .novedades p { flex: 1 1 auto; }
+  main { padding-block: 12px 96px; }
+  /* El ✕ de descartar también se toca con el dedo: 44 px como los demás botones. */
+  .boton-icono--mini { width: 44px; height: 44px; }
+  h1.titulo-vista { font-size: 1.4rem; margin-bottom: 8px; }
+  .buscador-finde { padding: 12px; margin: 6px 0 14px; }
+  .buscador-finde .filtros__fila { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .buscador-finde .filtros__fila .boton { grid-column: 1 / -1; min-height: 44px; }
+  .buscador-finde .campo { min-width: 0; }
+}
 
 /* ── Pantallas medianas y grandes ─────────────────────────────────────────── */
 

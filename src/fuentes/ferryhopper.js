@@ -9,9 +9,7 @@
  *
  * El precio es el «billete desde» que anuncia Ferryhopper para esa compañía y ese
  * mes: la tarifa más barata de un pasajero sin vehículo, **por persona y trayecto
- * (solo ida)**. El catálogo de `UNIDADES` no tiene un valor para «por persona y
- * trayecto», así que `unidad` se queda en null y la unidad se explica en
- * `precioTexto`, igual que hace OUIGO con sus promociones.
+ * (solo ida)**: `unidad: 'trayecto'`.
  */
 import * as cheerio from 'cheerio';
 import { crearOferta } from '../modelo.js';
@@ -136,7 +134,7 @@ function ofertaDe(t) {
     imagen: t.imagen,
     precio: t.precio,
     precioTexto: `desde ${euros(t.precio)} por persona y trayecto (solo ida)`,
-    unidad: null,
+    unidad: 'trayecto',
     transporte: 'ferry',
     lugar: { ...(lugar ?? { nombre: t.destino.nombre, region: null, pais: null, codigoPais: null, lat: null, lon: null }), iata: null },
     etiquetas: [t.compania, 'Travesía directa', t.frecuencia, `Duración ${t.duracion}`].filter(Boolean),

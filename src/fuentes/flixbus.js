@@ -118,7 +118,7 @@ export function ofertaDestino(respuesta, destino, viernes) {
     url: urlTienda(destino, viernes),
     precio: mejor.precio,
     precioTexto: `${euros(mejor.precio)} por persona, solo ida${gestion}`,
-    unidad: null,
+    unidad: 'trayecto',
     transporte: mejor.tren ? 'tren' : 'bus',
     lugar: {
       nombre: destino.nombre,

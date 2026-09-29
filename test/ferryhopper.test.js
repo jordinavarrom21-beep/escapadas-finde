@@ -37,7 +37,7 @@ describe('ferryhopper: parsear (páginas reales)', () => {
       assert.deepEqual(validarOferta(o), [], o.id);
       assert.equal(o.tipo, 'escapada');
       assert.equal(o.transporte, 'ferry');
-      assert.equal(o.unidad, null, 'no hay unidad para «por persona y trayecto»: va en precioTexto');
+      assert.equal(o.unidad, 'trayecto', 'por persona y trayecto (solo ida)');
       assert.match(o.precioTexto, /^desde [\d,.]+ € por persona y trayecto \(solo ida\)$/);
       assert.equal(o.url, `${RUTAS}/ferry-barcelona-ibiza`);
       assert.ok(o.descripcion.length <= 300);

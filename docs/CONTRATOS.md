@@ -48,7 +48,7 @@ un `try/catch`, registran el error con `ctx.log` y descartan solo esa oferta.
 | `imagen` | fuente | URL absoluta o `null` |
 | `precio` | fuente | número en EUR o `null` si no hay precio |
 | `precioTexto` | fuente | cómo lo presenta la web, p. ej. «desde 108 € por persona» |
-| `unidad` | fuente | `pp` (por persona, estancia completa) \| `pp/noche` \| `total` \| `i/v` (ida y vuelta por persona) \| `noche` (habitación por noche) \| `null` |
+| `unidad` | fuente | `pp` (por persona, estancia completa) \| `pp/noche` \| `total` \| `i/v` (ida y vuelta por persona) \| `noche` (habitación por noche) \| `trayecto` (billete de tren, bus o ferry por persona y trayecto, solo ida) \| `null` |
 | `precioAnterior`, `descuento` | fuente | precio tachado o anterior que publica la web, y % de descuento |
 | `noches` | fuente o `temas.js` | número de noches si se conoce |
 | `regimen` | fuente o `temas.js` | `solo-alojamiento` \| `desayuno` \| `media-pension` \| `pension-completa` \| `todo-incluido` |
@@ -61,21 +61,27 @@ un `try/catch`, registran el error con `ctx.log` y descartan solo esa oferta.
 | `etiquetas` | fuente | etiquetas crudas de la web (sirven para temas y filtros) |
 | `publicada`, `caduca` | fuente | fechas ISO 8601 o `null` |
 | `vistaPrimera`, `vistaUltima` | `almacen.js` | ISO UTC |
-| `bajada`, `minimoHistorico` | `historial.js` | € que ha bajado respecto al máximo de los últimos 7 días; `true` si es el precio más bajo registrado (con ≥ 2 días de historial) |
-| `puntuacion`, `chollazo` | `puntuacion.js` | 0–100, y si merece alerta (`esChollazo`; el panel usa este campo) |
+| `bajada`, `minimoHistorico` | `historial.js` | € que ha bajado respecto al máximo de los últimos 7 días; `true` si es el precio más bajo registrado, alguna vez estuvo más alto y hay historial suficiente (≥ 3 días con precio y el primero de hace ≥ 7 días) |
+| `puntuacion`, `chollazo`, `chollazoMotivo` | `puntuacion.js` | 0–100, si merece alerta (`esChollazo`; el panel usa este campo) y por qué, en una frase comprobable (`motivoChollazo`: error de tarifa, vuelo i/v o precio por persona y noche por debajo del límite, o la puntuación) |
 | `enlaces` | `enlaces.js` | `[{etiqueta, url}]`: reservar, comparar, hotel, ruta… |
 | `alojamiento` | fuente o `temas.js` | `hotel` \| `casa-rural` \| `camping` \| `apartamento` \| `parador` \| `balneario` \| `hostal` \| `null` |
 | `valoracion` | fuente | `{nota: 0–10, n: nº de opiniones}` o `null` |
 | `precioNoche` | `puntuacion.js` | precio por persona y noche cuando se puede deducir (`precioPorPersonaNoche`) |
 | `referencia` | `referencia.js` | `{mediana, ahorroPct, grupo, n}`: comparación con ofertas parecidas |
+| `urlReserva`, `afiliado`, `patrocinada` | `afiliacion.js` | la `url` con el identificador de afiliado de un proveedor activo y aprobado (o igual que `url`), qué proveedor (`null` si ninguno) y `{anunciante}` si alguien paga por ella. `url` se queda limpia. No cambian la puntuación ni el orden |
 | `equivalentes` | `duplicados.js` | la misma oferta en otras webs: `[{fuente, precio, unidad, url}]` |
-| `costeCoche` | `geo.js` | `{eur, litros}` del viaje de ida y vuelta desde `ajustes.origen` |
+| `costeCoche` | `geo.js` | `{eur, litros}` del viaje de ida y vuelta desde `ajustes.origen`, solo si se va en coche (`transporte` `coche` o `null`): una oferta de tren, bus, avión o ferry no gasta gasolina (`vaEnCoche`) |
 | `tiempo` | `tiempo.js` | `{dia, maxC, minC, lluviaPct, codigo, texto}` del finde o puente asignado |
-| `eventos` | `eventos.js` | hasta 3 `{nombre, fecha, url, municipio}` cerca del destino esos días |
+| `eventos` | `eventos.js` | hasta 3 `{nombre, fecha, url, municipio}` cerca del destino esos días, sin repetir el mismo acto en el mismo municipio (`sinRepetir`). En una oferta sin fechas propias son los del próximo finde: el panel los enseña solo en la ficha y avisando |
 
 Etiquetas especiales (en `etiquetas`) que otros módulos entienden:
-`temperatura:<grados>` (popularidad en Chollometro), `top-chollo` (destacado por la
-propia web), `error-tarifa` (tarifa errónea detectada, p. ej. en Fly4free).
+`temperatura:<grados>` (popularidad en Chollometro), `promocion` y `sale-de:<ciudad>` (`vuelos.js`), `top-chollo` (destacado por la
+propia web), `error-tarifa` (tarifa errónea detectada, p. ej. en Fly4free), `caduca-estimada` (la
+web no publica hasta cuándo vale y `caduca` la ha supuesto el vigilante, como en el buzón: sirve
+para la poda, pero el panel no la enseña como dato).
+
+`fechas.salida`/`vuelta` son las del viaje; `caduca`, hasta cuándo vale la promoción para reservar.
+El panel las enseña por separado («Fechas flexibles · ⏳ Promoción hasta el mié 30 sep»).
 
 Campo `vuelo` (solo en fuentes de vuelos con fechas concretas, como Ryanair; las
 ofertas de vuelos de blogs y comunidades usan `tipo: 'vuelo'` con `vuelo: null`):
@@ -150,6 +156,11 @@ export default {
     título, descripción, etiquetas y lugar. No modifica la oferta.
   - `aplicarClasificacion(oferta)` rellena `regimen`, `noches` y `transporte` solo si
     son `null`, y une los `temas`.
+- `vuelos.js`
+  - `clasificarVueloSinFecha(oferta)`: en los vuelos sin `vuelo` (blogs y comunidades), pasa a
+    `paquete` los que incluyen alojamiento («3 noches en hotel con vuelos»), etiqueta `promocion` los
+    que no son un billete (descuentos, códigos, «muchos destinos») y anota `sale-de:<ciudad>` con las
+    salidas que publica el título (o la descripción, en los paquetes con avión). Idempotente.
 - `zona.js`
   - `aplicarZona(oferta)`: `lugar.provincia` y `lugar.comunidad` en España a partir de lo
     que diga `region` (provincia, comunidad, comarca, zona turística…); null si no se sabe.
@@ -174,7 +185,10 @@ export default {
 - `duplicados.js`
   - `marcarEquivalentes(ofertas)`: la misma escapada en varias webs (mismo alojamiento
     normalizado y localidad). La más barata guarda `equivalentes`; las demás llevan la
-    etiqueta «duplicada». Conservador: ante la duda no agrupa.
+    etiqueta «duplicada». Conservador: ante la duda no agrupa. Además, dos ofertas de la misma
+    web idénticas en todo lo que se ve (título, precio, unidad, noches, lugar, régimen,
+    descripción, fechas y etiquetas) son la misma publicada dos veces: la de id menor se queda y
+    la otra lleva «duplicada» sin `equivalentes`.
 - `tiempo.js` / `eventos.js`
   - `anadirTiempo(ofertas, ctx)`: previsión de Open-Meteo para el finde o puente.
   - `anadirEventos(ofertas, ctx)`: agenda cultural de Cataluña (Socrata) cerca del destino.
@@ -201,7 +215,8 @@ export default {
     (`ruta:<lat>,<lon>` redondeado a 3 decimales, 180 días). Si OSRM falla, estima
     con línea recta × 1,3 a `velocidadMediaKmh` y marca `cocheEstimado`.
   - `calcularCosteCoche(ofertas, ctx)`: `costeCoche` `{eur, litros}` (ida y vuelta) con el consumo de
-    `ajustes.coche` y el precio del carburante del Ministerio (caché diaria).
+    `ajustes.coche` y el precio del carburante del Ministerio (caché diaria). Solo en las ofertas a las
+    que se va en coche (`vaEnCoche`); el panel enseña el de las demás solo como comparación en la ficha.
   - `distanciaKm(a, b)`: haversine.
 - `puntuacion.js`
   - `puntuar(ofertas, ajustes)`: asigna `puntuacion` (0–100) a todas.
@@ -259,7 +274,7 @@ Otros archivos de `data/`: `cache.json` (Cache), `historial.json`.
    dominio (`src/core/source-runner.js`); cada una espacia sus propias peticiones.
 4. `fusionar` los resultados → `podar`.
 5. Enriquecer todas las ofertas, en este orden (cada paso usa lo del anterior):
-   `completarOferta` → `aplicarClasificacion` → `aplicarAlojamiento` → `aplicarZona` → `precioNoche` →
+   `completarOferta` → `clasificarVueloSinFecha` → `aplicarClasificacion` → `aplicarAlojamiento` → `aplicarZona` → `precioNoche` →
    `asignarFechas` → `geolocalizar` → `calcularCoche` → `calcularCosteCoche` →
    `revisarPrecios` → `calcularReferencia` → `marcarEquivalentes` → `anadirTiempo` →
    `anadirEventos` → `enlacesPara` → `registrarPrecios` → `compactar` → `puntuar`.
@@ -267,7 +282,9 @@ Otros archivos de `data/`: `cache.json` (Cache), `historial.json`.
    hunda la mediana ni pase por chollazo.
 6. `procesarEmails` (salvo con `--sin-emails`), dentro de `escanear()` y antes de escribir nada.
 7. La CLI guarda `data/estado.json`, `data/cache.json` y `data/historial.json`, escribe
-   `site/data/ofertas.json`, `site/data/historial.json` y `site/data/vigilados.json`, e imprime
+   `site/data/ofertas.json`, `site/data/historial.json` y `site/data/vigilados.json`, las páginas para
+   buscadores de `src/paginas.js` (`site/escapadas/…`, `site/vuelos/`, `site/actividades/gratis/` y
+   `site/sitemap.xml`, borrando antes las de la pasada anterior), e imprime
    un resumen por fuente. El código de salida es 0 aunque fallen algunas fuentes y 1 si fallan
    todas las que se han ejecutado en esta pasada. Si `escanear()` lanza, no se escribe nada y el
    workflow no despliega (comprueba que exista `site/data/ofertas.json`).
@@ -283,10 +300,13 @@ Otros archivos de `data/`: `cache.json` (Cache), `historial.json`.
   generado: ISO,
   origen: { nombre, lat, lon },
   aeropuertos: ['BCN', 'GRO', 'REU'],
+  viajeros: 2,
+  coche: { consumoL100km, precioLitro, carburante }, // precioLitro: el medio del Ministerio de hoy, o el de los ajustes
+  afiliacion: { proveedores: ['civitatis'], medicion: null }, // proveedores que marcan enlaces y dónde contar clics
   temas: TEMAS,
   findes: Finde[],        // {id, viernes, sabado, domingo, etiqueta, puenteId}
   puentes: Puente[],
-  fuentes: [{ id, nombre, web, modo, estado: 'ok'|'error'|'desactivada'|'bloqueada'|'pendiente', motivo, ultimoOk, error, total, falta: [] }],
+  fuentes: [{ id, nombre, web, modo, estado: 'ok'|'error'|'desactivada'|'bloqueada'|'pendiente', motivo, ultimoOk, error, total, falta: [], intervaloMin }],
   ofertas: Oferta[]       // ordenadas por puntuación descendente
 }
 ```
@@ -302,7 +322,9 @@ una oferta coincide si cumple **todos** los que estén presentes). La lista comp
 explicada está en el «leeme» del propio archivo y en el typedef `Criterio` de
 `src/vigilados.js`: `nombre, activo, ofertaId, texto, tipo, tema, temas, fuente, aeropuerto,
 alojamiento, regimenMinimo, valoracionMin, descuentoMin, precioMax, precioNocheMax, noches,
-cocheMaxMin, cerca, pais, region, puente, finde, soloChollazos, soloMinimoHistorico`.
+cocheMaxMin, cerca, pais, region, puente, finde, soloChollazos, soloMinimoHistorico, desde, hasta,
+presupuestoMax, presupuestoPor, viajeros`. El presupuesto usa `costeViaje` de `site/js/coste.js`
+(`costeDesdeOrigen`), el mismo cálculo que el panel, con la gasolina desde `ajustes.origen`.
 `texto` busca palabras completas sin tildes ni mayúsculas en título, lugar y destino; `pais`
 con dos letras compara el código; `region` vale para la región de la web, la provincia o la
 comunidad; `aeropuerto` solo descarta vuelos que publican otro origen.

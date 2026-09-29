@@ -10,9 +10,14 @@ export const ETIQUETAS_UNIDAD = {
   pp: 'por persona',
   'pp/noche': 'por persona y noche',
   total: 'en total',
-  'i/v': 'ida y vuelta',
-  noche: 'por noche',
+  'i/v': 'ida y vuelta por persona',
+  // La habitación o la casa entera: no es por persona.
+  noche: 'por alojamiento y noche',
+  trayecto: 'por persona y trayecto',
 };
+
+/** Cuando la web no dice a qué corresponde el precio: mejor decirlo que dejar que se suponga. */
+export const SIN_UNIDAD = 'la web no dice si es por persona';
 
 export const ETIQUETAS_REGIMEN = {
   'solo-alojamiento': 'Solo alojamiento',
@@ -60,10 +65,10 @@ export const grados = (valor) => (Number.isFinite(valor) ? `${Math.round(valor)}
 export const nota = (valor) => (Number.isFinite(valor) ? valor.toLocaleString('es-ES', { maximumFractionDigits: 1 }) : '');
 
 /** ['a', 'b', 'c'] → «a, b y c». */
-export function enumerar(partes) {
+export function enumerar(partes, conjuncion = 'y') {
   const lista = partes.filter(Boolean);
   if (lista.length <= 1) return lista.join('');
-  return `${lista.slice(0, -1).join(', ')} y ${lista.at(-1)}`;
+  return `${lista.slice(0, -1).join(', ')} ${conjuncion} ${lista.at(-1)}`;
 }
 
 /** 59 → «59 €» · 19.98 → «19,98 €» · null → «—». */

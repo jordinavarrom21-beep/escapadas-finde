@@ -36,7 +36,7 @@ describe('filtros claros: lo que tienes puesto', () => {
   it('un chip por filtro, con su texto y el enlace a la misma búsqueda sin él', () => {
     const params = { temas: 'spa,rural', max: '200', fuente: 'atrapalo', orden: 'precio' };
     const chips = filtrosActivos('escapadas', params, ctx);
-    assert.deepEqual(chips.map((c) => c.texto), ['🧖 Relax y spa', '🌲 Rural y naturaleza', `Hasta ${euros(200)}`, 'Solo Atrápalo']);
+    assert.deepEqual(chips.map((c) => c.texto), ['🧖 Relax y spa', '🌲 Rural y naturaleza', `Hasta ${euros(200)} publicados`, 'Solo Atrápalo']);
     // Quitar «spa» deja «rural» y todo lo demás, orden incluido.
     assert.deepEqual(leerRuta(chips[0].hash).params, { temas: 'rural', max: '200', fuente: 'atrapalo', orden: 'precio' });
     assert.deepEqual(leerRuta(chips[2].hash).params, { temas: 'spa,rural', fuente: 'atrapalo', orden: 'precio' });

@@ -101,7 +101,11 @@ const PARAMS = {
   vigilados: [{}],
   fuentes: [{}],
   buscar: [{ q: 'spa' }, { q: 'roma' }, { q: 'girona' }, { q: 'barato este finde' }, { q: '' }],
+  // Una de cada: vuelo, alojamiento y actividad (con total, sin total y gratis), y un id que ya no existe.
+  comparar: [{}, { ids: [primero((o) => o.tipo === 'vuelo').id, primero((o) => o.tipo === 'hotel').id, primero((o) => o.tipo === 'actividad').id].join(',') },
+    { ids: 'no-existe:1' }],
 };
+PARAMS.escapadas.push({ orden: 'total' }, { orden: 'persona' }, { orden: 'calidad' }, { orden: 'comodo' }, { pres: '200' }, { pres: '80', prespor: 'persona' });
 
 describe('panel con datos reales: cada vista se pinta limpia', () => {
   it('la muestra es variada (si no, la prueba no recorrería las ramas)', () => {
@@ -156,5 +160,17 @@ describe('panel con datos reales: cada vista se pinta limpia', () => {
   it('la sorpresa también', () => {
     const e = estadoPanel();
     revisarHtml(contenidoSorpresa(e, {}), 'sorpresa', e);
+  });
+});
+
+describe('panel con datos reales: la portada no repite ofertas', () => {
+  it('cada oferta sale como mucho una vez entre todos los bloques de la portada', () => {
+    const e = estadoPanel();
+    e.favoritos = new Set(datos.ofertas.filter((o) => o.chollazo).slice(0, 2).map((o) => o.id));
+    const html = VISTAS_HTML.finde.html(e, {});
+    const ids = [...html.matchAll(/data-descartar="([^"]+)"/g)].map((m) => m[1]);
+    assert.ok(ids.length > 5, 'la portada tiene ofertas');
+    const repetidas = ids.filter((id, i) => ids.indexOf(id) !== i);
+    assert.deepEqual(repetidas, []);
   });
 });

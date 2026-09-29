@@ -516,7 +516,8 @@ export function parsearEmail(email, { resueltos = new Map(), log = () => {}, nom
     fuente: ID,
     temas: comercio.temas ?? [],
     transporte: comercio.transporte ?? null,
-    etiquetas: ['newsletter', comercio.nombre],
+    // «caduca-estimada»: la newsletter no dice hasta cuándo vale; son DIAS_VIGENCIA supuestos.
+    etiquetas: ['newsletter', comercio.nombre, 'caduca-estimada'],
     publicada,
     caduca: publicada ? new Date(Date.parse(publicada) + DIAS_VIGENCIA * DIA_MS).toISOString() : null,
   };

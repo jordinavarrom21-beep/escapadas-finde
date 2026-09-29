@@ -7,6 +7,9 @@ import { readFileSync } from 'node:fs';
 import { distanciaKm } from './enriquecer/geo.js';
 import { normalizarTexto } from './util/xml.js';
 import { ALOJAMIENTOS, REGIMENES, TEMAS, TIPOS } from './modelo.js';
+import { fechaLocal } from './util/fechas.js';
+// El mismo cálculo del coste del viaje que el panel (sin DOM: se puede usar desde Node).
+import { costeViaje } from '../site/js/coste.js';
 
 const IDS_TEMAS = TEMAS.map((t) => t.id);
 
@@ -15,10 +18,11 @@ const CAMPOS = new Set([
   'nombre', 'activo', 'ofertaId', 'texto', 'tipo', 'tema', 'temas', 'fuente', 'aeropuerto',
   'alojamiento', 'regimenMinimo', 'valoracionMin', 'descuentoMin', 'precioMax', 'precioNocheMax',
   'noches', 'cocheMaxMin', 'cerca', 'pais', 'region', 'puente', 'finde', 'soloChollazos',
-  'soloMinimoHistorico', 'coincidencias',
+  'soloMinimoHistorico', 'desde', 'hasta', 'presupuestoMax', 'presupuestoPor', 'viajeros', 'coincidencias',
 ]);
 const CAMPOS_TEXTO = ['ofertaId', 'texto', 'fuente', 'aeropuerto', 'pais', 'region', 'finde'];
-const CAMPOS_NUMERO = ['precioMax', 'precioNocheMax', 'cocheMaxMin', 'valoracionMin', 'descuentoMin'];
+const CAMPOS_NUMERO = ['precioMax', 'precioNocheMax', 'cocheMaxMin', 'valoracionMin', 'descuentoMin', 'presupuestoMax', 'viajeros'];
+const esDia = (valor) => typeof valor === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(valor);
 const CAMPOS_BOOLEANO = ['activo', 'puente', 'soloChollazos', 'soloMinimoHistorico'];
 const CAMPOS_CATALOGO = { tipo: TIPOS, tema: IDS_TEMAS, alojamiento: ALOJAMIENTOS, regimenMinimo: REGIMENES };
 
@@ -93,6 +97,36 @@ function cumpleNoches(noches, criterio) {
 }
 
 /**
+ * Fechas «desde»/«hasta» (AAAA-MM-DD): con fechas, el viaje las solapa; sin fechas
+ * (flexible), la promoción no ha caducado antes de «desde».
+ */
+function cumpleFechas(oferta, { desde, hasta }) {
+  const salida = oferta.fechas.salida?.slice(0, 10);
+  if (!salida) return !desde || !oferta.caduca || fechaLocal(new Date(oferta.caduca)) >= desde;
+  const vuelta = (oferta.fechas.vuelta ?? oferta.fechas.salida).slice(0, 10);
+  return (!desde || vuelta >= desde) && (!hasta || salida <= hasta);
+}
+
+/**
+ * Coste del viaje completo con el mismo cálculo que el panel (site/js/coste.js), desde el
+ * origen del escaneo: la gasolina, la que ya calculó geo.js. null si no se puede saber.
+ */
+export function costeDesdeOrigen(oferta, viajeros = 2) {
+  const { eur, litros } = oferta.costeCoche ?? {};
+  const coche = eur > 0 && litros > 0 && oferta.cocheKm > 0
+    ? { consumoL100km: (litros * 100) / (2 * oferta.cocheKm), precioLitro: eur / litros }
+    : null;
+  const distancia = oferta.cocheKm > 0 ? { km: oferta.cocheKm, kmCoche: oferta.cocheKm, minutos: oferta.cocheMin } : null;
+  return costeViaje(oferta, { viajeros, noches: 2, distancia, coche });
+}
+
+function cumplePresupuesto(oferta, c) {
+  const coste = costeDesdeOrigen(oferta, c.viajeros ?? 2);
+  const valor = c.presupuestoPor === 'persona' ? coste.porPersona : coste.total;
+  return valor != null && valor <= c.presupuestoMax;
+}
+
+/**
  * @param {import('./modelo.js').Oferta} oferta
  * @param {Criterio} c
  * @returns {boolean} si la oferta cumple todas las condiciones del criterio
@@ -123,6 +157,8 @@ export function coincide(oferta, c) {
   if (c.finde && ![oferta.fechas.findeId, oferta.fechas.puenteId].includes(String(c.finde).replace(/^puente-/, ''))) return false;
   if (c.soloChollazos && !oferta.chollazo) return false;
   if (c.soloMinimoHistorico && !oferta.minimoHistorico) return false;
+  if ((c.desde || c.hasta) && !cumpleFechas(oferta, c)) return false;
+  if (c.presupuestoMax != null && !cumplePresupuesto(oferta, c)) return false;
   if (c.cerca && !(tieneCoordenadas(oferta.lugar) && distanciaKm(c.cerca, oferta.lugar) <= c.cerca.radioKm)) return false;
   if (c.texto && !contienePalabras([oferta.titulo, oferta.lugar?.nombre, oferta.lugar?.iata, oferta.vuelo?.destino].join(' '), c.texto)) return false;
   return true;
@@ -177,6 +213,12 @@ export function validarVigilado(c) {
   if (typeof c.aeropuerto === 'string' && !/^[a-z]{3}$/i.test(c.aeropuerto)) problemas.push('«aeropuerto» es un código IATA de 3 letras, como «BCN»');
   if (typeof c.aeropuerto === 'string') problemas.push('aviso: «aeropuerto» solo descarta vuelos cuyo origen se conoce, y hoy casi ninguna web lo publica');
   if (typeof c.finde === 'string' && !/^(puente-)?\d{4}-\d{2}-\d{2}$/.test(c.finde)) problemas.push('«finde» es la fecha de un finde o de un puente, como «2026-12-05»');
+  for (const campo of ['desde', 'hasta']) {
+    if (c[campo] != null && !esDia(c[campo])) problemas.push(`«${campo}» es una fecha como «2026-10-01»`);
+  }
+  if (esDia(c.desde) && esDia(c.hasta) && c.desde > c.hasta) problemas.push('«desde» es posterior a «hasta» y no coincidiría con nada');
+  if (c.presupuestoPor != null && !['total', 'persona'].includes(c.presupuestoPor)) problemas.push('«presupuestoPor» es "total" o "persona"');
+  if (c.viajeros != null && !(Number.isInteger(c.viajeros) && c.viajeros >= 1)) problemas.push('«viajeros» es un número entero, 1 o más');
   return problemas;
 }
 
@@ -232,4 +274,9 @@ export function resumenVigilados(ofertas, vigilados = []) {
  * @property {string} [finde] id de un finde o de un puente concreto
  * @property {boolean} [soloChollazos]
  * @property {boolean} [soloMinimoHistorico]
+ * @property {string} [desde] AAAA-MM-DD: viajes que acaban ese día o después (flexibles: sin caducar antes)
+ * @property {string} [hasta] AAAA-MM-DD: viajes que empiezan ese día o antes
+ * @property {number} [presupuestoMax] coste del viaje completo (oferta + gasolina desde el origen)
+ * @property {'total'|'persona'} [presupuestoPor] por defecto «total»
+ * @property {number} [viajeros] para el presupuesto (2 por defecto)
  */

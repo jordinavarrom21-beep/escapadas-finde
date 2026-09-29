@@ -121,7 +121,7 @@ describe('vuelos', () => {
     assert.match(html, /Todavía no hay vuelos con fecha y hora/);
     assert.match(html, /Ryanair<\/strong>: bloqueada \(Su robots\.txt prohíbe \/api/);
     assert.match(html, /falta configurar TRAVELPAYOUTS_TOKEN|falta configurar SERPAPI_KEY/);
-    assert.match(html, /Chollos de vuelos de blogs y comunidades/);
+    assert.match(html, /Billetes sin fecha concreta, de blogs y comunidades/);
   });
 
   it('agrupa los destinos del mapa quedándose con el vuelo más barato', () => {
@@ -432,7 +432,7 @@ describe('ayudas para elegir', () => {
       tipo: 'hotel',
       temas: ['spa', 'rural'],
       precioMax: 90,
-      cocheMaxMin: 120,
+      // Desde Girona, un radio de ~2 h alrededor de Girona; no «2 h desde Barcelona» (el origen del escaneo).
       cerca: { lat: 41.9794, lon: 2.8214, radioKm: 123 },
       puente: true,
     });
@@ -475,7 +475,7 @@ describe('búsqueda, novedades y resúmenes', () => {
 
   it('describe los vigilados y enlaza a la edición en GitHub', () => {
     const [, , spa, puentes] = leer('vigilados.json').vigilados;
-    assert.deepEqual(describirCriterio(spa, { temas: datos.temas, origen }), ['🧖 Relax y spa', `hasta ${euros(70)}`, 'a menos de 2 h en coche']);
+    assert.deepEqual(describirCriterio(spa, { temas: datos.temas, origen }), ['🧖 Relax y spa', `hasta ${euros(70)} publicados`, 'a menos de 2 h en coche']);
     assert.ok(describirCriterio(puentes, { temas: datos.temas, origen }).includes('a menos de 300 km de Barcelona'));
     assert.equal(urlEditarVigilados({ hostname: 'jordi.github.io', pathname: '/escapadas-finde/' }),
       'https://github.com/jordi/escapadas-finde/edit/main/config/vigilados.json');
@@ -515,18 +515,22 @@ describe('fechas, formato, geocodificación y plantillas', () => {
   });
 
   it('la tarjeta enseña ahorro, valoración, coste del coche, eventos, tiempo y el botón de descartar', () => {
-    const besalu = tarjeta(porId('chollometro:besalu-casa-rural-para-6-personas-por-18'), ctxTarjeta);
+    const casaBesalu = porId('chollometro:besalu-casa-rural-para-6-personas-por-18');
+    const besalu = tarjeta(casaBesalu, ctxTarjeta);
     assert.match(besalu, /Un 35 % por debajo de lo normal/);
     assert.match(besalu, /🏡 Casa rural/);
     assert.match(besalu, /⭐ 8/);
-    assert.match(besalu, /de coche ida y vuelta para 2 personas/);
-    assert.match(besalu, /Mercat medieval de Besalú/);
+    assert.match(besalu, /≈ \d+\s€ de gasolina ida y vuelta · estimado, un coche para 2 personas/);
+    // Fechas flexibles: los eventos son los del próximo finde, así que van a la ficha y avisando.
+    assert.ok(!besalu.includes('Mercat medieval de Besalú'));
+    assert.match(contenidoFicha(casaBesalu, ctxTarjeta), /si vas entonces[^]*Mercat medieval de Besalú/);
     assert.match(besalu, /por persona y noche/);
     assert.match(besalu, /data-descartar="chollometro:besalu/);
 
     const sitges = tarjeta(porId('chollometro:hotel-en-sitges-para-el-festival-de-cine'), ctxTarjeta);
     assert.match(sitges, /También en <a[^>]*>No Molesten<\/a>/);
-    assert.match(sitges, /Lluvia ligera · 23° · 65 % de lluvia/);
+    assert.match(sitges, /En la ficha: el tiempo/, 'el tiempo va en la ficha');
+    assert.match(contenidoFicha(porId('chollometro:hotel-en-sitges-para-el-festival-de-cine'), ctxTarjeta), /Lluvia ligera · 23° · 65 % de lluvia/);
     assert.match(sitges, /🔥 Chollazo/);
   });
 
@@ -537,7 +541,7 @@ describe('fechas, formato, geocodificación y plantillas', () => {
       valoracion: null, precioNoche: null, alojamiento: null,
     };
     const html = tarjeta(pelada, ctxTarjeta);
-    assert.ok(!/por debajo de lo normal|También en|de coche ida y vuelta|class="eventos"|⭐|por persona y noche/.test(html));
+    assert.ok(!/por debajo de lo normal|También en|de gasolina ida y vuelta|class="eventos"|⭐|por persona y noche/.test(html));
   });
 });
 

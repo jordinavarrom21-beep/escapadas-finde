@@ -13,11 +13,17 @@ const MIN_CARACTERES = 3;
 const redondear = (n) => Math.round(n * 100) / 100;
 const cache = new Map();
 
-export function activarUbicacion(formulario, origen) {
-  const texto = formulario.querySelector('#lugar-texto');
+/**
+ * @param {HTMLFormElement} formulario
+ * @param {{nombre: string, lat: number, lon: number}} origen el del escaneo
+ * @param {{salida?: object|null, prefijo?: string}} [opciones] tu salida (para sesgar la búsqueda
+ *   y la ayuda) y el prefijo de los ids («lugar» en los filtros, «salida» en «Tu viaje»)
+ */
+export function activarUbicacion(formulario, origen, { salida = null, prefijo = 'lugar' } = {}) {
+  const texto = formulario.querySelector(`#${prefijo}-texto`);
   if (!texto) return;
-  const lista = formulario.querySelector('#lugar-sugerencias');
-  const ayuda = formulario.querySelector('#ubicacion-ayuda');
+  const lista = formulario.querySelector(`#${prefijo}-sugerencias`);
+  const ayuda = formulario.querySelector(`#${prefijo}-ayuda`);
   const { lugar, lat, lon } = formulario.elements;
   let sugerencias = [];
   let activa = -1;
@@ -32,10 +38,10 @@ export function activarUbicacion(formulario, origen) {
   }
 
   function pintar() {
-    lista.innerHTML = sugerencias.map((s, i) => `<li id="lugar-opcion-${i}" role="option" aria-selected="${i === activa}" data-indice="${i}">${esc(s.nombre)}${s.detalle ? `<span class="suave"> · ${esc(s.detalle)}</span>` : ''}</li>`).join('');
+    lista.innerHTML = sugerencias.map((s, i) => `<li id="${prefijo}-opcion-${i}" role="option" aria-selected="${i === activa}" data-indice="${i}">${esc(s.nombre)}${s.detalle ? `<span class="suave"> · ${esc(s.detalle)}</span>` : ''}</li>`).join('');
     lista.hidden = sugerencias.length === 0;
     texto.setAttribute('aria-expanded', String(!lista.hidden));
-    if (activa >= 0) texto.setAttribute('aria-activedescendant', `lugar-opcion-${activa}`);
+    if (activa >= 0) texto.setAttribute('aria-activedescendant', `${prefijo}-opcion-${activa}`);
     else texto.removeAttribute('aria-activedescendant');
   }
 
@@ -44,7 +50,7 @@ export function activarUbicacion(formulario, origen) {
     lat.value = punto ? punto.lat.toFixed(4) : '';
     lon.value = punto ? punto.lon.toFixed(4) : '';
     texto.value = punto?.nombre ?? '';
-    ayuda.textContent = textoAyudaUbicacion(punto, origen);
+    ayuda.textContent = textoAyudaUbicacion(punto, origen, salida);
     cerrar();
     formulario.dispatchEvent(new Event('change', { bubbles: true }));
   }
@@ -54,7 +60,7 @@ export function activarUbicacion(formulario, origen) {
     controlador = new AbortController();
     try {
       if (!cache.has(consulta)) {
-        const respuesta = await fetch(urlPhoton(consulta, origen), { signal: controlador.signal });
+        const respuesta = await fetch(urlPhoton(consulta, salida ?? origen), { signal: controlador.signal });
         if (!respuesta.ok) throw new Error(`HTTP ${respuesta.status}`);
         cache.set(consulta, parsearPhoton(await respuesta.json()));
       }

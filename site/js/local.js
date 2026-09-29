@@ -1,6 +1,6 @@
 /**
  * Preferencias de este navegador (favoritos, descartadas, búsquedas guardadas,
- * última visita y modo de color).
+ * última visita, modo de color, salida, viajeros y noches).
  * El almacenamiento puede no estar disponible (modo privado, bloqueos): se ignora.
  */
 
@@ -12,6 +12,10 @@ const CLAVE_VISITA = 'escapadas:ultimaVisita';
 const CLAVE_REFERENCIA = 'escapadas:referenciaSesion';
 const CLAVE_TEMA = 'escapadas:tema';
 const CLAVE_FILTROS = 'escapadas:filtros';
+const CLAVE_SALIDA = 'escapadas:salida';
+const CLAVE_VIAJE = 'escapadas:viaje';
+const CLAVE_COMPARAR = 'escapadas:comparar';
+const CLAVE_MIS_ESTADOS = 'escapadas:misEstados';
 
 function leer(almacen, clave) {
   try {
@@ -106,6 +110,31 @@ export function guardarFiltros(vista, params = {}) {
   else delete actuales[vista];
   escribir(local, CLAVE_FILTROS, JSON.stringify(actuales));
 }
+
+/** Desde dónde sales ({nombre, lat, lon}) o null: sin validar (lo hace viaje.js). */
+export const cargarSalida = () => leerJson(CLAVE_SALIDA, null);
+export const guardarSalida = (salida) => escribir(local, CLAVE_SALIDA, JSON.stringify(salida));
+
+/** Viajeros y noches ({viajeros, noches}) o null: sin validar (lo hace viaje.js). */
+export const cargarViaje = () => leerJson(CLAVE_VIAJE, null);
+export const guardarViaje = (viaje) => escribir(local, CLAVE_VIAJE, JSON.stringify(viaje));
+
+/** Lo que has marcado en cada oferta: 'reservada' o 'no-disponible' ({id: estado}). */
+export const ESTADOS_MIOS = ['reservada', 'no-disponible'];
+export function cargarMisEstados() {
+  const mapa = leerJson(CLAVE_MIS_ESTADOS, {});
+  const entradas = mapa && typeof mapa === 'object' && !Array.isArray(mapa) ? Object.entries(mapa) : [];
+  return new Map(entradas.filter(([id, estado]) => typeof id === 'string' && ESTADOS_MIOS.includes(estado)));
+}
+export const guardarMisEstados = (mapa) => escribir(local, CLAVE_MIS_ESTADOS, JSON.stringify(Object.fromEntries(mapa)));
+
+/** Ofertas elegidas para comparar (como mucho MAX_COMPARAR). */
+export const MAX_COMPARAR = 3;
+export function cargarComparar() {
+  const ids = leerJson(CLAVE_COMPARAR, []);
+  return new Set((Array.isArray(ids) ? ids : []).filter((id) => typeof id === 'string').slice(0, MAX_COMPARAR));
+}
+export const guardarComparar = (ids) => guardarIds(CLAVE_COMPARAR, ids);
 
 /** 'claro', 'oscuro' o null (seguir al sistema). */
 export const temaGuardado = () => leer(local, CLAVE_TEMA);

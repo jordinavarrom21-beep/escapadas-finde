@@ -21,6 +21,7 @@ const INTERFAZ = [
   'manifest.webmanifest',
   'js/app.js',
   'js/cdn.js',
+  'js/coste.js',
   'js/fechas.js',
   'js/ficha.js',
   'js/filtros.js',
@@ -31,6 +32,7 @@ const INTERFAZ = [
   'js/plantillas.js',
   'js/tema.js',
   'js/ubicacion.js',
+  'js/viaje.js',
   'js/vistas.js',
 ];
 
@@ -81,6 +83,7 @@ self.addEventListener('fetch', (evento) => {
   const { request } = evento;
   const url = new URL(request.url);
   if (request.method !== 'GET' || url.origin !== self.location.origin) return;
-  if (url.pathname.includes('/data/')) evento.respondWith(primeroRed(request));
+  // Los datos y las guías para buscadores (src/paginas.js) cambian con cada escaneo: primero la red.
+  if (url.pathname.includes('/data/') || /\/(escapadas|vuelos|actividades)\/|sitemap\.xml$/.test(url.pathname)) evento.respondWith(primeroRed(request));
   else evento.respondWith(primeroCache(request, evento));
 });

@@ -1,0 +1,35 @@
+{
+  "leeme": [
+    "Enlaces de afiliado y ofertas patrocinadas. Todo empieza DESACTIVADO.",
+    "Un proveedor solo marca sus enlaces como afiliados si tiene activo: true, aprobado: true (tu cuenta de afiliado está aprobada y sus condiciones permiten este uso) y todos los valores de 'parametros' rellenos.",
+    "Los parámetros se añaden a los enlaces de sus dominios conservando los que ya traiga la URL. Se ven en el enlace: no son secretos (las claves de API sí lo serían y no van aquí).",
+    "Un clic no es una venta: las comisiones solo las confirma el panel del proveedor.",
+    "'patrocinadas': ofertas por las que un anunciante paga. Se marcan como «Patrocinado», llevan rel=sponsored y NO suben en el orden normal.",
+    "'medicion.url': dirección que recibe los clics (sin datos personales). Vacía = no se mide nada. Si pones una, añade su dominio a connect-src en site/index.html."
+  ],
+  "proveedores": {
+    "civitatis": {
+      "activo": false,
+      "aprobado": false,
+      "dominios": ["civitatis.com"],
+      "parametros": { "aid": "" },
+      "condiciones": "https://www.civitatis.com/es/afiliados/"
+    },
+    "booking": {
+      "activo": false,
+      "aprobado": false,
+      "dominios": ["booking.com"],
+      "parametros": { "aid": "" },
+      "condiciones": "https://www.booking.com/affiliate-program/v2/index.html"
+    },
+    "getyourguide": {
+      "activo": false,
+      "aprobado": false,
+      "dominios": ["getyourguide.es", "getyourguide.com"],
+      "parametros": { "partner_id": "" },
+      "condiciones": "https://partner.getyourguide.com/"
+    }
+  },
+  "patrocinadas": [],
+  "medicion": { "url": "" }
+}

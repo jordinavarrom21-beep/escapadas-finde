@@ -8,7 +8,7 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' https: data:; connect-src 'self' https://photon.komoot.io; object-src 'none'; base-uri 'self'; form-action 'self'">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Escapadas Finde</title>
-  <meta name="description" content="Vuelos y escapadas de fin de semana desde Barcelona, revisados cada 30 minutos.">
+  <meta name="description" content="Vuelos y escapadas de fin de semana desde Barcelona, revisados varias veces al día.">
   <meta name="theme-color" content="#0f766e" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#0d1117" media="(prefers-color-scheme: dark)">
   <link rel="manifest" href="manifest.webmanifest">
@@ -43,6 +43,7 @@
       <p id="cuenta-atras" class="pastilla"></p>
       <p id="aviso-puente" class="pastilla pastilla--puente" hidden></p>
       <p id="actualizado" class="cabecera__actualizado"></p>
+      <button id="boton-viaje" class="pastilla pastilla--viaje" type="button" data-mi-viaje aria-haspopup="dialog">📍 Tu salida</button>
     </div>
     <form id="buscador" class="contenedor buscador" role="search">
       <label class="sr" for="q">Buscar en todas las ofertas</label>
@@ -72,9 +73,14 @@
   </main>
 
   <footer class="pie contenedor">
-    <p>Ofertas de webs de terceros revisadas cada 30 minutos; confirma siempre precio y condiciones en la web original.
+    <p>Ofertas de webs de terceros. Cada web se consulta a su ritmo (de 30 minutos a un día, según la web y cuando GitHub
+      lanza la revisión) y cada oferta dice cuándo se comprobó; confirma siempre precio y condiciones en la web original.
       Mapa © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> ·
       Búsqueda de lugares con <a href="https://photon.komoot.io" target="_blank" rel="noopener noreferrer">Photon</a>.</p>
+    <p id="aviso-comercial"></p>
+    <p>Guías: <a href="escapadas/">escapadas</a> · <a href="escapadas/menos-de-100-euros/">por menos de 100 €</a> ·
+      <a href="escapadas/spa/">con spa</a> · <a href="escapadas/con-ninos/">con niños</a> · <a href="vuelos/">chollos de vuelos</a> ·
+      <a href="actividades/gratis/">actividades gratis</a></p>
   </footer>
 
   <dialog id="ficha" class="ficha" aria-labelledby="ficha-titulo">
@@ -85,6 +91,12 @@
       <div class="ficha__contenido"></div>
     </div>
   </dialog>
+
+  <dialog id="mi-viaje" class="ficha ficha--viaje" aria-labelledby="viaje-titulo">
+    <form class="ficha__caja" id="form-viaje"></form>
+  </dialog>
+
+  <div id="barra-comparar" class="barra-comparar" hidden></div>
 
   <div id="aviso" class="aviso-flotante" role="status" aria-live="polite"></div>
 </body>

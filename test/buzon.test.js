@@ -67,7 +67,7 @@ describe('buzon: parsearEmail con las newsletters de ejemplo', () => {
       for (const o of ofertas) {
         assert.deepEqual(validarOferta(o), [], o.id);
         assert.match(o.id, /^buzon:[\da-f]{12}-\d+$/);
-        assert.deepEqual(o.etiquetas, ['newsletter', comercio]);
+        assert.deepEqual(o.etiquetas, ['newsletter', comercio, 'caduca-estimada']);
       }
       assert.equal(new Set(ofertas.map((o) => o.id)).size, ofertas.length);
     }

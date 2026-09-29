@@ -4,6 +4,7 @@
  * Solo cubre Cataluña: para el resto de destinos no hay eventos.
  */
 import { fechaLocal, sumarDias } from '../util/fechas.js';
+import { normalizarTexto } from '../util/xml.js';
 import { distanciaKm } from './geo.js';
 import { periodoViaje } from './tiempo.js';
 
@@ -129,17 +130,35 @@ export async function anadirEventos(ofertas, ctx) {
   if (!agenda) return;
 
   for (const { oferta, periodo } of candidatas) {
-    oferta.eventos = agenda
+    const cercanos = agenda
       .filter((evento) => evento.desde <= periodo.hasta && evento.hasta >= periodo.desde)
       .map((evento) => ({ evento, km: distanciaKm(oferta.lugar, evento) }))
       .filter(({ km }) => km <= RADIO_KM)
       .sort((a, b) => a.km - b.km)
-      .slice(0, MAX_POR_OFERTA)
       .map(({ evento }) => ({
         nombre: evento.nombre,
         fecha: evento.desde > periodo.desde ? evento.desde : periodo.desde,
         url: evento.url,
         municipio: evento.municipio,
       }));
+    oferta.eventos = sinRepetir(cercanos).slice(0, MAX_POR_OFERTA);
   }
+}
+
+/**
+ * El mismo acto en el mismo municipio publicado varias veces («GospelPraise» el sábado y
+ * «Gospelpraise» el domingo) cuenta una vez: se queda el primer día y el enlace que haya.
+ */
+export function sinRepetir(eventos) {
+  const vistos = new Map();
+  for (const evento of eventos) {
+    const clave = `${normalizarTexto(evento.nombre).replace(/[^a-z0-9]/g, '')}|${normalizarTexto(evento.municipio ?? '')}`;
+    const previo = vistos.get(clave);
+    if (!previo) vistos.set(clave, { ...evento });
+    else {
+      if (evento.fecha < previo.fecha) previo.fecha = evento.fecha;
+      previo.url ??= evento.url;
+    }
+  }
+  return [...vistos.values()];
 }

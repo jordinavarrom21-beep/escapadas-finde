@@ -73,6 +73,17 @@ describe('geo: calcularCosteCoche', () => {
     assert.equal(ctx.cache.obtener('carburante:barcelona:gasoleo'), 1.882);
   });
 
+  it('las que ya incluyen tren, bus, avión o ferry no tienen coste de coche', async () => {
+    const { ctx } = crearCtx();
+    const [bus, tren, ferry, avion, coche, sinTransporte] = ['bus', 'tren', 'ferry', 'avion', 'coche', null]
+      .map((transporte) => oferta({ cocheKm: 100, transporte }));
+    await calcularCosteCoche([bus, tren, ferry, avion, coche, sinTransporte], ctx);
+
+    for (const o of [bus, tren, ferry, avion]) assert.equal(o.costeCoche, null, o.transporte);
+    assert.deepEqual(coche.costeCoche, { eur: 20.2, litros: 13 });
+    assert.deepEqual(sinTransporte.costeCoche, { eur: 20.2, litros: 13 });
+  });
+
   it('sin ofertas con kilómetros no se pide nada y el coste queda vacío', async () => {
     const { ctx, peticiones } = crearCtx({ respuestas: ministerio });
     const vuelo = oferta({ tipo: 'vuelo', costeCoche: { eur: 99, litros: 99 } });
@@ -80,5 +91,13 @@ describe('geo: calcularCosteCoche', () => {
 
     assert.equal(vuelo.costeCoche, null);
     assert.deepEqual(peticiones, []);
+  });
+});
+
+describe('geo: precio del litro para el panel', () => {
+  it('calcularCosteCoche devuelve el precio usado, o null si no había nada que calcular', async () => {
+    const { ctx } = crearCtx({ respuestas: ministerio });
+    assert.equal(await calcularCosteCoche([oferta({ cocheKm: 100 })], ctx), 1.899);
+    assert.equal(await calcularCosteCoche([oferta({ tipo: 'vuelo' })], ctx), null);
   });
 });

@@ -3,13 +3,14 @@
  * Todo el texto externo pasa por escaparHtml y los enlaces por urlSegura.
  */
 
-import { etiquetaDia, horaDe } from './fechas.js';
+import { costeViaje, resumenCoste } from './coste.js';
+import { diasEntre, etiquetaDia, fechaLocal, horaDe } from './fechas.js';
 import {
-  ETIQUETAS_ALOJAMIENTO, ETIQUETAS_REGIMEN, ETIQUETAS_TIPO, ETIQUETAS_TRANSPORTE, ETIQUETAS_UNIDAD,
+  ETIQUETAS_ALOJAMIENTO, ETIQUETAS_REGIMEN, ETIQUETAS_TIPO, ETIQUETAS_TRANSPORTE, ETIQUETAS_UNIDAD, SIN_UNIDAD,
   contar, duracion, emojiTiempo, enumerar, escaparHtml as esc, euros, grados, haceCuanto, nota,
   puntosMinigrafica, urlSegura,
 } from './formato.js';
-import { duracionActividad, esDuplicada, esNovedad, tieneVuelo } from './filtros.js';
+import { SIN_COCHE, duracionActividad, esDuplicada, esNovedad, salidasDe, tieneVuelo } from './filtros.js';
 
 export const ESTADOS_FUENTE = {
   ok: { texto: 'Funciona', clase: 'ok' },
@@ -22,8 +23,9 @@ export const ESTADOS_FUENTE = {
 const colorTema = (o) => (o.temas?.[0] ? `var(--tema-${o.temas[0]})` : 'var(--acento)');
 const envolverDato = (contenido) => (contenido ? `<p class="dato-extra">${contenido}</p>` : '');
 
-function temasEmoji(o, ctx) {
-  return (o.temas ?? []).map((id) => ctx.temas.get(id)).filter(Boolean)
+/** Emojis de las temáticas; en la tarjeta, como mucho 3 (la ficha las enseña todas). */
+function temasEmoji(o, ctx, max = Infinity) {
+  return (o.temas ?? []).map((id) => ctx.temas.get(id)).filter(Boolean).slice(0, max)
     .map((t) => `<span class="emoji-tema" title="${esc(t.nombre)}" role="img" aria-label="${esc(t.nombre)}">${t.emoji}</span>`)
     .join('');
 }
@@ -36,17 +38,37 @@ function insigniaReferencia(o) {
   return `<span class="insignia insignia--ahorro" title="${detalle}">Un ${r.ahorroPct} % por debajo de lo normal</span>`;
 }
 
+/** «Precio más bajo en 23 días», con los días de historial que lo respaldan. */
+function textoMinimo(o, ctx) {
+  const serie = ctx.historial?.[o.id];
+  if (!o.minimoHistorico) return null;
+  if (!serie?.length) return { texto: 'Mínimo histórico', detalle: 'El precio más bajo registrado por el vigilante' };
+  const dias = diasEntre(serie[0][0], serie.at(-1)[0]);
+  return {
+    texto: `Precio más bajo en ${dias} días`,
+    detalle: `El más bajo desde el ${etiquetaDia(serie[0][0])} (${serie.length} días con precio; máximo ${euros(Math.max(...serie.map(([, p]) => p)))})`,
+  };
+}
+
+const textoBajada = (o) => (o.bajada > 0 && typeof o.precio === 'number'
+  ? `Ha bajado ${euros(o.bajada)}: el precio más alto de los últimos 7 días fue ${euros(Math.round((o.precio + o.bajada) * 100) / 100)}`
+  : null);
+
 function insignias(o, ctx) {
   const etiquetas = o.etiquetas ?? [];
+  const minimo = textoMinimo(o, ctx);
   const lista = [
+    ctx.misEstados?.get(o.id) === 'reservada' && '<span class="insignia insignia--mio">✅ Reservada (marcada por ti)</span>',
+    ctx.misEstados?.get(o.id) === 'no-disponible' && '<span class="insignia insignia--alerta">🚫 No disponible (marcada por ti)</span>',
+    o.patrocinada && `<span class="insignia insignia--patrocinado" title="Un anunciante paga por destacarla; no sube en el orden normal">Patrocinado · ${esc(o.patrocinada.anunciante)}</span>`,
     esNovedad(o, ctx.referencia) && '<span class="insignia insignia--nueva">Nuevo</span>',
-    o.chollazo && '<span class="insignia insignia--chollazo">🔥 Chollazo</span>',
-    o.minimoHistorico && '<span class="insignia insignia--minimo">Mínimo histórico</span>',
-    o.bajada > 0 && `<span class="insignia insignia--bajada">↓ ${euros(o.bajada)}</span>`,
+    o.chollazo && `<span class="insignia insignia--chollazo"${o.chollazoMotivo ? ` title="${esc(o.chollazoMotivo)}"` : ''}>🔥 Chollazo</span>`,
+    minimo && `<span class="insignia insignia--minimo" title="${esc(minimo.detalle)}">${esc(minimo.texto)}</span>`,
+    o.bajada > 0 && `<span class="insignia insignia--bajada" title="${esc(textoBajada(o))}">↓ ${euros(o.bajada)}</span>`,
     insigniaReferencia(o),
     etiquetas.includes('error-tarifa') && '<span class="insignia insignia--alerta">Error de tarifa</span>',
     etiquetas.includes('top-chollo') && '<span class="insignia insignia--alerta">Top chollo</span>',
-    esDuplicada(o) && '<span class="insignia">Repetida en otra web</span>',
+    esDuplicada(o) && `<span class="insignia">${o.equivalentes?.length ? 'Repetida en otra web' : 'Repetida en la misma web'}</span>`,
   ];
   return lista.filter(Boolean).join('');
 }
@@ -64,25 +86,46 @@ function equivalentes(o, ctx) {
   return `<p class="dato-extra">🔁 También en ${enlace}${precio}${resto}</p>`;
 }
 
-/** «⛽ 34 € de coche ida y vuelta para 2 personas» (sin etiqueta: se envuelve fuera). */
+/** Tren, bus, avión o ferry: la oferta ya dice cómo se llega y el coche no es el plan. */
+const conTransporteIncluido = (o) => SIN_COCHE.includes(o.transporte);
+
+/** «⛽ ≈ 34 € de gasolina ida y vuelta · estimado, un coche para 2 personas» (sin etiqueta: se envuelve fuera). */
 function textoCosteCoche(o, ctx) {
-  if (!(o.costeCoche?.eur > 0)) return '';
+  // El del escaneo es desde su origen: con otra salida lo da el coste del viaje (coste.js).
+  if (!(o.costeCoche?.eur > 0) || conTransporteIncluido(o) || ctx.salidaPropia) return '';
   const personas = ctx.viajeros ? ` para ${contar(ctx.viajeros, 'persona')}` : '';
-  const litros = o.costeCoche.litros ? ` · ${o.costeCoche.litros.toLocaleString('es-ES', { maximumFractionDigits: 1 })} l` : '';
-  return `<span class="coste-coche" title="Combustible de ida y vuelta${litros}">⛽ ${euros(Math.round(o.costeCoche.eur))} de coche ida y vuelta${personas}</span>`;
+  const litros = o.costeCoche.litros ? `: ${o.costeCoche.litros.toLocaleString('es-ES', { maximumFractionDigits: 1 })} l` : '';
+  return `<span class="coste-coche" title="Estimación con el consumo y el precio medio del carburante${litros}. Sin peajes ni aparcamiento.">⛽ ≈ ${euros(Math.round(o.costeCoche.eur))} de gasolina ida y vuelta · estimado, un coche${personas}</span>`;
 }
+
+/**
+ * ¿La oferta tiene sus propias fechas de viaje (salida, finde o puente)? Si no, el tiempo
+ * y los eventos que trae son los del próximo finde: una suposición, no los de su viaje.
+ */
+const conFechasDeViaje = (o) => Boolean(o.fechas?.salida || o.fechas?.findeId || o.fechas?.puenteId);
 
 /** «☀️ 24° · 10 % de lluvia» del finde o puente de la oferta. */
 function tiempo(o) {
   const t = o.tiempo;
   if (!t) return '';
+  const supuesto = !conFechasDeViaje(o) && t.dia ? `Si vas el ${esc(etiquetaDia(t.dia))}: ` : '';
   const partes = [
     `${emojiTiempo(t.codigo)} ${t.texto ? esc(t.texto) : ''}`.trim(),
     t.maxC != null && grados(t.maxC),
     t.lluviaPct != null && `${t.lluviaPct} % de lluvia`,
-    t.dia && esc(etiquetaDia(t.dia)),
+    // Con «Si vas el sáb 3 oct:» delante, la fecha ya está dicha.
+    !supuesto && t.dia && esc(etiquetaDia(t.dia)),
   ].filter(Boolean);
-  return `<p class="dato-extra">${partes.join(' · ')}</p>`;
+  return `<p class="dato-extra">${supuesto}${partes.join(' · ')}</p>`;
+}
+
+/**
+ * La tarjeta se queda con lo que sirve para comparar (destino, fechas, precio, transporte);
+ * el tiempo y los eventos van en la ficha, y aquí solo se avisa de que están.
+ */
+function pistaFicha(o) {
+  const hay = [o.tiempo && 'el tiempo', o.eventos?.length && contar(o.eventos.length, 'evento')].filter(Boolean);
+  return hay.length ? `<p class="dato-extra pista-ficha">En la ficha: ${esc(enumerar(hay))}${conFechasDeViaje(o) ? '' : ' del próximo finde'}</p>` : '';
 }
 
 /** Hasta tres eventos cerca del destino esos días. */
@@ -118,15 +161,40 @@ function botonFavorito(o, ctx) {
   return `<button type="button" class="boton-icono boton-fav" data-fav="${esc(o.id)}" aria-pressed="${activo}" aria-label="Guardar en favoritos: ${esc(o.titulo)}">${activo ? '★' : '☆'}</button>`;
 }
 
+/** ⚖️ para añadirla a la comparación (hasta 3). */
+function botonComparar(o, ctx) {
+  if (!ctx.comparar) return '';
+  const activo = ctx.comparar.has(o.id);
+  return `<button type="button" class="boton-icono boton-comparar" data-comparar="${esc(o.id)}" aria-pressed="${activo}" title="${activo ? 'Quitar de la comparación' : 'Comparar (hasta 3)'}" aria-label="${activo ? 'Quitar de la comparación' : 'Añadir a la comparación'}: ${esc(o.titulo)}">⚖️</button>`;
+}
+
+/** «✅ La he reservado» y «🚫 Ya no está disponible»: se guardan en este navegador. */
+function botonesMiEstado(o, ctx) {
+  const actual = ctx.misEstados.get(o.id);
+  const boton = (estado, texto) => `<button type="button" class="boton boton--suave boton--mini" data-mi-estado="${estado}" data-oferta="${esc(o.id)}" aria-pressed="${actual === estado}">${texto}</button>`;
+  return `<p class="acciones mi-estado">${boton('reservada', '✅ La he reservado')}${boton('no-disponible', '🚫 Ya no está disponible')}</p>`;
+}
+
 /** ✕ para ocultar la oferta en este navegador. */
 function botonDescartar(o) {
   return `<button type="button" class="boton-icono boton-icono--mini boton-descartar" data-descartar="${esc(o.id)}" title="Ocultar esta oferta" aria-label="Ocultar esta oferta: ${esc(o.titulo)}">✕</button>`;
 }
 
+/** Un enlace pagado (afiliado o patrocinado) lleva rel="sponsored", como piden los buscadores. */
+const relEnlace = (pagado) => (pagado ? 'sponsored noopener noreferrer' : 'noopener noreferrer');
+
+/** Atributos para contar el clic (proveedor, tipo de enlace y tipo de oferta), sin datos personales. */
+const atributosClic = (o, afiliado) => ` data-clic="${esc(o.fuente)}" data-clic-tipo="${afiliado ? 'afiliado' : o.patrocinada ? 'patrocinado' : 'normal'}" data-clic-oferta="${esc(o.tipo)}"`;
+
 function enlaceOferta(o, texto = 'Ver oferta') {
-  const url = urlSegura(o.url);
-  return url ? `<a class="boton boton--primario" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${texto}<span class="sr"> (se abre en otra pestaña)</span></a>` : '';
+  const url = urlSegura(o.urlReserva ?? o.url);
+  const pagado = Boolean(o.afiliado || o.patrocinada);
+  return url ? `<a class="boton boton--primario" href="${esc(url)}" target="_blank" rel="${relEnlace(pagado)}"${atributosClic(o, o.afiliado)}>${texto}<span class="sr"> (se abre en otra pestaña${o.afiliado ? '; enlace de afiliado' : ''})</span></a>` : '';
 }
+
+/** «🔗 Enlace de afiliado» en la tarjeta; la explicación completa, en la ficha. */
+const TEXTO_AFILIADO = 'Si reservas por este enlace, la web puede pagarnos una comisión. No cambia tu precio ni el orden de las ofertas.';
+const avisoAfiliado = (o) => (o.afiliado ? `<p class="dato-extra aviso-afiliado" title="${esc(TEXTO_AFILIADO)}">🔗 Enlace de afiliado</p>` : '');
 
 /** Lo que añade la web al «Gratis» («con propina voluntaria»), sin repetir la palabra. */
 function matiz(precioTexto = '') {
@@ -134,33 +202,77 @@ function matiz(precioTexto = '') {
   return resto ? ` <span class="precio__unidad">${esc(resto)}</span>` : '';
 }
 
+/**
+ * Sin fechas concretas (o si la web dice «desde»), el importe es el mínimo publicado: el de
+ * unas fechas concretas puede ser otro y la disponibilidad no está confirmada.
+ */
+export const esPrecioDesde = (o) => !o.fechas?.salida || /\bdesde\b/i.test(o.precioTexto ?? '');
+
+/** Qué certeza hay sobre el precio y la disponibilidad, para la ficha. */
+export function certeza(o) {
+  if (typeof o.precio !== 'number') return 'La web no publica precio: consúltalo al reservar';
+  const cuando = o.vistaUltima ? ' cuando se comprobó' : '';
+  return esPrecioDesde(o)
+    ? `Precio mínimo que publicaba la web${cuando}; el de tus fechas y la disponibilidad se confirman al reservar`
+    : `Precio para estas fechas según la web${cuando}; puede cambiar hasta que reserves`;
+}
+
+/** Cómo sale el «≈ por persona y noche» a partir de lo que publica la web. */
+function calculoPorNoche(o) {
+  const noches = o.noches ? ` entre ${contar(o.noches, 'noche')}` : '';
+  const personas = ['noche', 'total'].includes(o.unidad) && o.precio && o.precioNoche
+    ? ` y entre ${Math.round(o.precio / o.precioNoche / (o.unidad === 'total' ? o.noches || 1 : 1))} personas`
+    : '';
+  return `Cálculo: ${euros(o.precio)} ${ETIQUETAS_UNIDAD[o.unidad] ?? ''}${noches}${personas}`;
+}
+
 function precio(o) {
   if (typeof o.precio !== 'number') return `<p class="precio"><strong class="precio__consultar">${esc(o.precioTexto || 'Consultar precio')}</strong></p>`;
   if (o.precio === 0) return `<p class="precio"><strong class="precio__gratis">Gratis</strong>${matiz(o.precioTexto)}</p>`;
-  const unidad = ETIQUETAS_UNIDAD[o.unidad] ?? '';
+  // Sin unidad en el modelo, lo que dice la web («por persona y trayecto», «en total para 2»)
+  // explica más que nada; si tampoco lo dice, se avisa.
+  const unidad = ETIQUETAS_UNIDAD[o.unidad]
+    ?? (/\b(?:por|total|ida|trayecto)\b/i.test(o.precioTexto ?? '') ? esc(o.precioTexto) : SIN_UNIDAD);
   const noche = o.precioNoche != null && o.unidad !== 'pp/noche'
-    ? ` <span class="precio__noche">≈ ${euros(Math.round(o.precioNoche))} por persona y noche</span>`
+    ? ` <span class="precio__noche" title="${esc(calculoPorNoche(o))}">≈ ${euros(Math.round(o.precioNoche))} por persona y noche</span>`
     : '';
-  return `<p class="precio"><strong>${euros(o.precio)}</strong>${unidad ? ` <span class="precio__unidad">${unidad}</span>` : ''}${
+  const desde = esPrecioDesde(o) ? '<span class="precio__desde" title="Precio mínimo publicado: depende de las fechas y la disponibilidad">desde </span>' : '';
+  return `<p class="precio">${desde}<strong>${euros(o.precio)}</strong>${unidad ? ` <span class="precio__unidad">${unidad}</span>` : ''}${
     o.precioAnterior > o.precio ? ` <s class="precio__anterior">${euros(o.precioAnterior)}</s>` : ''}${
     o.descuento ? ` <span class="precio__descuento">−${o.descuento} %</span>` : ''}${noche}</p>`;
 }
 
-function textoFechas(o) {
+/** Fechas del viaje: las concretas o «Fechas flexibles». La caducidad de la promoción va aparte. */
+export function textoFechas(o) {
   const { salida, vuelta } = o.fechas ?? {};
   if (salida) return vuelta ? `${etiquetaDia(salida)} – ${etiquetaDia(vuelta)}` : etiquetaDia(salida);
-  return o.caduca ? `Fechas flexibles · hasta el ${etiquetaDia(o.caduca)}` : 'Fechas flexibles';
+  return 'Fechas flexibles';
 }
 
-function textoCoche(distancia, desde) {
+/**
+ * «Promoción hasta el mié 30 sep»: hasta cuándo se puede reservar, que no es cuándo se viaja.
+ * No se enseña si la oferta ya tiene fechas (la caducidad es la propia salida) ni si la
+ * fecha la ha supuesto el vigilante (las newsletters no la publican).
+ */
+export function textoCaducidad(o) {
+  if (!o.caduca || o.fechas?.salida || (o.etiquetas ?? []).includes('caduca-estimada')) return '';
+  return `Promoción hasta el ${etiquetaDia(fechaLocal(o.caduca))}`;
+}
+
+function textoCoche(distancia, desde, o) {
   if (!distancia) return '';
+  if (conTransporteIncluido(o)) {
+    return `<span class="coche" title="Distancia en línea recta desde ${esc(desde)}">📍 ${Math.round(distancia.km)} km</span>`;
+  }
   if (distancia.minutos != null) {
-    return `<span class="coche" title="En coche desde ${esc(desde)}">🚗 ${duracion(distancia.minutos)}${distancia.estimado ? ' aprox.' : ''}</span>`;
+    // «0 min aprox.» es la propia ciudad de salida: se dice así.
+    const tiempo = distancia.minutos < 5 ? 'menos de 5 min' : `${duracion(distancia.minutos)}${distancia.estimado ? ' aprox.' : ''}`;
+    return `<span class="coche" title="En coche desde ${esc(desde)}">🚗 ${tiempo}</span>`;
   }
   return `<span class="coche" title="En línea recta desde ${esc(desde)}">📍 ${Math.round(distancia.km)} km</span>`;
 }
 
-function textoLugar(o) {
+export function textoLugar(o) {
   const l = o.lugar;
   if (!l?.nombre) return '';
   const zona = [l.region, l.pais !== 'España' ? l.pais : null].filter((parte) => parte && parte !== l.nombre).join(', ');
@@ -170,8 +282,11 @@ function textoLugar(o) {
 /** Tarjeta de escapada, hotel, paquete o chollo de vuelo sin fechas. */
 export function tarjetaOferta(o, ctx) {
   const minutos = duracionActividad(o);
+  const salidas = salidasDe(o);
   const detalles = [
     textoFechas(o),
+    textoCaducidad(o) && `⏳ ${textoCaducidad(o)}`,
+    salidas.length && `🛫 Sale de ${enumerar(salidas)}`,
     minutos && `⏱️ ${duracion(minutos)}`,
     o.noches && contar(o.noches, 'noche'),
     ETIQUETAS_ALOJAMIENTO[o.alojamiento],
@@ -183,22 +298,89 @@ export function tarjetaOferta(o, ctx) {
   ${url ? `<img class="tarjeta__imagen" src="${esc(url)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" width="480" height="270">` : ''}
   <div class="tarjeta__cuerpo">
     <div class="tarjeta__cabeza">
-      <span class="tarjeta__temas">${temasEmoji(o, ctx)}</span>
+      <span class="tarjeta__temas">${temasEmoji(o, ctx, 3)}</span>
       <span class="tarjeta__origen">${esc(ETIQUETAS_TIPO[o.tipo] ?? o.tipo)} · ${esc(ctx.fuentes.get(o.fuente) ?? o.fuente)}</span>
       ${puntuacion(o)}
       ${botonDescartar(o)}
     </div>
     <h3 class="tarjeta__titulo"><button type="button" class="enlace-ficha" data-ficha="${esc(o.id)}">${esc(o.titulo)}</button></h3>
-    <p class="tarjeta__lugar">${textoLugar(o)} ${textoCoche(ctx.distancias?.get(o.id), ctx.desde)}</p>
+    <p class="tarjeta__lugar">${textoLugar(o)} ${textoCoche(ctx.distancias?.get(o.id), ctx.desde, o)}</p>
     <p class="tarjeta__detalles">${detalles} ${valoracion(o)}</p>
-    ${tiempo(o)}${envolverDato(textoCosteCoche(o, ctx))}${equivalentes(o, ctx)}${eventos(o)}
+    ${lineaCoste(o, ctx)}${equivalentes(o, ctx)}${pistaFicha(o)}
     <div class="insignias">${insignias(o, ctx)}</div>
+    ${textoComprobada(o, ctx)}${avisoAfiliado(o)}
     <div class="tarjeta__pie">
       ${precio(o)}
-      <div class="acciones">${botonFavorito(o, ctx)}${enlaceOferta(o)}</div>
+      <div class="acciones">${botonComparar(o, ctx)}${botonFavorito(o, ctx)}${enlaceOferta(o)}</div>
     </div>
   </div>
 </article>`;
+}
+
+/** Sin volver a verla en su web durante más de esto (o de 3 intervalos de su fuente), puede haber cambiado. */
+const HORAS_SIN_COMPROBAR = 24;
+
+/**
+ * Cuándo se vio la oferta en su web por última vez y si ya puede estar desactualizada.
+ * @returns {{texto: string, cuando: string, desactualizada: boolean}|null}
+ */
+export function frescura(o, ctx = {}) {
+  const vista = Date.parse(o.vistaUltima);
+  if (!Number.isFinite(vista)) return null;
+  const ahora = ctx.ahora ?? new Date();
+  const intervaloMin = ctx.intervalos?.get(o.fuente);
+  const limiteHoras = Math.max(HORAS_SIN_COMPROBAR, intervaloMin ? (3 * intervaloMin) / 60 : 0);
+  return {
+    texto: haceCuanto(o.vistaUltima, ahora),
+    cuando: new Date(vista).toLocaleString('es-ES', { timeZone: 'Europe/Madrid', dateStyle: 'medium', timeStyle: 'short' }),
+    desactualizada: (ahora.getTime() - vista) / 3_600_000 > limiteHoras,
+  };
+}
+
+/** «Comprobada en Weekendesk hace 2 h» o el aviso de que puede haber cambiado. */
+function textoComprobada(o, ctx) {
+  const f = frescura(o, ctx);
+  if (!f) return '';
+  const web = esc(ctx.fuentes?.get(o.fuente) ?? o.fuente);
+  return f.desactualizada
+    ? `<p class="dato-extra comprobada comprobada--antigua" title="Visto por última vez el ${esc(f.cuando)}">⚠️ Sin comprobar en ${web} desde ${esc(f.texto)}: puede haber cambiado o terminado</p>`
+    : `<p class="dato-extra comprobada" title="${esc(f.cuando)}">Comprobada en ${web} ${esc(f.texto)}</p>`;
+}
+
+/** El coste del viaje completo con tu salida, viajeros y noches (coste.js). */
+export const costeDe = (o, ctx) => costeViaje(o, {
+  viajeros: ctx.viajeros ?? undefined, noches: ctx.noches ?? undefined, distancia: ctx.distancias?.get(o.id), coche: ctx.coche,
+});
+
+/** «Alojamiento 240 € + Gasolina ≈ 29 € (estimado)» para el título de la línea del total. */
+const desgloseCorto = (c) => c.partes.map((p) => `${p.concepto} ${p.estimado ? '≈ ' : ''}${euros(Math.round(p.eur))}${p.estimado ? ' (estimado)' : ''}`).join(' + ');
+
+/**
+ * «💶 ≈ 269 € en total para 4 personas · 67 €/persona»; sin total, la gasolina que calculó el
+ * escaneo (solo desde su origen), y si tampoco, nada.
+ */
+function lineaCoste(o, ctx) {
+  const c = costeDe(o, ctx);
+  if (c.total == null) return envolverDato(textoCosteCoche(o, ctx));
+  return `<p class="dato-extra coste-total" title="${esc(`${desgloseCorto(c)}. Supone: ${c.supuestos.join('; ')}.`)}">💶 ${esc(resumenCoste(c))}</p>`;
+}
+
+/** «Coste del viaje» en la ficha: cada parte, qué es estimado, lo supuesto y lo que falta. */
+function costeFicha(o, ctx) {
+  const c = costeDe(o, ctx);
+  if (!c.partes.length && !c.falta.length) return '';
+  const filas = c.partes.map((p) => `<tr><th scope="row">${esc(p.concepto)}${p.estimado ? ' <span class="etiqueta-estimado">estimado</span>' : ''}</th><td>${esc(p.detalle)}</td><td class="num">${p.estimado ? '≈ ' : ''}${euros(p.eur)}</td></tr>`).join('');
+  const total = c.total != null
+    ? `<tr class="coste__total"><th scope="row">Total${c.estimado ? ' (con estimaciones)' : ''}</th><td>${contar(c.viajeros, 'persona')}${c.noches ? ` · ${contar(c.noches, 'noche')}` : ''}${c.viajeros > 1 ? ` · ${euros(Math.round(c.porPersona))} por persona` : ''}</td><td class="num">${c.estimado ? '≈ ' : ''}${euros(c.total)}</td></tr>`
+    : '';
+  const falta = c.falta.length ? `<p class="coste__falta">Para dar un total falta saber ${esc(enumerar(c.falta))}.</p>` : '';
+  const supuestos = c.supuestos.length ? `<p class="suave">Supone: ${esc(c.supuestos.join('; '))}. Desde ${esc(ctx.desde ?? '')}.</p>` : '';
+  return `<section class="ficha__coste" aria-labelledby="ficha-coste-titulo">
+  <h3 id="ficha-coste-titulo">💶 Coste del viaje</h3>
+  ${filas || total ? `<table class="coste"><tbody>${filas}${total}</tbody></table>` : ''}
+  ${falta}${supuestos}
+  <p><button type="button" class="boton boton--suave boton--mini" data-mi-viaje>Cambiar salida, viajeros o noches</button></p>
+</section>`;
 }
 
 /** Minigráfica SVG del historial de precios (vacía si hay menos de dos puntos). */
@@ -241,7 +423,8 @@ export function tarjetaVuelo(o, ctx) {
   </div>
   <div class="billete__pie">
     <div class="insignias">${extras}${insignias(o, ctx)}</div>
-    <div class="acciones">${botonDescartar(o)}${botonFavorito(o, ctx)}${enlaceOferta(o, 'Reservar')}</div>
+    ${textoComprobada(o, ctx)}
+    <div class="acciones">${botonDescartar(o)}${botonComparar(o, ctx)}${botonFavorito(o, ctx)}${enlaceOferta(o, 'Reservar')}</div>
   </div>
 </article>`;
 }
@@ -292,9 +475,10 @@ function queHacerAlli(ctx) {
 }
 
 /** Explica desde dónde se miden las distancias en el buscador por ubicación. */
-export function textoAyudaUbicacion(punto, origen) {
-  return punto
-    ? `Midiendo desde ${punto.nombre} (estimación: línea recta × 1,3 a 80 km/h).`
+export function textoAyudaUbicacion(punto, origen, salida = null) {
+  const desde = punto ?? salida;
+  return desde
+    ? `Midiendo desde ${desde.nombre} (estimación: línea recta × 1,3 a 80 km/h).`
     : `Midiendo desde ${origen.nombre} con el tiempo real por carretera.`;
 }
 
@@ -303,18 +487,23 @@ export function insigniaEstado(estado) {
   return `<span class="estado estado--${clase}"><span class="punto" aria-hidden="true"></span>${esc(texto)}</span>`;
 }
 
-function datosFicha(o) {
+function datosFicha(o, ctx) {
   const v = o.valoracion;
   const filas = [
-    ['Fechas', textoFechas(o)],
+    ['Fechas de viaje', o.fechas?.salida ? textoFechas(o) : 'Flexibles: la web no publica fechas concretas; la disponibilidad se confirma al reservar'],
+    ['Reserva', textoCaducidad(o)],
     ['Noches', o.noches],
     ['Alojamiento', ETIQUETAS_ALOJAMIENTO[o.alojamiento]],
     ['Valoración', v?.nota >= 0 && `${nota(v.nota)} / 10${v.n ? ` · ${contar(v.n, 'opinión', 'opiniones')}` : ''}`],
     ['Régimen', ETIQUETAS_REGIMEN[o.regimen]],
     ['Transporte', ETIQUETAS_TRANSPORTE[o.transporte]],
     ['Precio en la web', o.precioTexto],
+    ['Certeza', certeza(o)],
     ['Por persona y noche', o.precioNoche != null && euros(Math.round(o.precioNoche))],
-    ['Precio habitual', o.referencia && `${euros(o.referencia.mediana)} en ${o.referencia.grupo}`],
+    ['Precio habitual', o.referencia && `${euros(o.referencia.mediana)}: la mediana de ${o.referencia.n ? `${o.referencia.n} ofertas parecidas` : 'las ofertas parecidas'} (${o.referencia.grupo})`],
+    ['Por qué es chollazo', o.chollazo && o.chollazoMotivo],
+    ['Bajada', textoBajada(o)],
+    ['Mínimo', textoMinimo(o, ctx)?.detalle],
     ['Publicada', o.publicada && etiquetaDia(o.publicada)],
     ['Vista por primera vez', o.vistaPrimera && haceCuanto(o.vistaPrimera)],
     ['Puntuación', `${o.puntuacion} / 100`],
@@ -327,7 +516,13 @@ function cocheFicha(o, ctx) {
   if (!d) return '';
   const viaje = d.minutos != null ? `${duracion(d.minutos)} en coche${d.estimado ? ' (estimado)' : ''}` : 'No se llega en coche';
   const km = d.kmCoche != null ? `${Math.round(d.kmCoche)} km por carretera` : `${Math.round(d.km)} km en línea recta`;
-  const coste = textoCosteCoche(o, ctx);
+  if (conTransporteIncluido(o)) {
+    // Solo como comparación explícita: la oferta va en tren, bus, avión o ferry.
+    const medio = (ETIQUETAS_TRANSPORTE[o.transporte] ?? '').replace(/^\S+\s/, '').toLowerCase();
+    return `<p class="ficha__coche">Esta oferta va en ${esc(medio)}. <span class="suave">Para comparar: en coche serían ${esc(viaje)} · ${esc(km)} desde ${esc(ctx.desde)}.</span></p>`;
+  }
+  // Si la tabla del coste del viaje ya lleva la gasolina, no se repite aquí.
+  const coste = costeDe(o, ctx).partes.some((p) => p.concepto.startsWith('Gasolina')) ? '' : textoCosteCoche(o, ctx);
   return `<p class="ficha__coche">🚗 <strong>${viaje}</strong> · ${km} desde ${esc(ctx.desde)}${coste ? `<br>${coste}` : ''}</p>`;
 }
 
@@ -338,12 +533,26 @@ function vueloFicha(v) {
 
 function enlacesFicha(o) {
   const enlaces = [...(o.enlaces ?? [])];
-  if (!enlaces.some((e) => e.url === o.url)) enlaces.unshift({ etiqueta: 'Ver la oferta', url: o.url });
+  const propia = o.urlReserva ?? o.url;
+  if (!enlaces.some((e) => e.url === propia || e.url === o.url)) enlaces.unshift({ etiqueta: 'Ver la oferta', url: propia, afiliado: o.afiliado, propia: true });
   return enlaces
     .map((e) => ({ ...e, url: urlSegura(e.url) }))
     .filter((e) => e.url)
-    .map((e, i) => `<li><a class="boton ${i ? '' : 'boton--primario'}" href="${esc(e.url)}" target="_blank" rel="noopener noreferrer">${esc(e.etiqueta)}<span class="sr"> (se abre en otra pestaña)</span></a></li>`)
+    .map((e, i) => {
+      const pagado = Boolean(e.afiliado || (e.propia && o.patrocinada));
+      const clic = ` data-clic="${esc(e.afiliado ?? (e.propia ? o.fuente : 'enlace'))}" data-clic-tipo="${e.afiliado ? 'afiliado' : e.propia && o.patrocinada ? 'patrocinado' : 'normal'}" data-clic-oferta="${esc(o.tipo)}"`;
+      return `<li><a class="boton ${i ? '' : 'boton--primario'}" href="${esc(e.url)}" target="_blank" rel="${relEnlace(pagado)}"${clic}>${esc(e.etiqueta)}${e.afiliado ? ' <span class="suave">(afiliado)</span>' : ''}<span class="sr"> (se abre en otra pestaña)</span></a></li>`;
+    })
     .join('');
+}
+
+/** Aviso de la ficha cuando alguno de sus enlaces es de afiliado o la oferta está patrocinada. */
+function avisoPagoFicha(o) {
+  const avisos = [
+    (o.afiliado || (o.enlaces ?? []).some((e) => e.afiliado)) && `🔗 Los enlaces marcados «(afiliado)» son de afiliado. ${TEXTO_AFILIADO}`,
+    o.patrocinada && `📣 Oferta patrocinada por ${o.patrocinada.anunciante}: se marca así y no sube en el orden normal.`,
+  ].filter(Boolean);
+  return avisos.map((a) => `<p class="aviso-afiliado">${esc(a)}</p>`).join('');
 }
 
 /** Contenido de la ficha (modal) de una oferta; la gráfica se dibuja después en #ficha-grafica. */
@@ -356,16 +565,19 @@ export function contenidoFicha(o, ctx) {
   <p class="tarjeta__lugar">${textoLugar(o)}</p>
 </header>
 ${imagen ? `<img class="ficha__imagen" src="${esc(imagen)}" alt="" referrerpolicy="no-referrer">` : ''}
-<div class="ficha__precio">${precio(o)}<span class="acciones">${botonDescartar(o)}${botonFavorito(o, ctx)}</span></div>
+<div class="ficha__precio">${precio(o)}<span class="acciones">${botonDescartar(o)}${botonComparar(o, ctx)}${botonFavorito(o, ctx)}</span></div>
 <div class="insignias">${insignias(o, ctx)}</div>
+${textoComprobada(o, ctx)}
+${ctx.misEstados ? botonesMiEstado(o, ctx) : ''}
 ${vueloFicha(o.vuelo)}
 ${o.descripcion ? `<p class="ficha__descripcion">${esc(o.descripcion)}</p>` : ''}
 ${cocheFicha(o, ctx)}
+${costeFicha(o, ctx)}
 ${tiempo(o)}
 ${equivalentes(o, ctx)}
-${o.eventos?.length ? `<section class="ficha__eventos"><h3>Qué hay esos días por la zona</h3>${eventos(o, { conEnlace: true })}</section>` : ''}
+${o.eventos?.length ? `<section class="ficha__eventos"><h3>${conFechasDeViaje(o) ? 'Qué hay esos días por la zona' : 'Qué hay el próximo finde por la zona (si vas entonces)'}</h3>${eventos(o, { conEnlace: true })}</section>` : ''}
 ${queHacerAlli(ctx)}
-<dl class="ficha__datos">${datosFicha(o)}</dl>
+<dl class="ficha__datos">${datosFicha(o, ctx)}</dl>
 <section class="ficha__historial" aria-labelledby="ficha-historial-titulo">
   <h3 id="ficha-historial-titulo">Historial de precios</h3>
   ${serie.length >= 2
@@ -374,5 +586,6 @@ ${queHacerAlli(ctx)}
     : '<p class="suave">Aún no hay historial suficiente (hacen falta al menos dos días).</p>'}
 </section>
 <h3>Enlaces</h3>
-<ul class="ficha__enlaces">${enlacesFicha(o)}</ul>`;
+<ul class="ficha__enlaces">${enlacesFicha(o)}</ul>
+${avisoPagoFicha(o)}`;
 }

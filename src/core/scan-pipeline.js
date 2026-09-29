@@ -11,6 +11,8 @@ import { TEMAS, completarOferta } from '../modelo.js';
 import { aplicarClasificacion } from '../enriquecer/temas.js';
 import { aplicarAlojamiento } from '../enriquecer/alojamiento.js';
 import { aplicarZona } from '../enriquecer/zona.js';
+import { clasificarVueloSinFecha } from '../enriquecer/vuelos.js';
+import { aplicarAfiliacion, proveedoresActivos } from '../afiliacion.js';
 import { enlacesPara } from '../enriquecer/enlaces.js';
 import { asignarFechas, calcularPuentes, obtenerFestivos } from '../enriquecer/festivos.js';
 import { calcularCoche, calcularCosteCoche, geolocalizar } from '../enriquecer/geo.js';
@@ -23,7 +25,7 @@ import { precioPorPersonaNoche, puntuar } from '../enriquecer/puntuacion.js';
 import { compactar, registrarPrecios, seriesPara } from '../historial.js';
 import { coincide } from '../vigilados.js';
 import { procesarEmails } from '../emails/decidir.js';
-import { crearTransporte, enviarEmail } from '../emails/enviar.js';
+import { configuracionEnvio, crearTransporte, enviarEmail } from '../emails/enviar.js';
 import { clienteHttp, crearClienteHttp, metricasHttp, reiniciarMetricas } from '../util/http.js';
 import { ErrorRobots, comprobarRobots } from '../util/robots.js';
 import { fechaLocal, findesProximos, sumarDias } from '../util/fechas.js';
@@ -39,7 +41,7 @@ const CADUCIDAD_POR_PREFIJO = { 'tiempo:': DIA_MS, 'eventos:': 2 * DIA_MS };
 
 /** Módulos que usa el escaneo; los tests pueden sustituir cualquiera. */
 export const MODULOS = {
-  obtenerFestivos, calcularPuentes, asignarFechas, aplicarClasificacion, aplicarAlojamiento, aplicarZona,
+  obtenerFestivos, calcularPuentes, asignarFechas, clasificarVueloSinFecha, aplicarClasificacion, aplicarAlojamiento, aplicarZona,
   geolocalizar, calcularCoche, calcularCosteCoche, calcularReferencia, marcarEquivalentes,
   revisarPrecios, anadirTiempo, anadirEventos, enlacesPara, registrarPrecios, compactar, seriesPara, puntuar,
   procesarEmails, crearTransporte, enviarEmail,
@@ -116,9 +118,10 @@ async function ejecutarFuente(fuente, { estado, ajustes, env, ahora, opciones, c
 
 /**
  * Estado de cada fuente para el panel. `total` son las ofertas suyas que se enseñan
- * ahora (tras la poda); `leidas`, cuántas trajo su última lectura.
+ * ahora (tras la poda); `leidas`, cuántas trajo su última lectura; `intervaloMin`, cada
+ * cuánto se consulta (el panel lo usa para avisar de las ofertas sin comprobar).
  */
-function estadoParaPanel(fuentes, estado) {
+function estadoParaPanel(fuentes, estado, ajustes) {
   const porFuente = {};
   for (const o of Object.values(estado.ofertas)) porFuente[o.fuente] = (porFuente[o.fuente] ?? 0) + 1;
   return fuentes.map((f) => {
@@ -128,6 +131,7 @@ function estadoParaPanel(fuentes, estado) {
       estado: s.estado ?? 'pendiente', motivo: s.motivo ?? null, error: s.error ?? null,
       desdeError: s.desdeError ?? null, ultimoOk: s.ultimoOk ?? null, ultimoIntento: s.ultimoIntento ?? null,
       total: porFuente[f.id] ?? 0, leidas: s.total ?? 0, nuevas: s.nuevas ?? 0, falta: s.falta ?? [],
+      intervaloMin: ajustes.fuentes?.[f.id]?.intervaloMin ?? null,
     };
   });
 }
@@ -137,7 +141,7 @@ function estadoParaPanel(fuentes, estado) {
  */
 export async function escanear({
   ajustes, vigilados = [], estado = estadoInicial(), cache = new Cache(), historial = {},
-  fuentes = FUENTES, http = clienteHttp, ahora = new Date(), opciones = {}, env = process.env,
+  fuentes = FUENTES, http = clienteHttp, ahora = new Date(), opciones = {}, env = process.env, afiliacion = {},
   modulos = {}, log = console.log,
 }) {
   const m = { ...MODULOS, ...modulos };
@@ -173,6 +177,7 @@ export async function escanear({
   for (const [id, oferta] of Object.entries(estado.ofertas)) estado.ofertas[id] = completarOferta(oferta);
   const ofertas = Object.values(estado.ofertas);
   for (const oferta of ofertas) {
+    m.clasificarVueloSinFecha(oferta);
     m.aplicarClasificacion(oferta);
     m.aplicarAlojamiento(oferta);
     m.aplicarZona(oferta);
@@ -181,7 +186,7 @@ export async function escanear({
   }
   await m.geolocalizar(ofertas, crearCtx('geo'));
   await m.calcularCoche(ofertas, crearCtx('coche'));
-  await m.calcularCosteCoche(ofertas, crearCtx('coche'));
+  const precioLitro = await m.calcularCosteCoche(ofertas, crearCtx('coche'));
   const dudosos = m.revisarPrecios(ofertas, conPrefijo('precios'));
   if (dudosos) conPrefijo('precios')(`${dudosos} ofertas con un precio no creíble: se muestran sin precio`);
   m.calcularReferencia(ofertas);
@@ -189,16 +194,25 @@ export async function escanear({
   await m.anadirTiempo(ofertas, { ...crearCtx('tiempo'), findes, puentes });
   await m.anadirEventos(ofertas, { ...crearCtx('eventos'), findes, puentes });
   for (const oferta of ofertas) oferta.enlaces = m.enlacesPara(oferta, { origen: ajustes.origen, ahora });
+  // Después de los enlaces (también se marcan) y sin tocar la puntuación ni el orden.
+  const afiliados = proveedoresActivos(afiliacion, conPrefijo('afiliacion'));
+  for (const oferta of ofertas) aplicarAfiliacion(oferta, { activos: afiliados, patrocinadas: afiliacion.patrocinadas ?? [], ahora });
   m.registrarPrecios(historial, ofertas, ahora);
   m.compactar(historial, ahora, { idsVivos: ofertas.map((o) => o.id) });
   m.puntuar(ofertas, ajustes, { ahora, findeActual: findes[0]?.id ?? null });
   ofertas.sort((a, b) => b.puntuacion - a.puntuacion);
 
-  const estadoFuentes = estadoParaPanel(fuentes, estado);
+  const estadoFuentes = estadoParaPanel(fuentes, estado, ajustes);
   const panelUrl = urlPanel(ajustes, env);
   const salida = {
     ofertas: {
       generado: ahora.toISOString(), origen: ajustes.origen, aeropuertos: ajustes.vuelos.aeropuertos, viajeros: ajustes.viajeros ?? 2,
+      // Para que el panel estime la gasolina desde la salida que elija cada persona.
+      // Qué proveedores marcan enlaces de afiliado (para el aviso del panel) y dónde se cuentan los clics.
+      afiliacion: { proveedores: afiliados.map((p) => p.id), medicion: afiliacion.medicion?.url || null },
+      // Si los vigilados avisan de verdad por email (sin decir a qué dirección).
+      avisos: { email: !opciones.sinEmails && configuracionEnvio(env).estado === 'lista' },
+      coche: { consumoL100km: ajustes.coche.consumoL100km, precioLitro: precioLitro ?? ajustes.coche.precioLitro, carburante: ajustes.coche.carburante },
       temas: TEMAS, findes, puentes, fuentes: estadoFuentes, ofertas,
     },
     historial: m.seriesPara(historial, ofertas.map((o) => o.id)),

@@ -11,6 +11,12 @@ const DIAS_BAJADA = 7;
 const BAJADA_MINIMA = 1;
 /** Días que se conserva la serie de una oferta que ya no existe. */
 const DIAS_CONSERVAR_DESAPARECIDAS = 30;
+/**
+ * Historial mínimo para llamar a algo «mínimo histórico»: precios de al menos 3 días
+ * distintos y el primero de hace una semana o más. Con dos días, cualquier bajada lo sería.
+ */
+const DIAS_MINIMOS_HISTORICO = 7;
+const PUNTOS_MINIMOS_HISTORICO = 3;
 /** Puntos necesarios para que una serie merezca dibujarse en el panel. */
 const PUNTOS_MINIMOS_PANEL = 2;
 
@@ -35,9 +41,11 @@ function calcularBajada(anteriores, hoy, precio) {
 /**
  * El precio de hoy es el más bajo de su serie Y alguna vez ha estado más alto: un
  * precio que nunca ha cambiado no es un mínimo histórico (lo sería el 90 % de todo).
+ * Además hace falta historial suficiente (DIAS_MINIMOS_HISTORICO y PUNTOS_MINIMOS_HISTORICO).
  */
-function esMinimoHistorico(anteriores, precio) {
-  return anteriores.some(([, valor]) => valor > precio) && anteriores.every(([, valor]) => precio <= valor);
+function esMinimoHistorico(anteriores, precio, hoy) {
+  const suficiente = anteriores.length >= PUNTOS_MINIMOS_HISTORICO && anteriores[0][0] <= sumarDias(hoy, -DIAS_MINIMOS_HISTORICO);
+  return suficiente && anteriores.some(([, valor]) => valor > precio) && anteriores.every(([, valor]) => precio <= valor);
 }
 
 /** ¿Se ha leído hoy de su fuente? Una oferta que no se ha vuelto a leer no aporta un precio nuevo. */
@@ -64,7 +72,7 @@ export function registrarPrecios(historial, ofertas, ahora = new Date()) {
     if (serie.length) historial[oferta.id] = serie;
     const anteriores = serie.filter(([fecha]) => fecha < hoy);
     oferta.bajada = calcularBajada(anteriores, hoy, oferta.precio);
-    oferta.minimoHistorico = esMinimoHistorico(anteriores, oferta.precio);
+    oferta.minimoHistorico = esMinimoHistorico(anteriores, oferta.precio, hoy);
   }
   return historial;
 }

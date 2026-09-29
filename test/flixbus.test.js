@@ -42,7 +42,7 @@ describe('ofertaDestino', () => {
     assert.equal(o.tipo, 'escapada');
     assert.equal(o.titulo, 'Bus Barcelona – Perpiñán el vie 18 sep desde 10,99 €');
     assert.equal(o.precio, 10.99);
-    assert.equal(o.unidad, null);
+    assert.equal(o.unidad, 'trayecto');
     assert.equal(o.precioTexto, '10,99 € por persona, solo ida (+0,99 € de gestión)');
     assert.equal(o.transporte, 'bus');
     assert.deepEqual(o.fechas, { salida: '2026-09-18T22:20:00', vuelta: null, findeId: null, puenteId: null });

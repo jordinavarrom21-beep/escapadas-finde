@@ -7,24 +7,30 @@ import { abrirFicha, liberarFicha } from './ficha.js';
 import { diasEntre, estadoFinde, fechaLocal, findesProximos, proximoPuente } from './fechas.js';
 import {
   POR_PAGINA, actividadesCerca, buscarTexto, crearHash, criterioVigilado, filtrosVigentes, leerFiltrosActividades,
-  leerFiltrosComunes, leerFiltrosEscapadas, leerFiltrosVuelos, leerRuta, medirDistancias, referenciaNovedades, resumenFuentes,
+  leerFiltrosComunes, leerFiltrosEscapadas, leerFiltrosVuelos, leerRuta, medirDistancias, paramsViaje, referenciaNovedades,
+  resumenFuentes, viajeDeParams,
 } from './filtros.js';
-import { contar, cuentaAtras, escaparHtml as esc, haceCuanto } from './formato.js';
+import { contar, cuentaAtras, escaparHtml as esc, haceCuanto, urlSegura } from './formato.js';
 import {
-  borrarBusqueda, cargarBusquedas, cargarDescartadas, cargarFavoritos, cargarFiltros, guardarBusqueda,
-  guardarDescartadas, guardarFavoritos, guardarFiltros, guardarTema, tomarVisitaAnterior,
+  MAX_COMPARAR, borrarBusqueda, cargarBusquedas, cargarComparar, cargarDescartadas, cargarMisEstados, guardarComparar, guardarMisEstados, cargarFavoritos, cargarFiltros, cargarSalida, cargarViaje,
+  guardarBusqueda, guardarDescartadas, guardarFavoritos, guardarFiltros, guardarSalida, guardarTema, guardarViaje,
+  tomarVisitaAnterior,
 } from './local.js';
+import { salidaEfectiva, validarSalida, validarViaje } from './viaje.js';
 import { destruirMapa, pintarMapa } from './mapa.js';
 import { estadoVacio } from './plantillas.js';
 import { activarUbicacion } from './ubicacion.js';
 import {
-  VISTAS_HTML, contarSecundarios, contenidoSorpresa, contextoBusqueda, ctxTarjetas, datosMapa, resultadosMapa,
+  VISTAS_HTML, contarSecundarios, paramsBuscadorFinde, contenidoSorpresa, contextoBusqueda, ctxTarjetas, datosMapa, formularioViaje, nombreSalida,
+  resultadosMapa, textoViaje,
 } from './vistas.js';
 
 const $ = (selector) => document.querySelector(selector);
+const esMovil = () => matchMedia('(max-width: 719px)').matches;
 const principal = $('#principal');
 const dialogo = $('#ficha');
-const DATOS_ANTIGUOS_MS = 3 * 3_600_000;
+/** GitHub lanza una revisión cada ~4 h (LEEME, «Revisión puntual»): a las 6 h ya es raro. */
+const DATOS_ANTIGUOS_MS = 6 * 3_600_000;
 const AVISO_MS = 5000;
 const SALTO_SORPRESA = 3;
 const CAMPOS_QUE_SE_ESCRIBEN = ['number', 'search', 'text'];
@@ -32,7 +38,7 @@ const CAMPOS_QUE_SE_ESCRIBEN = ['number', 'search', 'text'];
 const VISTAS_CON_MEMORIA = ['escapadas', 'actividades', 'vuelos'];
 const TITULOS = {
   finde: 'Este finde', vuelos: 'Vuelos', escapadas: 'Escapadas', actividades: 'Actividades', mapa: 'Mapa',
-  calendario: 'Calendario', puentes: 'Puentes', vigilados: 'Vigilados', fuentes: 'Fuentes', buscar: 'Buscar',
+  calendario: 'Calendario', puentes: 'Puentes', vigilados: 'Vigilados', fuentes: 'Fuentes', buscar: 'Buscar', comparar: 'Comparar',
 };
 
 let estado = null;
@@ -57,6 +63,8 @@ function crearEstado(datos, historial, vigilados) {
   const hoy = fechaLocal(ahora);
   const findes = (datos.findes ?? []).filter((f) => f.domingo >= hoy);
   const visitaAnterior = tomarVisitaAnterior(ahora);
+  // Tu salida (si no es el origen del escaneo), viajeros y noches: solo en este navegador.
+  const salida = salidaEfectiva(validarSalida(cargarSalida()), datos.origen);
   return {
     datos: { ...datos, puentes: datos.puentes ?? [], fuentes: datos.fuentes ?? [], temas: datos.temas ?? [] },
     historial,
@@ -66,6 +74,8 @@ function crearEstado(datos, historial, vigilados) {
     findes: findes.length ? findes : findesProximos(10, ahora),
     puente: proximoPuente(datos.puentes ?? [], hoy),
     favoritos: cargarFavoritos(),
+    comparar: cargarComparar(),
+    misEstados: cargarMisEstados(),
     descartadas: cargarDescartadas(),
     busquedas: cargarBusquedas(),
     salto: 0,
@@ -74,7 +84,10 @@ function crearEstado(datos, historial, vigilados) {
     temas: new Map((datos.temas ?? []).map((t) => [t.id, t])),
     fuentes: new Map((datos.fuentes ?? []).map((f) => [f.id, f.nombre])),
     porId: new Map(datos.ofertas.map((o) => [o.id, o])),
-    distanciasOrigen: medirDistancias(datos.ofertas, null, datos.origen),
+    salida,
+    viaje: validarViaje(cargarViaje(), datos.viajeros),
+    // Desde tu salida: desde el origen del escaneo, con los tiempos reales; si no, estimados.
+    distanciasOrigen: medirDistancias(datos.ofertas, salida, datos.origen),
     paginas: new Map(),
     ubicacion: { hostname: location.hostname, pathname: location.pathname },
   };
@@ -88,12 +101,39 @@ function pintarReloj() {
   const generado = estado.datos.generado;
   const antiguo = Date.now() - Date.parse(generado) > DATOS_ANTIGUOS_MS;
   const actualizado = $('#actualizado');
-  actualizado.innerHTML = `${antiguo ? '⚠️ ' : ''}Actualizado <time datetime="${esc(generado)}" title="${esc(new Date(generado).toLocaleString('es-ES'))}">${esc(haceCuanto(generado))}</time>`;
+  // Es la hora de la última revisión; cada web se consulta a su ritmo y cada oferta dice cuándo se comprobó.
+  actualizado.innerHTML = `${antiguo ? '⚠️ ' : ''}Última revisión <time datetime="${esc(generado)}" title="${esc(new Date(generado).toLocaleString('es-ES'))}. Cada web se consulta a su ritmo (de 30 min a 1 día): en cada oferta pone cuándo se comprobó.">${esc(haceCuanto(generado))}</time>`;
   actualizado.classList.toggle('antiguo', antiguo);
+}
+
+/**
+ * Pie: si hay enlaces de afiliado o patrocinios, cómo funcionan; si no, que no los hay.
+ * Lo dice el escaneo (ofertas.json → afiliacion), no se supone.
+ */
+function pintarAvisoComercial() {
+  const proveedores = estado.datos.afiliacion?.proveedores ?? [];
+  const patrocinadas = estado.datos.ofertas.some((o) => o.patrocinada);
+  const nombres = proveedores.map((id) => estado.fuentes.get(id) ?? id.charAt(0).toUpperCase() + id.slice(1));
+  $('#aviso-comercial').textContent = proveedores.length || patrocinadas
+    ? `${proveedores.length ? `Los enlaces a ${nombres.join(', ')} son de afiliado («🔗 Enlace de afiliado»): si reservas, la web puede pagarnos una comisión. ` : ''}${patrocinadas ? 'Las ofertas patrocinadas llevan «Patrocinado». ' : ''}Nada de esto cambia tu precio ni el orden de las ofertas, que depende solo de precio, fechas y calidad.`
+    : 'Ahora mismo ningún enlace es de afiliado y no hay ofertas patrocinadas: el orden depende solo de precio, fechas y calidad.';
+}
+
+/**
+ * Cuenta un clic en un enlace externo (proveedor, tipo de enlace y de oferta, vista), sin
+ * datos personales, solo si ofertas.json trae una dirección de medición. Un clic no es una venta.
+ */
+function contarClic(enlace) {
+  const destino = urlSegura(estado?.datos.afiliacion?.medicion ?? '');
+  if (!destino || !navigator.sendBeacon) return;
+  const { clic, clicTipo, clicOferta } = enlace.dataset;
+  navigator.sendBeacon(destino, JSON.stringify({ proveedor: clic, enlace: clicTipo, oferta: clicOferta, vista: vistaActual }));
 }
 
 function pintarCabecera() {
   pintarReloj();
+  pintarAvisoComercial();
+  pintarBotonViaje();
   const p = estado.puente;
   const aviso = $('#aviso-puente');
   if (p) {
@@ -196,9 +236,12 @@ function render({ enfocar = true } = {}) {
     else a.removeAttribute('aria-current');
   });
   $('#q').value = vista === 'buscar' ? params.q ?? '' : '';
-  principal.querySelectorAll('form[data-filtros]').forEach((form) => activarUbicacion(form, estado.datos.origen));
+  principal.querySelectorAll('form[data-filtros]').forEach((form) => activarUbicacion(form, estado.datos.origen, { salida: estado.salida }));
   if (vista === 'mapa') prepararMapa(params);
+  // En el móvil los filtros empiezan plegados: primero las ofertas.
+  if (cambiaVista && esMovil()) principal.querySelectorAll('[data-plegable-movil]').forEach((d) => { d.open = false; });
   sincronizarMasFiltros(params);
+  pintarBarraComparar();
   if (cambiaVista && enfocar) {
     window.scrollTo(0, 0);
     principal.querySelector('.titulo-vista')?.focus({ preventScroll: true });
@@ -210,6 +253,7 @@ function actualizarResultados(vista, params) {
   else $('#resultados').innerHTML = VISTAS_HTML[vista].resultados(estado, params);
   anunciar($('#resultados [data-resumen]')?.dataset.resumen);
   sincronizarMasFiltros(params);
+  pintarBarraComparar(); // el «Mapa»/«Lista» de la barra lleva los filtros nuevos
 }
 
 /** El contador de «Más filtros» y su botón del móvil siguen a los filtros sin repintar el formulario. */
@@ -350,7 +394,7 @@ async function copiarVigilado(vista, boton) {
   const { params } = leerRuta(location.hash);
   const leer = { vuelos: leerFiltrosVuelos, actividades: leerFiltrosActividades }[vista] ?? leerFiltrosEscapadas;
   const filtros = leer(params);
-  const json = JSON.stringify(criterioVigilado(nombreEscrito(), filtros, { vista }), null, 2);
+  const json = JSON.stringify(criterioVigilado(nombreEscrito(), filtros, { vista, salida: estado.salida, viajeros: estado.viaje.viajeros }), null, 2);
   const copiado = await copiarTexto(json);
   const caja = boton.closest('details')?.querySelector('.vigilado-json')
     ?? Object.assign(document.createElement('pre'), { className: 'vigilado-json' });
@@ -373,6 +417,64 @@ function alternarFavorito(id) {
     boton.textContent = activo ? '★' : '☆';
   });
   anunciar(activo ? 'Guardada en favoritos' : 'Quitada de favoritos');
+}
+
+/** Vistas con filtros: en el móvil, la barra de abajo tiene «Filtros» y, si toca, «Mapa» o «Lista». */
+const VISTAS_CON_BARRA = ['escapadas', 'vuelos', 'actividades', 'mapa'];
+
+/**
+ * Barra flotante de abajo: «⚖️ Comparar (2 de 3)» con algo elegido (fuera de la propia
+ * comparación) y, en el móvil, «⚙️ Filtros» y el cambio entre lista y mapa sin perder filtros.
+ */
+function pintarBarraComparar() {
+  const barra = $('#barra-comparar');
+  const n = estado.comparar.size;
+  const { params } = leerRuta(location.hash);
+  const acciones = [];
+  if (esMovil() && VISTAS_CON_BARRA.includes(vistaActual)) {
+    acciones.push('<button type="button" class="boton boton--suave" data-abrir-filtros>⚙️ Filtros</button>');
+    if (vistaActual === 'escapadas') acciones.push(`<a class="boton boton--suave" href="${esc(crearHash('mapa', params))}">🗺️ Mapa</a>`);
+    if (vistaActual === 'mapa') acciones.push(`<a class="boton boton--suave" href="${esc(crearHash('escapadas', params))}">📋 Lista</a>`);
+  }
+  if (n && vistaActual !== 'comparar') {
+    acciones.push(`<a class="boton boton--primario" href="#/comparar">⚖️ Comparar (${n}${esMovil() ? '' : ` de ${MAX_COMPARAR}`})</a>`,
+      `<button type="button" class="boton boton--suave boton--mini" data-vaciar-comparar aria-label="Vaciar la comparación">Vaciar</button>`);
+  }
+  barra.hidden = acciones.length === 0;
+  barra.innerHTML = acciones.join('');
+}
+
+/** «⚙️ Filtros» de la barra: despliega los filtros y lleva a ellos. */
+function abrirFiltros() {
+  const plegable = principal.querySelector('[data-plegable-movil], .filtros-plegables');
+  if (!plegable) return;
+  plegable.open = true;
+  plegable.scrollIntoView({ block: 'start' });
+  plegable.querySelector('summary')?.focus({ preventScroll: true });
+}
+
+/** Añade o quita una oferta de la comparación (como mucho MAX_COMPARAR). */
+function alternarComparar(id) {
+  const activo = !estado.comparar.has(id);
+  if (activo && estado.comparar.size >= MAX_COMPARAR) {
+    anunciar(`Solo se comparan ${MAX_COMPARAR} a la vez: quita una con ⚖️ antes de añadir otra.`);
+    return;
+  }
+  if (activo) estado.comparar.add(id);
+  else estado.comparar.delete(id);
+  guardarComparar(estado.comparar);
+  if (vistaActual === 'comparar') render({ enfocar: false });
+  document.querySelectorAll(`[data-comparar="${CSS.escape(id)}"].boton-comparar`).forEach((boton) => boton.setAttribute('aria-pressed', String(activo)));
+  pintarBarraComparar();
+  anunciar(activo ? `Añadida a la comparación (${estado.comparar.size} de ${MAX_COMPARAR})` : 'Quitada de la comparación');
+}
+
+function vaciarComparar() {
+  estado.comparar.clear();
+  guardarComparar(estado.comparar);
+  document.querySelectorAll('.boton-comparar').forEach((boton) => boton.setAttribute('aria-pressed', 'false'));
+  pintarBarraComparar();
+  anunciar('Comparación vacía');
 }
 
 function ocultarTarjetas(id) {
@@ -407,12 +509,81 @@ function mostrarFicha(id, disparador) {
   origenFicha = disparador;
   abrirFicha(dialogo, oferta, ctxTarjetas(estado, {
     distancias,
-    desde: punto?.nombre ?? estado.datos.origen.nombre,
+    desde: punto?.nombre ?? nombreSalida(estado),
     actividades: actividadesCerca(estado.datos.ofertas, oferta),
   }));
 }
 
-const ACCIONES = '[data-ficha], [data-fav], [data-descartar], [data-mas], [data-sorpresa],'
+// ── Tu viaje: salida, viajeros y noches ──────────────────────────────────────
+
+const dialogoViaje = $('#mi-viaje');
+let origenViaje = null;
+
+function pintarBotonViaje() {
+  $('#boton-viaje').textContent = textoViaje(estado);
+}
+
+function abrirViaje(disparador) {
+  const formulario = $('#form-viaje');
+  formulario.innerHTML = formularioViaje(estado);
+  activarUbicacion(formulario, estado.datos.origen, { salida: estado.salida, prefijo: 'salida' });
+  origenViaje = disparador;
+  dialogoViaje.showModal();
+  formulario.querySelector('#salida-texto')?.focus();
+}
+
+/** Guarda tu viaje y rehace distancias, aeropuertos y costes (nada sale del navegador). */
+function guardarMiViaje(evento) {
+  evento.preventDefault();
+  const d = Object.fromEntries(new FormData(evento.target));
+  const salida = validarSalida({ nombre: d.lugar, lat: d.lat, lon: d.lon });
+  const viaje = validarViaje({ viajeros: d.viajeros, noches: d.noches }, estado.datos.viajeros);
+  dialogoViaje.close();
+  aplicarViaje(salida, viaje);
+}
+
+/** Guarda salida, viajeros y noches y rehace distancias, aeropuertos y costes. */
+function aplicarViaje(salida, viaje) {
+  guardarSalida(salida);
+  guardarViaje(viaje);
+  estado.salida = salidaEfectiva(salida, estado.datos.origen);
+  estado.viaje = viaje;
+  estado.distanciasOrigen = medirDistancias(estado.datos.ofertas, estado.salida, estado.datos.origen);
+  pintarBotonViaje();
+  render({ enfocar: false });
+  anunciar(`Guardado en este navegador: ${textoViaje(estado).replace(/^📍 /, '')}.`);
+}
+
+/** «Usar …» de un enlace compartido: adopta su salida, viajeros y noches. */
+function usarViajeCompartido() {
+  const compartido = viajeDeParams(leerRuta(location.hash).params);
+  if (!compartido) return;
+  aplicarViaje(validarSalida(compartido.salida), validarViaje(compartido.viaje, estado.datos.viajeros));
+}
+
+/** Copia el enlace de la búsqueda con tu salida, viajeros y noches (quien lo abra elige si los usa). */
+async function compartirBusqueda(vista) {
+  const { params } = leerRuta(location.hash);
+  const hash = crearHash(vista, { ...params, ...paramsViaje(estado.salida, estado.viaje) });
+  const enlace = `${location.origin}${location.pathname}${hash}`;
+  anunciar(await copiarTexto(enlace)
+    ? 'Enlace copiado: abre la misma búsqueda, con tu salida, viajeros y noches.'
+    : `No se ha podido copiar solo. El enlace es: ${enlace}`);
+}
+
+/** «✅ La he reservado» o «🚫 Ya no está disponible» (volver a pulsar lo quita). */
+function alternarMiEstado(id, nuevo) {
+  if (estado.misEstados.get(id) === nuevo) estado.misEstados.delete(id);
+  else estado.misEstados.set(id, nuevo);
+  guardarMisEstados(estado.misEstados);
+  const marcado = estado.misEstados.get(id);
+  document.querySelectorAll(`[data-mi-estado][data-oferta="${CSS.escape(id)}"]`).forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.miEstado === marcado)));
+  const { vista, params } = leerRuta(location.hash);
+  if (VISTAS_HTML[vista].resultados) actualizarResultados(vista, params);
+  anunciar(marcado === 'reservada' ? 'Marcada como reservada (solo en este navegador)' : marcado ? 'Marcada como no disponible (solo en este navegador)' : 'Marca quitada');
+}
+
+const ACCIONES = '[data-compartir-busqueda], [data-usar-viaje], [data-mi-estado], [data-abrir-filtros], [data-comparar], [data-vaciar-comparar], [data-mi-viaje], [data-cerrar-viaje], [data-ficha], [data-fav], [data-descartar], [data-mas], [data-sorpresa],'
   + ' [data-guardar-busqueda], [data-borrar-busqueda], [data-copiar-vigilado], [data-cerrar-ficha], [data-cerrar-novedades],'
   + ' [data-olvidar-filtros], [data-cerrar-mas]';
 
@@ -420,7 +591,15 @@ function manejarClic(evento) {
   const objetivo = evento.target.closest(ACCIONES);
   if (!objetivo) return;
   const d = objetivo.dataset;
-  if (d.ficha) mostrarFicha(d.ficha, objetivo);
+  if (d.compartirBusqueda) compartirBusqueda(d.compartirBusqueda);
+  else if ('usarViaje' in d) usarViajeCompartido();
+  else if (d.miEstado) alternarMiEstado(d.oferta, d.miEstado);
+  else if ('abrirFiltros' in d) abrirFiltros();
+  else if (d.comparar) alternarComparar(d.comparar);
+  else if ('vaciarComparar' in d) vaciarComparar();
+  else if ('miViaje' in d) abrirViaje(objetivo);
+  else if ('cerrarViaje' in d) dialogoViaje.close();
+  else if (d.ficha) mostrarFicha(d.ficha, objetivo);
   else if (d.fav) alternarFavorito(d.fav);
   else if (d.descartar) alternarDescartada(d.descartar);
   else if ('mas' in d) verMas(objetivo);
@@ -449,9 +628,18 @@ function cerrarMasFiltros(boton) {
 
 function conectarEventos() {
   document.addEventListener('click', manejarClic);
+  document.addEventListener('click', (evento) => {
+    const enlace = evento.target.closest?.('a[data-clic]');
+    if (enlace) contarClic(enlace);
+  });
   principal.addEventListener('input', alCambiarFiltro);
   principal.addEventListener('change', alCambiarFiltro);
-  principal.addEventListener('submit', (evento) => evento.preventDefault());
+  principal.addEventListener('submit', (evento) => {
+    evento.preventDefault();
+    if (evento.target.matches('[data-buscador-finde]')) {
+      location.hash = crearHash('escapadas', paramsBuscadorFinde(Object.fromEntries(new FormData(evento.target))));
+    }
+  });
   // «#principal» (el enlace de saltar al contenido) no es una ruta: no se cambia de vista.
   window.addEventListener('hashchange', () => { if (!location.hash || location.hash.startsWith('#/')) render(); });
   $('.saltar')?.addEventListener('click', (evento) => {
@@ -478,6 +666,15 @@ function conectarEventos() {
     if (evento.key !== 'Escape') return;
     evento.preventDefault();
     dialogo.close();
+  });
+  $('#form-viaje').addEventListener('submit', guardarMiViaje);
+  matchMedia('(max-width: 719px)').addEventListener('change', pintarBarraComparar);
+  dialogoViaje.addEventListener('click', (evento) => {
+    if (evento.target === dialogoViaje) dialogoViaje.close();
+  });
+  dialogoViaje.addEventListener('close', () => {
+    if (origenViaje?.isConnected) origenViaje.focus();
+    origenViaje = null;
   });
   dialogo.addEventListener('close', () => {
     liberarFicha();

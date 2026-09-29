@@ -20,7 +20,7 @@ describe('parsear (portada real)', () => {
       assert.deepEqual(validarOferta(o), [], o.id);
       assert.equal(o.tipo, 'escapada');
       assert.equal(o.transporte, 'tren');
-      assert.equal(o.unidad, null);
+      assert.equal(o.unidad, 'trayecto');
       assert.match(o.precioTexto, /por persona y trayecto \(solo ida\)/);
       assert.equal(o.publicada, '2026-09-16');
       assert.ok(o.etiquetas.includes('venta:2026-09-16'));
