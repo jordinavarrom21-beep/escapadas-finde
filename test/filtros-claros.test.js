@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 import {
-  ATAJOS_ESCAPADAS, buscarEscapadas, crearHash, filtrosActivos, leerFiltrosEscapadas, leerRuta, medirDistancias,
+  ATAJOS_ESCAPADAS, buscarEscapadas, crearHash, filtrosActivos, leerFiltrosEscapadas, leerRuta, medirDistancias, traducirFormulario,
 } from '../site/js/filtros.js';
 import { euros } from '../site/js/formato.js';
 import { contarSecundarios, resultadosEscapadas, vistaEscapadas } from '../site/js/vistas.js';
@@ -93,16 +93,16 @@ describe('filtros claros: atajos', () => {
 describe('filtros claros: jerarquía del formulario', () => {
   const html = vistaEscapadas(estado(), {});
 
-  it('arriba, cuatro preguntas y la explicación de fechas cerradas y flexibles', () => {
+  it('arriba, cinco preguntas y la explicación de fechas cerradas y flexibles', () => {
     const titulos = [...html.matchAll(/class="bloque__titulo">([^<]+)</g)].map(([, t]) => t);
-    assert.deepEqual(titulos, ['¿Cuándo?', '¿Qué te apetece?', '¿Dónde?', '¿Cuánto?']);
+    assert.deepEqual(titulos, ['¿Cuándo?', '¿Qué te apetece?', '¿Dónde?', '¿Cómo vas?', '¿Cuánto?']);
     assert.match(html, /name="cerradas" value="1"> Solo con fechas cerradas/);
     assert.match(html, /la disponibilidad exacta la confirma la web del anunciante/);
   });
 
   it('«Más filtros» agrupado por bloques, siempre plegado y con contador', () => {
     const grupos = [...html.matchAll(/class="grupo__titulo">([^<]+)</g)].map(([, t]) => t);
-    assert.deepEqual(grupos, ['Precio y chollos', 'Alojamiento y viaje', 'Zona, web y tipo', 'Mis listas']);
+    assert.deepEqual(grupos, ['Precio y chollos', 'Viaje y alojamiento', 'Zona, web y tipo', 'Mis listas']);
     assert.match(html, /<details class="filtros__mas filtros__mas--panel">/);
     const conFiltros = vistaEscapadas(estado(), { aloj: 'casa-rural', cho: '1', max: '100' });
     // No se abre solo (en el móvil taparía la pantalla): lo puesto se ve en los chips y en el contador.
@@ -112,7 +112,11 @@ describe('filtros claros: jerarquía del formulario', () => {
   });
 
   it('no se pierde ningún filtro de antes', () => {
-    for (const nombre of ['q', 'orden', 'cuando', 'dia', 'desde', 'hasta', 'temas', 'lugar', 'h', 'km', 'sincoche', 'max', 'pnMin', 'pnMax',
+    // El precio (max, pnMax, pres) va en un solo campo con selector y «sin coche» en «¿Cómo vas?».
+    assert.match(html, /name="precio"/);
+    for (const tipo of ['oferta', 'noche', 'persona', 'total']) assert.match(html, new RegExp(`name="preciotipo"[^]*?value="${tipo}"`), tipo);
+    for (const como of ['', 'coche', 'sincoche']) assert.match(html, new RegExp(`name="como" value="${como}"`), como);
+    for (const nombre of ['q', 'orden', 'cuando', 'dia', 'desde', 'hasta', 'temas', 'lugar', 'h', 'km', 'pnMin',
       'clasica', 'noches', 'regimen', 'aloj', 'nota', 'transporte', 'pais', 'region', 'fuente', 'tipo', 'cru', 'dto', 'pts', 'cho', 'baja',
       'hist', 'fav', 'nuevas', 'sindesc', 'dup', 'notemas', 'nodest']) {
       assert.match(html, new RegExp(`name="${nombre}"`), nombre);
@@ -155,5 +159,38 @@ describe('filtros claros: memoria por vista (localStorage)', () => {
     assert.equal(cargarFiltros('escapadas'), null);
     local.set('escapadas:filtros', JSON.stringify({ escapadas: ['a'] }));
     assert.equal(cargarFiltros('escapadas'), null);
+  });
+});
+
+describe('filtros claros: un solo campo de precio y «¿Cómo vas?»', () => {
+  it('el precio y lo que cuenta se traducen a los parámetros de siempre', () => {
+    assert.deepEqual(traducirFormulario({ precio: '80', preciotipo: 'oferta' }), { max: '80' });
+    assert.deepEqual(traducirFormulario({ precio: '40', preciotipo: 'noche' }), { pnMax: '40' });
+    assert.deepEqual(traducirFormulario({ precio: '300', preciotipo: 'total', prespor: 'persona' }), { pres: '300' });
+    assert.deepEqual(traducirFormulario({ precio: '150', preciotipo: 'persona' }), { pres: '150', prespor: 'persona' });
+    assert.deepEqual(traducirFormulario({ preciotipo: 'noche' }), {}, 'sin cantidad no hay filtro');
+    // Un «max» que venía oculto de un enlace antiguo no se suma: manda el campo.
+    assert.deepEqual(traducirFormulario({ precio: '90', preciotipo: 'oferta', max: '60,90' }), { max: '90' });
+  });
+
+  it('«¿Cómo vas?» pone transporte=coche o sincoche=1, y «Da igual» no pone nada', () => {
+    assert.deepEqual(traducirFormulario({ como: 'coche' }), { transporte: 'coche' });
+    assert.deepEqual(traducirFormulario({ como: 'sincoche', transporte: 'coche' }), { sincoche: '1' });
+    assert.deepEqual(traducirFormulario({ como: '', transporte: 'tren' }), { transporte: 'tren' });
+  });
+
+  it('el campo enseña lo que trae la URL, y lo demás sigue puesto en campos ocultos', () => {
+    const html = vistaEscapadas(estado(), { pnMax: '40', max: '100' });
+    assert.match(html, /name="precio"[^>]*value="40"/);
+    assert.match(html, /<option value="noche" selected>/);
+    assert.match(html, /<input type="hidden" name="max" value="100">/);
+    assert.match(vistaEscapadas(estado(), { pres: '200', prespor: 'persona' }), /<option value="persona" selected>/);
+    assert.match(vistaEscapadas(estado(), { sincoche: '1' }), /name="como" value="sincoche" checked/);
+    assert.match(vistaEscapadas(estado(), { transporte: 'coche' }), /name="como" value="coche" checked/);
+  });
+
+  it('«En coche» no cuenta como «Más filtros»; otro transporte, sí', () => {
+    assert.equal(contarSecundarios({ transporte: 'coche' }), 0);
+    assert.equal(contarSecundarios({ transporte: 'tren' }), 1);
   });
 });

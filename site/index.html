@@ -56,9 +56,6 @@
         </ul>
       </nav>
       <div class="cabecera__acciones">
-        <a id="estado-fuentes" class="estado-fuentes" href="#/fuentes" aria-label="Estado de las fuentes">
-          <span class="punto" aria-hidden="true"></span><span class="estado-fuentes__texto" aria-hidden="true">…</span>
-        </a>
         <button id="cambiar-tema" class="boton-icono" type="button" aria-label="Cambiar el modo de color"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg></button>
       </div>
     </div>
@@ -67,9 +64,8 @@
   <div class="contenedor cabecera-info">
     <div class="cabecera__info">
       <button id="boton-viaje" class="pastilla pastilla--viaje" type="button" data-mi-viaje aria-haspopup="dialog"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 21s-6.5-5.8-6.5-11.2a6.5 6.5 0 0 1 13 0C18.5 15.2 12 21 12 21zM9.8 9.8a2.2 2.2 0 1 0 4.4 0a2.2 2.2 0 1 0 -4.4 0"/></svg><span>Tu salida</span></button>
-      <p id="cuenta-atras" class="pastilla"></p>
-      <p id="aviso-puente" class="pastilla pastilla--puente" hidden></p>
-      <p id="actualizado" class="cabecera__actualizado"></p>
+      <a id="novedades" class="pastilla pastilla--novedades" href="#/buscar?nuevas=1" hidden></a>
+      <p id="actualizado" class="cabecera__actualizado" hidden></p>
     </div>
     <form id="buscador" class="buscador" role="search">
       <label class="sr" for="q">Buscar en todas las ofertas</label>
@@ -77,8 +73,6 @@
       <button class="boton boton--tinta" type="submit"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 11a7 7 0 1 0 14 0a7 7 0 1 0 -14 0M20 20l-4-4"/></svg><span class="sr">Buscar</span></button>
     </form>
   </div>
-
-  <div id="novedades" class="contenedor novedades" hidden></div>
 
   <main id="principal" class="contenedor" tabindex="-1">
     <p class="cargando" role="status">Cargando ofertas…</p>
@@ -90,6 +84,7 @@
       lanza la revisión) y cada oferta dice cuándo se comprobó; confirma siempre precio y condiciones en la web original.
       Mapa © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> ·
       Búsqueda de lugares con <a href="https://photon.komoot.io" target="_blank" rel="noopener noreferrer">Photon</a>.</p>
+    <p><a id="estado-fuentes" class="estado-fuentes" href="#/fuentes"><span class="punto" aria-hidden="true"></span><span class="estado-fuentes__texto">Estado de las webs</span></a></p>
     <p id="aviso-comercial"></p>
     <p>Guías: <a href="escapadas/">escapadas</a> · <a href="escapadas/menos-de-100-euros/">por menos de 100 €</a> ·
       <a href="escapadas/spa/">con spa</a> · <a href="escapadas/con-ninos/">con niños</a> · <a href="vuelos/">chollos de vuelos</a> ·

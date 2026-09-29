@@ -6,6 +6,8 @@
 try {
   const tema = localStorage.getItem('escapadas:tema');
   if (tema === 'claro' || tema === 'oscuro') document.documentElement.dataset.theme = tema === 'claro' ? 'light' : 'dark';
+  // Lo mismo con «Lista» o «Tarjetas» en los resultados.
+  if (localStorage.getItem('escapadas:modoLista') === 'lista') document.documentElement.classList.add('modo-lista');
 } catch (error) {
   // Sin acceso a localStorage (bloqueado o modo privado) se usa el tema del sistema.
   console.warn('No se puede leer el tema guardado:', error);

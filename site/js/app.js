@@ -6,14 +6,14 @@
 import { abrirFicha, liberarFicha } from './ficha.js';
 import { diasEntre, estadoFinde, fechaLocal, findesProximos, proximoPuente } from './fechas.js';
 import {
-  POR_PAGINA, actividadesCerca, buscarTexto, crearHash, criterioVigilado, filtrosVigentes, leerFiltrosActividades,
+  POR_PAGINA, actividadesCerca, traducirFormulario, buscarTexto, crearHash, criterioVigilado, filtrosVigentes, leerFiltrosActividades,
   leerFiltrosComunes, leerFiltrosEscapadas, leerFiltrosVuelos, leerRuta, medirDistancias, paramsViaje, referenciaNovedades,
   resumenFuentes, viajeDeParams,
 } from './filtros.js';
 import { contar, cuentaAtras, escaparHtml as esc, haceCuanto, urlSegura } from './formato.js';
 import {
   MAX_COMPARAR, borrarBusqueda, cargarBusquedas, cargarComparar, cargarDescartadas, cargarMisEstados, guardarComparar, guardarMisEstados, cargarFavoritos, cargarFiltros, cargarSalida, cargarViaje,
-  guardarBusqueda, guardarDescartadas, guardarFavoritos, guardarFiltros, guardarSalida, guardarTema, guardarViaje,
+  guardarBusqueda, guardarDescartadas, guardarFavoritos, guardarFiltros, guardarModoLista, guardarSalida, guardarTema, guardarViaje,
   tomarVisitaAnterior,
 } from './local.js';
 import { salidaEfectiva, validarSalida, validarViaje } from './viaje.js';
@@ -98,13 +98,16 @@ function crearEstado(datos, historial, vigilados) {
 
 function pintarReloj() {
   const { esFinde, faltaMs } = estadoFinde(new Date());
-  $('#cuenta-atras').innerHTML = esFinde ? `${icono('puentes')}¡Es finde!` : `${icono('arena')}Finde en ${esc(cuentaAtras(faltaMs))}`;
+  // La cuenta atrás va en la portada (no está en las demás vistas).
+  const cuenta = $('#cuenta-atras');
+  if (cuenta) cuenta.innerHTML = esFinde ? `${icono('puentes')}¡Es finde!` : `${icono('arena')}Finde en ${esc(cuentaAtras(faltaMs))}`;
   const generado = estado.datos.generado;
   const antiguo = Date.now() - Date.parse(generado) > DATOS_ANTIGUOS_MS;
   const actualizado = $('#actualizado');
-  // Es la hora de la última revisión; cada web se consulta a su ritmo y cada oferta dice cuándo se comprobó.
-  actualizado.innerHTML = `${antiguo ? icono('alerta') : ''}Revisado <time datetime="${esc(generado)}" title="${esc(new Date(generado).toLocaleString('es-ES'))}. Cada web se consulta a su ritmo (de 30 min a 1 día): en cada oferta pone cuándo se comprobó.">${esc(haceCuanto(generado))}</time>`;
+  // En la cabecera solo si los datos son viejos (la portada ya dice cuándo se revisó).
+  actualizado.innerHTML = `${icono('alerta')}Revisado <time datetime="${esc(generado)}" title="${esc(new Date(generado).toLocaleString('es-ES'))}. Cada web se consulta a su ritmo (de 30 min a 1 día): en cada oferta pone cuándo se comprobó.">${esc(haceCuanto(generado))}</time>`;
   actualizado.classList.toggle('antiguo', antiguo);
+  actualizado.hidden = !antiguo;
 }
 
 /**
@@ -131,23 +134,26 @@ function contarClic(enlace) {
   navigator.sendBeacon(destino, JSON.stringify({ proveedor: clic, enlace: clicTipo, oferta: clicOferta, vista: vistaActual }));
 }
 
+/** El próximo puente, en la portada junto a la cuenta atrás. */
+function pintarPuente() {
+  const p = estado.puente;
+  const aviso = $('#aviso-puente');
+  if (!p || !aviso) return;
+  const faltan = diasEntre(estado.hoy, p.desde);
+  const cuando = faltan <= 0 ? 'ahora' : faltan === 1 ? 'mañana' : `en ${faltan} días`;
+  aviso.innerHTML = `<a href="${crearHash('puentes', {})}" title="Puente de ${esc(p.nombre)}">${icono('puentes')}Puente ${esc(p.etiqueta)} · ${cuando}</a>`;
+  aviso.hidden = false;
+}
+
 function pintarCabecera() {
   pintarReloj();
   pintarAvisoComercial();
   pintarBotonViaje();
-  const p = estado.puente;
-  const aviso = $('#aviso-puente');
-  if (p) {
-    const faltan = diasEntre(estado.hoy, p.desde);
-    const cuando = faltan <= 0 ? 'ahora' : faltan === 1 ? 'mañana' : `en ${faltan} días`;
-    aviso.innerHTML = `<a href="${crearHash('vuelos', { finde: p.id })}" title="Puente de ${esc(p.nombre)}">${icono('puentes')}Puente ${esc(p.etiqueta)} · ${cuando}</a>`;
-    aviso.hidden = false;
-  }
+  // El estado de las webs va en el pie: en la cabecera, «21/21» no se entendía.
   const r = resumenFuentes(estado.datos.fuentes);
   const enlace = $('#estado-fuentes');
   enlace.classList.toggle('estado-fuentes--error', r.conError > 0);
-  enlace.setAttribute('aria-label', `Fuentes: ${r.ok} de ${r.activas} funcionan${r.conError ? `, ${r.conError} con errores` : ''}`);
-  enlace.querySelector('.estado-fuentes__texto').textContent = `${r.ok}/${r.activas}`;
+  enlace.querySelector('.estado-fuentes__texto').textContent = `${r.ok} de ${r.activas} webs funcionan${r.conError ? ` · ${r.conError} con errores` : ''} · ver el estado`;
 }
 
 function pintarNovedades() {
@@ -155,10 +161,10 @@ function pintarNovedades() {
   const nuevas = buscarTexto(estado.datos.ofertas, leerFiltrosComunes({ nuevas: '1' }), contextoBusqueda(estado)).length;
   const aviso = $('#novedades');
   if (!nuevas) return;
+  // Una pastilla junto a «Tu salida», no una franja en todas las vistas.
   const desde = estado.visitaAnterior ? `desde tu última visita (${haceCuanto(estado.visitaAnterior)})` : 'en las últimas 24 h';
-  aviso.innerHTML = `<p>${icono('nuevo')}<span><strong>${contar(nuevas, 'novedad', 'novedades')}</strong> ${esc(desde)}</span></p>
-<a class="boton boton--primario" href="#/buscar?nuevas=1">Verlas</a>
-<button type="button" class="boton-icono" data-cerrar-novedades aria-label="Ocultar el aviso de novedades">${icono('cerrar')}</button>`;
+  aviso.innerHTML = `${icono('nuevo')}<span>${contar(nuevas, 'novedad', 'novedades')}</span>`;
+  aviso.title = `${contar(nuevas, 'oferta nueva', 'ofertas nuevas')} ${desde}. Pulsa para verlas.`;
   aviso.hidden = false;
 }
 
@@ -171,6 +177,19 @@ function pintarBotonTema() {
   const boton = $('#cambiar-tema');
   boton.innerHTML = icono(oscuro ? 'sol' : 'luna');
   boton.setAttribute('aria-label', oscuro ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro');
+}
+
+/** Marca «Tarjetas» o «Lista» según el modo puesto (una clase en <html>, ver tema.js). */
+function sincronizarModoLista() {
+  const lista = document.documentElement.classList.contains('modo-lista');
+  document.querySelectorAll('[data-modo-lista]').forEach((b) => b.setAttribute('aria-pressed', String((b.dataset.modoLista === 'lista') === lista)));
+}
+
+function cambiarModoLista(modo) {
+  document.documentElement.classList.toggle('modo-lista', modo === 'lista');
+  guardarModoLista(modo);
+  sincronizarModoLista();
+  anunciar(modo === 'lista' ? 'Resultados en lista' : 'Resultados en tarjetas');
 }
 
 function cambiarTema() {
@@ -254,6 +273,11 @@ function render({ enfocar = true } = {}) {
   // En el móvil los filtros empiezan plegados: primero las ofertas.
   if (cambiaVista && esMovil()) principal.querySelectorAll('[data-plegable-movil]').forEach((d) => { d.open = false; });
   sincronizarMasFiltros(params);
+  sincronizarModoLista();
+  if (vista === 'finde') {
+    pintarReloj();
+    pintarPuente();
+  }
   pintarBarraComparar();
   if (cambiaVista && enfocar) {
     window.scrollTo(0, 0);
@@ -266,6 +290,7 @@ function actualizarResultados(vista, params) {
   else $('#resultados').innerHTML = VISTAS_HTML[vista].resultados(estado, params);
   anunciar($('#resultados [data-resumen]')?.dataset.resumen);
   sincronizarMasFiltros(params);
+  sincronizarModoLista();
   pintarBarraComparar(); // el «Mapa»/«Lista» de la barra lleva los filtros nuevos
 }
 
@@ -291,6 +316,7 @@ function paramsDeFormulario(formulario) {
     params.hasta = params.dia;
   }
   delete params.dia;
+  traducirFormulario(params);
   // Las casillas que vienen marcadas de fábrica («Ocultar cruceros») tienen que dejar
   // constancia en la URL de que se han desmarcado; si no, se volverían a activar solas.
   // Marcadas son lo normal y no se escriben.
@@ -451,6 +477,7 @@ function pintarBarraComparar() {
       `<button type="button" class="boton boton--suave boton--mini" data-vaciar-comparar aria-label="Vaciar la comparación">${icono('cerrar')}<span class="barra-comparar__texto">Vaciar</span></button>`);
   }
   barra.hidden = acciones.length === 0;
+  barra.classList.toggle('barra-comparar--compacta', !(n && vistaActual !== 'comparar'));
   barra.innerHTML = acciones.join('');
 }
 
@@ -599,7 +626,7 @@ function alternarMiEstado(id, nuevo) {
 
 const ACCIONES = '[data-actualizar], [data-compartir-busqueda], [data-usar-viaje], [data-mi-estado], [data-abrir-filtros], [data-comparar], [data-vaciar-comparar], [data-mi-viaje], [data-cerrar-viaje], [data-ficha], [data-fav], [data-descartar], [data-mas], [data-sorpresa],'
   + ' [data-guardar-busqueda], [data-borrar-busqueda], [data-copiar-vigilado], [data-cerrar-ficha], [data-cerrar-novedades],'
-  + ' [data-olvidar-filtros], [data-cerrar-mas]';
+  + ' [data-olvidar-filtros], [data-cerrar-mas], [data-modo-lista]';
 
 function manejarClic(evento) {
   const objetivo = evento.target.closest(ACCIONES);
@@ -625,6 +652,7 @@ function manejarClic(evento) {
   else if ('cerrarFicha' in d) dialogo.close();
   else if ('olvidarFiltros' in d) guardarFiltros(leerRuta(objetivo.getAttribute('href')).vista, {}); // el enlace sigue su curso
   else if ('cerrarMas' in d) cerrarMasFiltros(objetivo);
+  else if (d.modoLista) cambiarModoLista(d.modoLista);
   else $('#novedades').hidden = true;
 }
 

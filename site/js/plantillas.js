@@ -192,15 +192,6 @@ function tiempoFoto(o) {
   return `<span class="pastilla-foto" title="${esc(cuando)}">${iconoTiempo(t.codigo)}${grados(t.maxC)}${t.texto ? ` · ${esc(t.texto.toLowerCase())}` : ''}</span>`;
 }
 
-/**
- * La tarjeta se queda con lo que sirve para comparar (destino, fechas, precio, transporte);
- * el tiempo y los eventos van en la ficha, y aquí solo se avisa de que están.
- */
-function pistaFicha(o) {
-  const hay = [o.tiempo && 'el tiempo', o.eventos?.length && contar(o.eventos.length, 'evento')].filter(Boolean);
-  return hay.length ? `<p class="dato-extra pista-ficha">${conIcono('info', `En la ficha: ${esc(enumerar(hay))}${conFechasDeViaje(o) ? '' : ' del próximo finde'}`)}</p>` : '';
-}
-
 /** Hasta tres eventos cerca del destino esos días. */
 function eventos(o, { conEnlace = false } = {}) {
   const lista = (o.eventos ?? []).slice(0, 3);
@@ -224,9 +215,16 @@ function valoracion(o) {
   return `<span class="valoracion" title="Valoración ${nota(v.nota)} sobre 10${opiniones}">${icono('estrella')}${nota(v.nota)}</span>`;
 }
 
+/** Qué mide la nota del chollo (sale al pasar por encima y en la ficha). */
+export const QUE_MIDE_LA_NOTA = 'Lo bueno que es como chollo: sobre todo el precio frente a ofertas parecidas; también las bajadas, el descuento, si es nueva, si cae en finde o puente y lo cómodo que es llegar.';
+
+/** «Chollazo», «Muy buena», «Buena» o «Normal» según la nota (0–100). */
+export const nivelNota = (o) => (o.chollazo ? 'Chollazo' : o.puntuacion >= 60 ? 'Muy buena' : o.puntuacion >= 40 ? 'Buena' : 'Normal');
+
 function puntuacion(o) {
   const nivel = o.chollazo ? 'alta' : o.puntuacion >= 60 ? 'media' : 'baja';
-  return `<span class="puntuacion puntuacion--${nivel}" title="Puntuación ${o.puntuacion} de 100" aria-label="Puntuación ${o.puntuacion} de 100">${o.puntuacion}</span>`;
+  const texto = `Nota del chollo: ${o.puntuacion} de 100 (${nivelNota(o).toLowerCase()}). ${QUE_MIDE_LA_NOTA}`;
+  return `<span class="puntuacion puntuacion--${nivel}" title="${esc(texto)}"><span aria-hidden="true">${o.puntuacion}</span><span class="sr">${esc(texto)}</span></span>`;
 }
 
 function botonFavorito(o, ctx) {
@@ -371,46 +369,83 @@ function cabeceraFoto(o, ctx) {
   </div>`;
 }
 
-/** Los datos de la oferta en una línea de iconos: fechas, noches, alojamiento, régimen… */
+/**
+ * Pocos datos, los que sirven para decidir de un vistazo: cuándo, hasta cuándo vale, qué incluye (noches, alojamiento, régimen o duración) y cómo se llega si no es en
+ * coche. El resto (valoración, transporte, eventos…) está en la ficha.
+ */
 function datosTarjeta(o) {
   const minutos = duracionActividad(o);
   const salidas = salidasDe(o);
-  const dato = (nombre, texto) => (texto ? `<li>${icono(nombre)}${esc(texto)}</li>` : '');
+  const dato = (nombre, texto) => (texto ? `<li>${icono(nombre)}<span>${esc(texto)}</span></li>` : '');
+  const incluye = [
+    o.noches && contar(o.noches, 'noche'),
+    ETIQUETAS_ALOJAMIENTO[o.alojamiento],
+    o.regimen !== 'solo-alojamiento' && ETIQUETAS_REGIMEN[o.regimen],
+    minutos && duracion(minutos),
+  ].filter(Boolean).join(' · ');
+  const llegar = salidas.length ? dato('despegue', `Sale de ${enumerar(salidas)}`)
+    : conTransporteIncluido(o) ? dato(o.transporte, `En ${(ETIQUETAS_TRANSPORTE[o.transporte] ?? '').toLowerCase()}`) : '';
   return [
     dato('calendario', textoFechas(o)),
+    // Aparte: «hasta el 30» junto a «Fechas flexibles» se leería como el último día del viaje.
     dato('arena', textoCaducidad(o)),
-    salidas.length ? dato('despegue', `Sale de ${enumerar(salidas)}`) : '',
-    minutos ? dato('reloj', duracion(minutos)) : '',
-    o.noches ? dato('noches', contar(o.noches, 'noche')) : '',
-    dato(o.alojamiento, ETIQUETAS_ALOJAMIENTO[o.alojamiento]),
-    dato('cubiertos', ETIQUETAS_REGIMEN[o.regimen]),
-    dato(o.transporte, ETIQUETAS_TRANSPORTE[o.transporte]),
+    dato(o.noches || o.alojamiento ? 'noches' : 'reloj', incluye),
+    llegar,
   ].join('');
+}
+
+/**
+ * En la tarjeta, una sola etiqueta: la más fuerte (el chollazo o «−N %» ya van sobre la
+ * foto). Las marcas tuyas y «Patrocinado» se enseñan siempre; el resto, en la ficha.
+ */
+function insigniasTarjeta(o, ctx) {
+  const etiquetas = o.etiquetas ?? [];
+  const minimo = textoMinimo(o, ctx);
+  const fijas = [
+    ctx.misEstados?.get(o.id) === 'reservada' && `<span class="insignia insignia--mio">${icono('check')}Reservada (marcada por ti)</span>`,
+    ctx.misEstados?.get(o.id) === 'no-disponible' && `<span class="insignia insignia--alerta">${icono('prohibido')}No disponible (marcada por ti)</span>`,
+    o.patrocinada && `<span class="insignia insignia--patrocinado" title="Un anunciante paga por destacarla; no sube en el orden normal">Patrocinado · ${esc(o.patrocinada.anunciante)}</span>`,
+  ];
+  const [mejor] = [
+    etiquetas.includes('error-tarifa') && `<span class="insignia insignia--alerta">${icono('alerta')}Error de tarifa</span>`,
+    minimo && `<span class="insignia insignia--minimo" title="${esc(minimo.detalle)}">${esc(minimo.texto)}</span>`,
+    o.bajada > 0 && `<span class="insignia insignia--bajada" title="${esc(textoBajada(o))}">${icono('bajada')}Ha bajado ${euros(o.bajada)}</span>`,
+    o.chollazo && insigniaReferencia(o),
+    esNovedad(o, ctx.referencia) && `<span class="insignia insignia--nueva">${icono('nuevo')}Nuevo</span>`,
+    esDuplicada(o) && `<span class="insignia">${icono('repetir')}${o.equivalentes?.length ? 'Repetida en otra web' : 'Repetida en la misma web'}</span>`,
+  ].filter(Boolean);
+  return [...fijas.filter(Boolean), mejor].filter(Boolean).join('');
+}
+
+/** «Escapada · BuscoUnChollo · comprobada hace 22 min» o el aviso de que puede haber terminado. */
+function origenTarjeta(o, ctx) {
+  const f = frescura(o, ctx);
+  const partes = [ETIQUETAS_TIPO[o.tipo] ?? o.tipo, ctx.fuentes.get(o.fuente) ?? o.fuente].map(esc).join(' · ');
+  if (f?.desactualizada) return `<p class="tarjeta__origen">${partes}</p>${textoComprobada(o, ctx)}`;
+  return `<p class="tarjeta__origen">${partes}${f ? ` · <span title="${esc(f.cuando)}">comprobada ${esc(f.texto)}</span>` : ''}</p>`;
 }
 
 /** Tarjeta de escapada, hotel, paquete o chollo de vuelo sin fechas. */
 export function tarjetaOferta(o, ctx) {
-  const valor = valoracion(o);
   return `<article class="tarjeta" style="--color-tema:${colorTema(o)}">
   ${cabeceraFoto(o, ctx)}
   <div class="tarjeta__cuerpo">
     <div class="tarjeta__cabeza">
       <span class="tarjeta__temas">${temasIconos(o, ctx, 3)}</span>
       <span class="tarjeta__lugar">${textoLugar(o) || esc(ETIQUETAS_TIPO[o.tipo] ?? o.tipo)}</span>
-      ${puntuacion(o)}
+      ${valoracion(o)}${puntuacion(o)}
       ${botonDescartar(o)}
     </div>
     <h3 class="tarjeta__titulo"><button type="button" class="enlace-ficha" data-ficha="${esc(o.id)}">${esc(o.titulo)}</button></h3>
-    <ul class="tarjeta__datos">${datosTarjeta(o)}${valor ? `<li>${valor}</li>` : ''}</ul>
-    <div class="insignias">${insignias(o, ctx, { enFoto: true })}</div>
-    ${equivalentes(o, ctx)}${pistaFicha(o)}
+    <ul class="tarjeta__datos">${datosTarjeta(o)}</ul>
+    <div class="insignias">${insigniasTarjeta(o, ctx)}</div>
+    ${equivalentes(o, ctx)}
     <div class="tarjeta__pie">
       ${precio(o)}
       ${lineaCoste(o, ctx)}
       <div class="acciones">${botonComparar(o, ctx)}${enlaceOferta(o)}</div>
     </div>
-    <p class="tarjeta__origen">${esc(ETIQUETAS_TIPO[o.tipo] ?? o.tipo)} · ${esc(ctx.fuentes.get(o.fuente) ?? o.fuente)}</p>
-    ${textoComprobada(o, ctx)}${avisoAfiliado(o)}
+    ${origenTarjeta(o, ctx)}${avisoAfiliado(o)}
   </div>
 </article>`;
 }
@@ -629,7 +664,7 @@ function datosFicha(o, ctx) {
     ['Mínimo', textoMinimo(o, ctx)?.detalle],
     ['Publicada', o.publicada && etiquetaDia(o.publicada)],
     ['Vista por primera vez', o.vistaPrimera && haceCuanto(o.vistaPrimera)],
-    ['Puntuación', `${o.puntuacion} / 100`],
+    ['Nota del chollo', `${o.puntuacion} / 100 · ${nivelNota(o)}. ${QUE_MIDE_LA_NOTA}`],
   ];
   return filas.filter(([, valor]) => valor).map(([dt, dd]) => `<div><dt>${dt}</dt><dd>${esc(dd)}</dd></div>`).join('');
 }
