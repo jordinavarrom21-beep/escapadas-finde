@@ -11,6 +11,7 @@ import { Cache } from './cache.js';
 import { cargarEstado, cargarJson, guardarJson } from './almacen.js';
 import { cargarAjustes } from './ajustes.js';
 import { cargarVigilados } from './vigilados.js';
+import { cargarAfiliacion } from './afiliacion.js';
 import { MODULOS, escanear, urlPanel } from './core/scan-pipeline.js';
 import { FUENTES } from './fuentes/index.js';
 
@@ -21,6 +22,7 @@ const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const RUTAS = {
   ajustes: 'config/ajustes.json',
   vigilados: 'config/vigilados.json',
+  afiliacion: 'config/afiliacion.json',
   estado: 'data/estado.json',
   cache: 'data/cache.json',
   historial: 'data/historial.json',
@@ -107,6 +109,7 @@ async function principal() {
   const resultado = await escanear({
     ajustes,
     vigilados: cargarVigilados(ruta('vigilados')),
+    afiliacion: cargarAfiliacion(ruta('afiliacion')),
     // cargarEstado migra, valida y, si hace falta, recupera la copia anterior.
     estado: cargarEstado(ruta('estado')),
     cache: new Cache(leerDatos(ruta('cache'), {})),

@@ -68,6 +68,7 @@ un `try/catch`, registran el error con `ctx.log` y descartan solo esa oferta.
 | `valoracion` | fuente | `{nota: 0–10, n: nº de opiniones}` o `null` |
 | `precioNoche` | `puntuacion.js` | precio por persona y noche cuando se puede deducir (`precioPorPersonaNoche`) |
 | `referencia` | `referencia.js` | `{mediana, ahorroPct, grupo, n}`: comparación con ofertas parecidas |
+| `urlReserva`, `afiliado`, `patrocinada` | `afiliacion.js` | la `url` con el identificador de afiliado de un proveedor activo y aprobado (o igual que `url`), qué proveedor (`null` si ninguno) y `{anunciante}` si alguien paga por ella. `url` se queda limpia. No cambian la puntuación ni el orden |
 | `equivalentes` | `duplicados.js` | la misma oferta en otras webs: `[{fuente, precio, unidad, url}]` |
 | `costeCoche` | `geo.js` | `{eur, litros}` del viaje de ida y vuelta desde `ajustes.origen`, solo si se va en coche (`transporte` `coche` o `null`): una oferta de tren, bus, avión o ferry no gasta gasolina (`vaEnCoche`) |
 | `tiempo` | `tiempo.js` | `{dia, maxC, minC, lluviaPct, codigo, texto}` del finde o puente asignado |
@@ -299,6 +300,7 @@ Otros archivos de `data/`: `cache.json` (Cache), `historial.json`.
   aeropuertos: ['BCN', 'GRO', 'REU'],
   viajeros: 2,
   coche: { consumoL100km, precioLitro, carburante }, // precioLitro: el medio del Ministerio de hoy, o el de los ajustes
+  afiliacion: { proveedores: ['civitatis'], medicion: null }, // proveedores que marcan enlaces y dónde contar clics
   temas: TEMAS,
   findes: Finde[],        // {id, viernes, sabado, domingo, etiqueta, puenteId}
   puentes: Puente[],

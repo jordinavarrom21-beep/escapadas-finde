@@ -137,6 +137,27 @@ publican otro origen), `alojamiento`, `regimenMinimo`, `valoracionMin`, `descuen
 del puente), `soloChollazos`, `soloMinimoHistorico`, `ofertaId` y `activo: false` (pausa).
 Si uno está mal escrito, el registro del escaneo lo dice y el resto sigue funcionando.
 
+## Afiliación y patrocinios (`config/afiliacion.json`)
+
+Ahora mismo **no hay ningún enlace de afiliado**: el panel lo dice en el pie. Para activarlo
+con un proveedor (Civitatis, Booking, GetYourGuide…):
+
+1. Date de alta en su programa y espera a que **aprueben** tu cuenta; lee sus condiciones
+   (p. ej. https://www.civitatis.com/es/afiliados/): no todos permiten cualquier uso ni pagan
+   lo mismo por todo.
+2. En `config/afiliacion.json` pon `activo: true`, `aprobado: true` y tu identificador en
+   `parametros` (se añade a sus enlaces conservando los demás parámetros).
+3. En el siguiente escaneo sus enlaces llevan el identificador, `rel="sponsored"` y la marca
+   «🔗 Enlace de afiliado», y el pie lo explica. Un proveedor a medias (sin aprobar o sin
+   identificador) no marca nada y el registro del escaneo lo avisa.
+
+- **Patrocinadas**: `{"ofertaId": "...", "anunciante": "...", "hasta": "AAAA-MM-DD"}` en
+  `patrocinadas`. Se marcan «Patrocinado» y **no suben** en el orden: la puntuación no las ve.
+- **Clics**: sin `medicion.url` no se mide nada. Si pones la dirección de un contador (p. ej.
+  GoatCounter), añade su dominio a `connect-src` en `site/index.html`. Se envían proveedor,
+  tipo de enlace, tipo de oferta y vista, nunca datos personales. **Un clic no es una venta**:
+  las reservas y comisiones solo las confirma el panel de cada proveedor.
+
 ## Revisión puntual cada 30 minutos (opcional)
 
 GitHub no garantiza los crons: en la práctica lanza unas 6 de las 48 revisiones diarias

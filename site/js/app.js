@@ -9,7 +9,7 @@ import {
   POR_PAGINA, actividadesCerca, buscarTexto, crearHash, criterioVigilado, filtrosVigentes, leerFiltrosActividades,
   leerFiltrosComunes, leerFiltrosEscapadas, leerFiltrosVuelos, leerRuta, medirDistancias, referenciaNovedades, resumenFuentes,
 } from './filtros.js';
-import { contar, cuentaAtras, escaparHtml as esc, haceCuanto } from './formato.js';
+import { contar, cuentaAtras, escaparHtml as esc, haceCuanto, urlSegura } from './formato.js';
 import {
   MAX_COMPARAR, borrarBusqueda, cargarBusquedas, cargarComparar, cargarDescartadas, guardarComparar, cargarFavoritos, cargarFiltros, cargarSalida, cargarViaje,
   guardarBusqueda, guardarDescartadas, guardarFavoritos, guardarFiltros, guardarSalida, guardarTema, guardarViaje,
@@ -104,8 +104,33 @@ function pintarReloj() {
   actualizado.classList.toggle('antiguo', antiguo);
 }
 
+/**
+ * Pie: si hay enlaces de afiliado o patrocinios, cómo funcionan; si no, que no los hay.
+ * Lo dice el escaneo (ofertas.json → afiliacion), no se supone.
+ */
+function pintarAvisoComercial() {
+  const proveedores = estado.datos.afiliacion?.proveedores ?? [];
+  const patrocinadas = estado.datos.ofertas.some((o) => o.patrocinada);
+  const nombres = proveedores.map((id) => estado.fuentes.get(id) ?? id.charAt(0).toUpperCase() + id.slice(1));
+  $('#aviso-comercial').textContent = proveedores.length || patrocinadas
+    ? `${proveedores.length ? `Los enlaces a ${nombres.join(', ')} son de afiliado («🔗 Enlace de afiliado»): si reservas, la web puede pagarnos una comisión. ` : ''}${patrocinadas ? 'Las ofertas patrocinadas llevan «Patrocinado». ' : ''}Nada de esto cambia tu precio ni el orden de las ofertas, que depende solo de precio, fechas y calidad.`
+    : 'Ahora mismo ningún enlace es de afiliado y no hay ofertas patrocinadas: el orden depende solo de precio, fechas y calidad.';
+}
+
+/**
+ * Cuenta un clic en un enlace externo (proveedor, tipo de enlace y de oferta, vista), sin
+ * datos personales, solo si ofertas.json trae una dirección de medición. Un clic no es una venta.
+ */
+function contarClic(enlace) {
+  const destino = urlSegura(estado?.datos.afiliacion?.medicion ?? '');
+  if (!destino || !navigator.sendBeacon) return;
+  const { clic, clicTipo, clicOferta } = enlace.dataset;
+  navigator.sendBeacon(destino, JSON.stringify({ proveedor: clic, enlace: clicTipo, oferta: clicOferta, vista: vistaActual }));
+}
+
 function pintarCabecera() {
   pintarReloj();
+  pintarAvisoComercial();
   pintarBotonViaje();
   const p = estado.puente;
   const aviso = $('#aviso-puente');
@@ -564,6 +589,10 @@ function cerrarMasFiltros(boton) {
 
 function conectarEventos() {
   document.addEventListener('click', manejarClic);
+  document.addEventListener('click', (evento) => {
+    const enlace = evento.target.closest?.('a[data-clic]');
+    if (enlace) contarClic(enlace);
+  });
   principal.addEventListener('input', alCambiarFiltro);
   principal.addEventListener('change', alCambiarFiltro);
   principal.addEventListener('submit', (evento) => {

@@ -58,6 +58,7 @@ function insignias(o, ctx) {
   const etiquetas = o.etiquetas ?? [];
   const minimo = textoMinimo(o, ctx);
   const lista = [
+    o.patrocinada && `<span class="insignia insignia--patrocinado" title="Un anunciante paga por destacarla; no sube en el orden normal">Patrocinado · ${esc(o.patrocinada.anunciante)}</span>`,
     esNovedad(o, ctx.referencia) && '<span class="insignia insignia--nueva">Nuevo</span>',
     o.chollazo && `<span class="insignia insignia--chollazo"${o.chollazoMotivo ? ` title="${esc(o.chollazoMotivo)}"` : ''}>🔥 Chollazo</span>`,
     minimo && `<span class="insignia insignia--minimo" title="${esc(minimo.detalle)}">${esc(minimo.texto)}</span>`,
@@ -170,10 +171,21 @@ function botonDescartar(o) {
   return `<button type="button" class="boton-icono boton-icono--mini boton-descartar" data-descartar="${esc(o.id)}" title="Ocultar esta oferta" aria-label="Ocultar esta oferta: ${esc(o.titulo)}">✕</button>`;
 }
 
+/** Un enlace pagado (afiliado o patrocinado) lleva rel="sponsored", como piden los buscadores. */
+const relEnlace = (pagado) => (pagado ? 'sponsored noopener noreferrer' : 'noopener noreferrer');
+
+/** Atributos para contar el clic (proveedor, tipo de enlace y tipo de oferta), sin datos personales. */
+const atributosClic = (o, afiliado) => ` data-clic="${esc(o.fuente)}" data-clic-tipo="${afiliado ? 'afiliado' : o.patrocinada ? 'patrocinado' : 'normal'}" data-clic-oferta="${esc(o.tipo)}"`;
+
 function enlaceOferta(o, texto = 'Ver oferta') {
-  const url = urlSegura(o.url);
-  return url ? `<a class="boton boton--primario" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${texto}<span class="sr"> (se abre en otra pestaña)</span></a>` : '';
+  const url = urlSegura(o.urlReserva ?? o.url);
+  const pagado = Boolean(o.afiliado || o.patrocinada);
+  return url ? `<a class="boton boton--primario" href="${esc(url)}" target="_blank" rel="${relEnlace(pagado)}"${atributosClic(o, o.afiliado)}>${texto}<span class="sr"> (se abre en otra pestaña${o.afiliado ? '; enlace de afiliado' : ''})</span></a>` : '';
 }
+
+/** «🔗 Enlace de afiliado» en la tarjeta; la explicación completa, en la ficha. */
+const TEXTO_AFILIADO = 'Si reservas por este enlace, la web puede pagarnos una comisión. No cambia tu precio ni el orden de las ofertas.';
+const avisoAfiliado = (o) => (o.afiliado ? `<p class="dato-extra aviso-afiliado" title="${esc(TEXTO_AFILIADO)}">🔗 Enlace de afiliado</p>` : '');
 
 /** Lo que añade la web al «Gratis» («con propina voluntaria»), sin repetir la palabra. */
 function matiz(precioTexto = '') {
@@ -287,7 +299,7 @@ export function tarjetaOferta(o, ctx) {
     <p class="tarjeta__detalles">${detalles} ${valoracion(o)}</p>
     ${lineaCoste(o, ctx)}${equivalentes(o, ctx)}${pistaFicha(o)}
     <div class="insignias">${insignias(o, ctx)}</div>
-    ${textoComprobada(o, ctx)}
+    ${textoComprobada(o, ctx)}${avisoAfiliado(o)}
     <div class="tarjeta__pie">
       ${precio(o)}
       <div class="acciones">${botonComparar(o, ctx)}${botonFavorito(o, ctx)}${enlaceOferta(o)}</div>
@@ -512,12 +524,26 @@ function vueloFicha(v) {
 
 function enlacesFicha(o) {
   const enlaces = [...(o.enlaces ?? [])];
-  if (!enlaces.some((e) => e.url === o.url)) enlaces.unshift({ etiqueta: 'Ver la oferta', url: o.url });
+  const propia = o.urlReserva ?? o.url;
+  if (!enlaces.some((e) => e.url === propia || e.url === o.url)) enlaces.unshift({ etiqueta: 'Ver la oferta', url: propia, afiliado: o.afiliado, propia: true });
   return enlaces
     .map((e) => ({ ...e, url: urlSegura(e.url) }))
     .filter((e) => e.url)
-    .map((e, i) => `<li><a class="boton ${i ? '' : 'boton--primario'}" href="${esc(e.url)}" target="_blank" rel="noopener noreferrer">${esc(e.etiqueta)}<span class="sr"> (se abre en otra pestaña)</span></a></li>`)
+    .map((e, i) => {
+      const pagado = Boolean(e.afiliado || (e.propia && o.patrocinada));
+      const clic = ` data-clic="${esc(e.afiliado ?? (e.propia ? o.fuente : 'enlace'))}" data-clic-tipo="${e.afiliado ? 'afiliado' : e.propia && o.patrocinada ? 'patrocinado' : 'normal'}" data-clic-oferta="${esc(o.tipo)}"`;
+      return `<li><a class="boton ${i ? '' : 'boton--primario'}" href="${esc(e.url)}" target="_blank" rel="${relEnlace(pagado)}"${clic}>${esc(e.etiqueta)}${e.afiliado ? ' <span class="suave">(afiliado)</span>' : ''}<span class="sr"> (se abre en otra pestaña)</span></a></li>`;
+    })
     .join('');
+}
+
+/** Aviso de la ficha cuando alguno de sus enlaces es de afiliado o la oferta está patrocinada. */
+function avisoPagoFicha(o) {
+  const avisos = [
+    (o.afiliado || (o.enlaces ?? []).some((e) => e.afiliado)) && `🔗 Los enlaces marcados «(afiliado)» son de afiliado. ${TEXTO_AFILIADO}`,
+    o.patrocinada && `📣 Oferta patrocinada por ${o.patrocinada.anunciante}: se marca así y no sube en el orden normal.`,
+  ].filter(Boolean);
+  return avisos.map((a) => `<p class="aviso-afiliado">${esc(a)}</p>`).join('');
 }
 
 /** Contenido de la ficha (modal) de una oferta; la gráfica se dibuja después en #ficha-grafica. */
@@ -550,5 +576,6 @@ ${queHacerAlli(ctx)}
     : '<p class="suave">Aún no hay historial suficiente (hacen falta al menos dos días).</p>'}
 </section>
 <h3>Enlaces</h3>
-<ul class="ficha__enlaces">${enlacesFicha(o)}</ul>`;
+<ul class="ficha__enlaces">${enlacesFicha(o)}</ul>
+${avisoPagoFicha(o)}`;
 }

@@ -12,6 +12,7 @@ import { aplicarClasificacion } from '../enriquecer/temas.js';
 import { aplicarAlojamiento } from '../enriquecer/alojamiento.js';
 import { aplicarZona } from '../enriquecer/zona.js';
 import { clasificarVueloSinFecha } from '../enriquecer/vuelos.js';
+import { aplicarAfiliacion, proveedoresActivos } from '../afiliacion.js';
 import { enlacesPara } from '../enriquecer/enlaces.js';
 import { asignarFechas, calcularPuentes, obtenerFestivos } from '../enriquecer/festivos.js';
 import { calcularCoche, calcularCosteCoche, geolocalizar } from '../enriquecer/geo.js';
@@ -140,7 +141,7 @@ function estadoParaPanel(fuentes, estado, ajustes) {
  */
 export async function escanear({
   ajustes, vigilados = [], estado = estadoInicial(), cache = new Cache(), historial = {},
-  fuentes = FUENTES, http = clienteHttp, ahora = new Date(), opciones = {}, env = process.env,
+  fuentes = FUENTES, http = clienteHttp, ahora = new Date(), opciones = {}, env = process.env, afiliacion = {},
   modulos = {}, log = console.log,
 }) {
   const m = { ...MODULOS, ...modulos };
@@ -193,6 +194,9 @@ export async function escanear({
   await m.anadirTiempo(ofertas, { ...crearCtx('tiempo'), findes, puentes });
   await m.anadirEventos(ofertas, { ...crearCtx('eventos'), findes, puentes });
   for (const oferta of ofertas) oferta.enlaces = m.enlacesPara(oferta, { origen: ajustes.origen, ahora });
+  // Después de los enlaces (también se marcan) y sin tocar la puntuación ni el orden.
+  const afiliados = proveedoresActivos(afiliacion, conPrefijo('afiliacion'));
+  for (const oferta of ofertas) aplicarAfiliacion(oferta, { activos: afiliados, patrocinadas: afiliacion.patrocinadas ?? [], ahora });
   m.registrarPrecios(historial, ofertas, ahora);
   m.compactar(historial, ahora, { idsVivos: ofertas.map((o) => o.id) });
   m.puntuar(ofertas, ajustes, { ahora, findeActual: findes[0]?.id ?? null });
@@ -204,6 +208,8 @@ export async function escanear({
     ofertas: {
       generado: ahora.toISOString(), origen: ajustes.origen, aeropuertos: ajustes.vuelos.aeropuertos, viajeros: ajustes.viajeros ?? 2,
       // Para que el panel estime la gasolina desde la salida que elija cada persona.
+      // Qué proveedores marcan enlaces de afiliado (para el aviso del panel) y dónde se cuentan los clics.
+      afiliacion: { proveedores: afiliados.map((p) => p.id), medicion: afiliacion.medicion?.url || null },
       coche: { consumoL100km: ajustes.coche.consumoL100km, precioLitro: precioLitro ?? ajustes.coche.precioLitro, carburante: ajustes.coche.carburante },
       temas: TEMAS, findes, puentes, fuentes: estadoFuentes, ofertas,
     },
