@@ -33,22 +33,22 @@ describe('calidad: el transporte de la oferta manda', () => {
 
   it('una oferta de bus no enseña tiempo ni gasolina de coche en la tarjeta', () => {
     const html = tarjeta(bus, ctxPara([bus]));
-    assert.ok(!html.includes('🚗'), 'sin tiempo en coche');
-    assert.ok(!html.includes('⛽'), 'sin coste de gasolina');
-    assert.match(html, /📍 \d+ km/, 'la distancia sí, en línea recta');
+    assert.ok(!/En coche desde|4 h 16 min/.test(html), 'sin tiempo en coche');
+    assert.ok(!html.includes('de gasolina'), 'sin coste de gasolina');
+    assert.match(html, /title="Distancia en línea recta desde [^"]*">[^]*?\d+ km/, 'la distancia sí, en línea recta');
   });
 
   it('en la ficha, el coche solo aparece como comparación explícita y sin gasolina', () => {
     const html = contenidoFicha(bus, ctxPara([bus]));
     assert.match(html, /Esta oferta va en autobús/);
     assert.match(html, /Para comparar: en coche serían 4 h 16 min/);
-    assert.ok(!html.includes('⛽'));
+    assert.ok(!html.includes('de gasolina'));
   });
 
   it('a lo que se va en coche le siguen saliendo el tiempo y la gasolina', () => {
     const html = tarjeta(coche, ctxPara([coche]));
-    assert.match(html, /🚗 4 h 16 min/);
-    assert.match(html, /⛽ ≈ 98\s€ de gasolina ida y vuelta · estimado/);
+    assert.match(html, /title="En coche desde [^"]*">[^]*?4 h 16 min/);
+    assert.match(html, /≈ 98\s€ de gasolina ida y vuelta · estimado/);
   });
 });
 
@@ -102,7 +102,7 @@ describe('calidad: la fecha del viaje no se confunde con la caducidad de la prom
     const pasadaMedianoche = oferta({ caduca: '2026-09-30T22:30:00.000Z' });
     assert.match(tarjeta(pasadaMedianoche, ctxPara([pasadaMedianoche])), /Promoción hasta el jue 1 oct/);
     const html = tarjeta(o, ctxPara([o]));
-    assert.match(html, /Fechas flexibles · ⏳ Promoción hasta el mié 30 sep/, 'en hora de Madrid: las 23:00 del 30');
+    assert.match(html, /Fechas flexibles<\/li><li>[^]*?Promoción hasta el mié 30 sep<\/li>/, 'en hora de Madrid: las 23:00 del 30');
     assert.ok(!/Fechas flexibles · hasta el/.test(html));
     const ficha = contenidoFicha(o, ctxPara([o]));
     assert.match(ficha, /<dt>Fechas de viaje<\/dt><dd>Flexibles: la web no publica fechas concretas/);
@@ -137,7 +137,7 @@ describe('calidad: cada oferta dice cuándo se comprobó', () => {
     const reciente = oferta({ vistaUltima: '2026-09-28T09:00:00Z' }); // 25 h, pero la fuente va cada 12 h: 36 h de margen
     assert.ok(!tarjeta(reciente, ctx([reciente])).includes('Sin comprobar'));
     const vieja = oferta({ vistaUltima: '2026-09-27T09:00:00Z' }); // 49 h
-    assert.match(tarjeta(vieja, ctx([vieja])), /⚠️ Sin comprobar en Weekendesk desde hace 2 días: puede haber cambiado o terminado/);
+    assert.match(tarjeta(vieja, ctx([vieja])), /comprobada--antigua[^]*?Sin comprobar en Weekendesk desde hace 2 días: puede haber cambiado o terminado/);
     assert.match(contenidoFicha(vieja, ctx([vieja])), /Sin comprobar en Weekendesk/);
   });
 
@@ -189,7 +189,7 @@ describe('calidad: cada etiqueta de chollo se explica con datos', async () => {
     puntuar([casa], AJUSTES);
     assert.equal(casa.chollazo, true);
     assert.match(casa.chollazoMotivo, /por persona y noche/);
-    assert.match(tarjeta(casa, ctxPara([casa])), /title="20 € por persona y noche[^"]*">🔥 Chollazo/);
+    assert.match(tarjeta(casa, ctxPara([casa])), /title="20 € por persona y noche[^"]*">(<svg[^]*?<\/svg>)?Chollazo/);
     assert.match(contenidoFicha(casa, ctxPara([casa])), /<dt>Por qué es chollazo<\/dt><dd>20 € por persona y noche/);
   });
 

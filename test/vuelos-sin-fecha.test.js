@@ -88,6 +88,6 @@ describe('vuelos sin fecha en el panel', async () => {
 
   it('la tarjeta dice desde dónde sale', () => {
     const html = tarjeta(alicante, { temas: new Map(), fuentes: new Map(), favoritos: new Set() });
-    assert.match(html, /🛫 Sale de Alicante/);
+    assert.match(html, /<\/svg>Sale de Alicante<\/li>/);
   });
 });

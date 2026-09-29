@@ -9,18 +9,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Escapadas Finde</title>
   <meta name="description" content="Vuelos y escapadas de fin de semana desde Barcelona, revisados varias veces al día.">
-  <meta name="theme-color" content="#0f766e" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#0d1117" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f4efe6" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0f1514" media="(prefers-color-scheme: dark)">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icono.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <meta name="apple-mobile-web-app-title" content="Escapadas">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <script src="js/tema.js"></script>
+  <link rel="preload" href="fonts/figtree.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/bricolage-grotesque.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="css/estilos.css">
   <link rel="modulepreload" href="js/filtros.js">
   <link rel="modulepreload" href="js/vistas.js">
   <link rel="modulepreload" href="js/plantillas.js">
+  <link rel="modulepreload" href="js/iconos.js">
   <script type="module" src="js/app.js"></script>
 </head>
 <body>
@@ -29,42 +32,51 @@
   <header class="cabecera">
     <div class="contenedor cabecera__fila">
       <a class="marca" href="#/finde">
-        <img src="icono.svg" alt="" width="34" height="34">
+        <img src="icono.svg" alt="" width="36" height="36">
         <span>Escapadas Finde</span>
       </a>
+      <nav class="navegacion" aria-label="Secciones">
+        <ul>
+          <li><a href="#/finde" data-vista="finde"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 8h16v12H4zM9 8V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V8M4 13h16M10.5 13v2h3v-2"/></svg><span class="navegacion__texto--largo">Este finde</span><span class="navegacion__texto--corto">Finde</span></a></li>
+          <li><a href="#/vuelos" data-vista="vuelos"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg><span>Vuelos</span></a></li>
+          <li><a href="#/escapadas" data-vista="escapadas"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3.5 11L12 4l8.5 7M5.5 9.5V20h13V9.5M10 20v-5h4v5"/></svg><span>Escapadas</span></a></li>
+          <li><a href="#/actividades" data-vista="actividades"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 8.5V6h18v2.5a2.5 2.5 0 0 0 0 5V18H3v-2.5a2.5 2.5 0 0 0 0-5zM14 6v2M14 11v2M14 16v2"/></svg><span class="navegacion__texto--largo">Actividades</span><span class="navegacion__texto--corto">Planes</span></a></li>
+          <li><a href="#/mapa" data-vista="mapa"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2zM9 4v14M15 6v14"/></svg><span>Mapa</span></a></li>
+          <li class="navegacion__mas">
+            <details>
+              <summary><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3.7 12a1.3 1.3 0 1 0 2.6 0a1.3 1.3 0 1 0 -2.6 0M10.7 12a1.3 1.3 0 1 0 2.6 0a1.3 1.3 0 1 0 -2.6 0M17.7 12a1.3 1.3 0 1 0 2.6 0a1.3 1.3 0 1 0 -2.6 0"/></svg><span>Más</span></summary>
+              <ul class="navegacion__submenu">
+                <li><a href="#/calendario" data-vista="calendario"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 6.5h16V20H4zM4 10.5h16M8.5 4v4M15.5 4v4"/></svg><span>Calendario</span></a></li>
+                <li><a href="#/puentes" data-vista="puentes"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/></svg><span>Puentes</span></a></li>
+                <li><a href="#/vigilados" data-vista="vigilados"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 16v-5a6 6 0 0 1 12 0v5l2 2H4zM10 20.5a2 2 0 0 0 4 0"/></svg><span>Vigilados</span></a></li>
+                <li><a href="#/fuentes" data-vista="fuentes"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 14v7M8.5 10.5a5 5 0 0 1 7 0M5.5 7.5a9 9 0 0 1 13 0M10.8 13a1.2 1.2 0 1 0 2.4 0a1.2 1.2 0 1 0 -2.4 0"/></svg><span>Fuentes</span></a></li>
+              </ul>
+            </details>
+          </li>
+        </ul>
+      </nav>
       <div class="cabecera__acciones">
         <a id="estado-fuentes" class="estado-fuentes" href="#/fuentes" aria-label="Estado de las fuentes">
           <span class="punto" aria-hidden="true"></span><span class="estado-fuentes__texto" aria-hidden="true">…</span>
         </a>
-        <button id="cambiar-tema" class="boton-icono" type="button" aria-label="Cambiar el modo de color">🌙</button>
+        <button id="cambiar-tema" class="boton-icono" type="button" aria-label="Cambiar el modo de color"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg></button>
       </div>
     </div>
-    <div class="contenedor cabecera__info">
+  </header>
+
+  <div class="contenedor cabecera-info">
+    <div class="cabecera__info">
+      <button id="boton-viaje" class="pastilla pastilla--viaje" type="button" data-mi-viaje aria-haspopup="dialog"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 21s-6.5-5.8-6.5-11.2a6.5 6.5 0 0 1 13 0C18.5 15.2 12 21 12 21zM9.8 9.8a2.2 2.2 0 1 0 4.4 0a2.2 2.2 0 1 0 -4.4 0"/></svg><span>Tu salida</span></button>
       <p id="cuenta-atras" class="pastilla"></p>
       <p id="aviso-puente" class="pastilla pastilla--puente" hidden></p>
       <p id="actualizado" class="cabecera__actualizado"></p>
-      <button id="boton-viaje" class="pastilla pastilla--viaje" type="button" data-mi-viaje aria-haspopup="dialog">📍 Tu salida</button>
     </div>
-    <form id="buscador" class="contenedor buscador" role="search">
+    <form id="buscador" class="buscador" role="search">
       <label class="sr" for="q">Buscar en todas las ofertas</label>
       <input id="q" name="q" type="search" placeholder="Buscar destino, hotel, región…" autocomplete="off" enterkeyhint="search">
-      <button class="boton boton--primario" type="submit">Buscar</button>
+      <button class="boton boton--tinta" type="submit"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 11a7 7 0 1 0 14 0a7 7 0 1 0 -14 0M20 20l-4-4"/></svg><span class="sr">Buscar</span></button>
     </form>
-  </header>
-
-  <nav class="navegacion" aria-label="Secciones">
-    <ul class="contenedor">
-      <li><a href="#/finde" data-vista="finde">🗓️ Este finde</a></li>
-      <li><a href="#/vuelos" data-vista="vuelos">✈️ Vuelos</a></li>
-      <li><a href="#/escapadas" data-vista="escapadas">🏡 Escapadas</a></li>
-      <li><a href="#/actividades" data-vista="actividades">🎟️ Actividades</a></li>
-      <li><a href="#/mapa" data-vista="mapa">🗺️ Mapa</a></li>
-      <li><a href="#/calendario" data-vista="calendario">📅 Calendario</a></li>
-      <li><a href="#/puentes" data-vista="puentes">🎉 Puentes</a></li>
-      <li><a href="#/vigilados" data-vista="vigilados">👀 Vigilados</a></li>
-      <li><a href="#/fuentes" data-vista="fuentes">📡 Fuentes</a></li>
-    </ul>
-  </nav>
+  </div>
 
   <div id="novedades" class="contenedor novedades" hidden></div>
 
@@ -73,6 +85,7 @@
   </main>
 
   <footer class="pie contenedor">
+    <p class="pie__marca"><img src="icono.svg" alt="" width="28" height="28"> Escapadas Finde</p>
     <p>Ofertas de webs de terceros. Cada web se consulta a su ritmo (de 30 minutos a un día, según la web y cuando GitHub
       lanza la revisión) y cada oferta dice cuándo se comprobó; confirma siempre precio y condiciones en la web original.
       Mapa © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> ·
@@ -86,7 +99,7 @@
   <dialog id="ficha" class="ficha" aria-labelledby="ficha-titulo">
     <div class="ficha__caja">
       <div class="ficha__barra">
-        <button type="button" class="boton-icono" data-cerrar-ficha aria-label="Cerrar la ficha">✕</button>
+        <button type="button" class="boton-icono" data-cerrar-ficha aria-label="Cerrar la ficha"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
       </div>
       <div class="ficha__contenido"></div>
     </div>

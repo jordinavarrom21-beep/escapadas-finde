@@ -34,7 +34,9 @@ GitHub Actions (cron cada 30 min, pero GitHub lanza los que puede: ver «Revisi�
   «cerca de Girona a menos de 1 h en coche».
 - **Mapa**, **calendario** de los próximos findes, **historial de precios**, **vigilados**
   y **estado de las fuentes**.
-- **Tu viaje** (botón «📍 Desde … · 2 personas · 2 noches» de la cabecera): la ciudad desde
+  Calendario, Puentes, Vigilados y Fuentes están en «Más» del menú; en el móvil y la tableta el menú va
+  abajo, al alcance del pulgar, y hay modo claro y oscuro.
+- **Tu viaje** (botón «Desde … · 2 personas · 2 noches», debajo de la cabecera): la ciudad desde
   la que sales, cuántos viajáis y cuántas noches si la oferta no las fija. Se guarda solo en
   tu navegador y no pide tu ubicación salvo que pulses «Usar mi ubicación». Desde el origen
   de `config/ajustes.json` los tiempos en coche son reales; desde otra ciudad, estimados.
@@ -145,7 +147,7 @@ Por ejemplo, «dos personas, menos de 180 €, a unas 2 h de Girona, cualquier f
   "desde": "2026-10-01", "hasta": "2026-10-31", "presupuestoMax": 180, "viajeros": 2 }
 ```
 
-El panel lo genera con «📋 Copiar como vigilado» y, en Vigilados, dice si los avisos por email
+El panel lo genera con «Copiar como vigilado» y, en Vigilados, dice si los avisos por email
 están activos de verdad (con los secretos del correo) o no.
 Si uno está mal escrito, el registro del escaneo lo dice y el resto sigue funcionando.
 

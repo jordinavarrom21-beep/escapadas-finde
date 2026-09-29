@@ -350,14 +350,14 @@ describe('actividades', () => {
     }
     assert.match(html, /4 actividades · 4 gratuitas/);
     assert.match(html, /<strong class="precio__gratis">Gratis<\/strong> <span class="precio__unidad">propina voluntaria/);
-    assert.match(html, /⏱️ 2 h 30 min/);
+    assert.match(html, /<li><svg[^]*?<\/svg>2 h 30 min<\/li>/);
     assert.match(html, /Actividad · GuruWalk/);
     assert.match(vistaActividades(estadoPanel(), { temas: 'gastronomia', nota: '9.9' }), /Ninguna actividad cumple estos filtros/);
   });
 
   it('la portada las propone y la ficha enseña qué hacer allí', () => {
     const portada = vistaFinde(estadoPanel(), {});
-    assert.match(portada, /🎟️ Actividades para este finde/);
+    assert.match(portada, /Actividades para este finde/);
     assert.match(portada, /href="#\/actividades"/);
 
     const conActividades = contenidoFicha(escapadaGirona, { ...ctxFicha, actividades: actividadesCerca(ofertas, escapadaGirona) });
@@ -375,7 +375,7 @@ describe('actividades', () => {
     assert.equal(leerFiltrosEscapadas({}).sinCruceros, true, 'activado por defecto');
     assert.ok(!ver({}).some((o) => o.id === crucero.id));
     assert.ok(ver({ cru: '0' }).some((o) => o.id === crucero.id));
-    assert.match(vistaEscapadas(estadoPanel(), {}), /name="cru" value="1" data-defecto checked>\s*🚢 Ocultar cruceros/);
+    assert.match(vistaEscapadas(estadoPanel(), {}), /name="cru" value="1" data-defecto checked>\s*Ocultar cruceros/);
     assert.match(vistaEscapadas(estadoPanel({ ...datos, ofertas: conCrucero }), {}), /<option value="crucero">Crucero/);
   });
 });
@@ -475,7 +475,7 @@ describe('búsqueda, novedades y resúmenes', () => {
 
   it('describe los vigilados y enlaza a la edición en GitHub', () => {
     const [, , spa, puentes] = leer('vigilados.json').vigilados;
-    assert.deepEqual(describirCriterio(spa, { temas: datos.temas, origen }), ['🧖 Relax y spa', `hasta ${euros(70)} publicados`, 'a menos de 2 h en coche']);
+    assert.deepEqual(describirCriterio(spa, { temas: datos.temas, origen }), ['Relax y spa', `hasta ${euros(70)} publicados`, 'a menos de 2 h en coche']);
     assert.ok(describirCriterio(puentes, { temas: datos.temas, origen }).includes('a menos de 300 km de Barcelona'));
     assert.equal(urlEditarVigilados({ hostname: 'jordi.github.io', pathname: '/escapadas-finde/' }),
       'https://github.com/jordi/escapadas-finde/edit/main/config/vigilados.json');
@@ -518,8 +518,8 @@ describe('fechas, formato, geocodificación y plantillas', () => {
     const casaBesalu = porId('chollometro:besalu-casa-rural-para-6-personas-por-18');
     const besalu = tarjeta(casaBesalu, ctxTarjeta);
     assert.match(besalu, /Un 35 % por debajo de lo normal/);
-    assert.match(besalu, /🏡 Casa rural/);
-    assert.match(besalu, /⭐ 8/);
+    assert.match(besalu, /Casa rural<\/li>/);
+    assert.match(besalu, /class="valoracion" title="Valoración 8 sobre 10/);
     assert.match(besalu, /≈ \d+\s€ de gasolina ida y vuelta · estimado, un coche para 2 personas/);
     // Fechas flexibles: los eventos son los del próximo finde, así que van a la ficha y avisando.
     assert.ok(!besalu.includes('Mercat medieval de Besalú'));
@@ -531,7 +531,7 @@ describe('fechas, formato, geocodificación y plantillas', () => {
     assert.match(sitges, /También en <a[^>]*>No Molesten<\/a>/);
     assert.match(sitges, /En la ficha: el tiempo/, 'el tiempo va en la ficha');
     assert.match(contenidoFicha(porId('chollometro:hotel-en-sitges-para-el-festival-de-cine'), ctxTarjeta), /Lluvia ligera · 23° · 65 % de lluvia/);
-    assert.match(sitges, /🔥 Chollazo/);
+    assert.match(sitges, /sello--chollazo[^>]*>[^]*?Chollazo</);
   });
 
   it('lo que no está no se enseña', () => {
@@ -541,7 +541,7 @@ describe('fechas, formato, geocodificación y plantillas', () => {
       valoracion: null, precioNoche: null, alojamiento: null,
     };
     const html = tarjeta(pelada, ctxTarjeta);
-    assert.ok(!/por debajo de lo normal|También en|de gasolina ida y vuelta|class="eventos"|⭐|por persona y noche/.test(html));
+    assert.ok(!/por debajo de lo normal|También en|de gasolina ida y vuelta|class="eventos"|class="valoracion"|por persona y noche/.test(html));
   });
 });
 
@@ -550,10 +550,10 @@ describe('vistas nuevas', () => {
     const e = estadoPanel();
     e.favoritos = new Set([ofertas.find((o) => o.temas.includes('spa') && o.tipo !== 'vuelo').id]);
     const html = vistaFinde(e, {});
-    assert.match(html, /✨ Sorpréndeme/);
+    assert.match(html, /Sorpréndeme<\/span><\/h2>/);
     assert.match(html, /data-sorpresa/);
     assert.match(html, /Recomendado para ti/);
-    assert.match(html, /✨ Porque te gustan los planes de/);
+    assert.match(html, /class="motivo">[^]*?Porque te gustan los planes de/);
     assert.equal((contenidoSorpresa(e, {}).match(/class="tarjeta"/g) ?? []).length, 3);
   });
 
@@ -574,7 +574,7 @@ describe('vistas nuevas', () => {
       assert.match(html, new RegExp(`name="${campo}"`), `falta el filtro ${campo}`);
     }
     assert.match(html, /<option value="casa-rural" selected/);
-    assert.match(html, /🚫 Sitges/);
+    assert.match(html, /name="nodest" value="Sitges" checked> <svg[^]*?<\/svg>Sitges/);
     assert.match(html, /data-copiar-vigilado="escapadas"/);
     assert.match(html, /data-guardar-busqueda="escapadas"/);
     assert.match(html, /Spa barato/);

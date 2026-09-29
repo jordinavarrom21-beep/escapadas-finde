@@ -27,7 +27,7 @@ describe('tu salida en el panel', () => {
     const e = estado();
     assert.equal(nombreSalida(e), 'Barcelona');
     assert.deepEqual(misAeropuertos(e), datos.aeropuertos);
-    assert.equal(textoViaje(e), '📍 Desde Barcelona · 3 personas · 2 noches');
+    assert.equal(textoViaje(e), 'Desde Barcelona · 3 personas · 2 noches');
     assert.equal(ctxTarjetas(e).salidaPropia, false);
   });
 
@@ -68,9 +68,9 @@ describe('coste total en el panel', async () => {
     const { ofertas } = buscarEscapadas(conCoche.ofertas, leerFiltrosEscapadas({ orden: 'total' }), contextoBusqueda(e));
     const [primera] = ofertas;
     const ctx = ctxTarjetas(e);
-    assert.match(tarjeta(primera, ctx), /💶 (≈ )?\d+\s€ en total para 3 personas · \d+\s€\/persona/);
+    assert.match(tarjeta(primera, ctx), /class="dato-extra coste-total"[^]*?(≈ )?\d+\s€ en total para 3 personas · \d+\s€\/persona/);
     const ficha = contenidoFicha(primera, ctx);
-    assert.match(ficha, /💶 Coste del viaje/);
+    assert.match(ficha, /<\/svg>Coste del viaje<\/h3>/);
     assert.match(ficha, /<tr class="coste__total"><th scope="row">Total/);
     assert.match(ficha, /data-mi-viaje/);
   });
@@ -95,7 +95,7 @@ describe('presupuesto y calidad/precio', async () => {
     assert.ok(sinTotal > 0, 'se cuentan las que no se pueden comprobar');
     const porPersona = buscar({ pres: '100', prespor: 'persona' });
     assert.ok(porPersona.ofertas.every((o) => porPersona.costes.get(o.id).porPersona <= 100));
-    assert.deepEqual(filtrosActivos('escapadas', { pres: '100', prespor: 'persona' }).map((c) => c.texto), ['💶 Hasta 100 € por persona (viaje completo)']);
+    assert.deepEqual(filtrosActivos('escapadas', { pres: '100', prespor: 'persona' }).map((c) => c.texto), ['Hasta 100 € por persona (viaje completo)']);
   });
 
   it('calidad/precio pone primero más nota por euro', () => {
@@ -159,7 +159,7 @@ describe('compartir la búsqueda y marcas propias', async () => {
   it('«reservada» y «no disponible» se ven en la tarjeta, solo para quien las marcó', () => {
     const [o] = datos.ofertas;
     const ctx = ctxTarjetas({ ...estado(), misEstados: new Map([[o.id, 'no-disponible']]) });
-    assert.match(tarjeta(o, ctx), /🚫 No disponible \(marcada por ti\)/);
+    assert.match(tarjeta(o, ctx), /insignia--alerta">[^]*?No disponible \(marcada por ti\)/);
     assert.ok(!tarjeta(o, ctxTarjetas(estado())).includes('marcada por ti'));
   });
 });

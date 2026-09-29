@@ -6,6 +6,7 @@
 import { LEAFLET, cargarEstilo, cargarScript } from './cdn.js';
 import { escaparHtml, euros } from './formato.js';
 import { tarjeta } from './plantillas.js';
+import { icono } from './iconos.js';
 
 const ATRIBUCION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
 
@@ -25,7 +26,7 @@ function crearMapa(L, contenedor) {
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18, attribution: ATRIBUCION }).addTo(mapa);
   capas = { escapadas: L.layerGroup(), vuelos: L.layerGroup(), busqueda: L.layerGroup() };
   Object.values(capas).forEach((capa) => capa.addTo(mapa));
-  L.control.layers(null, { '🏡 Escapadas': capas.escapadas, '✈️ Vuelos': capas.vuelos }).addTo(mapa);
+  L.control.layers(null, { [`${icono('escapadas')} Escapadas`]: capas.escapadas, [`${icono('vuelos')} Vuelos`]: capas.vuelos }).addTo(mapa);
   observador = new ResizeObserver(() => {
     mapa.invalidateSize();
     if (encuadrePendiente && contenedor.clientWidth) encuadrar(L, encuadrePendiente);
