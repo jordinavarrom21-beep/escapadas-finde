@@ -34,6 +34,14 @@ GitHub Actions (cron cada 30 min, pero GitHub lanza los que puede: ver «Revisi�
   «cerca de Girona a menos de 1 h en coche».
 - **Mapa**, **calendario** de los próximos findes, **historial de precios**, **vigilados**
   y **estado de las fuentes**.
+- **Tu viaje** (botón «📍 Desde … · 2 personas · 2 noches» de la cabecera): la ciudad desde
+  la que sales, cuántos viajáis y cuántas noches si la oferta no las fija. Se guarda solo en
+  tu navegador y no pide tu ubicación salvo que pulses «Usar mi ubicación». Desde el origen
+  de `config/ajustes.json` los tiempos en coche son reales; desde otra ciudad, estimados.
+- **Coste total del viaje**: la oferta para tus viajeros y noches más la gasolina estimada
+  (sin peajes ni aparcamiento). La ficha separa lo publicado de lo estimado y dice qué falta
+  cuando no se puede dar un total. Las escapadas se ordenan por coste total, por persona o
+  por comodidad.
 - Cada oferta dice **cuándo se comprobó** en su web. Si hace más de un día (o de tres
   intervalos de su web) que no se ve, avisa de que puede haber cambiado o terminado.
 
