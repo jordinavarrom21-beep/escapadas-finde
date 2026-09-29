@@ -15,7 +15,7 @@ import { cuentaAtras, euros } from '../site/js/formato.js';
 import { parsearPhoton, urlPhoton } from '../site/js/geo.js';
 import { contenidoFicha, tarjeta } from '../site/js/plantillas.js';
 import {
-  contenidoSorpresa, contextoBusqueda, ocultas, resultadosVuelos, vistaActividades, vistaCalendario, vistaEscapadas, vistaFinde,
+  avisosDeBusquedas, contenidoSorpresa, contextoBusqueda, ocultas, resultadosBuscar, resultadosDeBusqueda, resultadosVuelos, totalNovedadesGuardadas, vistaMis, vistaVuelos, vistaActividades, vistaCalendario, vistaEscapadas, vistaFinde,
   vistaFuentes, vistaPuentes,
 } from '../site/js/vistas.js';
 import { crearServidor, rutaArchivo } from '../scripts/servir.js';
@@ -117,11 +117,18 @@ describe('vuelos', () => {
     const chollos = chollosDeVuelos(soloChollos, f, ctxBusqueda);
     assert.ok(chollos.length > 0 && chollos.every((o) => o.tipo === 'vuelo' && o.vuelo === null && o.precio <= 30));
 
-    const html = resultadosVuelos(estadoPanel({ ...datos, ofertas: soloChollos }), { finde: finde.id });
-    assert.match(html, /Todavía no hay vuelos con fecha y hora/);
-    assert.match(html, /Ryanair<\/strong>: bloqueada \(Su robots\.txt prohíbe \/api/);
-    assert.match(html, /falta configurar TRAVELPAYOUTS_TOKEN|falta configurar SERPAPI_KEY/);
-    assert.match(html, /Billetes sin fecha concreta, de blogs y comunidades/);
+    // Sin vuelos con fecha, la pestaña es «Chollos de vuelos»: sin filtros de finde, aeropuerto
+    // ni horario (no se aplicarían) y sin un aviso vacío delante de lo que sí hay.
+    const e = estadoPanel({ ...datos, ofertas: soloChollos });
+    const vista = vistaVuelos(e, {});
+    assert.match(vista, /<h1 class="titulo-vista" tabindex="-1">Chollos de vuelos<\/h1>/);
+    assert.match(vista, /fechas flexibles/);
+    assert.ok(!/name="finde"|name="aero"|name="ideal"/.test(vista));
+    assert.match(vista, /name="mios"/);
+    const html = resultadosVuelos(e, {});
+    assert.match(html, /data-resumen="\d+ chollos? de vuelos/);
+    assert.ok(!/Todavía no hay vuelos con fecha|Vuelos con fecha y hora/.test(html));
+    assert.match(html, /data-lista="chollos"/);
   });
 
   it('agrupa los destinos del mapa quedándose con el vuelo más barato', () => {
@@ -357,7 +364,7 @@ describe('actividades', () => {
 
   it('la portada las propone y la ficha enseña qué hacer allí', () => {
     const portada = vistaFinde(estadoPanel(), {});
-    assert.match(portada, /Actividades para este finde/);
+    assert.match(portada, /Planes para este finde/);
     assert.match(portada, /href="#\/actividades"/);
 
     const conActividades = contenidoFicha(escapadaGirona, { ...ctxFicha, actividades: actividadesCerca(ofertas, escapadaGirona) });
@@ -712,5 +719,60 @@ describe('ofertas que ya no están', () => {
     assert.ok(conTodas.includes(otra.id));
     e.misEstados = new Map([[otra.id, 'reservada']]);
     assert.deepEqual([...ocultas(e)], [una.id], 'la reservada sigue saliendo');
+  });
+});
+
+describe('menú de cuatro apartados', () => {
+  it('Explorar, Fechas y Mis cosas llevan sus pestañas, con la actual marcada', () => {
+    const e = estadoPanel();
+    const explorar = vistaEscapadas(e, {});
+    assert.match(explorar, /<nav class="pestanas" aria-label="Explorar">/);
+    assert.match(explorar, /href="#\/escapadas" data-vista="escapadas" aria-current="page"/);
+    assert.match(explorar, /href="#\/actividades" data-vista="actividades"><svg[^]*?<span>Planes<\/span>/);
+    assert.match(vistaActividades(e, {}), /<h1 class="titulo-vista" tabindex="-1">Planes<\/h1>/);
+    assert.match(vistaCalendario(e), /<nav class="pestanas" aria-label="Fechas">[^]*data-vista="calendario" aria-current="page"/);
+    assert.match(vistaPuentes(e), /data-vista="puentes" aria-current="page"/);
+    assert.match(vistaMis(e), /<nav class="pestanas" aria-label="Mis cosas">[^]*data-vista="mis" aria-current="page"/);
+  });
+
+  it('el buscador de la cabecera lleva a cada pestaña de Explorar con la búsqueda puesta', () => {
+    const html = resultadosBuscar(estadoPanel(), { q: 'girona' });
+    assert.match(html, /href="#\/escapadas\?q=girona"[^>]*>[^]*?En Escapadas <span class="suave">\(\d+\)/);
+    assert.ok(!/nuevas=1/.test(resultadosBuscar(estadoPanel(), { nuevas: '1' }).match(/buscar__pestanas/) ?? ''));
+  });
+});
+
+describe('mis cosas: búsquedas guardadas que avisan', () => {
+  it('cada búsqueda dice cuántas ofertas la cumplen y cuántas son nuevas desde que se miró', () => {
+    const e = estadoPanel();
+    const todas = resultadosDeBusqueda(e, { hash: '#/escapadas?temas=rural' });
+    assert.ok(todas.length > 0);
+    const corte = '2026-09-10T00:00:00Z';
+    e.busquedas = [
+      { nombre: 'Rural', vista: 'escapadas', hash: '#/escapadas?temas=rural', visto: corte },
+      { nombre: 'Sin mirar', vista: 'buscar', hash: '#/buscar?q=spa', visto: null },
+    ];
+    const [rural, sinMirar] = avisosDeBusquedas(e);
+    assert.equal(rural.lista.length, todas.length);
+    assert.deepEqual(rural.nuevas.map((o) => o.id), todas.filter((o) => Date.parse(o.vistaPrimera) > Date.parse(corte)).map((o) => o.id));
+    assert.deepEqual(sinMirar.nuevas, [], 'sin fecha de la última vez no hay «nuevas»');
+    assert.equal(totalNovedadesGuardadas(e), rural.nuevas.length);
+    const html = vistaMis(e);
+    assert.match(html, /<h3>Rural<\/h3>/);
+    assert.match(html, /data-abrir-busqueda="Rural"/);
+    assert.match(html, /data-borrar-busqueda="Sin mirar"/);
+    assert.match(html, /Escapadas · Rural y naturaleza|Escapadas · [^<]*rural/i);
+  });
+
+  it('sin nada guardado explica cómo empezar, y las marcadas por ti salen en su lista', () => {
+    const e = estadoPanel();
+    e.busquedas = [];
+    const [una] = ofertas;
+    e.misEstados = new Map([[una.id, 'no-disponible']]);
+    const html = vistaMis(e);
+    assert.match(html, /Aún no has guardado ninguna búsqueda/);
+    assert.match(html, /Guardar y avisarme/);
+    assert.match(html, /Ya no disponibles/);
+    assert.match(html, new RegExp(`data-ficha="${una.id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`));
   });
 });

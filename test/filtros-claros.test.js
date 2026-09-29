@@ -140,6 +140,17 @@ describe('filtros claros: memoria por vista (localStorage)', () => {
     local = almacen;
   });
 
+  it('las búsquedas guardadas recuerdan cuándo se miraron por última vez', async () => {
+    const { cargarBusquedas, guardarBusqueda, marcarBusquedaVista } = await import('../site/js/local.js');
+    guardarBusqueda({ nombre: 'Spa', vista: 'escapadas', hash: '#/escapadas?temas=spa' }, new Date('2026-09-20T10:00:00Z'));
+    assert.equal(cargarBusquedas()[0].visto, '2026-09-20T10:00:00.000Z');
+    marcarBusquedaVista('Spa', new Date('2026-09-25T10:00:00Z'));
+    assert.equal(cargarBusquedas()[0].visto, '2026-09-25T10:00:00.000Z');
+    // Las guardadas antes de esto no tienen fecha: se leen con visto null.
+    local.set('escapadas:busquedas', JSON.stringify([{ nombre: 'Vieja', vista: 'vuelos', hash: '#/vuelos' }]));
+    assert.deepEqual(cargarBusquedas(), [{ nombre: 'Vieja', vista: 'vuelos', hash: '#/vuelos', visto: null }]);
+  });
+
   it('guarda, recupera y olvida los filtros de cada vista por separado', async () => {
     const { cargarFiltros, guardarFiltros } = await import('../site/js/local.js');
     guardarFiltros('escapadas', { temas: 'spa', max: '90' });

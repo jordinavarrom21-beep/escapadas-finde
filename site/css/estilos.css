@@ -690,6 +690,40 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 .coste-coche { display: inline-flex; gap: 6px; align-items: flex-start; }
 .aviso-afiliado { font-size: 0.8rem; color: var(--texto-suave); }
 
+/* Pestañas de cada apartado (Explorar, Fechas, Mis cosas). */
+.pestanas {
+  display: flex; gap: 6px; margin-bottom: 14px; overflow-x: auto; scrollbar-width: none;
+  padding: 4px; border-radius: var(--radio-chico); background: var(--superficie-2); border: 1px solid var(--borde); width: max-content; max-width: 100%;
+}
+.pestanas::-webkit-scrollbar { display: none; }
+.pestana {
+  display: inline-flex; align-items: center; gap: 7px; flex: none; min-height: 40px; padding: 6px 16px; border-radius: var(--radio-chico);
+  color: var(--texto-suave) !important; text-decoration: none; font-weight: 750; font-size: 0.92rem;
+}
+.pestana .ic { width: 17px; height: 17px; }
+.pestana:hover { color: var(--texto) !important; background: var(--superficie-3); }
+.pestana[aria-current="page"] { background: var(--superficie); color: var(--texto) !important; box-shadow: var(--sombra); }
+.pestana:focus-visible { outline: 3px solid var(--acento); outline-offset: 1px; }
+
+/* Número de ofertas nuevas en «Mis cosas» (menú). */
+.navegacion a { position: relative; }
+.navegacion__aviso {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; padding: 0 6px; margin-left: 2px;
+  border-radius: 999px; background: var(--chollo); color: var(--chollo-texto); font-size: 0.72rem; font-weight: 800; line-height: 1;
+}
+
+/* Mis cosas: las búsquedas guardadas como avisos. */
+.avisos { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); }
+.aviso-busqueda {
+  display: grid; gap: 8px; align-content: start; padding: 16px; border-radius: var(--radio); background: var(--superficie); border: 1px solid var(--borde);
+}
+.aviso-busqueda > * { margin: 0; }
+.aviso-busqueda--nuevas { border-color: color-mix(in srgb, var(--acento) 40%, var(--borde)); box-shadow: var(--sombra); }
+.aviso-busqueda__cabeza { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.aviso-busqueda__cabeza h3 { font-size: 1.05rem; }
+.aviso-busqueda .suave { font-size: 0.84rem; overflow-wrap: anywhere; }
+.buscar__pestanas { margin-bottom: 14px; }
+
 /* Precio único («Hasta … €» y qué cuenta). */
 .campo-precio { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 12px; }
 .campo-precio .campo { min-width: 0; }
@@ -1079,13 +1113,14 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 
 @media (max-width: 899px) {
   :root { --barra-movil: calc(66px + env(safe-area-inset-bottom)); }
-  /* El menú pasa a una barra fija abajo: cinco vistas y «Más». */
+  /* El menú pasa a una barra fija abajo: los cuatro apartados. */
   .navegacion {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 45;
     padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
     background: var(--superficie); border-top: 1px solid var(--borde); box-shadow: 0 -6px 20px rgb(0 0 0 / 6%);
   }
-  .navegacion > ul { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 2px; max-width: 600px; margin-inline: auto; }
+  .navegacion > ul { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; max-width: 520px; margin-inline: auto; }
+  .navegacion a .navegacion__aviso { position: absolute; top: 3px; left: calc(50% + 6px); margin: 0; }
   .navegacion a, .navegacion summary {
     display: flex; flex-direction: column; justify-content: center; gap: 3px; width: 100%; min-height: 54px;
     padding: 4px 2px; border-radius: 14px; font-size: 0.7rem; font-weight: 700; color: var(--texto-suave) !important;
