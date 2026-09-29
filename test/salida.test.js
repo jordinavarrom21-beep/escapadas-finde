@@ -125,3 +125,15 @@ describe('comparar', async () => {
     assert.match(vistaComparar({ ...e, comparar: new Set() }, {}), /No has elegido nada para comparar/);
   });
 });
+
+describe('encuéntrame un finde', async () => {
+  const { buscadorFinde, paramsBuscadorFinde } = await import('../site/js/vistas.js');
+  it('un solo formulario desde tu salida y lleva a escapadas con esos filtros, por coste total', () => {
+    const html = buscadorFinde({ ...estado(GIRONA) });
+    assert.match(html, /Desde <button[^>]*data-mi-viaje>Girona, 3 personas y 2 noches<\/button>/);
+    for (const campo of ['cuando', 'pres', 'como', 'temas']) assert.match(html, new RegExp(`name="${campo}"`));
+    assert.deepEqual(paramsBuscadorFinde({ cuando: 'finde', pres: '150', como: 'sincoche', temas: 'spa' }),
+      { cuando: 'finde', temas: 'spa', orden: 'total', pres: '150', prespor: 'persona', sincoche: '1' });
+    assert.deepEqual(paramsBuscadorFinde({ cuando: '', pres: '', como: 'coche' }), { cuando: '', temas: '', orden: 'total', transporte: 'coche' });
+  });
+});

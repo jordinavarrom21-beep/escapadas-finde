@@ -20,7 +20,7 @@ import { destruirMapa, pintarMapa } from './mapa.js';
 import { estadoVacio } from './plantillas.js';
 import { activarUbicacion } from './ubicacion.js';
 import {
-  VISTAS_HTML, contarSecundarios, contenidoSorpresa, contextoBusqueda, ctxTarjetas, datosMapa, formularioViaje, nombreSalida,
+  VISTAS_HTML, contarSecundarios, paramsBuscadorFinde, contenidoSorpresa, contextoBusqueda, ctxTarjetas, datosMapa, formularioViaje, nombreSalida,
   resultadosMapa, textoViaje,
 } from './vistas.js';
 
@@ -536,7 +536,12 @@ function conectarEventos() {
   document.addEventListener('click', manejarClic);
   principal.addEventListener('input', alCambiarFiltro);
   principal.addEventListener('change', alCambiarFiltro);
-  principal.addEventListener('submit', (evento) => evento.preventDefault());
+  principal.addEventListener('submit', (evento) => {
+    evento.preventDefault();
+    if (evento.target.matches('[data-buscador-finde]')) {
+      location.hash = crearHash('escapadas', paramsBuscadorFinde(Object.fromEntries(new FormData(evento.target))));
+    }
+  });
   // «#principal» (el enlace de saltar al contenido) no es una ruta: no se cambia de vista.
   window.addEventListener('hashchange', () => { if (!location.hash || location.hash.startsWith('#/')) render(); });
   $('.saltar')?.addEventListener('click', (evento) => {

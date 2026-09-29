@@ -290,6 +290,42 @@ function bloqueRecomendado(e, params) {
      ${lista.length ? `<div class="rejilla">${lista.map((r) => tarjetaConMotivo(r, ctx)).join('')}</div>` : estadoVacio('Nada nuevo que se parezca a tus favoritos.')}`);
 }
 
+/**
+ * «Encuéntrame un finde»: desde tu salida, cuándo, presupuesto, cómo y qué te apetece, en
+ * un solo formulario. Lleva a Escapadas con esos filtros y ordenado por coste total.
+ */
+export function buscadorFinde(e) {
+  const [actual, siguiente] = e.findes;
+  const cuando = [
+    ['finde', `Este finde (${actual.etiqueta})`],
+    ...(siguiente ? [[siguiente.id, `El siguiente (${siguiente.etiqueta})`]] : []),
+    ...(e.puente ? [[e.puente.id, `Puente de ${e.puente.nombre} (${e.puente.etiqueta})`]] : []),
+    ['', 'Cualquier fecha'],
+  ];
+  const como = [['', 'Como sea'], ['coche', '🚗 En coche'], ['sincoche', '🚆 Sin coche']];
+  const temas = e.datos.temas.map((t) => [t.id, `${t.emoji} ${t.nombre}`]);
+  return `<form class="buscador-finde" data-buscador-finde aria-labelledby="buscador-finde-titulo">
+  <h2 id="buscador-finde-titulo">🔎 Encuéntrame un finde</h2>
+  <p class="suave">Desde <button type="button" class="enlace-boton" data-mi-viaje>${esc(nombreSalida(e))}, ${esc(contar(e.viaje?.viajeros ?? 2, 'persona'))} y ${esc(contar(e.viaje?.noches ?? 2, 'noche'))}</button>.</p>
+  <div class="filtros__fila">
+    <label class="campo">¿Cuándo? <select name="cuando">${opciones(cuando, 'finde')}</select></label>
+    <label class="campo">Presupuesto por persona (€) <input type="number" name="pres" min="0" step="10" inputmode="numeric" placeholder="Sin límite"></label>
+    <label class="campo">¿Cómo? <select name="como">${opciones(como, '')}</select></label>
+    <label class="campo">¿Qué te apetece? <select name="temas">${opciones(temas, '', 'Cualquier plan')}</select></label>
+    <button type="submit" class="boton boton--primario">Buscar planes</button>
+  </div>
+</form>`;
+}
+
+/** Los filtros de Escapadas que corresponden a lo elegido en «Encuéntrame un finde». */
+export function paramsBuscadorFinde({ cuando = '', pres = '', como = '', temas = '' } = {}) {
+  return {
+    cuando, temas, orden: 'total',
+    ...(Number(pres) > 0 ? { pres: String(Number(pres)), prespor: 'persona' } : {}),
+    ...(como === 'coche' ? { transporte: 'coche' } : como === 'sincoche' ? { sincoche: '1' } : {}),
+  };
+}
+
 export function vistaFinde(e, params = {}) {
   const [actual, siguiente] = e.findes;
   const ctx = ctxTarjetas(e);
@@ -308,6 +344,7 @@ export function vistaFinde(e, params = {}) {
       { href: crearHash('vuelos', { mios: '1' }), texto: 'Ver todos' });
 
   return `<h1 class="titulo-vista" tabindex="-1">Este finde <span class="suave">${esc(etiquetaDia(actual.viernes))} – ${esc(etiquetaDia(actual.domingo))}</span></h1>
+${buscadorFinde(e)}
 ${favoritos.length ? seccion('⭐ Tus favoritos', rejilla(favoritos, ctx, { mostradas: mostradas(e, 'favoritos'), clave: 'favoritos' })) : ''}
 ${bloqueSorpresa(e, params)}
 ${vuelos}

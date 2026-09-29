@@ -495,6 +495,9 @@ main { padding-block: 18px 40px; min-height: 60vh; }
 .dato-extra a { color: var(--enlace); }
 .comprobada { font-size: 0.75rem; }
 .coste-total { color: var(--texto); font-weight: 650; }
+.buscador-finde { display: grid; gap: 6px; padding: 14px 16px; margin: 10px 0 18px; border-radius: 14px; background: var(--superficie); border: 1px solid var(--borde); }
+.buscador-finde h2 { font-size: 1.1rem; }
+.buscador-finde .filtros__fila { align-items: end; }
 .boton-comparar[aria-pressed="true"] { background: var(--acento-suave); border-color: var(--acento); }
 .barra-comparar { position: fixed; left: 50%; transform: translateX(-50%); bottom: max(16px, env(safe-area-inset-bottom)); z-index: 20; display: flex; gap: 8px; align-items: center; padding: 8px; border-radius: 999px; background: var(--superficie); box-shadow: 0 6px 24px rgb(0 0 0 / 22%); }
 .barra-comparar[hidden] { display: none; }
