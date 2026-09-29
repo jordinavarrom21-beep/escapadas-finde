@@ -724,6 +724,20 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 .aviso-busqueda .suave { font-size: 0.84rem; overflow-wrap: anywhere; }
 .buscar__pestanas { margin-bottom: 14px; }
 
+/* Textos que solo caben en pantallas anchas (o solo en las estrechas). */
+.solo-estrecho { display: none; }
+@media (max-width: 719px) {
+  .solo-ancho, .solo-ancho-flex { display: none !important; }
+  .solo-estrecho { display: inline; }
+  .pestanas { width: 100%; }
+  .pestana { flex: 1 1 auto; justify-content: center; padding: 6px 10px; font-size: 0.86rem; }
+  .pestana .ic { display: none; }
+  .resultados__cuenta { font-size: 1.12rem; }
+  .selector-modo__boton { padding: 4px 12px; }
+  .seccion__cabeza h2 { font-size: 1.3rem; }
+  .portada__ceja { gap: 8px; }
+}
+
 /* Precio único («Hasta … €» y qué cuenta). */
 .campo-precio { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 12px; }
 .campo-precio .campo { min-width: 0; }
@@ -920,9 +934,14 @@ main { padding-block: 22px 56px; min-height: 60vh; }
   .tabla-fuentes thead { display: none; }
   .tabla-fuentes tr { margin-bottom: 12px; background: var(--superficie); border: 1px solid var(--borde); border-radius: var(--radio); overflow: hidden; }
   .tabla-fuentes th[scope="row"] { background: var(--superficie-2); font-size: 1rem; }
-  .tabla-fuentes td { display: flex; gap: 12px; justify-content: space-between; text-align: right; overflow-wrap: anywhere; }
-  .tabla-fuentes td::before { content: attr(data-etiqueta); font-weight: 750; color: var(--texto-suave); text-align: left; flex: none; }
-  .tabla-fuentes tr > :last-child { border-bottom: 0; }
+  /* Cada web en una tarjeta compacta: nombre y estado arriba, el resto en dos columnas. */
+  .tabla-fuentes tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tabla-fuentes th[scope="row"] { grid-column: 1 / -1; padding: 10px 14px; }
+  .tabla-fuentes td { display: grid; gap: 2px; padding: 8px 14px; border-bottom: 0; text-align: left; overflow-wrap: anywhere; font-size: 0.86rem; }
+  .tabla-fuentes td::before { content: attr(data-etiqueta); font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--texto-suave); }
+  .tabla-fuentes td[data-etiqueta="Detalle"] { grid-column: 1 / -1; }
+  .tabla-fuentes td.tabla__vacia { display: none; }
+  .tabla-fuentes .num { text-align: left; }
 }
 
 /* ── Mapa ─────────────────────────────────────────────────────────────────── */
@@ -1234,4 +1253,9 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 
 @media (prefers-reduced-motion: reduce) {
   * { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
+}
+
+/* Móvil: los títulos de cada puente, del mismo tamaño que el resto de secciones. */
+@media (max-width: 719px) {
+  .puente .seccion__cabeza h2 { font-size: 1.25rem; }
 }

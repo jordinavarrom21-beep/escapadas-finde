@@ -355,7 +355,7 @@ describe('actividades', () => {
     for (const campo of ['q', 'temas', 'dest', 'max', 'nota', 'orden', 'gratis']) {
       assert.match(html, new RegExp(`name="${campo}"`), `falta el filtro ${campo}`);
     }
-    assert.match(html, /4 actividades · 4 gratuitas/);
+    assert.match(html, /4 planes · 4 gratis/);
     assert.match(html, /<strong class="precio__gratis">Gratis<\/strong> <span class="precio__unidad">propina voluntaria/);
     assert.match(html, /<li><svg[^]*?<\/svg><span>2 h 30 min<\/span><\/li>/);
     assert.match(html, /Actividad · GuruWalk/);

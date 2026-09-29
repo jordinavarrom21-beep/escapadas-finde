@@ -148,21 +148,23 @@ const conIcono = (nombre, texto, clase = '') => `<span class="seccion__icono${cl
 
 /** «Tarjetas» o «Lista»: app.js marca el que está puesto (se guarda en este navegador). */
 const selectorModo = `<div class="selector-modo" role="group" aria-label="Cómo ver los resultados">
-  <button type="button" class="selector-modo__boton" data-modo-lista="tarjetas" aria-pressed="true">${icono('todo')}<span>Tarjetas</span></button>
-  <button type="button" class="selector-modo__boton" data-modo-lista="lista" aria-pressed="false">${icono('lista')}<span>Lista</span></button>
+  <button type="button" class="selector-modo__boton" data-modo-lista="tarjetas" aria-pressed="true" aria-label="Ver en tarjetas">${icono('todo')}<span class="solo-ancho">Tarjetas</span></button>
+  <button type="button" class="selector-modo__boton" data-modo-lista="lista" aria-pressed="false" aria-label="Ver en lista">${icono('lista')}<span class="solo-ancho">Lista</span></button>
 </div>`;
 /** Las pestañas de cada apartado del menú: Explorar, Fechas y Mis cosas. */
 const PESTANAS = {
   explorar: ['Explorar', [['escapadas', 'Escapadas', 'escapadas'], ['actividades', 'Planes', 'actividades'], ['vuelos', 'Vuelos', 'vuelos'], ['mapa', 'Mapa', 'mapa']]],
   fechas: ['Fechas', [['calendario', 'Calendario', 'calendario'], ['puentes', 'Puentes', 'puentes']]],
-  mis: ['Mis cosas', [['mis', 'Guardado', 'corazon'], ['comparar', 'Comparar lado a lado', 'comparar'], ['vigilados', 'Avisos por email', 'vigilados']]],
+  mis: ['Mis cosas', [['mis', 'Guardado', 'corazon'], ['comparar', 'Comparar lado a lado', 'comparar', 'Comparar'], ['vigilados', 'Avisos por email', 'vigilados', 'Por email']]],
 };
 export function pestanas(apartado, activa) {
   const [nombre, lista] = PESTANAS[apartado];
-  return `<nav class="pestanas" aria-label="${esc(nombre)}">${lista.map(([vista, texto, ic]) => `<a class="pestana" href="#/${vista}" data-vista="${vista}"${vista === activa ? ' aria-current="page"' : ''}>${icono(ic)}<span>${texto}</span></a>`).join('')}</nav>`;
+  // En el móvil, el nombre corto (si lo hay) para que quepan todas sin deslizar.
+  const texto = (largo, corto) => (corto ? `<span class="solo-ancho">${largo}</span><span class="solo-estrecho">${corto}</span>` : `<span>${largo}</span>`);
+  return `<nav class="pestanas" aria-label="${esc(nombre)}">${lista.map(([vista, largo, ic, corto]) => `<a class="pestana" href="#/${vista}" data-vista="${vista}"${corto ? ` aria-label="${esc(largo)}"` : ''}${vista === activa ? ' aria-current="page"' : ''}>${icono(ic)}${texto(largo, corto)}</a>`).join('')}</nav>`;
 }
 
-const resumenResultados = (texto, extra = '') => `<div class="resultados__cabeza" data-resumen="${esc(texto)}"><p class="resultados__cuenta">${esc(texto)}</p>${selectorModo}${extra}</div>`;
+const resumenResultados = (texto, extra = '', { conModo = true } = {}) => `<div class="resultados__cabeza" data-resumen="${esc(texto)}"><p class="resultados__cuenta">${esc(texto)}</p>${conModo ? selectorModo : ''}${extra}</div>`;
 // «data-olvidar-filtros»: al quitar los filtros también se olvidan los recordados de esa vista.
 const botonLimpiar = (vista) => `<a class="boton boton--suave" href="#/${vista}" data-olvidar-filtros>${icono('deshacer')}Quitar filtros</a>`;
 const opciones = (lista, actual, vacia) => `${vacia ? `<option value="">${vacia}</option>` : ''}${
@@ -377,7 +379,7 @@ export function buscadorFinde(e) {
   return `<form class="buscador-finde" data-buscador-finde aria-labelledby="buscador-finde-titulo">
   <div class="buscador-finde__cabeza">
     <h2 id="buscador-finde-titulo">${icono('buscar')}Encuéntrame un finde</h2>
-    <p class="suave">Desde <button type="button" class="enlace-boton" data-mi-viaje>${esc(nombreSalida(e))}, ${esc(contar(e.viaje?.viajeros ?? 2, 'persona'))} y ${esc(contar(e.viaje?.noches ?? 2, 'noche'))}</button>.</p>
+    <p class="suave">Desde <button type="button" class="enlace-boton" data-mi-viaje>${esc(nombreSalida(e))}, ${esc(contar(e.viaje?.viajeros ?? 2, 'persona'))} y ${esc(contar(e.viaje?.noches ?? 2, 'noche'))}</button></p>
   </div>
   <fieldset class="buscador-finde__grupo"><legend>¿Cuándo?</legend>
     <div class="opciones opciones--cuando">${cuando.map((c, i) => opcion('cuando', c, i === 0)).join('')}</div>
@@ -439,7 +441,7 @@ export function vistaFinde(e, params = {}) {
   const revision = `${e.datos.ofertas.length.toLocaleString('es-ES')} ofertas de ${contar(r.ok, 'web')} · revisado ${haceCuanto(e.datos.generado, e.ahora)}`;
   return `<section class="portada">
   <div class="portada__texto">
-    <p class="portada__ceja"><span class="pastilla">${icono('calendario')}${esc(etiquetaDia(actual.viernes))} – ${esc(etiquetaDia(actual.domingo))}</span><span id="cuenta-atras" class="pastilla pastilla--cuenta"></span><span id="aviso-puente" class="pastilla pastilla--puente" hidden></span><span class="portada__revision"><span class="punto" aria-hidden="true"></span>${esc(revision)}</span></p>
+    <p class="portada__ceja"><span class="pastilla">${icono('calendario')}<span>${esc(etiquetaDia(actual.viernes))} – ${esc(etiquetaDia(actual.domingo))}<span id="cuenta-atras" class="pastilla__extra"></span></span></span><span id="aviso-puente" class="pastilla pastilla--puente" hidden></span><span class="portada__revision"><span class="punto" aria-hidden="true"></span>${esc(revision)}</span></p>
     <h1 class="titulo-vista" tabindex="-1">¿Dónde nos escapamos <em>este finde</em>?</h1>
     ${buscadorFinde(e)}
   </div>
@@ -791,7 +793,8 @@ export function resultadosEscapadas(e, params) {
   const f = leerFiltrosEscapadas(params);
   const { ofertas, distancias, costes, sinTotal } = buscarEscapadas(e.datos.ofertas, f, contextoBusqueda(e));
   const ctx = ctxTarjetas(e, { distancias, desde: f.punto?.nombre ?? nombreSalida(e) });
-  const acciones = `<a class="boton boton--suave" href="${crearHash('mapa', params)}">${icono('mapa')}Ver en el mapa</a>`;
+  // En el móvil el «Mapa» ya está en la pastilla flotante: aquí sobra.
+  const acciones = `<a class="boton boton--suave solo-ancho-flex" href="${crearHash('mapa', params)}">${icono('mapa')}Ver en el mapa</a>`;
   return `${filaActivos(e, 'escapadas', params)}${resumenResultados(contar(ofertas.length, 'escapada'), acciones)}
 ${explicacionOrden(e, f, costes)}${f.presupuesto ? `<p class="seccion__intro">Presupuesto: viaje completo (oferta y gasolina estimada) de hasta ${esc(euros(f.presupuesto))} ${f.presupuestoPor === 'persona' ? 'por persona' : 'en total'} para ${esc(contar(e.viaje?.viajeros ?? 2, 'persona'))}.${sinTotal ? ` ${esc(contar(sinTotal, 'oferta'))} sin datos suficientes para un total no se pueden comprobar y no salen.` : ''}</p>` : ''}
 ${ofertas.length
@@ -833,7 +836,7 @@ export function resultadosActividades(e, params) {
   const f = leerFiltrosActividades(params);
   const lista = buscarActividades(e.datos.ofertas, f, contextoBusqueda(e));
   const gratis = lista.filter((o) => o.precio === 0).length;
-  const resumen = `${contar(lista.length, 'actividad', 'actividades')}${gratis ? ` · ${gratis} ${gratis === 1 ? 'gratuita' : 'gratuitas'}` : ''}`;
+  const resumen = `${contar(lista.length, 'plan', 'planes')}${gratis ? ` · ${gratis} ${gratis === 1 ? 'gratis' : 'gratis'}` : ''}`;
   return `${filaActivos(e, 'actividades', params)}${resumenResultados(resumen)}
 ${lista.length
     ? rejilla(lista, ctxTarjetas(e), { mostradas: mostradas(e, 'actividades'), clave: 'actividades' })
@@ -866,7 +869,7 @@ export function datosMapa(e, params) {
 export function resultadosMapa(e, params, d = datosMapa(e, params)) {
   const sin = d.sinUbicacion ? ` (${contar(d.sinUbicacion, 'escapada')} sin ubicación no aparecen)` : '';
   const texto = `${contar(d.escapadas.length, 'escapada')} y ${contar(d.destinos.length, 'destino')} de vuelo en el mapa${sin}`;
-  return resumenResultados(texto, `<a class="boton boton--suave" href="${crearHash('escapadas', params)}">Ver en lista</a>`);
+  return resumenResultados(texto, `<a class="boton boton--suave solo-ancho-flex" href="${crearHash('escapadas', params)}">Ver en lista</a>`, { conModo: false });
 }
 
 // ── Calendario ───────────────────────────────────────────────────────────────
@@ -1000,7 +1003,7 @@ export function vistaFuentes(e) {
     return `<tr>
   <th scope="row">${esc(f.nombre)}<span class="suave tabla__modo">${esc(f.modo ?? '')}</span></th>
   <td data-etiqueta="Estado">${insigniaEstado(f.estado)}</td>
-  <td data-etiqueta="Detalle">${detalle ? esc(detalle) : '<span class="suave">—</span>'}</td>
+  <td data-etiqueta="Detalle"${detalle ? '' : ' class="tabla__vacia"'}>${detalle ? esc(detalle) : '<span class="suave">—</span>'}</td>
   <td data-etiqueta="Actualizada">${f.ultimoOk ? `<time datetime="${esc(f.ultimoOk)}" title="${esc(new Date(f.ultimoOk).toLocaleString('es-ES'))}">${esc(haceCuanto(f.ultimoOk, e.ahora))}</time>` : '<span class="suave">Nunca</span>'}</td>
   <td data-etiqueta="Ofertas" class="num">${(f.total ?? 0).toLocaleString('es-ES')}</td>
   <td data-etiqueta="Web">${web ? `<a href="${esc(web)}" target="_blank" rel="noopener noreferrer">${esc(new URL(web).hostname.replace(/^www\./, ''))}</a>` : ''}</td>
