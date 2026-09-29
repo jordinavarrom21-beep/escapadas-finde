@@ -529,7 +529,8 @@ describe('fechas, formato, geocodificación y plantillas', () => {
 
     const sitges = tarjeta(porId('chollometro:hotel-en-sitges-para-el-festival-de-cine'), ctxTarjeta);
     assert.match(sitges, /También en <a[^>]*>No Molesten<\/a>/);
-    assert.match(sitges, /Lluvia ligera · 23° · 65 % de lluvia/);
+    assert.match(sitges, /En la ficha: el tiempo/, 'el tiempo va en la ficha');
+    assert.match(contenidoFicha(porId('chollometro:hotel-en-sitges-para-el-festival-de-cine'), ctxTarjeta), /Lluvia ligera · 23° · 65 % de lluvia/);
     assert.match(sitges, /🔥 Chollazo/);
   });
 

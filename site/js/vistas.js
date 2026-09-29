@@ -332,7 +332,7 @@ export function buscadorFinde(e) {
   <p class="suave">Desde <button type="button" class="enlace-boton" data-mi-viaje>${esc(nombreSalida(e))}, ${esc(contar(e.viaje?.viajeros ?? 2, 'persona'))} y ${esc(contar(e.viaje?.noches ?? 2, 'noche'))}</button>.</p>
   <div class="filtros__fila">
     <label class="campo">¿Cuándo? <select name="cuando">${opciones(cuando, 'finde')}</select></label>
-    <label class="campo">Presupuesto por persona (€) <input type="number" name="pres" min="0" step="10" inputmode="numeric" placeholder="Sin límite"></label>
+    <label class="campo">Máx. € por persona <input type="number" name="pres" min="0" step="10" inputmode="numeric" placeholder="Sin límite"></label>
     <label class="campo">¿Cómo? <select name="como">${opciones(como, '')}</select></label>
     <label class="campo">¿Qué te apetece? <select name="temas">${opciones(temas, '', 'Cualquier plan')}</select></label>
     <button type="submit" class="boton boton--primario">Buscar planes</button>
@@ -396,7 +396,7 @@ export function vistaVuelos(e, params) {
   ];
   return `<h1 class="titulo-vista" tabindex="-1">Vuelos</h1>
 ${avisoMemoria(e, 'vuelos')}
-<form class="filtros" data-filtros="vuelos" aria-label="Filtros de vuelos">
+${plegableMovil(e, 'vuelos', params)}<form class="filtros" data-filtros="vuelos" aria-label="Filtros de vuelos">
   <fieldset class="chips chips--desplazables"><legend>Finde o puente</legend><div class="chips__lista">${chips.join('')}</div></fieldset>
   <div class="filtros__fila">
     ${campoTexto(f)}
@@ -411,7 +411,7 @@ ${avisoMemoria(e, 'vuelos')}
     <div class="filtros__fila">${filtrosChollo(f)}${filtrosListas(f)}</div>
   </details>
   ${bloqueBusquedas(e, 'vuelos')}
-</form>
+</form></details>
 <div id="resultados">${resultadosVuelos(e, params)}</div>`;
 }
 
@@ -517,6 +517,15 @@ function filaActivos(e, vista, params) {
   <a class="boton boton--suave boton--mini" href="#/${vista}" data-olvidar-filtros>Quitar todos</a></div></div>`;
 }
 
+/**
+ * En el móvil, los filtros van plegados detrás de «⚙️ Filtros (n puestos)» para llegar antes a
+ * las ofertas (app.js los pliega al pintar; en pantallas anchas el botón no se ve).
+ */
+function plegableMovil(e, vista, params) {
+  const n = filtrosActivos(vista, params, { temas: e.temas, fuentes: e.fuentes, findes: e.findes, puentes: e.datos.puentes }).length;
+  return `<details class="filtros-plegables filtros-plegables--movil" data-plegable-movil open><summary>⚙️ Filtros${n ? ` <span class="suave">(${contar(n, 'puesto')})</span>` : ''}</summary>`;
+}
+
 /** Aviso de que se han recuperado los filtros de la última vez. */
 function avisoMemoria(e, vista) {
   if (!e.filtrosRecordados) return '';
@@ -596,7 +605,7 @@ function formularioEscapadas(e, params, vista) {
 export function vistaEscapadas(e, params) {
   return `<h1 class="titulo-vista" tabindex="-1">Escapadas</h1>
 ${avisoMemoria(e, 'escapadas')}
-${formularioEscapadas(e, params, 'escapadas')}
+${plegableMovil(e, 'escapadas', params)}${formularioEscapadas(e, params, 'escapadas')}</details>
 <div id="resultados">${resultadosEscapadas(e, params)}</div>`;
 }
 
@@ -639,7 +648,7 @@ export function vistaActividades(e, params) {
   return `<h1 class="titulo-vista" tabindex="-1">Actividades</h1>
 ${avisoMemoria(e, 'actividades')}
 <p class="seccion__intro">Entradas, visitas guiadas y free tours cerca de casa o en el destino de tu escapada. El precio es por persona.</p>
-<form class="filtros" data-filtros="actividades" aria-label="Filtros de actividades">
+${plegableMovil(e, 'actividades', params)}<form class="filtros" data-filtros="actividades" aria-label="Filtros de actividades">
   <div class="filtros__fila">${campoTexto(f)}</div>
   <fieldset class="chips chips--desplazables"><legend>Temática</legend><div class="chips__lista">${chipsTemas(e, f)}</div></fieldset>
   <div class="filtros__fila">
@@ -651,7 +660,7 @@ ${avisoMemoria(e, 'actividades')}
     ${interruptorDefecto('sindesc', '✕ Ocultar las descartadas', f.sinDescartadas)}
   </div>
   ${bloqueBusquedas(e, 'actividades')}
-</form>
+</form></details>
 <div id="resultados">${resultadosActividades(e, params)}</div>`;
 }
 

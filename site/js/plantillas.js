@@ -23,8 +23,9 @@ export const ESTADOS_FUENTE = {
 const colorTema = (o) => (o.temas?.[0] ? `var(--tema-${o.temas[0]})` : 'var(--acento)');
 const envolverDato = (contenido) => (contenido ? `<p class="dato-extra">${contenido}</p>` : '');
 
-function temasEmoji(o, ctx) {
-  return (o.temas ?? []).map((id) => ctx.temas.get(id)).filter(Boolean)
+/** Emojis de las temáticas; en la tarjeta, como mucho 3 (la ficha las enseña todas). */
+function temasEmoji(o, ctx, max = Infinity) {
+  return (o.temas ?? []).map((id) => ctx.temas.get(id)).filter(Boolean).slice(0, max)
     .map((t) => `<span class="emoji-tema" title="${esc(t.nombre)}" role="img" aria-label="${esc(t.nombre)}">${t.emoji}</span>`)
     .join('');
 }
@@ -113,6 +114,15 @@ function tiempo(o) {
     !supuesto && t.dia && esc(etiquetaDia(t.dia)),
   ].filter(Boolean);
   return `<p class="dato-extra">${supuesto}${partes.join(' · ')}</p>`;
+}
+
+/**
+ * La tarjeta se queda con lo que sirve para comparar (destino, fechas, precio, transporte);
+ * el tiempo y los eventos van en la ficha, y aquí solo se avisa de que están.
+ */
+function pistaFicha(o) {
+  const hay = [o.tiempo && 'el tiempo', o.eventos?.length && contar(o.eventos.length, 'evento')].filter(Boolean);
+  return hay.length ? `<p class="dato-extra pista-ficha">En la ficha: ${esc(enumerar(hay))}${conFechasDeViaje(o) ? '' : ' del próximo finde'}</p>` : '';
 }
 
 /** Hasta tres eventos cerca del destino esos días. */
@@ -267,7 +277,7 @@ export function tarjetaOferta(o, ctx) {
   ${url ? `<img class="tarjeta__imagen" src="${esc(url)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" width="480" height="270">` : ''}
   <div class="tarjeta__cuerpo">
     <div class="tarjeta__cabeza">
-      <span class="tarjeta__temas">${temasEmoji(o, ctx)}</span>
+      <span class="tarjeta__temas">${temasEmoji(o, ctx, 3)}</span>
       <span class="tarjeta__origen">${esc(ETIQUETAS_TIPO[o.tipo] ?? o.tipo)} · ${esc(ctx.fuentes.get(o.fuente) ?? o.fuente)}</span>
       ${puntuacion(o)}
       ${botonDescartar(o)}
@@ -275,7 +285,7 @@ export function tarjetaOferta(o, ctx) {
     <h3 class="tarjeta__titulo"><button type="button" class="enlace-ficha" data-ficha="${esc(o.id)}">${esc(o.titulo)}</button></h3>
     <p class="tarjeta__lugar">${textoLugar(o)} ${textoCoche(ctx.distancias?.get(o.id), ctx.desde, o)}</p>
     <p class="tarjeta__detalles">${detalles} ${valoracion(o)}</p>
-    ${conFechasDeViaje(o) ? tiempo(o) : ''}${lineaCoste(o, ctx)}${equivalentes(o, ctx)}${conFechasDeViaje(o) ? eventos(o) : ''}
+    ${lineaCoste(o, ctx)}${equivalentes(o, ctx)}${pistaFicha(o)}
     <div class="insignias">${insignias(o, ctx)}</div>
     ${textoComprobada(o, ctx)}
     <div class="tarjeta__pie">

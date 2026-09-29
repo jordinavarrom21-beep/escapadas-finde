@@ -70,8 +70,12 @@ describe('calidad: el tiempo y los eventos son los de las fechas del viaje', () 
     assert.match(html, /Qué hay el próximo finde por la zona \(si vas entonces\)/);
   });
 
-  it('con fechas propias se enseñan en la tarjeta tal cual', () => {
-    const html = tarjeta(conFinde, ctxPara([conFinde]));
+  it('con fechas propias se enseñan tal cual en la ficha, y la tarjeta solo avisa de que están', () => {
+    const tarjetaHtml = tarjeta(conFinde, ctxPara([conFinde]));
+    assert.ok(!tarjetaHtml.includes('Despejado'), 'la tarjeta se queda con lo que sirve para comparar');
+    assert.match(tarjetaHtml, /En la ficha: el tiempo y 1 evento</);
+    assert.match(tarjeta(flexible, ctxPara([flexible])), /En la ficha: el tiempo y 1 evento del próximo finde/);
+    const html = contenidoFicha(conFinde, ctxPara([conFinde]));
     assert.match(html, /Despejado/);
     assert.match(html, /Fira de Tardor/);
     assert.ok(!html.includes('Si vas el'));

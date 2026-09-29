@@ -278,6 +278,9 @@ main { padding-block: 18px 40px; min-height: 60vh; }
 .filtros-plegables { margin-bottom: 12px; }
 .filtros-plegables > summary { display: inline-block; padding: 8px 14px; border: 1px solid var(--borde); border-radius: 10px; background: var(--superficie); }
 .filtros-plegables[open] > summary { margin-bottom: 10px; }
+@media (min-width: 720px) {
+  .filtros-plegables--movil > summary { display: none; }
+}
 
 /* Jerarquía: cuatro preguntas arriba (¿cuándo?, ¿qué?, ¿dónde?, ¿cuánto?) y el resto plegado. */
 .bloque { border: 0; margin: 0; padding: 12px 0 0; min-width: 0; display: grid; gap: 10px; border-top: 1px solid var(--borde); }
@@ -501,6 +504,8 @@ main { padding-block: 18px 40px; min-height: 60vh; }
 .boton-comparar[aria-pressed="true"] { background: var(--acento-suave); border-color: var(--acento); }
 .barra-comparar { position: fixed; left: 50%; transform: translateX(-50%); bottom: max(16px, env(safe-area-inset-bottom)); z-index: 20; display: flex; gap: 8px; align-items: center; padding: 8px; border-radius: 999px; background: var(--superficie); box-shadow: 0 6px 24px rgb(0 0 0 / 22%); }
 .barra-comparar[hidden] { display: none; }
+.barra-comparar .boton { min-height: 40px; white-space: nowrap; }
+.barra-comparar:not([hidden]) ~ .aviso-flotante { bottom: 76px; }
 .comparar__caja { overflow-x: auto; }
 .comparar { border-collapse: collapse; min-width: 640px; width: 100%; font-size: 0.92rem; }
 .comparar th, .comparar td { text-align: left; vertical-align: top; padding: 8px; border-bottom: 1px solid var(--borde); }
@@ -565,6 +570,33 @@ main { padding-block: 18px 40px; min-height: 60vh; }
   box-shadow: var(--sombra); text-align: center;
 }
 .aviso-flotante:empty { display: none; }
+
+/* ── Móvil: la cabecera en tres líneas cortas para llegar antes a las ofertas ── */
+
+@media (max-width: 719px) {
+  .cabecera { padding-top: 8px; }
+  .marca { font-size: 1.05rem; gap: 8px; }
+  .marca img { width: 28px; height: 28px; }
+  .estado-fuentes { height: 36px; padding: 0 10px; }
+  /* Salida, cuenta atrás, puente y revisión: una fila que se desliza, no cuatro. */
+  .cabecera__info { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; gap: 6px; margin-top: 6px; padding-bottom: 2px; }
+  .cabecera__info::-webkit-scrollbar { display: none; }
+  .cabecera__info > * { flex: none; white-space: nowrap; }
+  .cabecera__info .pastilla { font-size: 0.78rem; padding: 3px 10px; }
+  #boton-viaje { order: -1; min-height: 30px; }
+  .buscador { padding-block: 6px 8px; }
+  .buscador input, .buscador .boton { min-height: 40px; }
+  .novedades { flex-wrap: nowrap; gap: 8px; margin-top: 8px; padding-block: 6px; font-size: 0.9rem; }
+  .novedades p { flex: 1 1 auto; }
+  main { padding-block: 12px 96px; }
+  /* El ✕ de descartar también se toca con el dedo: 44 px como los demás botones. */
+  .boton-icono--mini { width: 44px; height: 44px; }
+  h1.titulo-vista { font-size: 1.4rem; margin-bottom: 8px; }
+  .buscador-finde { padding: 12px; margin: 6px 0 14px; }
+  .buscador-finde .filtros__fila { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .buscador-finde .filtros__fila .boton { grid-column: 1 / -1; min-height: 44px; }
+  .buscador-finde .campo { min-width: 0; }
+}
 
 /* ── Pantallas medianas y grandes ─────────────────────────────────────────── */
 

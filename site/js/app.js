@@ -25,6 +25,7 @@ import {
 } from './vistas.js';
 
 const $ = (selector) => document.querySelector(selector);
+const esMovil = () => matchMedia('(max-width: 719px)').matches;
 const principal = $('#principal');
 const dialogo = $('#ficha');
 /** GitHub lanza una revisión cada ~4 h (LEEME, «Revisión puntual»): a las 6 h ya es raro. */
@@ -210,6 +211,8 @@ function render({ enfocar = true } = {}) {
   $('#q').value = vista === 'buscar' ? params.q ?? '' : '';
   principal.querySelectorAll('form[data-filtros]').forEach((form) => activarUbicacion(form, estado.datos.origen, { salida: estado.salida }));
   if (vista === 'mapa') prepararMapa(params);
+  // En el móvil los filtros empiezan plegados: primero las ofertas.
+  if (cambiaVista && esMovil()) principal.querySelectorAll('[data-plegable-movil]').forEach((d) => { d.open = false; });
   sincronizarMasFiltros(params);
   pintarBarraComparar();
   if (cambiaVista && enfocar) {
@@ -223,6 +226,7 @@ function actualizarResultados(vista, params) {
   else $('#resultados').innerHTML = VISTAS_HTML[vista].resultados(estado, params);
   anunciar($('#resultados [data-resumen]')?.dataset.resumen);
   sincronizarMasFiltros(params);
+  pintarBarraComparar(); // el «Mapa»/«Lista» de la barra lleva los filtros nuevos
 }
 
 /** El contador de «Más filtros» y su botón del móvil siguen a los filtros sin repintar el formulario. */
@@ -388,13 +392,38 @@ function alternarFavorito(id) {
   anunciar(activo ? 'Guardada en favoritos' : 'Quitada de favoritos');
 }
 
-/** Barra flotante «⚖️ Comparar (2)»: solo con algo elegido y fuera de la propia comparación. */
+/** Vistas con filtros: en el móvil, la barra de abajo tiene «Filtros» y, si toca, «Mapa» o «Lista». */
+const VISTAS_CON_BARRA = ['escapadas', 'vuelos', 'actividades', 'mapa'];
+
+/**
+ * Barra flotante de abajo: «⚖️ Comparar (2 de 3)» con algo elegido (fuera de la propia
+ * comparación) y, en el móvil, «⚙️ Filtros» y el cambio entre lista y mapa sin perder filtros.
+ */
 function pintarBarraComparar() {
   const barra = $('#barra-comparar');
   const n = estado.comparar.size;
-  barra.hidden = n === 0 || vistaActual === 'comparar';
-  barra.innerHTML = n ? `<a class="boton boton--primario" href="#/comparar">⚖️ Comparar (${n} de ${MAX_COMPARAR})</a>
-<button type="button" class="boton boton--suave boton--mini" data-vaciar-comparar>Vaciar</button>` : '';
+  const { params } = leerRuta(location.hash);
+  const acciones = [];
+  if (esMovil() && VISTAS_CON_BARRA.includes(vistaActual)) {
+    acciones.push('<button type="button" class="boton boton--suave" data-abrir-filtros>⚙️ Filtros</button>');
+    if (vistaActual === 'escapadas') acciones.push(`<a class="boton boton--suave" href="${esc(crearHash('mapa', params))}">🗺️ Mapa</a>`);
+    if (vistaActual === 'mapa') acciones.push(`<a class="boton boton--suave" href="${esc(crearHash('escapadas', params))}">📋 Lista</a>`);
+  }
+  if (n && vistaActual !== 'comparar') {
+    acciones.push(`<a class="boton boton--primario" href="#/comparar">⚖️ Comparar (${n}${esMovil() ? '' : ` de ${MAX_COMPARAR}`})</a>`,
+      `<button type="button" class="boton boton--suave boton--mini" data-vaciar-comparar aria-label="Vaciar la comparación">Vaciar</button>`);
+  }
+  barra.hidden = acciones.length === 0;
+  barra.innerHTML = acciones.join('');
+}
+
+/** «⚙️ Filtros» de la barra: despliega los filtros y lleva a ellos. */
+function abrirFiltros() {
+  const plegable = principal.querySelector('[data-plegable-movil], .filtros-plegables');
+  if (!plegable) return;
+  plegable.open = true;
+  plegable.scrollIntoView({ block: 'start' });
+  plegable.querySelector('summary')?.focus({ preventScroll: true });
 }
 
 /** Añade o quita una oferta de la comparación (como mucho MAX_COMPARAR). */
@@ -493,7 +522,7 @@ function guardarMiViaje(evento) {
   anunciar(`Guardado en este navegador: ${textoViaje(estado).replace(/^📍 /, '')}.`);
 }
 
-const ACCIONES = '[data-comparar], [data-vaciar-comparar], [data-mi-viaje], [data-cerrar-viaje], [data-ficha], [data-fav], [data-descartar], [data-mas], [data-sorpresa],'
+const ACCIONES = '[data-abrir-filtros], [data-comparar], [data-vaciar-comparar], [data-mi-viaje], [data-cerrar-viaje], [data-ficha], [data-fav], [data-descartar], [data-mas], [data-sorpresa],'
   + ' [data-guardar-busqueda], [data-borrar-busqueda], [data-copiar-vigilado], [data-cerrar-ficha], [data-cerrar-novedades],'
   + ' [data-olvidar-filtros], [data-cerrar-mas]';
 
@@ -501,7 +530,8 @@ function manejarClic(evento) {
   const objetivo = evento.target.closest(ACCIONES);
   if (!objetivo) return;
   const d = objetivo.dataset;
-  if (d.comparar) alternarComparar(d.comparar);
+  if ('abrirFiltros' in d) abrirFiltros();
+  else if (d.comparar) alternarComparar(d.comparar);
   else if ('vaciarComparar' in d) vaciarComparar();
   else if ('miViaje' in d) abrirViaje(objetivo);
   else if ('cerrarViaje' in d) dialogoViaje.close();
@@ -570,6 +600,7 @@ function conectarEventos() {
     dialogo.close();
   });
   $('#form-viaje').addEventListener('submit', guardarMiViaje);
+  matchMedia('(max-width: 719px)').addEventListener('change', pintarBarraComparar);
   dialogoViaje.addEventListener('click', (evento) => {
     if (evento.target === dialogoViaje) dialogoViaje.close();
   });
