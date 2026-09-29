@@ -188,7 +188,10 @@ function calculoPorNoche(o) {
 function precio(o) {
   if (typeof o.precio !== 'number') return `<p class="precio"><strong class="precio__consultar">${esc(o.precioTexto || 'Consultar precio')}</strong></p>`;
   if (o.precio === 0) return `<p class="precio"><strong class="precio__gratis">Gratis</strong>${matiz(o.precioTexto)}</p>`;
-  const unidad = ETIQUETAS_UNIDAD[o.unidad] ?? SIN_UNIDAD;
+  // Sin unidad en el modelo, lo que dice la web («por persona y trayecto», «en total para 2»)
+  // explica más que nada; si tampoco lo dice, se avisa.
+  const unidad = ETIQUETAS_UNIDAD[o.unidad]
+    ?? (/\b(?:por|total|ida|trayecto)\b/i.test(o.precioTexto ?? '') ? esc(o.precioTexto) : SIN_UNIDAD);
   const noche = o.precioNoche != null && o.unidad !== 'pp/noche'
     ? ` <span class="precio__noche" title="${esc(calculoPorNoche(o))}">≈ ${euros(Math.round(o.precioNoche))} por persona y noche</span>`
     : '';

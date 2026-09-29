@@ -13,6 +13,7 @@ export const ETIQUETAS_UNIDAD = {
   'i/v': 'ida y vuelta por persona',
   // La habitación o la casa entera: no es por persona.
   noche: 'por alojamiento y noche',
+  trayecto: 'por persona y trayecto',
 };
 
 /** Cuando la web no dice a qué corresponde el precio: mejor decirlo que dejar que se suponga. */

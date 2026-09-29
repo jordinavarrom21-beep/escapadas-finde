@@ -48,7 +48,7 @@ un `try/catch`, registran el error con `ctx.log` y descartan solo esa oferta.
 | `imagen` | fuente | URL absoluta o `null` |
 | `precio` | fuente | número en EUR o `null` si no hay precio |
 | `precioTexto` | fuente | cómo lo presenta la web, p. ej. «desde 108 € por persona» |
-| `unidad` | fuente | `pp` (por persona, estancia completa) \| `pp/noche` \| `total` \| `i/v` (ida y vuelta por persona) \| `noche` (habitación por noche) \| `null` |
+| `unidad` | fuente | `pp` (por persona, estancia completa) \| `pp/noche` \| `total` \| `i/v` (ida y vuelta por persona) \| `noche` (habitación por noche) \| `trayecto` (billete de tren, bus o ferry por persona y trayecto, solo ida) \| `null` |
 | `precioAnterior`, `descuento` | fuente | precio tachado o anterior que publica la web, y % de descuento |
 | `noches` | fuente o `temas.js` | número de noches si se conoce |
 | `regimen` | fuente o `temas.js` | `solo-alojamiento` \| `desayuno` \| `media-pension` \| `pension-completa` \| `todo-incluido` |

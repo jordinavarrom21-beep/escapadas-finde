@@ -231,3 +231,12 @@ describe('calidad: precio confirmado o mínimo publicado', () => {
     assert.match(contenidoFicha(o, ctxPara([o])), /Precio para estas fechas según la web/);
   });
 });
+
+describe('calidad: billetes por trayecto', () => {
+  it('un billete de bus dice «por persona y trayecto» y, sin unidad, se usa lo que dice la web', () => {
+    const bus = oferta({ transporte: 'bus', precio: 25.49, unidad: 'trayecto', fechas: { salida: '2026-10-02T07:20:00' } });
+    assert.match(tarjeta(bus, ctxPara([bus])), /<span class="precio__unidad">por persona y trayecto/);
+    const sinUnidad = oferta({ precio: 108, unidad: null, precioTexto: 'desde 108 € por persona en habitación doble' });
+    assert.match(tarjeta(sinUnidad, ctxPara([sinUnidad])), /<span class="precio__unidad">desde 108 € por persona en habitación doble/);
+  });
+});

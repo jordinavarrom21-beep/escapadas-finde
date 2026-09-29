@@ -21,8 +21,11 @@ export const TEMAS = [
 
 /** `actividad` son entradas, visitas y experiencias; `crucero`, salidas de crucero. */
 export const TIPOS = ['vuelo', 'escapada', 'hotel', 'paquete', 'actividad', 'crucero'];
-/** pp = por persona · pp/noche = por persona y noche · i/v = ida y vuelta por persona. */
-export const UNIDADES = ['pp', 'pp/noche', 'total', 'i/v', 'noche'];
+/**
+ * pp = por persona · pp/noche = por persona y noche · i/v = ida y vuelta por persona ·
+ * noche = alojamiento entero por noche · trayecto = billete por persona y trayecto (solo ida).
+ */
+export const UNIDADES = ['pp', 'pp/noche', 'total', 'i/v', 'noche', 'trayecto'];
 export const REGIMENES = ['solo-alojamiento', 'desayuno', 'media-pension', 'pension-completa', 'todo-incluido'];
 export const TRANSPORTES = ['avion', 'coche', 'tren', 'bus', 'ferry'];
 export const ALOJAMIENTOS = ['hotel', 'casa-rural', 'camping', 'apartamento', 'parador', 'balneario', 'hostal'];

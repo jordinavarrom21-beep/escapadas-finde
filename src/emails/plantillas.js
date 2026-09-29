@@ -14,7 +14,10 @@ const C = {
 };
 const MAX_POR_SECCION = 6;
 const SEMANA_MS = 7 * 24 * 60 * 60 * 1000;
-const UNIDADES = { 'i/v': 'ida y vuelta', pp: 'por persona', 'pp/noche': 'por persona y noche', total: 'en total', noche: 'por noche' };
+const UNIDADES = {
+  'i/v': 'ida y vuelta por persona', pp: 'por persona', 'pp/noche': 'por persona y noche', total: 'en total',
+  noche: 'por alojamiento y noche', trayecto: 'por persona y trayecto',
+};
 const EMOJI_TEMA = Object.fromEntries(TEMAS.map((t) => [t.id, t.emoji]));
 const euros = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 2 });
 
