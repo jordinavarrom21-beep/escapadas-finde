@@ -3,7 +3,7 @@
  * Todo el texto externo pasa por escaparHtml y los enlaces por urlSegura.
  */
 
-import { etiquetaDia, horaDe } from './fechas.js';
+import { etiquetaDia, fechaLocal, horaDe } from './fechas.js';
 import {
   ETIQUETAS_ALOJAMIENTO, ETIQUETAS_REGIMEN, ETIQUETAS_TIPO, ETIQUETAS_TRANSPORTE, ETIQUETAS_UNIDAD,
   contar, duracion, emojiTiempo, enumerar, escaparHtml as esc, euros, grados, haceCuanto, nota,
@@ -156,10 +156,21 @@ function precio(o) {
     o.descuento ? ` <span class="precio__descuento">−${o.descuento} %</span>` : ''}${noche}</p>`;
 }
 
+/** Fechas del viaje: las concretas o «Fechas flexibles». La caducidad de la promoción va aparte. */
 function textoFechas(o) {
   const { salida, vuelta } = o.fechas ?? {};
   if (salida) return vuelta ? `${etiquetaDia(salida)} – ${etiquetaDia(vuelta)}` : etiquetaDia(salida);
-  return o.caduca ? `Fechas flexibles · hasta el ${etiquetaDia(o.caduca)}` : 'Fechas flexibles';
+  return 'Fechas flexibles';
+}
+
+/**
+ * «Promoción hasta el mié 30 sep»: hasta cuándo se puede reservar, que no es cuándo se viaja.
+ * No se enseña si la oferta ya tiene fechas (la caducidad es la propia salida) ni si la
+ * fecha la ha supuesto el vigilante (las newsletters no la publican).
+ */
+function textoCaducidad(o) {
+  if (!o.caduca || o.fechas?.salida || (o.etiquetas ?? []).includes('caduca-estimada')) return '';
+  return `Promoción hasta el ${etiquetaDia(fechaLocal(o.caduca))}`;
 }
 
 function textoCoche(distancia, desde, o) {
@@ -185,6 +196,7 @@ export function tarjetaOferta(o, ctx) {
   const minutos = duracionActividad(o);
   const detalles = [
     textoFechas(o),
+    textoCaducidad(o) && `⏳ ${textoCaducidad(o)}`,
     minutos && `⏱️ ${duracion(minutos)}`,
     o.noches && contar(o.noches, 'noche'),
     ETIQUETAS_ALOJAMIENTO[o.alojamiento],
@@ -319,7 +331,8 @@ export function insigniaEstado(estado) {
 function datosFicha(o) {
   const v = o.valoracion;
   const filas = [
-    ['Fechas', textoFechas(o)],
+    ['Fechas de viaje', o.fechas?.salida ? textoFechas(o) : 'Flexibles: la web no publica fechas concretas; la disponibilidad se confirma al reservar'],
+    ['Reserva', textoCaducidad(o)],
     ['Noches', o.noches],
     ['Alojamiento', ETIQUETAS_ALOJAMIENTO[o.alojamiento]],
     ['Valoración', v?.nota >= 0 && `${nota(v.nota)} / 10${v.n ? ` · ${contar(v.n, 'opinión', 'opiniones')}` : ''}`],

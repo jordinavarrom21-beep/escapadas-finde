@@ -75,7 +75,12 @@ un `try/catch`, registran el error con `ctx.log` y descartan solo esa oferta.
 
 Etiquetas especiales (en `etiquetas`) que otros módulos entienden:
 `temperatura:<grados>` (popularidad en Chollometro), `top-chollo` (destacado por la
-propia web), `error-tarifa` (tarifa errónea detectada, p. ej. en Fly4free).
+propia web), `error-tarifa` (tarifa errónea detectada, p. ej. en Fly4free), `caduca-estimada` (la
+web no publica hasta cuándo vale y `caduca` la ha supuesto el vigilante, como en el buzón: sirve
+para la poda, pero el panel no la enseña como dato).
+
+`fechas.salida`/`vuelta` son las del viaje; `caduca`, hasta cuándo vale la promoción para reservar.
+El panel las enseña por separado («Fechas flexibles · ⏳ Promoción hasta el mié 30 sep»).
 
 Campo `vuelo` (solo en fuentes de vuelos con fechas concretas, como Ryanair; las
 ofertas de vuelos de blogs y comunidades usan `tipo: 'vuelo'` con `vuelo: null`):

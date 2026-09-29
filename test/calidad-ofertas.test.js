@@ -91,3 +91,29 @@ describe('calidad: el tiempo y los eventos son los de las fechas del viaje', () 
     ]);
   });
 });
+
+describe('calidad: la fecha del viaje no se confunde con la caducidad de la promoción', () => {
+  it('una oferta flexible dice «Fechas flexibles» y aparte hasta cuándo vale la promoción', () => {
+    const o = oferta({ caduca: '2026-09-30T21:00:00.000Z' });
+    const pasadaMedianoche = oferta({ caduca: '2026-09-30T22:30:00.000Z' });
+    assert.match(tarjeta(pasadaMedianoche, ctxPara([pasadaMedianoche])), /Promoción hasta el jue 1 oct/);
+    const html = tarjeta(o, ctxPara([o]));
+    assert.match(html, /Fechas flexibles · ⏳ Promoción hasta el mié 30 sep/, 'en hora de Madrid: las 23:00 del 30');
+    assert.ok(!/Fechas flexibles · hasta el/.test(html));
+    const ficha = contenidoFicha(o, ctxPara([o]));
+    assert.match(ficha, /<dt>Fechas de viaje<\/dt><dd>Flexibles: la web no publica fechas concretas/);
+    assert.match(ficha, /<dt>Reserva<\/dt><dd>Promoción hasta el mié 30 sep/);
+  });
+
+  it('con fechas concretas se enseñan esas y no una caducidad que es la propia salida', () => {
+    const o = oferta({ fechas: { salida: '2026-10-02T08:25:00' }, caduca: '2026-10-02T06:25:00.000Z' });
+    const html = tarjeta(o, ctxPara([o]));
+    assert.match(html, /vie 2 oct/);
+    assert.ok(!html.includes('Promoción hasta'));
+  });
+
+  it('una caducidad supuesta por el vigilante (newsletters) no se presenta como dato de la web', () => {
+    const o = oferta({ caduca: '2026-10-05T10:00:00.000Z', etiquetas: ['newsletter', 'caduca-estimada'] });
+    assert.ok(!tarjeta(o, ctxPara([o])).includes('Promoción hasta'));
+  });
+});
