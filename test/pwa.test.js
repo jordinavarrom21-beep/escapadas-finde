@@ -46,6 +46,17 @@ function alfaEsquinas(ruta) {
 }
 
 describe('app instalable: service worker', () => {
+  it('una versión nueva se carga sola (o avisa si estás a mitad de algo) y no recarga en la primera instalación', () => {
+    const app = readFileSync(new URL('js/app.js', SITE), 'utf8');
+    assert.match(SW, /self\.skipWaiting\(\)/, 'el service worker nuevo no espera a que se cierren las pestañas');
+    assert.match(SW, /self\.clients\.claim\(\)/, 'y toma el control de la página abierta');
+    assert.match(app, /addEventListener\('controllerchange'/);
+    assert.match(app, /const habiaVersion = Boolean\(navigator\.serviceWorker\.controller\)/);
+    assert.match(app, /if \(!habiaVersion \|\| recargando\) return;/);
+    assert.match(app, /data-actualizar/);
+    assert.match(app, /registro\.update\(\)/, 'al volver a la app se busca versión nueva');
+  });
+
   it('todo lo que precarga existe (si falta uno, la instalación entera falla)', () => {
     for (const ruta of interfaz()) {
       assert.ok(existsSync(new URL(ruta === './' ? 'index.html' : ruta, SITE)), ruta);
