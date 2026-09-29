@@ -704,7 +704,9 @@ export function describirCriterio(c, { temas = [], origen = null, periodos = [] 
     c.regimenMinimo && `${ETIQUETAS_REGIMEN[c.regimenMinimo] ?? c.regimenMinimo} o mejor`,
     c.fuente && `fuente ${c.fuente}`,
     c.aeropuerto && `desde ${c.aeropuerto}`,
-    c.precioMax && `hasta ${euros(c.precioMax)}`,
+    c.precioMax && `hasta ${euros(c.precioMax)} publicados`,
+    c.presupuestoMax && `viaje completo hasta ${euros(c.presupuestoMax)} ${c.presupuestoPor === 'persona' ? 'por persona' : 'en total'}${c.viajeros ? ` (${c.viajeros} ${c.viajeros === 1 ? 'persona' : 'personas'})` : ''}`,
+    (c.desde || c.hasta) && `${c.desde ? `del ${etiquetaDia(c.desde)}` : ''}${c.desde && c.hasta ? ' ' : ''}${c.hasta ? `al ${etiquetaDia(c.hasta)}` : ''}`,
     c.precioNocheMax && `hasta ${euros(c.precioNocheMax)} por persona y noche`,
     c.valoracionMin && `valoración ${c.valoracionMin} o más`,
     c.descuentoMin && `descuento del ${c.descuentoMin} % o más`,
@@ -750,7 +752,7 @@ export const marcaVigilado = (criterio) => `json:${encodeURIComponent(JSON.strin
  * lleve dentro la marca de `marcaVigilado`. Solo incluye lo que entiende
  * src/vigilados.js; el resto de filtros se pierde.
  */
-export function criterioVigilado(nombre, f, { vista = 'escapadas' } = {}) {
+export function criterioVigilado(nombre, f, { vista = 'escapadas', salida = null, viajeros = null } = {}) {
   if (vista.startsWith('json:')) return JSON.parse(decodeURIComponent(vista.slice('json:'.length)));
   const criterio = {
     nombre: nombre.trim() || 'Mi búsqueda',
@@ -767,10 +769,17 @@ export function criterioVigilado(nombre, f, { vista = 'escapadas' } = {}) {
     precioMax: f.max ?? undefined,
     precioNocheMax: f.nocheMax ?? undefined,
     noches: f.noches ?? undefined,
-    cocheMaxMin: f.horas ? f.horas * 60 : undefined,
-    cerca: f.punto
-      ? { lat: Number(f.punto.lat.toFixed(4)), lon: Number(f.punto.lon.toFixed(4)), radioKm: Math.round(radioBusquedaKm(f) ?? 100) }
+    // El tiempo en coche del escaneo es desde su origen: desde otro punto (el de los filtros
+    // o tu salida) se vigila un radio equivalente alrededor de ese punto.
+    cocheMaxMin: f.horas && !(f.punto ?? salida) ? f.horas * 60 : undefined,
+    cerca: (f.punto ?? (f.horas || f.km ? salida : null))
+      ? { lat: Number((f.punto ?? salida).lat.toFixed(4)), lon: Number((f.punto ?? salida).lon.toFixed(4)), radioKm: Math.round(radioBusquedaKm(f) ?? 100) }
       : undefined,
+    desde: f.desde || undefined,
+    hasta: f.hasta || undefined,
+    presupuestoMax: f.presupuesto ?? undefined,
+    presupuestoPor: f.presupuesto && f.presupuestoPor === 'persona' ? 'persona' : undefined,
+    viajeros: f.presupuesto && viajeros ? viajeros : undefined,
     pais: f.pais || undefined,
     region: f.region || undefined,
     // «cuando» es 'finde', 'puente' o el id de un finde o de un puente concretos (su

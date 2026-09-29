@@ -432,7 +432,7 @@ describe('ayudas para elegir', () => {
       tipo: 'hotel',
       temas: ['spa', 'rural'],
       precioMax: 90,
-      cocheMaxMin: 120,
+      // Desde Girona, un radio de ~2 h alrededor de Girona; no «2 h desde Barcelona» (el origen del escaneo).
       cerca: { lat: 41.9794, lon: 2.8214, radioKm: 123 },
       puente: true,
     });
@@ -475,7 +475,7 @@ describe('búsqueda, novedades y resúmenes', () => {
 
   it('describe los vigilados y enlaza a la edición en GitHub', () => {
     const [, , spa, puentes] = leer('vigilados.json').vigilados;
-    assert.deepEqual(describirCriterio(spa, { temas: datos.temas, origen }), ['🧖 Relax y spa', `hasta ${euros(70)}`, 'a menos de 2 h en coche']);
+    assert.deepEqual(describirCriterio(spa, { temas: datos.temas, origen }), ['🧖 Relax y spa', `hasta ${euros(70)} publicados`, 'a menos de 2 h en coche']);
     assert.ok(describirCriterio(puentes, { temas: datos.temas, origen }).includes('a menos de 300 km de Barcelona'));
     assert.equal(urlEditarVigilados({ hostname: 'jordi.github.io', pathname: '/escapadas-finde/' }),
       'https://github.com/jordi/escapadas-finde/edit/main/config/vigilados.json');

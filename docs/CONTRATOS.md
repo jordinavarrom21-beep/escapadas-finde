@@ -320,7 +320,9 @@ una oferta coincide si cumple **todos** los que estén presentes). La lista comp
 explicada está en el «leeme» del propio archivo y en el typedef `Criterio` de
 `src/vigilados.js`: `nombre, activo, ofertaId, texto, tipo, tema, temas, fuente, aeropuerto,
 alojamiento, regimenMinimo, valoracionMin, descuentoMin, precioMax, precioNocheMax, noches,
-cocheMaxMin, cerca, pais, region, puente, finde, soloChollazos, soloMinimoHistorico`.
+cocheMaxMin, cerca, pais, region, puente, finde, soloChollazos, soloMinimoHistorico, desde, hasta,
+presupuestoMax, presupuestoPor, viajeros`. El presupuesto usa `costeViaje` de `site/js/coste.js`
+(`costeDesdeOrigen`), el mismo cálculo que el panel, con la gasolina desde `ajustes.origen`.
 `texto` busca palabras completas sin tildes ni mayúsculas en título, lugar y destino; `pais`
 con dos letras compara el código; `region` vale para la región de la web, la provincia o la
 comunidad; `aeropuerto` solo descarta vuelos que publican otro origen.

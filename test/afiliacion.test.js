@@ -59,3 +59,48 @@ describe('afiliación', () => {
     assert.equal(caducada.patrocinada, null);
   });
 });
+
+describe('vigilados: fechas y presupuesto del viaje completo', async () => {
+  const { coincide, costeDesdeOrigen, validarVigilado } = await import('../src/vigilados.js');
+  const { criterioVigilado, leerFiltrosEscapadas } = await import('../site/js/filtros.js');
+  // Casa rural en Girona: 120 € la noche la casa entera, 2 h en coche, 25 € de gasolina ida y vuelta.
+  const casa = oferta({ tipo: 'hotel', precio: 120, unidad: 'noche', temas: ['spa'], cocheKm: 100, cocheMin: 90, costeCoche: { eur: 25, litros: 13 }, fechas: { salida: '2026-10-09', vuelta: '2026-10-11' } });
+
+  it('el presupuesto usa el mismo coste del viaje que el panel', () => {
+    assert.equal(costeDesdeOrigen(casa, 2).total, 265, '120 × 2 noches + 25 € de gasolina');
+    assert.equal(coincide(casa, { nombre: 'x', presupuestoMax: 270 }), true);
+    assert.equal(coincide(casa, { nombre: 'x', presupuestoMax: 180 }), false);
+    assert.equal(coincide(casa, { nombre: 'x', presupuestoMax: 140, presupuestoPor: 'persona', viajeros: 2 }), true, '132,50 € por persona');
+    assert.equal(coincide(oferta({ precio: 50, unidad: null }), { nombre: 'x', presupuestoMax: 999 }), false, 'sin total no se puede comprobar');
+  });
+
+  it('«cualquier finde de octubre» con desde/hasta', () => {
+    const octubre = { nombre: 'x', desde: '2026-10-01', hasta: '2026-10-31' };
+    assert.equal(coincide(casa, octubre), true);
+    assert.equal(coincide(casa, { ...octubre, desde: '2026-11-01', hasta: '2026-11-30' }), false);
+    assert.equal(coincide(oferta({ caduca: '2026-10-05T10:00:00Z' }), octubre), true, 'flexible y vigente en octubre');
+    assert.equal(coincide(oferta({ caduca: '2026-09-20T10:00:00Z' }), octubre), false, 'caduca antes');
+    assert.deepEqual(validarVigilado({ nombre: 'x', desde: '1/10', presupuestoPor: 'pareja', viajeros: 0 }).length, 3);
+  });
+
+  it('el panel copia fechas, presupuesto, viajeros y un radio alrededor de tu salida', () => {
+    const f = leerFiltrosEscapadas({ temas: 'spa', h: '2', desde: '2026-10-01', hasta: '2026-10-31', pres: '180', prespor: 'total' });
+    const criterio = criterioVigilado('Spa en octubre', f, { salida: { nombre: 'Girona', lat: 41.9794, lon: 2.8214 }, viajeros: 2 });
+    assert.deepEqual(criterio, {
+      nombre: 'Spa en octubre', tema: 'spa', cerca: { lat: 41.9794, lon: 2.8214, radioKm: 123 },
+      desde: '2026-10-01', hasta: '2026-10-31', presupuestoMax: 180, viajeros: 2,
+    });
+    assert.deepEqual(validarVigilado(criterio), []);
+  });
+});
+
+describe('vigilados en el panel: los avisos solo se dan por activos si se entregan', async () => {
+  const { vistaVigilados } = await import('../site/js/vistas.js');
+  const base = { vigilados: [], porId: new Map(), ubicacion: {}, datos: { temas: [], origen: { nombre: 'Barcelona', lat: 41.39, lon: 2.17 } } };
+  it('dice si el email está configurado, si no lo está o si aún no se sabe', () => {
+    assert.match(vistaVigilados({ ...base, datos: { ...base.datos, avisos: { email: true } } }), /Avisos por email activos/);
+    assert.match(vistaVigilados({ ...base, datos: { ...base.datos, avisos: { email: false } } }), /no están configurados[^]*no te llegará ningún aviso/);
+    assert.match(vistaVigilados(base), /tras la próxima revisión/);
+    assert.match(vistaVigilados(base), /"activo": false/);
+  });
+});

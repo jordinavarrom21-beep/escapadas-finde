@@ -134,7 +134,19 @@ Campos disponibles (la explicación de cada uno está en el «leeme» del propio
 publican otro origen), `alojamiento`, `regimenMinimo`, `valoracionMin`, `descuentoMin`,
 `precioMax`, `precioNocheMax`, `noches` (número o `{min, max}`), `cocheMaxMin`, `cerca`, `pais`
 (nombre o código), `region` (provincia o comunidad), `puente: true`, `finde` (fecha del finde o
-del puente), `soloChollazos`, `soloMinimoHistorico`, `ofertaId` y `activo: false` (pausa).
+del puente), `desde`/`hasta` (fechas), `presupuestoMax` con `presupuestoPor` («total» o «persona») y
+`viajeros` (el viaje completo, con la gasolina desde el origen), `soloChollazos`, `soloMinimoHistorico`,
+`ofertaId` y `activo: false` (pausa).
+
+Por ejemplo, «dos personas, menos de 180 €, a unas 2 h de Girona, cualquier finde de octubre, con spa»:
+
+```json
+{ "nombre": "Spa en octubre", "tema": "spa", "cerca": { "lat": 41.98, "lon": 2.82, "radioKm": 123 },
+  "desde": "2026-10-01", "hasta": "2026-10-31", "presupuestoMax": 180, "viajeros": 2 }
+```
+
+El panel lo genera con «📋 Copiar como vigilado» y, en Vigilados, dice si los avisos por email
+están activos de verdad (con los secretos del correo) o no.
 Si uno está mal escrito, el registro del escaneo lo dice y el resto sigue funcionando.
 
 ## Afiliación y patrocinios (`config/afiliacion.json`)

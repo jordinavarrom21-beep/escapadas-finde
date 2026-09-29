@@ -25,7 +25,7 @@ import { precioPorPersonaNoche, puntuar } from '../enriquecer/puntuacion.js';
 import { compactar, registrarPrecios, seriesPara } from '../historial.js';
 import { coincide } from '../vigilados.js';
 import { procesarEmails } from '../emails/decidir.js';
-import { crearTransporte, enviarEmail } from '../emails/enviar.js';
+import { configuracionEnvio, crearTransporte, enviarEmail } from '../emails/enviar.js';
 import { clienteHttp, crearClienteHttp, metricasHttp, reiniciarMetricas } from '../util/http.js';
 import { ErrorRobots, comprobarRobots } from '../util/robots.js';
 import { fechaLocal, findesProximos, sumarDias } from '../util/fechas.js';
@@ -210,6 +210,8 @@ export async function escanear({
       // Para que el panel estime la gasolina desde la salida que elija cada persona.
       // Qué proveedores marcan enlaces de afiliado (para el aviso del panel) y dónde se cuentan los clics.
       afiliacion: { proveedores: afiliados.map((p) => p.id), medicion: afiliacion.medicion?.url || null },
+      // Si los vigilados avisan de verdad por email (sin decir a qué dirección).
+      avisos: { email: !opciones.sinEmails && configuracionEnvio(env).estado === 'lista' },
       coche: { consumoL100km: ajustes.coche.consumoL100km, precioLitro: precioLitro ?? ajustes.coche.precioLitro, carburante: ajustes.coche.carburante },
       temas: TEMAS, findes, puentes, fuentes: estadoFuentes, ofertas,
     },

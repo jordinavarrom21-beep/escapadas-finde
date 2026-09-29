@@ -774,6 +774,21 @@ const EJEMPLO_VIGILADOS = `{
   ]
 }`;
 
+/**
+ * Si los vigilados avisan de verdad: lo publica el escaneo (ofertas.json → avisos). Sin
+ * email configurado se dice, en vez de dar a entender que llegará algo.
+ */
+function estadoAvisos(e) {
+  const email = e.datos.avisos?.email;
+  if (email === true) {
+    return `<p class="seccion__intro">✅ <strong>Avisos por email activos.</strong> Cuando una oferta cumple un criterio y su precio baja respecto al último aviso, llega un email en la siguiente revisión (varias veces al día), y los viernes, un resumen con todos.</p>`;
+  }
+  if (email === false) {
+    return `<p class="aviso-memoria" role="status">⚠️ <strong>Los avisos por email no están configurados</strong>: faltan los secretos del correo en el repositorio (LEEME, «Emails»). Los criterios se comprueban igual y aquí ves lo que cumplen, pero no te llegará ningún aviso.</p>`;
+  }
+  return '<p class="seccion__intro">Se sabrá si los avisos por email están activos tras la próxima revisión.</p>';
+}
+
 export function vistaVigilados(e) {
   const criterios = e.vigilados.map((c) => {
     const coincidencias = (c.coincidencias ?? []).map((id) => e.porId.get(id)).filter(Boolean);
@@ -789,7 +804,7 @@ export function vistaVigilados(e) {
     ? `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">config/vigilados.json en GitHub</a>`
     : '<code>config/vigilados.json</code> en tu repositorio de GitHub';
   return `<h1 class="titulo-vista" tabindex="-1">Vigilados</h1>
-<p class="seccion__intro">Cuando una oferta cumple un criterio y su precio baja respecto al último aviso, te llega un email.</p>
+${estadoAvisos(e)}
 ${criterios.join('') || estadoVacio('Aún no vigilas nada', 'Añade criterios como se explica abajo.')}
 <section class="ayuda-caja">
   <h2>Cómo añadir o cambiar vigilados</h2>
@@ -799,7 +814,8 @@ ${criterios.join('') || estadoVacio('Aún no vigilas nada', 'Añade criterios co
     <li>Pega el criterio dentro de la lista <code>"vigilados"</code>. Solo <code>nombre</code> es obligatorio; una oferta coincide si cumple <strong>todos</strong> los demás campos que pongas.</li>
     <li>Guarda con «Commit changes». Se aplicará en la próxima revisión.</li>
   </ol>
-  <p>Campos: <code>texto</code>, <code>tipo</code> (vuelo, escapada, hotel, paquete), <code>tema</code> (${e.datos.temas.map((t) => `<code>${esc(t.id)}</code>`).join(', ')}), <code>fuente</code>, <code>aeropuerto</code>, <code>precioMax</code>, <code>cocheMaxMin</code>, <code>cerca</code> (<code>lat</code>, <code>lon</code>, <code>radioKm</code>) y <code>puente</code>.</p>
+  <p>Para <strong>pausar</strong> un vigilado sin borrarlo, ponle <code>"activo": false</code>; para dejar de recibir cualquier email, borra el secreto <code>EMAIL_TO</code> del repositorio.</p>
+  <p>Campos: <code>texto</code>, <code>tipo</code> (vuelo, escapada, hotel, paquete), <code>desde</code> y <code>hasta</code> (fechas), <code>presupuestoMax</code> con <code>presupuestoPor</code> («total» o «persona») y <code>viajeros</code>, <code>tema</code> (${e.datos.temas.map((t) => `<code>${esc(t.id)}</code>`).join(', ')}), <code>fuente</code>, <code>aeropuerto</code>, <code>precioMax</code>, <code>cocheMaxMin</code>, <code>cerca</code> (<code>lat</code>, <code>lon</code>, <code>radioKm</code>) y <code>puente</code>.</p>
   <pre><code>${esc(EJEMPLO_VIGILADOS)}</code></pre>
 </section>`;
 }
