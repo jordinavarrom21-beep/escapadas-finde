@@ -10,9 +10,13 @@ export const ETIQUETAS_UNIDAD = {
   pp: 'por persona',
   'pp/noche': 'por persona y noche',
   total: 'en total',
-  'i/v': 'ida y vuelta',
-  noche: 'por noche',
+  'i/v': 'ida y vuelta por persona',
+  // La habitación o la casa entera: no es por persona.
+  noche: 'por alojamiento y noche',
 };
+
+/** Cuando la web no dice a qué corresponde el precio: mejor decirlo que dejar que se suponga. */
+export const SIN_UNIDAD = 'la web no dice si es por persona';
 
 export const ETIQUETAS_REGIMEN = {
   'solo-alojamiento': 'Solo alojamiento',

@@ -197,3 +197,23 @@ describe('calidad: cada etiqueta de chollo se explica con datos', async () => {
     assert.match(html, /title="Ha bajado 15\s€: el precio más alto de los últimos 7 días fue 115\s€">↓ 15\s€/);
   });
 });
+
+describe('calidad: siempre se sabe a qué corresponde el precio', () => {
+  it('cada unidad se dice con palabras, y la falta de unidad también', () => {
+    const casos = [
+      [{ precio: 99, unidad: 'total', noches: 1 }, /99\s€<\/strong> <span class="precio__unidad">en total/],
+      [{ precio: 36, unidad: 'noche' }, /<span class="precio__unidad">por alojamiento y noche/],
+      [{ tipo: 'vuelo', precio: 32, unidad: 'i/v' }, /<span class="precio__unidad">ida y vuelta por persona/],
+      [{ precio: 199, unidad: null }, /<span class="precio__unidad">la web no dice si es por persona/],
+    ];
+    for (const [campos, esperado] of casos) {
+      const o = oferta(campos);
+      assert.match(tarjeta(o, ctxPara([o])), esperado);
+    }
+  });
+
+  it('el «≈ por persona y noche» explica el cálculo', () => {
+    const o = oferta({ precio: 99, unidad: 'total', noches: 1, precioNoche: 49.5 });
+    assert.match(tarjeta(o, ctxPara([o])), /title="Cálculo: 99\s€ en total entre 1 noche y entre 2 personas">≈ 50\s€ por persona y noche/);
+  });
+});

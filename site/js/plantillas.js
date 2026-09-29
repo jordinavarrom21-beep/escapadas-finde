@@ -5,7 +5,7 @@
 
 import { diasEntre, etiquetaDia, fechaLocal, horaDe } from './fechas.js';
 import {
-  ETIQUETAS_ALOJAMIENTO, ETIQUETAS_REGIMEN, ETIQUETAS_TIPO, ETIQUETAS_TRANSPORTE, ETIQUETAS_UNIDAD,
+  ETIQUETAS_ALOJAMIENTO, ETIQUETAS_REGIMEN, ETIQUETAS_TIPO, ETIQUETAS_TRANSPORTE, ETIQUETAS_UNIDAD, SIN_UNIDAD,
   contar, duracion, emojiTiempo, enumerar, escaparHtml as esc, euros, grados, haceCuanto, nota,
   puntosMinigrafica, urlSegura,
 } from './formato.js';
@@ -161,12 +161,21 @@ function matiz(precioTexto = '') {
   return resto ? ` <span class="precio__unidad">${esc(resto)}</span>` : '';
 }
 
+/** Cómo sale el «≈ por persona y noche» a partir de lo que publica la web. */
+function calculoPorNoche(o) {
+  const noches = o.noches ? ` entre ${contar(o.noches, 'noche')}` : '';
+  const personas = ['noche', 'total'].includes(o.unidad) && o.precio && o.precioNoche
+    ? ` y entre ${Math.round(o.precio / o.precioNoche / (o.unidad === 'total' ? o.noches || 1 : 1))} personas`
+    : '';
+  return `Cálculo: ${euros(o.precio)} ${ETIQUETAS_UNIDAD[o.unidad] ?? ''}${noches}${personas}`;
+}
+
 function precio(o) {
   if (typeof o.precio !== 'number') return `<p class="precio"><strong class="precio__consultar">${esc(o.precioTexto || 'Consultar precio')}</strong></p>`;
   if (o.precio === 0) return `<p class="precio"><strong class="precio__gratis">Gratis</strong>${matiz(o.precioTexto)}</p>`;
-  const unidad = ETIQUETAS_UNIDAD[o.unidad] ?? '';
+  const unidad = ETIQUETAS_UNIDAD[o.unidad] ?? SIN_UNIDAD;
   const noche = o.precioNoche != null && o.unidad !== 'pp/noche'
-    ? ` <span class="precio__noche">≈ ${euros(Math.round(o.precioNoche))} por persona y noche</span>`
+    ? ` <span class="precio__noche" title="${esc(calculoPorNoche(o))}">≈ ${euros(Math.round(o.precioNoche))} por persona y noche</span>`
     : '';
   return `<p class="precio"><strong>${euros(o.precio)}</strong>${unidad ? ` <span class="precio__unidad">${unidad}</span>` : ''}${
     o.precioAnterior > o.precio ? ` <s class="precio__anterior">${euros(o.precioAnterior)}</s>` : ''}${
