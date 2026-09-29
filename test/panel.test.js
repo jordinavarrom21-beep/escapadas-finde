@@ -515,12 +515,15 @@ describe('fechas, formato, geocodificación y plantillas', () => {
   });
 
   it('la tarjeta enseña ahorro, valoración, coste del coche, eventos, tiempo y el botón de descartar', () => {
-    const besalu = tarjeta(porId('chollometro:besalu-casa-rural-para-6-personas-por-18'), ctxTarjeta);
+    const casaBesalu = porId('chollometro:besalu-casa-rural-para-6-personas-por-18');
+    const besalu = tarjeta(casaBesalu, ctxTarjeta);
     assert.match(besalu, /Un 35 % por debajo de lo normal/);
     assert.match(besalu, /🏡 Casa rural/);
     assert.match(besalu, /⭐ 8/);
     assert.match(besalu, /≈ \d+\s€ de gasolina ida y vuelta · estimado, un coche para 2 personas/);
-    assert.match(besalu, /Mercat medieval de Besalú/);
+    // Fechas flexibles: los eventos son los del próximo finde, así que van a la ficha y avisando.
+    assert.ok(!besalu.includes('Mercat medieval de Besalú'));
+    assert.match(contenidoFicha(casaBesalu, ctxTarjeta), /si vas entonces[^]*Mercat medieval de Besalú/);
     assert.match(besalu, /por persona y noche/);
     assert.match(besalu, /data-descartar="chollometro:besalu/);
 

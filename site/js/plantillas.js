@@ -75,17 +75,24 @@ function textoCosteCoche(o, ctx) {
   return `<span class="coste-coche" title="Estimación con el consumo y el precio medio del carburante${litros}. Sin peajes ni aparcamiento.">⛽ ≈ ${euros(Math.round(o.costeCoche.eur))} de gasolina ida y vuelta · estimado, un coche${personas}</span>`;
 }
 
+/**
+ * ¿La oferta tiene sus propias fechas de viaje (salida, finde o puente)? Si no, el tiempo
+ * y los eventos que trae son los del próximo finde: una suposición, no los de su viaje.
+ */
+const conFechasDeViaje = (o) => Boolean(o.fechas?.salida || o.fechas?.findeId || o.fechas?.puenteId);
+
 /** «☀️ 24° · 10 % de lluvia» del finde o puente de la oferta. */
 function tiempo(o) {
   const t = o.tiempo;
   if (!t) return '';
+  const supuesto = !conFechasDeViaje(o) && t.dia ? `Si vas el ${esc(etiquetaDia(t.dia))}: ` : '';
   const partes = [
     `${emojiTiempo(t.codigo)} ${t.texto ? esc(t.texto) : ''}`.trim(),
     t.maxC != null && grados(t.maxC),
     t.lluviaPct != null && `${t.lluviaPct} % de lluvia`,
     t.dia && esc(etiquetaDia(t.dia)),
   ].filter(Boolean);
-  return `<p class="dato-extra">${partes.join(' · ')}</p>`;
+  return `<p class="dato-extra">${supuesto}${partes.join(' · ')}</p>`;
 }
 
 /** Hasta tres eventos cerca del destino esos días. */
@@ -197,7 +204,7 @@ export function tarjetaOferta(o, ctx) {
     <h3 class="tarjeta__titulo"><button type="button" class="enlace-ficha" data-ficha="${esc(o.id)}">${esc(o.titulo)}</button></h3>
     <p class="tarjeta__lugar">${textoLugar(o)} ${textoCoche(ctx.distancias?.get(o.id), ctx.desde, o)}</p>
     <p class="tarjeta__detalles">${detalles} ${valoracion(o)}</p>
-    ${tiempo(o)}${envolverDato(textoCosteCoche(o, ctx))}${equivalentes(o, ctx)}${eventos(o)}
+    ${conFechasDeViaje(o) ? tiempo(o) : ''}${envolverDato(textoCosteCoche(o, ctx))}${equivalentes(o, ctx)}${conFechasDeViaje(o) ? eventos(o) : ''}
     <div class="insignias">${insignias(o, ctx)}</div>
     <div class="tarjeta__pie">
       ${precio(o)}
@@ -374,7 +381,7 @@ ${o.descripcion ? `<p class="ficha__descripcion">${esc(o.descripcion)}</p>` : ''
 ${cocheFicha(o, ctx)}
 ${tiempo(o)}
 ${equivalentes(o, ctx)}
-${o.eventos?.length ? `<section class="ficha__eventos"><h3>Qué hay esos días por la zona</h3>${eventos(o, { conEnlace: true })}</section>` : ''}
+${o.eventos?.length ? `<section class="ficha__eventos"><h3>${conFechasDeViaje(o) ? 'Qué hay esos días por la zona' : 'Qué hay el próximo finde por la zona (si vas entonces)'}</h3>${eventos(o, { conEnlace: true })}</section>` : ''}
 ${queHacerAlli(ctx)}
 <dl class="ficha__datos">${datosFicha(o)}</dl>
 <section class="ficha__historial" aria-labelledby="ficha-historial-titulo">

@@ -71,7 +71,7 @@ un `try/catch`, registran el error con `ctx.log` y descartan solo esa oferta.
 | `equivalentes` | `duplicados.js` | la misma oferta en otras webs: `[{fuente, precio, unidad, url}]` |
 | `costeCoche` | `geo.js` | `{eur, litros}` del viaje de ida y vuelta desde `ajustes.origen`, solo si se va en coche (`transporte` `coche` o `null`): una oferta de tren, bus, avión o ferry no gasta gasolina (`vaEnCoche`) |
 | `tiempo` | `tiempo.js` | `{dia, maxC, minC, lluviaPct, codigo, texto}` del finde o puente asignado |
-| `eventos` | `eventos.js` | hasta 3 `{nombre, fecha, url, municipio}` cerca del destino esos días |
+| `eventos` | `eventos.js` | hasta 3 `{nombre, fecha, url, municipio}` cerca del destino esos días, sin repetir el mismo acto en el mismo municipio (`sinRepetir`). En una oferta sin fechas propias son los del próximo finde: el panel los enseña solo en la ficha y avisando |
 
 Etiquetas especiales (en `etiquetas`) que otros módulos entienden:
 `temperatura:<grados>` (popularidad en Chollometro), `top-chollo` (destacado por la

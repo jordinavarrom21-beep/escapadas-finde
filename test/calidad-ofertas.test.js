@@ -9,6 +9,7 @@ import assert from 'node:assert/strict';
 import { crearOferta } from '../src/modelo.js';
 import { medirDistancias } from '../site/js/filtros.js';
 import { contenidoFicha, tarjeta } from '../site/js/plantillas.js';
+import { sinRepetir } from '../src/enriquecer/eventos.js';
 
 const ORIGEN = { nombre: 'Barcelona', lat: 41.3874, lon: 2.1686 };
 const TOULOUSE = { nombre: 'Toulouse', pais: 'Francia', lat: 43.6045, lon: 1.444 };
@@ -48,5 +49,45 @@ describe('calidad: el transporte de la oferta manda', () => {
     const html = tarjeta(coche, ctxPara([coche]));
     assert.match(html, /🚗 4 h 16 min/);
     assert.match(html, /⛽ ≈ 98\s€ de gasolina ida y vuelta · estimado/);
+  });
+});
+
+describe('calidad: el tiempo y los eventos son los de las fechas del viaje', () => {
+  const tiempoSabado = { dia: '2026-10-03', maxC: 24, minC: 14, lluviaPct: 10, codigo: 0, texto: 'Despejado' };
+  const evento = { nombre: 'Fira de Tardor', fecha: '2026-10-03', url: 'https://ejemplo.cat/fira', municipio: 'Olot' };
+  const flexible = oferta({ titulo: 'Casa rural en Olot', tiempo: tiempoSabado, eventos: [evento] });
+  const conFinde = oferta({ titulo: 'Bus a Olot', fechas: { salida: '2026-10-02', findeId: '2026-10-02' }, tiempo: tiempoSabado, eventos: [evento] });
+
+  it('una oferta de fechas flexibles no pone en la tarjeta el tiempo ni los eventos de un finde que no es el suyo', () => {
+    const html = tarjeta(flexible, ctxPara([flexible]));
+    assert.ok(!html.includes('Despejado'));
+    assert.ok(!html.includes('Fira de Tardor'));
+  });
+
+  it('en su ficha aparecen, pero diciendo que son una suposición', () => {
+    const html = contenidoFicha(flexible, ctxPara([flexible]));
+    assert.match(html, /Si vas el sáb 3 oct: /);
+    assert.match(html, /Qué hay el próximo finde por la zona \(si vas entonces\)/);
+  });
+
+  it('con fechas propias se enseñan en la tarjeta tal cual', () => {
+    const html = tarjeta(conFinde, ctxPara([conFinde]));
+    assert.match(html, /Despejado/);
+    assert.match(html, /Fira de Tardor/);
+    assert.ok(!html.includes('Si vas el'));
+  });
+
+  it('el mismo acto en el mismo municipio cuenta una vez', () => {
+    const lista = sinRepetir([
+      { nombre: 'GospelPraise', fecha: '2026-10-04', url: null, municipio: 'Torello' },
+      { nombre: 'Gospelpraise', fecha: '2026-10-03', url: 'https://teatrecirvianum.cat/', municipio: 'Torello' },
+      { nombre: 'GospelPraise', fecha: '2026-10-03', url: null, municipio: 'Vic' },
+      { nombre: 'Parcs en concert', fecha: '2026-10-02', url: null, municipio: 'Montesquiu' },
+    ]);
+    assert.deepEqual(lista.map((e) => [e.nombre, e.fecha, e.municipio, e.url]), [
+      ['GospelPraise', '2026-10-03', 'Torello', 'https://teatrecirvianum.cat/'],
+      ['GospelPraise', '2026-10-03', 'Vic', null],
+      ['Parcs en concert', '2026-10-02', 'Montesquiu', null],
+    ]);
   });
 });
