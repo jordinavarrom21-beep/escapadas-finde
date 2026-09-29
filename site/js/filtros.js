@@ -165,6 +165,8 @@ export function leerFiltrosEscapadas(p = {}) {
     transporte: p.transporte ?? '',
     sinCoche: p.sincoche === '1',
     alojamiento: ALOJAMIENTOS.includes(p.aloj) ? p.aloj : '',
+    // Categoría mínima: 2 a 5 estrellas. Las que no dicen sus estrellas no entran.
+    estrellas: ['2', '3', '4', '5'].includes(p.est) ? Number(p.est) : null,
     fuente: p.fuente ?? '',
     tipo: p.tipo ?? '',
     punto: lat != null && lon != null ? { nombre: nombreLugar(p.lugar) || 'Punto elegido', lat, lon } : null,
@@ -485,6 +487,7 @@ function cumpleEscapada(o, f, ctx, distancia) {
     && (!f.transporte || o.transporte === f.transporte)
     && (!f.sinCoche || SIN_COCHE.includes(o.transporte))
     && (!f.alojamiento || o.alojamiento === f.alojamiento)
+    && (!f.estrellas || (o.estrellas ?? 0) >= f.estrellas)
     && (!f.fuente || o.fuente === f.fuente)
     && (!f.tipo || o.tipo === f.tipo)
     && dentroDelLimite(distancia, f);
@@ -803,6 +806,16 @@ export function describirCriterio(c, { temas = [], origen = null, periodos = [] 
 }
 
 /**
+ * El precio en la unidad de su historial: por noche si la oferta es una estancia con
+ * fechas que cambian (`historialPorNoche`, ver src/historial.js); si no, el publicado.
+ */
+export const precioDeSerie = (o) => (o.historialPorNoche && o.unidad === 'total' && o.noches > 0 && typeof o.precio === 'number'
+  ? Math.round((o.precio / o.noches) * 100) / 100
+  : o.precio);
+/** « por noche» si el historial y la bajada de la oferta son por noche. */
+export const sufijoSerie = (o) => (o.historialPorNoche ? ' por noche' : '');
+
+/**
  * Estado de un vigilado con los datos que publica el escaneo: qué ofertas cumple
  * ahora mismo, cuál es la mejor y si esa mejor está en su precio más bajo.
  */
@@ -819,7 +832,7 @@ export function resumenVigilado(criterio, { porId = new Map(), historial = {} } 
     total: ofertas.length,
     mejor,
     precioMin: precios.length ? Math.min(...precios) : null,
-    enMinimo: Boolean(mejor?.minimoHistorico || (minimoSerie != null && mejor?.precio <= minimoSerie)),
+    enMinimo: Boolean(mejor?.minimoHistorico || (minimoSerie != null && precioDeSerie(mejor) <= minimoSerie)),
     diasHistorial: serie.length,
   };
 }
@@ -986,6 +999,7 @@ function textoFiltro(clave, valor, ctx) {
     clasica: () => 'Escapada clásica (2 noches)',
     regimen: () => `Al menos ${(ETIQUETAS_REGIMEN[valor] ?? valor).toLowerCase()}`,
     aloj: () => ETIQUETAS_ALOJAMIENTO[valor] ?? valor,
+    est: () => (valor === '5' ? '5★' : `${valor}★ o más`),
     transporte: () => ETIQUETAS_TRANSPORTE[valor] ?? valor,
     sincoche: () => 'Sin coche',
     fuente: () => `Solo ${ctx.fuentes?.get(valor) ?? valor}`,

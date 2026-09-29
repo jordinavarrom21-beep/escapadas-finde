@@ -68,8 +68,10 @@ un `try/catch`, registran el error con `ctx.log` y descartan solo esa oferta.
 | `valoracion` | fuente | `{nota: 0–10, n: nº de opiniones}` o `null` |
 | `establecimiento` | fuente | nombre propio del alojamiento («Can Salvà», «Parador de Cardona») solo si la web lo publica como dato aparte (no se saca de títulos de pack); `null` si no. Sirve para buscar ese mismo alojamiento en otras webs |
 | `ninos` | `ninos.js` | `null` si no es un plan para ir con niños; si lo es, `{ventaja, descuento, detalle}`: `ventaja` es `gratis`, `descuento` (con `descuento` en %), `reducido` (tarifa infantil sin %) o `null` (apta para niños sin precio especial); `detalle` es el texto para la ficha («1 niño gratis (de 2 a 16 años)»). Se deduce del título, la descripción, el precio publicado y las etiquetas; lo negado («no se admiten niños») y lo «solo adultos» no cuenta. Si no es `null`, la oferta lleva también el tema `familia` |
+| `estrellas` | fuente o `categoria.js` | categoría del alojamiento, 1–5, o `null`. Holidayguru la da como dato; en el resto se lee del texto («Hotel 4*», «(4*, 8,8/10…)», «SPA****», «hotel de 3 estrellas»), sin contar «reseñas de 5 estrellas» ni las negritas `**…**`. Con varias, la más baja. Una oferta con estrellas y sin `alojamiento` pasa a `hotel`. Si el texto dice «solo adultos» / «adults only», la oferta lleva la etiqueta `solo-adultos` |
+| `historialPorNoche` | `historial.js` | `true` si el historial, `bajada` y `minimoHistorico` van por noche: precios por noche y estancias con fechas cerradas y precio total, cuyas fechas y noches cambian de un día a otro. Su serie se guarda como `<id>~noche` y se publica con el id de la oferta |
 | `precioNoche` | `puntuacion.js` | precio por persona y noche cuando se puede deducir (`precioPorPersonaNoche`) |
-| `referencia` | `referencia.js` | `{mediana, ahorroPct, grupo, n}`: comparación con ofertas parecidas |
+| `referencia` | `referencia.js` | `{mediana, ahorroPct, grupo, descripcion, n}`: comparación con ofertas parecidas; `descripcion` dice el grupo en palabras («escapadas de relax y spa en Girona, por persona y noche»). Las actividades no tienen: no son comparables entre sí |
 | `urlReserva`, `afiliado`, `patrocinada` | `afiliacion.js` | la `url` con el identificador de afiliado de un proveedor activo y aprobado (o igual que `url`), qué proveedor (`null` si ninguno) y `{anunciante}` si alguien paga por ella. `url` se queda limpia. No cambian la puntuación ni el orden |
 | `equivalentes` | `duplicados.js` | el mismo alojamiento en otras webs, de la más barata a la más cara: `[{id, fuente, precio, unidad, precioNoche, url}]` |
 | `costeCoche` | `geo.js` | `{eur, litros}` del viaje de ida y vuelta desde `ajustes.origen`, solo si se va en coche (`transporte` `coche` o `null`): una oferta de tren, bus, avión o ferry no gasta gasolina (`vaEnCoche`) |
@@ -184,7 +186,7 @@ export default {
     y ferry pueden valer desde 1 €). Les pone `precio` y `precioNoche` a `null`,
     `chollazo` a `false` y la etiqueta «precio-dudoso»; `precioTexto` se conserva.
 - `referencia.js`
-  - `calcularReferencia(ofertas)` rellena `referencia` `{grupo, mediana, n, ahorroPct}`
+  - `calcularReferencia(ofertas)` rellena `referencia` `{grupo, descripcion, mediana, n, ahorroPct}` (salvo en actividades)
     comparando con la mediana de su grupo (ruta de vuelo, billetes por transporte,
     tipo + zona…). Sin red.
 - `duplicados.js`

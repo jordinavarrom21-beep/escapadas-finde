@@ -48,12 +48,26 @@ function esMinimoHistorico(anteriores, precio, hoy) {
   return suficiente && anteriores.some(([, valor]) => valor > precio) && anteriores.every(([, valor]) => precio <= valor);
 }
 
+/**
+ * Alojamientos por noche y estancias con fechas cerradas y precio total (Holidu y
+ * parecidas): cada día la web puede dar otras fechas y otro número de noches, o pasar de
+ * «desde X € la noche» a «Y € por 3 noches», así que el total no se puede comparar de un
+ * día a otro (60 € por 1 noche y 127 € por 2 no es una subida). Se sigue el precio por
+ * noche, en una serie aparte («<id>~noche») para no mezclarlo con totales ya guardados.
+ * @param {import('./modelo.js').Oferta} oferta
+ */
+export const sigueNoche = (oferta) => oferta.unidad === 'noche' || (oferta.unidad === 'total' && oferta.noches > 0 && Boolean(oferta.fechas?.salida));
+/** Clave de la serie de la oferta en el historial. */
+export const claveSerie = (oferta) => (sigueNoche(oferta) ? `${oferta.id}~noche` : oferta.id);
+const valorSerie = (oferta) => (oferta.unidad === 'total' && sigueNoche(oferta) ? redondear(oferta.precio / oferta.noches) : oferta.precio);
+
 /** ¿Se ha leído hoy de su fuente? Una oferta que no se ha vuelto a leer no aporta un precio nuevo. */
 const vistaHoy = (oferta, hoy) => !oferta.vistaUltima || fechaLocal(new Date(oferta.vistaUltima)) === hoy;
 
 /**
  * Anota el precio de hoy (el mínimo del día en hora de Madrid) de cada oferta con
- * precio numérico que se haya leído hoy, y rellena `bajada` y `minimoHistorico`. Las ofertas sin precio
+ * precio numérico que se haya leído hoy, y rellena `bajada`, `minimoHistorico` e
+ * `historialPorNoche` (si la serie y la bajada son por noche: ver `sigueNoche`). Las ofertas sin precio
  * no se registran y quedan con `bajada: null` y `minimoHistorico: false`.
  * Modifica `historial` y las ofertas; devuelve `historial`.
  * @param {Record<string, [string, number][]>} historial
@@ -68,11 +82,15 @@ export function registrarPrecios(historial, ofertas, ahora = new Date()) {
       oferta.minimoHistorico = false;
       continue;
     }
-    const serie = vistaHoy(oferta, hoy) ? anotarPrecio(historial[oferta.id] ?? [], hoy, oferta.precio) : historial[oferta.id] ?? [];
-    if (serie.length) historial[oferta.id] = serie;
+    const clave = claveSerie(oferta);
+    const valor = valorSerie(oferta);
+    const serie = vistaHoy(oferta, hoy) ? anotarPrecio(historial[clave] ?? [], hoy, valor) : historial[clave] ?? [];
+    if (serie.length) historial[clave] = serie;
     const anteriores = serie.filter(([fecha]) => fecha < hoy);
-    oferta.bajada = calcularBajada(anteriores, hoy, oferta.precio);
-    oferta.minimoHistorico = esMinimoHistorico(anteriores, oferta.precio, hoy);
+    // La bajada y el mínimo, en la misma unidad que la serie (por noche si sigue la noche).
+    oferta.bajada = calcularBajada(anteriores, hoy, valor);
+    oferta.minimoHistorico = esMinimoHistorico(anteriores, valor, hoy);
+    oferta.historialPorNoche = sigueNoche(oferta);
   }
   return historial;
 }
@@ -103,12 +121,14 @@ export function compactar(historial, ahora = new Date(), { maxDias = 120, idsViv
  * Series que se publican en el panel: las de `ids` con al menos dos días de precios
  * (con un solo punto no hay evolución que mostrar).
  * @param {Record<string, [string, number][]>} historial
- * @param {Iterable<string>} ids
+ * @param {Iterable<string|[string, string]>} ids  ids de oferta, o [id, clave de su serie]
  */
 export function seriesPara(historial, ids) {
   const series = {};
-  for (const id of ids) {
-    if (historial[id]?.length >= PUNTOS_MINIMOS_PANEL) series[id] = historial[id];
+  // Cada id puede venir con la clave de su serie ([id, clave]): se publica con el id de la oferta.
+  for (const entrada of ids) {
+    const [id, clave] = Array.isArray(entrada) ? entrada : [entrada, entrada];
+    if (historial[clave]?.length >= PUNTOS_MINIMOS_PANEL) series[id] = historial[clave];
   }
   return series;
 }

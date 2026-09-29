@@ -221,7 +221,7 @@ describe('calidad: siempre se sabe a qué corresponde el precio', () => {
 
   it('el «≈ por persona y noche» explica el cálculo', () => {
     const o = oferta({ precio: 99, unidad: 'total', noches: 1, precioNoche: 49.5 });
-    assert.match(tarjeta(o, ctxPara([o])), /title="Cálculo: 99\s€ en total entre 1 noche y entre 2 personas">≈ 50\s€ por persona y noche/);
+    assert.match(tarjeta(o, ctxPara([o])), /title="Cálculo: 99\s€ en total, para 1 noche y 2 personas">≈ 50\s€ por persona y noche/);
   });
 });
 
@@ -229,7 +229,7 @@ describe('calidad: precio confirmado o mínimo publicado', () => {
   it('sin fechas concretas el precio es «desde» y la ficha lo explica', () => {
     const o = oferta({ precio: 37, unidad: 'pp', vistaUltima: '2026-09-29T08:00:00Z' });
     assert.match(tarjeta(o, ctxPara([o])), /<span class="precio__desde"[^>]*>desde <\/span><strong>37\s€/);
-    assert.match(contenidoFicha(o, ctxPara([o])), /<dt>Certeza<\/dt><dd>Precio mínimo que publicaba la web cuando se comprobó; el de tus fechas y la disponibilidad se confirman al reservar/);
+    assert.match(contenidoFicha(o, ctxPara([o])), /<dt>Qué precio es<\/dt><dd>Precio mínimo que publicaba la web cuando se comprobó; el de tus fechas y la disponibilidad se confirman al reservar/);
   });
 
   it('con fechas concretas es el precio de esas fechas', () => {

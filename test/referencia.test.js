@@ -32,14 +32,14 @@ describe('referencia: escapadas por tema y zona', () => {
 
   it('compara con la mediana del grupo y marca el ahorro', () => {
     const [barata, , , , cara] = ofertas;
-    assert.deepEqual(barata.referencia, { mediana: 60, ahorroPct: 33, grupo: 'escapada:spa:girona', n: 5 });
+    assert.deepEqual(barata.referencia, { mediana: 60, ahorroPct: 33, grupo: 'escapada:spa:girona', descripcion: 'escapadas de relax y spa en Girona, por persona y noche', n: 5 });
     assert.equal(cara.referencia.ahorroPct, -67);
   });
 
   it('usa el precioNoche ya calculado si lo hay', () => {
     const conPrecioNoche = noche(999, { precioNoche: 20 });
     calcularReferencia([...[40, 50, 60, 70].map((precio) => noche(precio)), conPrecioNoche]);
-    assert.deepEqual(conPrecioNoche.referencia, { mediana: 50, ahorroPct: 60, grupo: 'escapada:spa:girona', n: 5 });
+    assert.deepEqual(conPrecioNoche.referencia, { mediana: 50, ahorroPct: 60, grupo: 'escapada:spa:girona', descripcion: 'escapadas de relax y spa en Girona, por persona y noche', n: 5 });
   });
 });
 
@@ -67,7 +67,7 @@ describe('referencia: grupos pequeños y respaldo por tipo', () => {
     const porNoche = [80, 90, 100, 110, 120].map((precio) => oferta({ tipo: 'paquete', precio, unidad: 'noche' }));
     const sinUnidad = [30, 40, 50, 60, 70].map((precio) => oferta({ tipo: 'paquete', precio }));
     calcularReferencia([...totales, ...porNoche, ...sinUnidad]);
-    assert.deepEqual(totales[0].referencia, { mediana: 900, ahorroPct: 22, grupo: 'tipo:paquete:total', n: 5 });
+    assert.deepEqual(totales[0].referencia, { mediana: 900, ahorroPct: 22, grupo: 'tipo:paquete:total', descripcion: 'paquetes, en total', n: 5 });
     assert.equal(sinUnidad[0].referencia.grupo, 'tipo:paquete:sin-unidad');
     assert.ok(porNoche.every((o) => o.referencia.grupo === 'noche:paquete'), 'los que tienen precio por noche se comparan así');
   });
@@ -84,11 +84,11 @@ describe('referencia: vuelos por ruta', () => {
   calcularReferencia(ofertas);
 
   it('agrupa por ruta cuando hay bastantes vuelos', () => {
-    assert.deepEqual(ofertas[0].referencia, { mediana: 50, ahorroPct: 40, grupo: 'vuelo:BCN-OPO:i/v', n: 5 });
+    assert.deepEqual(ofertas[0].referencia, { mediana: 50, ahorroPct: 40, grupo: 'vuelo:BCN-OPO:i/v', descripcion: 'vuelos BCN–OPO, ida y vuelta', n: 5 });
   });
 
   it('una ruta suelta se compara con todos los vuelos', () => {
-    assert.deepEqual(ofertas.at(-1).referencia, { mediana: 55, ahorroPct: -264, grupo: 'tipo:vuelo:i/v', n: 6 });
+    assert.deepEqual(ofertas.at(-1).referencia, { mediana: 55, ahorroPct: -264, grupo: 'tipo:vuelo:i/v', descripcion: 'chollos de vuelos, ida y vuelta', n: 6 });
   });
 
   it('un vuelo de solo ida no se compara con los de ida y vuelta de la misma ruta', () => {
@@ -101,5 +101,13 @@ describe('referencia: vuelos por ruta', () => {
     const sinRuta = oferta({ tipo: 'vuelo', precio: 45, unidad: 'i/v' });
     calcularReferencia([sinRuta]);
     assert.equal(sinRuta.referencia, null);
+  });
+});
+
+describe('referencia: actividades', () => {
+  it('no se comparan: una entrada a un museo y un paseo en barco no son parecidos', () => {
+    const actividades = [5, 10, 20, 40, 80, 120].map((precio) => oferta({ tipo: 'actividad', precio, unidad: 'pp' }));
+    calcularReferencia(actividades);
+    assert.ok(actividades.every((o) => o.referencia === null));
   });
 });

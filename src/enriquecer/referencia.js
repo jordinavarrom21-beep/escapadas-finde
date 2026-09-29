@@ -60,8 +60,12 @@ function grupoPreciso(oferta) {
 const esBillete = (oferta) =>
   oferta.tipo !== 'vuelo' && ['bus', 'tren', 'ferry'].includes(oferta.transporte) && porNoche(oferta) == null;
 
-/** Grupos candidatos de una oferta, del más preciso al de respaldo. */
+/**
+ * Grupos candidatos de una oferta, del más preciso al de respaldo. Las actividades no
+ * tienen: una entrada a un museo, un free tour y un paseo en barco no son comparables.
+ */
 function candidatos(oferta) {
+  if (oferta.tipo === 'actividad') return [];
   if (!esPrecio(oferta.precio)) return [grupoPreciso(oferta)].filter(Boolean);
   const noche = oferta.tipo === 'vuelo' ? null : porNoche(oferta);
   const respaldo = esPrecio(noche)
@@ -70,18 +74,47 @@ function candidatos(oferta) {
   return [grupoPreciso(oferta), respaldo].filter(Boolean);
 }
 
-function referenciaDe({ grupo, valor }, valores) {
+const PLURAL_TIPO = { escapada: 'escapadas', hotel: 'alojamientos', paquete: 'paquetes', crucero: 'cruceros', vuelo: 'vuelos' };
+const UNIDAD = { pp: 'por persona', 'pp/noche': 'por persona y noche', total: 'en total', 'i/v': 'ida y vuelta', noche: 'por noche', trayecto: 'por trayecto' };
+const TRANSPORTE = { bus: 'autobús', tren: 'tren', ferry: 'ferry' };
+/** «escapadas románticas», «escapadas de playa»: cómo se dice cada tema detrás de «escapadas». */
+const ESCAPADAS_DE = {
+  spa: 'de relax y spa', romantico: 'románticas', rural: 'rurales', playa: 'de playa', gastronomia: 'gastronómicas',
+  familia: 'en familia', ciudad: 'de ciudad', aventura: 'de aventura y nieve', parques: 'a parques temáticos',
+  eventos: 'de eventos', mascotas: 'con mascotas', singular: 'en alojamientos singulares',
+};
+const NOMBRE_TEMA = new Map(TEMAS.map((tema) => [tema.id, ESCAPADAS_DE[tema.id] ?? `de ${tema.nombre.toLowerCase()}`]));
+
+/**
+ * Con qué se compara, en palabras: «escapadas de relax y spa en Girona, por persona y
+ * noche», «vuelos BCN–OPO, ida y vuelta», «alojamientos, por persona y noche».
+ */
+export function describirGrupo(grupo, oferta) {
+  const [clase, a, b] = grupo.split(':');
+  if (clase === 'vuelo') return `vuelos ${a.replace('-', '–')}${UNIDAD[b] ? `, ${UNIDAD[b]}` : ''}`;
+  if (clase === 'escapada') {
+    const zona = oferta.lugar?.provincia || oferta.lugar?.region || oferta.lugar?.pais || b;
+    return `escapadas ${NOMBRE_TEMA.get(a) ?? a} en ${zona}, por persona y noche`;
+  }
+  if (clase === 'noche') return `${PLURAL_TIPO[a] ?? a}, por persona y noche`;
+  if (clase === 'transporte') return `billetes de ${TRANSPORTE[a] ?? a}${UNIDAD[b] ? `, ${UNIDAD[b]}` : ''}`;
+  if (clase === 'tipo') return `${a === 'vuelo' ? 'chollos de vuelos' : PLURAL_TIPO[a] ?? a}${UNIDAD[b] ? `, ${UNIDAD[b]}` : ''}`;
+  return 'ofertas parecidas';
+}
+
+function referenciaDe({ grupo, valor }, valores, oferta) {
   const centro = mediana(valores);
   return {
     mediana: redondear(centro, 2),
     ahorroPct: Math.round(((centro - valor) / centro) * 100),
     grupo,
+    descripcion: describirGrupo(grupo, oferta),
     n: valores.length,
   };
 }
 
 /**
- * Rellena `referencia` en todas las ofertas: `{mediana, ahorroPct, grupo, n}`, o
+ * Rellena `referencia` en todas las ofertas: `{mediana, ahorroPct, grupo, descripcion, n}`, o
  * null si no hay un grupo con suficientes ofertas con las que compararla.
  * `ahorroPct` positivo significa más barata que la mediana de su grupo.
  * @param {import('../modelo.js').Oferta[]} ofertas
@@ -102,7 +135,7 @@ export function calcularReferencia(ofertas) {
   for (const oferta of ofertas) {
     const elegido = candidatosPorOferta.get(oferta)
       .find(({ grupo }) => valoresPorGrupo.get(grupo).length >= MINIMO_GRUPO);
-    oferta.referencia = elegido ? referenciaDe(elegido, valoresPorGrupo.get(elegido.grupo)) : null;
+    oferta.referencia = elegido ? referenciaDe(elegido, valoresPorGrupo.get(elegido.grupo), oferta) : null;
   }
   return ofertas;
 }

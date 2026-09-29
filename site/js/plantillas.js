@@ -7,10 +7,10 @@ import { costeViaje, resumenCoste } from './coste.js';
 import { diasEntre, etiquetaDia, fechaLocal, horaDe } from './fechas.js';
 import {
   ETIQUETAS_ALOJAMIENTO, ETIQUETAS_REGIMEN, ETIQUETAS_TIPO, ETIQUETAS_TRANSPORTE, ETIQUETAS_UNIDAD, SIN_UNIDAD,
-  contar, duracion, enumerar, escaparHtml as esc, euros, grados, haceCuanto, nota,
+  contar, duracion, enumerar, escaparHtml as esc, euros, grados, haceCuanto, normalizar, nota,
   puntosMinigrafica, urlSegura,
 } from './formato.js';
-import { SIN_COCHE, duracionActividad, esDuplicada, esNovedad, salidasDe, sinComprobar, tieneVuelo } from './filtros.js';
+import { SIN_COCHE, duracionActividad, esDuplicada, esNovedad, precioDeSerie, salidasDe, sinComprobar, sufijoSerie, tieneVuelo } from './filtros.js';
 import { escena, icono, iconoTema, iconoTiempo, tipoEscena } from './iconos.js';
 
 export const ESTADOS_FUENTE = {
@@ -35,7 +35,7 @@ function temasIconos(o, ctx, max = Infinity) {
 
 /** Detalle de la comparación con ofertas parecidas («lo normal en … es 70 €»). */
 function detalleReferencia(r) {
-  return `Lo normal en ${esc(r.grupo ?? 'ofertas parecidas')}${r.n ? ` (${r.n})` : ''} es ${euros(r.mediana)}`;
+  return `Lo normal en ${esc(r.descripcion ?? 'ofertas parecidas')}${r.n ? `, con ${r.n} ofertas,` : ''} es ${euros(r.mediana)}`;
 }
 
 /** «Un 23 % por debajo de lo normal», comparando con ofertas parecidas. */
@@ -53,13 +53,15 @@ function textoMinimo(o, ctx) {
   const dias = diasEntre(serie[0][0], serie.at(-1)[0]);
   return {
     texto: `Precio más bajo en ${dias} días`,
-    detalle: `El más bajo desde el ${etiquetaDia(serie[0][0])} (${serie.length} días con precio; máximo ${euros(Math.max(...serie.map(([, p]) => p)))})`,
+    detalle: `El más bajo${sufijoSerie(o)} desde el ${etiquetaDia(serie[0][0])} (${serie.length} días con precio; máximo ${euros(Math.max(...serie.map(([, p]) => p)))}${sufijoSerie(o)})`,
   };
 }
 
 const textoBajada = (o) => (o.bajada > 0 && typeof o.precio === 'number'
-  ? `Ha bajado ${euros(o.bajada)}: el precio más alto de los últimos 7 días fue ${euros(Math.round((o.precio + o.bajada) * 100) / 100)}`
+  ? `Ha bajado ${euros(o.bajada)}${sufijoSerie(o)}: el precio${sufijoSerie(o)} más alto de los últimos 7 días fue ${euros(Math.round((precioDeSerie(o) + o.bajada) * 100) / 100)}`
   : null);
+/** «5 €» o «5 €/noche»: la bajada en la unidad de su historial. */
+const bajadaCorta = (o) => `${euros(o.bajada)}${o.historialPorNoche ? '/noche' : ''}`;
 
 /** Lo que tienen los niños: «Niños gratis», «Niños −60 %», «Tarifa niños»; null si nada especial. */
 export function textoNinos(o) {
@@ -91,7 +93,7 @@ function insignias(o, ctx, { enFoto = false } = {}) {
     o.chollazo && !enFoto && insigniaChollazo(o),
     insigniaNinos(o),
     minimo && `<span class="insignia insignia--minimo" title="${esc(minimo.detalle)}">${esc(minimo.texto)}</span>`,
-    o.bajada > 0 && `<span class="insignia insignia--bajada" title="${esc(textoBajada(o))}">↓ ${euros(o.bajada)}</span>`,
+    o.bajada > 0 && `<span class="insignia insignia--bajada" title="${esc(textoBajada(o))}">↓ ${bajadaCorta(o)}</span>`,
     (!enFoto || o.chollazo) && insigniaReferencia(o),
     etiquetas.includes('error-tarifa') && `<span class="insignia insignia--alerta">${icono('alerta')}Error de tarifa</span>`,
     etiquetas.includes('top-chollo') && '<span class="insignia insignia--alerta">Top chollo</span>',
@@ -229,6 +231,27 @@ function valoracion(o) {
   return `<span class="valoracion" title="Valoración ${nota(v.nota)} sobre 10${opiniones}">${icono('estrella')}${nota(v.nota)}</span>`;
 }
 
+/** «Hotel 4★», «Camping», «4★» (con estrellas y sin tipo): la categoría del alojamiento. */
+export function textoAlojamiento(o) {
+  const tipo = ETIQUETAS_ALOJAMIENTO[o.alojamiento] ?? '';
+  const estrellas = o.estrellas >= 1 ? `${o.estrellas}★` : '';
+  return [tipo, estrellas].filter(Boolean).join(' ');
+}
+
+/** Qué quiere decir la nota: la escala habitual de Booking y compañía. */
+export function adjetivoNota(valor) {
+  return valor >= 9 ? 'Excelente' : valor >= 8 ? 'Muy bien' : valor >= 7 ? 'Bien' : valor >= 6 ? 'Aceptable' : 'Flojo';
+}
+
+/** «8,8 / 10 · Muy bien · 5 opiniones en Weekendesk». */
+function textoValoracion(o, ctx) {
+  const v = o.valoracion;
+  if (!(v?.nota >= 0)) return null;
+  const web = ctx.fuentes?.get(o.fuente) ?? o.fuente;
+  const opiniones = v.n ? `${contar(v.n, 'opinión', 'opiniones')} en ${web}` : `según ${web}`;
+  return `${nota(v.nota)} / 10 · ${adjetivoNota(v.nota)} · ${opiniones}`;
+}
+
 /** Qué mide la nota del chollo (sale al pasar por encima y en la ficha). */
 export const QUE_MIDE_LA_NOTA = 'Lo bueno que es como chollo: sobre todo el precio frente a ofertas parecidas; también las bajadas, el descuento, si es nueva, si cae en finde o puente y lo cómodo que es llegar.';
 
@@ -302,13 +325,10 @@ export function certeza(o) {
     : `Precio para estas fechas según la web${cuando}; puede cambiar hasta que reserves`;
 }
 
-/** Cómo sale el «≈ por persona y noche» a partir de lo que publica la web. */
+/** Cómo sale el «≈ por persona y noche»: «Cálculo: 90 € en total, para 1 noche y 2 personas». */
 function calculoPorNoche(o) {
-  const noches = o.noches ? ` entre ${contar(o.noches, 'noche')}` : '';
-  const personas = ['noche', 'total'].includes(o.unidad) && o.precio && o.precioNoche
-    ? ` y entre ${Math.round(o.precio / o.precioNoche / (o.unidad === 'total' ? o.noches || 1 : 1))} personas`
-    : '';
-  return `Cálculo: ${euros(o.precio)} ${ETIQUETAS_UNIDAD[o.unidad] ?? ''}${noches}${personas}`;
+  const reparto = repartoPorNoche(o).trim().replace(/^\(|\)$/g, '');
+  return `Cálculo: ${reparto || `${euros(o.precio)} ${ETIQUETAS_UNIDAD[o.unidad] ?? ''}${o.noches ? `, ${contar(o.noches, 'noche')}` : ''}`.trim()}`;
 }
 
 function precio(o) {
@@ -393,7 +413,7 @@ function datosTarjeta(o) {
   const dato = (nombre, texto) => (texto ? `<li>${icono(nombre)}<span>${esc(texto)}</span></li>` : '');
   const incluye = [
     o.noches && contar(o.noches, 'noche'),
-    ETIQUETAS_ALOJAMIENTO[o.alojamiento],
+    textoAlojamiento(o),
     o.regimen !== 'solo-alojamiento' && ETIQUETAS_REGIMEN[o.regimen],
     minutos && duracion(minutos),
   ].filter(Boolean).join(' · ');
@@ -403,7 +423,7 @@ function datosTarjeta(o) {
     dato('calendario', textoFechas(o)),
     // Aparte: «hasta el 30» junto a «Fechas flexibles» se leería como el último día del viaje.
     dato('arena', textoCaducidad(o)),
-    dato(o.noches || o.alojamiento ? 'noches' : 'reloj', incluye),
+    dato(o.noches || o.alojamiento || o.estrellas ? 'noches' : 'reloj', incluye),
     llegar,
   ].join('');
 }
@@ -425,7 +445,7 @@ function insigniasTarjeta(o, ctx) {
   const [mejor] = [
     etiquetas.includes('error-tarifa') && `<span class="insignia insignia--alerta">${icono('alerta')}Error de tarifa</span>`,
     minimo && `<span class="insignia insignia--minimo" title="${esc(minimo.detalle)}">${esc(minimo.texto)}</span>`,
-    o.bajada > 0 && `<span class="insignia insignia--bajada" title="${esc(textoBajada(o))}">${icono('bajada')}Ha bajado ${euros(o.bajada)}</span>`,
+    o.bajada > 0 && `<span class="insignia insignia--bajada" title="${esc(textoBajada(o))}">${icono('bajada')}Ha bajado ${bajadaCorta(o)}</span>`,
     o.chollazo && insigniaReferencia(o),
     esNovedad(o, ctx.referencia) && `<span class="insignia insignia--nueva">${icono('nuevo')}Nuevo</span>`,
     esDuplicada(o) && `<span class="insignia">${icono('repetir')}${o.equivalentes?.length ? 'Repetida en otra web' : 'Repetida en la misma web'}</span>`,
@@ -661,29 +681,91 @@ export function insigniaEstado(estado) {
   return `<span class="estado estado--${clase}"><span class="punto" aria-hidden="true"></span>${esc(texto)}</span>`;
 }
 
+/** « (90 € en total, para 1 noche y 2 personas)»: de dónde sale el precio por persona y noche. */
+function repartoPorNoche(o) {
+  if (!['noche', 'total'].includes(o.unidad) || !o.precio || !o.precioNoche) return '';
+  const noches = o.unidad === 'total' ? o.noches || 1 : 1;
+  const personas = Math.round(o.precio / o.precioNoche / noches);
+  const partes = [o.unidad === 'total' && contar(noches, 'noche'), personas > 1 && `${personas} personas`].filter(Boolean);
+  return partes.length ? ` (${euros(o.precio)} ${ETIQUETAS_UNIDAD[o.unidad] ?? ''}, para ${partes.join(' y ')})`.replace(/ ,/, ',') : '';
+}
+
+/** Transporte que incluye la oferta; «coche» no es un transporte incluido (es cómo llegas tú). */
+const transporteIncluido = (o) => (o.transporte && o.transporte !== 'coche' ? ETIQUETAS_TRANSPORTE[o.transporte] : null);
+const esSoloAdultos = (o) => (o.etiquetas ?? []).includes('solo-adultos');
+
+/**
+ * Los datos de la ficha en tres bloques: qué es la oferta, qué precio es y cómo se ha
+ * seguido. Solo las filas con dato.
+ */
 function datosFicha(o, ctx) {
-  const v = o.valoracion;
-  const filas = [
-    ['Fechas de viaje', o.fechas?.salida ? textoFechas(o) : 'Flexibles: la web no publica fechas concretas; la disponibilidad se confirma al reservar'],
-    ['Reserva', textoCaducidad(o)],
-    ['Noches', o.noches],
-    ['Alojamiento', ETIQUETAS_ALOJAMIENTO[o.alojamiento]],
-    ['Niños', o.ninos && (o.ninos.detalle ? `${o.ninos.detalle}. Confírmalo en la web antes de reservar: suele haber plazas limitadas o condiciones` : 'Plan para ir con niños')],
-    ['Valoración', v?.nota >= 0 && `${nota(v.nota)} / 10${v.n ? ` · ${contar(v.n, 'opinión', 'opiniones')}` : ''}`],
-    ['Régimen', ETIQUETAS_REGIMEN[o.regimen]],
-    ['Transporte', ETIQUETAS_TRANSPORTE[o.transporte]],
-    ['Precio en la web', o.precioTexto],
-    ['Certeza', certeza(o)],
-    ['Por persona y noche', o.precioNoche != null && euros(Math.round(o.precioNoche))],
-    ['Precio habitual', o.referencia && `${euros(o.referencia.mediana)}: la mediana de ${o.referencia.n ? `${o.referencia.n} ofertas parecidas` : 'las ofertas parecidas'} (${o.referencia.grupo})`],
-    ['Por qué es chollazo', o.chollazo && o.chollazoMotivo],
-    ['Bajada', textoBajada(o)],
-    ['Mínimo', textoMinimo(o, ctx)?.detalle],
-    ['Publicada', o.publicada && etiquetaDia(o.publicada)],
-    ['Vista por primera vez', o.vistaPrimera && haceCuanto(o.vistaPrimera)],
-    ['Nota del chollo', `${o.puntuacion} / 100 · ${nivelNota(o)}. ${QUE_MIDE_LA_NOTA}`],
+  const minutos = duracionActividad(o);
+  const alojamiento = [textoAlojamiento(o), esSoloAdultos(o) && 'solo adultos'].filter(Boolean).join(' · ');
+  const bloques = [
+    ['La oferta', [
+      [o.tipo === 'actividad' ? 'Cuándo' : 'Fechas de viaje', o.fechas?.salida ? textoFechas(o) : 'Flexibles: la web no publica fechas concretas; la disponibilidad se confirma al reservar'],
+      ['Reserva', textoCaducidad(o)],
+      ['Duración', minutos && duracion(minutos)],
+      ['Noches', o.noches && contar(o.noches, 'noche')],
+      ['Alojamiento', alojamiento],
+      ['Valoración', textoValoracion(o, ctx)],
+      ['Régimen', ETIQUETAS_REGIMEN[o.regimen]],
+      ['Transporte incluido', transporteIncluido(o)],
+      ['Niños', o.ninos && (o.ninos.detalle ? `${o.ninos.detalle}. Confírmalo en la web antes de reservar: suele haber plazas limitadas o condiciones` : 'Plan para ir con niños')],
+    ]],
+    ['El precio', [
+      ['Precio en la web', o.precioTexto],
+      ['Qué precio es', certeza(o)],
+      ['Por persona y noche', o.precioNoche != null && `${euros(Math.round(o.precioNoche))}${repartoPorNoche(o)}`],
+      ['Precio habitual', o.referencia && `${euros(o.referencia.mediana)}: lo normal en ${o.referencia.descripcion ?? 'ofertas parecidas'}${o.referencia.n ? ` (mediana de ${o.referencia.n} ofertas)` : ''}`],
+      ['Por qué es chollazo', o.chollazo && o.chollazoMotivo],
+      ['Bajada', textoBajada(o)],
+      ['Mínimo', textoMinimo(o, ctx)?.detalle],
+      ['Nota del chollo', `${o.puntuacion} / 100 · ${nivelNota(o)}. ${QUE_MIDE_LA_NOTA}`],
+    ]],
+    ['Seguimiento', [
+      ['Publicada', o.publicada && etiquetaDia(o.publicada)],
+      ['Vista por primera vez', o.vistaPrimera && haceCuanto(o.vistaPrimera)],
+    ]],
   ];
-  return filas.filter(([, valor]) => valor).map(([dt, dd]) => `<div><dt>${dt}</dt><dd>${esc(dd)}</dd></div>`).join('');
+  return bloques.map(([titulo, filas]) => {
+    const conDato = filas.filter(([, valor]) => valor);
+    return conDato.length ? `<section class="ficha__bloque"><h3>${titulo}</h3><dl class="ficha__datos">${conDato.map(([dt, dd]) => `<div><dt>${dt}</dt><dd>${esc(dd)}</dd></div>`).join('')}</dl></section>` : '';
+  }).join('');
+}
+
+/**
+ * Lo esencial de un vistazo, bajo el título: alojamiento y estrellas, valoración, noches,
+ * régimen, transporte incluido, solo adultos y niños.
+ */
+function resumenFicha(o, ctx) {
+  const v = o.valoracion;
+  const minutos = duracionActividad(o);
+  const datos = [
+    textoAlojamiento(o) && ['cama', textoAlojamiento(o)],
+    v?.nota >= 0 && ['estrella', `${nota(v.nota)} ${adjetivoNota(v.nota)}${v.n ? ` · ${contar(v.n, 'opinión', 'opiniones')}` : ''}`],
+    o.noches && ['noches', contar(o.noches, 'noche')],
+    minutos && ['reloj', duracion(minutos)],
+    ETIQUETAS_REGIMEN[o.regimen] && ['cubiertos', ETIQUETAS_REGIMEN[o.regimen]],
+    transporteIncluido(o) && [o.transporte, `${transporteIncluido(o)} incluido`],
+    esSoloAdultos(o) && ['personas', 'Solo adultos'],
+    o.ninos && !esSoloAdultos(o) && ['tema-familia', textoNinos(o) ?? 'Para ir con niños'],
+  ].filter(Boolean);
+  return datos.length ? `<ul class="ficha__resumen">${datos.map(([ic, texto]) => `<li>${icono(ic)}<span>${esc(texto)}</span></li>`).join('')}</ul>` : '';
+}
+
+/**
+ * La descripción de la web sin repetir el título ni el lugar. Si es una lista de lo que
+ * incluye («1 noche · desayuno · acceso al spa»), como lista.
+ */
+function descripcionFicha(o) {
+  if (!o.descripcion) return '';
+  const igual = (a, b) => normalizar(a).trim() === normalizar(b).trim();
+  const partes = o.descripcion.split(/\s+·\s+/).map((p) => p.trim())
+    .filter((p) => p && !igual(p, o.titulo) && !(o.lugar?.nombre && normalizar(p).startsWith(normalizar(o.lugar.nombre))));
+  if (!partes.length) return '';
+  if (partes.length >= 3) return `<section class="ficha__incluye"><h3>Qué incluye</h3><ul>${partes.map((p) => `<li>${esc(p)}</li>`).join('')}</ul></section>`;
+  return `<p class="ficha__descripcion">${esc(partes.join(' · '))}</p>`;
 }
 
 function cocheFicha(o, ctx) {
@@ -808,16 +890,17 @@ export function contenidoFicha(o, ctx) {
     <p class="tarjeta__origen">${temasIconos(o, ctx)} ${esc(ETIQUETAS_TIPO[o.tipo] ?? o.tipo)} · ${esc(ctx.fuentes.get(o.fuente) ?? o.fuente)}</p>
     <h2 id="ficha-titulo">${esc(o.titulo)}</h2>
     <p class="tarjeta__lugar">${textoLugar(o)}</p>
+    ${resumenFicha(o, ctx)}
   </header>
   <div class="ficha__media">${escena(tipoEscena(o))}${imagen ? `<img class="ficha__imagen" src="${esc(imagen)}" alt="" referrerpolicy="no-referrer">` : ''}</div>
   <div class="insignias">${insignias(o, ctx)}</div>
   ${vueloFicha(o.vuelo)}
-  ${o.descripcion ? `<p class="ficha__descripcion">${esc(o.descripcion)}</p>` : ''}
+  ${descripcionFicha(o)}
   ${cocheFicha(o, ctx)}
   ${tiempo(o)}
   ${o.eventos?.length ? `<section class="ficha__eventos"><h3>${icono('puentes')}${conFechasDeViaje(o) ? 'Qué hay esos días por la zona' : 'Qué hay el próximo finde por la zona (si vas entonces)'}</h3>${eventos(o, { conEnlace: true })}</section>` : ''}
   ${queHacerAlli(ctx)}
-  <dl class="ficha__datos">${datosFicha(o, ctx)}</dl>
+  ${datosFicha(o, ctx)}
 </div>
 <aside class="ficha__lateral" aria-label="Precio y reserva">
   <div class="ficha__precio">${precio(o)}<span class="acciones">${botonDescartar(o)}${botonComparar(o, ctx)}${botonFavorito(o, ctx)}</span></div>
@@ -832,10 +915,10 @@ export function contenidoFicha(o, ctx) {
   ${avisoPagoFicha(o, ctx)}
   ${costeFicha(o, ctx)}
   <section class="ficha__historial" aria-labelledby="ficha-historial-titulo">
-    <h3 id="ficha-historial-titulo">${icono('bajada')}Historial de precios</h3>
+    <h3 id="ficha-historial-titulo">${icono('bajada')}Historial de precios${o.historialPorNoche ? ' <span class="suave">(por noche)</span>' : ''}</h3>
     ${serie.length >= 2
     ? `<div class="ficha__grafica"><canvas id="ficha-grafica" role="img" aria-label="Evolución del precio en ${serie.length} días"></canvas></div>
-       <p class="suave">Mínimo ${euros(Math.min(...serie.map(([, p]) => p)))} · máximo ${euros(Math.max(...serie.map(([, p]) => p)))} · desde el ${esc(etiquetaDia(serie[0][0]))}</p>`
+       <p class="suave">Mínimo ${euros(Math.min(...serie.map(([, p]) => p)))} · máximo ${euros(Math.max(...serie.map(([, p]) => p)))}${sufijoSerie(o)} · desde el ${esc(etiquetaDia(serie[0][0]))}${o.historialPorNoche ? '. Por noche porque las fechas y las noches que da la web cambian de un día a otro' : ''}</p>`
     : '<p class="suave">Aún no hay historial suficiente (hacen falta al menos dos días).</p>'}
   </section>
   ${ctx.misEstados ? botonesMiEstado(o, ctx) : ''}

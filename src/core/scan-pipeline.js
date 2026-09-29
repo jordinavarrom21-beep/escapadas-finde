@@ -11,6 +11,7 @@ import { TEMAS, completarOferta } from '../modelo.js';
 import { aplicarClasificacion } from '../enriquecer/temas.js';
 import { aplicarAlojamiento } from '../enriquecer/alojamiento.js';
 import { aplicarNinos } from '../enriquecer/ninos.js';
+import { aplicarCategoria } from '../enriquecer/categoria.js';
 import { aplicarZona } from '../enriquecer/zona.js';
 import { clasificarVueloSinFecha } from '../enriquecer/vuelos.js';
 import { aplicarAfiliacion, proveedoresActivos } from '../afiliacion.js';
@@ -23,7 +24,7 @@ import { marcarEquivalentes } from '../enriquecer/duplicados.js';
 import { anadirTiempo } from '../enriquecer/tiempo.js';
 import { anadirEventos } from '../enriquecer/eventos.js';
 import { precioPorPersonaNoche, puntuar } from '../enriquecer/puntuacion.js';
-import { compactar, registrarPrecios, seriesPara } from '../historial.js';
+import { claveSerie, compactar, registrarPrecios, seriesPara } from '../historial.js';
 import { coincide } from '../vigilados.js';
 import { procesarEmails } from '../emails/decidir.js';
 import { configuracionEnvio, crearTransporte, enviarEmail } from '../emails/enviar.js';
@@ -190,6 +191,7 @@ export async function escanear({
     m.clasificarVueloSinFecha(oferta);
     m.aplicarClasificacion(oferta);
     aplicarNinos(oferta);
+    aplicarCategoria(oferta);
     m.aplicarAlojamiento(oferta);
     m.aplicarZona(oferta);
     oferta.precioNoche = precioPorPersonaNoche(oferta, ajustes.viajeros ?? 2);
@@ -209,7 +211,7 @@ export async function escanear({
   const afiliados = proveedoresActivos(afiliacion, conPrefijo('afiliacion'));
   for (const oferta of ofertas) aplicarAfiliacion(oferta, { activos: afiliados, patrocinadas: afiliacion.patrocinadas ?? [], ahora });
   m.registrarPrecios(historial, ofertas, ahora);
-  m.compactar(historial, ahora, { idsVivos: ofertas.map((o) => o.id) });
+  m.compactar(historial, ahora, { idsVivos: ofertas.flatMap((o) => [o.id, claveSerie(o)]) });
   m.puntuar(ofertas, ajustes, { ahora, findeActual: findes[0]?.id ?? null });
   ofertas.sort((a, b) => b.puntuacion - a.puntuacion);
 
@@ -226,7 +228,7 @@ export async function escanear({
       coche: { consumoL100km: ajustes.coche.consumoL100km, precioLitro: precioLitro ?? ajustes.coche.precioLitro, carburante: ajustes.coche.carburante },
       temas: TEMAS, findes, puentes, fuentes: estadoFuentes, ofertas,
     },
-    historial: m.seriesPara(historial, ofertas.map((o) => o.id)),
+    historial: m.seriesPara(historial, ofertas.map((o) => [o.id, claveSerie(o)])),
     vigilados: { vigilados: vigilados.map((c) => ({ ...c, coincidencias: ofertas.filter((o) => coincide(o, c)).map((o) => o.id) })) },
   };
 

@@ -18,14 +18,14 @@ import {
 } from './filtros.js';
 import { NOCHES, VIAJEROS, aeropuertosCercanos } from './viaje.js';
 import {
-  certeza, costeDe, textoCaducidad, textoFechas, textoLugar,
+  certeza, costeDe, textoAlojamiento, textoCaducidad, textoFechas, textoLugar,
   ESTADOS_FUENTE, estadoVacio, filaOferta, insigniaEstado, rejilla, tarjeta, tarjetaConMotivo, tarjetaDestacada, textoAyudaUbicacion,
 } from './plantillas.js';
 import { icono, iconoTema } from './iconos.js';
 
 /** Los filtros que van dentro de «Más filtros» (los de arriba se ven siempre). */
 const FILTROS_SECUNDARIOS = [
-  'pnMin', 'km', 'dto', 'pts', 'nota', 'noches', 'regimen', 'aloj', 'transporte', 'fuente', 'tipo', 'pais', 'region',
+  'pnMin', 'km', 'dto', 'pts', 'nota', 'noches', 'regimen', 'aloj', 'est', 'transporte', 'fuente', 'tipo', 'pais', 'region',
   'nuevas', 'fav', 'cho', 'baja', 'hist', 'sindesc', 'frescas', 'dup', 'cru',
 ];
 /** Los que van en «Más filtros» de la vista de vuelos. */
@@ -669,7 +669,7 @@ const ICONOS_FILTRO = {
   notemas: 'prohibido', nodest: 'prohibido', cuando: 'calendario', finde: 'calendario', desde: 'calendario', hasta: 'calendario',
   lugar: 'pin', h: 'coche', km: 'regla', pres: 'cartera', max: 'cartera', nota: 'estrella', clasica: 'cama', sincoche: 'tren',
   dest: 'pin', aero: 'avion', ideal: 'reloj', mios: 'despegue', nuevas: 'nuevo', fav: 'corazon', cho: 'fuego', baja: 'bajada',
-  cerradas: 'calendario', gratis: 'actividades', ninos: 'tema-familia', cru: 'crucero', q: 'buscar', aloj: 'cama', regimen: 'cubiertos', transporte: 'coche',
+  cerradas: 'calendario', gratis: 'actividades', ninos: 'tema-familia', cru: 'crucero', q: 'buscar', aloj: 'cama', est: 'estrella', regimen: 'cubiertos', transporte: 'coche',
 };
 const iconoFiltro = (c) => (c.clave === 'temas' ? iconoTema(c.valor) : icono(ICONOS_FILTRO[c.clave] ?? ''));
 
@@ -765,6 +765,7 @@ function formularioEscapadas(e, params, vista) {
       <label class="campo">Noches <select name="noches">${opciones([[1, '1 noche'], [2, '2 noches'], [3, '3 o más']], f.noches, 'Cualquiera')}</select></label>
       <label class="campo">Régimen mínimo <select name="regimen">${opciones(REGIMENES_ORDEN.map((r) => [r, `Al menos ${ETIQUETAS_REGIMEN[r].toLowerCase()}`]), f.regimen, 'Cualquiera')}</select></label>
       <label class="campo">Alojamiento <select name="aloj">${opciones(alojamientos, f.alojamiento, 'Cualquiera')}</select></label>
+      <label class="campo">Categoría mín. <select name="est">${opciones([[2, '2★ o más'], [3, '3★ o más'], [4, '4★ o más'], [5, '5★']], f.estrellas, 'Cualquiera')}</select></label>
       ${numero('nota', 'Valoración mín. (0–10)', f.nota, ' max="10" step="0.5" placeholder="Cualquiera"')}
       <label class="campo">Transporte concreto <select name="transporte">${opciones(Object.entries(ETIQUETAS_TRANSPORTE).filter(([t]) => t !== 'coche'), f.transporte === 'coche' ? '' : f.transporte, 'Cualquiera')}</select></label>
     </div></div>
@@ -1104,7 +1105,7 @@ export function vistaComparar(e, params = {}) {
     fila('Precio publicado', ofertas.map((o) => esc(o.precioTexto || (typeof o.precio === 'number' ? euros(o.precio) : '')))),
     fila('Noches', ofertas.map((o, i) => (costes[i].noches ? esc(contar(costes[i].noches, 'noche')) + (o.noches ? '' : ' <span class="suave">(supuestas)</span>') : ''))),
     fila('Régimen', ofertas.map((o) => esc(ETIQUETAS_REGIMEN[o.regimen] ?? ''))),
-    fila('Alojamiento', ofertas.map((o) => esc(ETIQUETAS_ALOJAMIENTO[o.alojamiento] ?? ''))),
+    fila('Alojamiento', ofertas.map((o) => esc([textoAlojamiento(o), (o.etiquetas ?? []).includes('solo-adultos') && 'solo adultos'].filter(Boolean).join(' · ')))),
     fila('Valoración', ofertas.map((o) => (o.valoracion?.nota >= 0 ? `${icono('estrella')} ${esc(String(o.valoracion.nota).replace('.', ','))}${o.valoracion.n ? ` <span class="suave">(${esc(contar(o.valoracion.n, 'opinión', 'opiniones'))})</span>` : ''}` : ''))),
     fila('Cómo llegar', ofertas.map((o) => [ETIQUETAS_TRANSPORTE[o.transporte], dist(o)].filter(Boolean).join(' · '))),
     fila('Certeza', ofertas.map((o) => esc(certeza(o)))),
