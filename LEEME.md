@@ -271,3 +271,9 @@ sus resultados.
   no debería pasar; si pasa, reactívalo en Actions → Vigilar ofertas → Enable workflow.
 - **El panel tarda horas en actualizarse**: es el cron de GitHub; mira «Revisión puntual».
 - **Empezar de cero**: borra la rama `datos` en GitHub. El siguiente escaneo la vuelve a crear.
+
+## Licencia
+
+Todos los derechos reservados (ver `LICENSE`). El repositorio es público solo para poder
+publicar el panel con GitHub Pages: se puede consultar, pero no copiar, modificar ni
+reutilizar sin permiso.
