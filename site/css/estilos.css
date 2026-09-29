@@ -498,6 +498,11 @@ main { padding-block: 18px 40px; min-height: 60vh; }
 .dato-extra a { color: var(--enlace); }
 .comprobada { font-size: 0.75rem; }
 .coste-total { color: var(--texto); font-weight: 650; }
+/* Páginas estáticas para buscadores (src/paginas.js). */
+.guia { display: grid; gap: 12px; max-width: 900px; }
+.lista-guia { display: grid; gap: 12px; padding-left: 1.4em; }
+.fila-guia { padding: 12px; border: 1px solid var(--borde); border-radius: 12px; background: var(--superficie); }
+.fila-guia h3 { font-size: 1.02rem; margin-bottom: 4px; }
 .aviso-afiliado { font-size: 0.8rem; color: var(--texto-suave); }
 .insignia--mio { background: var(--acento-suave); }
 .mi-estado .boton[aria-pressed="true"] { border-color: var(--acento); background: var(--acento-suave); }

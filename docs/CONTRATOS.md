@@ -282,7 +282,9 @@ Otros archivos de `data/`: `cache.json` (Cache), `historial.json`.
    hunda la mediana ni pase por chollazo.
 6. `procesarEmails` (salvo con `--sin-emails`), dentro de `escanear()` y antes de escribir nada.
 7. La CLI guarda `data/estado.json`, `data/cache.json` y `data/historial.json`, escribe
-   `site/data/ofertas.json`, `site/data/historial.json` y `site/data/vigilados.json`, e imprime
+   `site/data/ofertas.json`, `site/data/historial.json` y `site/data/vigilados.json`, las páginas para
+   buscadores de `src/paginas.js` (`site/escapadas/…`, `site/vuelos/`, `site/actividades/gratis/` y
+   `site/sitemap.xml`, borrando antes las de la pasada anterior), e imprime
    un resumen por fuente. El código de salida es 0 aunque fallen algunas fuentes y 1 si fallan
    todas las que se han ejecutado en esta pasada. Si `escanear()` lanza, no se escribe nada y el
    workflow no despliega (comprueba que exista `site/data/ofertas.json`).

@@ -3,5 +3,10 @@ node_modules/
 data/
 # Datos del panel: se generan en cada escaneo y se publican con GitHub Pages
 site/data/
+# Páginas para buscadores: las genera cada escaneo (src/paginas.js)
+site/escapadas/
+site/vuelos/
+site/actividades/
+site/sitemap.xml
 *.log
 .env

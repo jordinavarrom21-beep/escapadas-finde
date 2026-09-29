@@ -149,6 +149,25 @@ El panel lo genera con «📋 Copiar como vigilado» y, en Vigilados, dice si lo
 están activos de verdad (con los secretos del correo) o no.
 Si uno está mal escrito, el registro del escaneo lo dice y el resto sigue funcionando.
 
+## Buscadores y enlaces para compartir
+
+El panel vive en `#/…` (una sola página para los buscadores). Por eso cada escaneo escribe
+también **páginas estáticas con URL legible**, sin JavaScript y con datos propios (coste del
+viaje completo, tiempo de viaje, fechas, cuándo se comprobó), solo si tienen al menos 5 ofertas:
+
+- `escapadas/`, `escapadas/menos-de-100-euros/`, `escapadas/este-finde/`, `escapadas/spa/`,
+  `escapadas/con-ninos/`, `escapadas/rurales/`, `escapadas/romanticas/`, `escapadas/sin-coche/`
+- `vuelos/` (chollos que salen de tu origen) y `actividades/gratis/`
+- `sitemap.xml` con todas ellas
+
+Cada una tiene su `canonical`, enlaza al panel con esos filtros puestos y no copia las
+descripciones de los proveedores. Las combinaciones de filtros siguen en `#/…` y no se
+indexan. Los enlaces antiguos (`#/finde`, `#/escapadas?…`) siguen funcionando igual.
+
+Para que Google las encuentre: en [Search Console](https://search.google.com/search-console)
+añade `https://<tu-usuario>.github.io/escapadas-finde/` y envía `sitemap.xml`. Un `robots.txt`
+dentro de `escapadas-finde/` no serviría: los buscadores solo leen el de la raíz del dominio.
+
 ## Afiliación y patrocinios (`config/afiliacion.json`)
 
 Ahora mismo **no hay ningún enlace de afiliado**: el panel lo dice en el pie. Para activarlo

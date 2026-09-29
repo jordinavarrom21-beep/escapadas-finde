@@ -6,6 +6,8 @@
  * Uso: node src/escanear.js [--forzar] [--solo=<fuente>] [--sin-emails]
  */
 import path from 'node:path';
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { CARPETAS, generarPaginas } from './paginas.js';
 import { fileURLToPath } from 'node:url';
 import { Cache } from './cache.js';
 import { cargarEstado, cargarJson, guardarJson } from './almacen.js';
@@ -65,6 +67,23 @@ export function leerDatos(ruta, porDefecto, avisar = console.warn) {
   }
 }
 
+/**
+ * Páginas con URL legible para buscadores (src/paginas.js) y el sitemap. Las de la pasada
+ * anterior se borran: una guía que ya no tiene ofertas suficientes no debe quedarse publicada.
+ */
+function escribirPaginas(datos, base) {
+  const sitio = path.join(RAIZ, 'site');
+  for (const carpeta of CARPETAS) rmSync(path.join(sitio, carpeta), { recursive: true, force: true });
+  rmSync(path.join(sitio, 'sitemap.xml'), { force: true });
+  const { archivos } = generarPaginas(datos, { base });
+  for (const { ruta, contenido } of archivos) {
+    const destino = path.join(sitio, ruta);
+    mkdirSync(path.dirname(destino), { recursive: true });
+    writeFileSync(destino, contenido);
+  }
+  console.log(`\n${archivos.length} páginas para buscadores escritas en site/ (${base ? 'con sitemap' : 'sin sitemap: falta la URL pública del panel'}).`);
+}
+
 /** Las webs que más nos han hecho esperar o reintentar, para verlo de un vistazo. */
 function imprimirRed(red = {}) {
   const dominios = Object.entries(red)
@@ -122,6 +141,7 @@ async function principal() {
   guardarJson(ruta('panelOfertas'), resultado.salida.ofertas);
   guardarJson(ruta('panelHistorial'), resultado.salida.historial);
   guardarJson(ruta('panelVigilados'), resultado.salida.vigilados);
+  escribirPaginas(resultado.salida.ofertas, urlPanel(ajustes, process.env));
   imprimirInforme(resultado.informe);
 
   if (codigoSalida(resultado.informe, resultado.salida.ofertas.generado)) process.exitCode = 1;
