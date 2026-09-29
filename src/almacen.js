@@ -190,18 +190,41 @@ export function fusionar(estado, fuenteId, { ofertas, reemplazar = false }, ahor
   return { nuevas, total: ofertas.length, borradas };
 }
 
+/** Revisiones buenas seguidas de su web sin verla para darla por retirada (ver `podar`). */
+export const REVISIONES_SIN_VER = 8;
+/** Nunca antes de esto, aunque la web se revise cada 30 minutos. */
+export const MINIMO_SIN_VER_MS = 2 * DIA_MS;
+
 /**
- * Quita las ofertas caducadas, las que salen en una fecha ya pasada y las que no
- * se ven desde hace más de `retencionDias`. Devuelve cuántas ha quitado.
+ * ¿La ha dejado de publicar su web? Si la web se lee entera cada vez (`adaptable`: html o
+ * api, sin `retencionDias` propio), sí cuando su última lectura buena (`ultimoOk`) llega
+ * `REVISIONES_SIN_VER` intervalos (y al menos 2 días) después de la última vez que se vio.
+ * Se mide contra la última lectura buena y no contra ahora: si la web lleva días fallando,
+ * sus ofertas no se retiran por eso.
  */
-export function podar(estado, ahora, { retencionDias }) {
+function retiradaDeSuWeb(oferta, estado, config) {
+  if (!config?.adaptable || config.retencionDias != null || !config.intervaloMin) return false;
+  const ultimoOk = Date.parse(estado.fuentes?.[oferta.fuente]?.ultimoOk);
+  const vista = Date.parse(oferta.vistaUltima);
+  if (!Number.isFinite(ultimoOk) || !Number.isFinite(vista)) return false;
+  return ultimoOk - vista >= Math.max(MINIMO_SIN_VER_MS, REVISIONES_SIN_VER * config.intervaloMin * 60_000);
+}
+
+/**
+ * Quita las ofertas caducadas, las que salen en una fecha ya pasada, las que no se ven
+ * desde hace más de `retencionDias` (o el `retencionDias` propio de su web) y las que su
+ * web ha dejado de publicar (`retiradaDeSuWeb`). Devuelve cuántas ha quitado.
+ * @param {{retencionDias: number, fuentes?: Record<string, {intervaloMin?: number, retencionDias?: number, adaptable?: boolean}>}} opciones
+ */
+export function podar(estado, ahora, { retencionDias, fuentes = {} }) {
   const hoy = fechaLocal(ahora);
-  const limiteVista = ahora.getTime() - retencionDias * DIA_MS;
   let quitadas = 0;
   for (const [id, oferta] of Object.entries(estado.ofertas)) {
+    const config = fuentes[oferta.fuente];
+    const limiteVista = ahora.getTime() - (config?.retencionDias ?? retencionDias) * DIA_MS;
     const caducada = oferta.caduca && Date.parse(oferta.caduca) < ahora.getTime();
     const yaSalio = oferta.fechas?.salida && oferta.fechas.salida.slice(0, 10) < hoy;
-    const olvidada = Date.parse(oferta.vistaUltima) < limiteVista;
+    const olvidada = Date.parse(oferta.vistaUltima) < limiteVista || retiradaDeSuWeb(oferta, estado, config);
     if (caducada || yaSalio || olvidada) {
       delete estado.ofertas[id];
       quitadas++;

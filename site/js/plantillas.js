@@ -10,7 +10,7 @@ import {
   contar, duracion, enumerar, escaparHtml as esc, euros, grados, haceCuanto, nota,
   puntosMinigrafica, urlSegura,
 } from './formato.js';
-import { SIN_COCHE, duracionActividad, esDuplicada, esNovedad, salidasDe, tieneVuelo } from './filtros.js';
+import { SIN_COCHE, duracionActividad, esDuplicada, esNovedad, salidasDe, sinComprobar, tieneVuelo } from './filtros.js';
 import { escena, icono, iconoTema, iconoTiempo, tipoEscena } from './iconos.js';
 
 export const ESTADOS_FUENTE = {
@@ -445,9 +445,6 @@ export function tarjetaDestacada(o, ctx, etiqueta = 'Chollazo destacado') {
 </article>`;
 }
 
-/** Sin volver a verla en su web durante más de esto (o de 3 intervalos de su fuente), puede haber cambiado. */
-const HORAS_SIN_COMPROBAR = 24;
-
 /**
  * Cuándo se vio la oferta en su web por última vez y si ya puede estar desactualizada.
  * @returns {{texto: string, cuando: string, desactualizada: boolean}|null}
@@ -456,12 +453,10 @@ export function frescura(o, ctx = {}) {
   const vista = Date.parse(o.vistaUltima);
   if (!Number.isFinite(vista)) return null;
   const ahora = ctx.ahora ?? new Date();
-  const intervaloMin = ctx.intervalos?.get(o.fuente);
-  const limiteHoras = Math.max(HORAS_SIN_COMPROBAR, intervaloMin ? (3 * intervaloMin) / 60 : 0);
   return {
     texto: haceCuanto(o.vistaUltima, ahora),
     cuando: new Date(vista).toLocaleString('es-ES', { timeZone: 'Europe/Madrid', dateStyle: 'medium', timeStyle: 'short' }),
-    desactualizada: (ahora.getTime() - vista) / 3_600_000 > limiteHoras,
+    desactualizada: sinComprobar(o, { ahora, intervalos: ctx.intervalos }),
   };
 }
 

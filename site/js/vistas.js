@@ -13,7 +13,7 @@ import {
   buscarActividades, buscarEscapadas, buscarTexto, chollazos, chollosDeVuelos, promocionesDeVuelos, crearHash, describirCriterio,
   destinosDe, destinosDeVuelo, esActividad, esEscapada, filtrarVuelos, filtrosActivos, leerFiltrosActividades, zonasDe,
   leerFiltrosComunes, leerFiltrosEscapadas, leerFiltrosVuelos, perfilFavoritos, periodoFinde, planesSorpresa,
-  puenteDelFinde, radioBusquedaKm, recomendadas, viajeDeParams, resumenCalendario, resumenFuentes, resumenPuentes, tieneVuelo,
+  puenteDelFinde, radioBusquedaKm, recomendadas, viajeDeParams, resumenCalendario, resumenFuentes, resumenPuentes, sinComprobar, tieneVuelo,
   urlEditarVigilados, valoresUnicos, vuelosParaMapa,
 } from './filtros.js';
 import { NOCHES, VIAJEROS, aeropuertosCercanos } from './viaje.js';
@@ -27,10 +27,10 @@ const MODOS_VUELOS_CON_FECHA = ['api', 'afiliado'];
 /** Los filtros que van dentro de «Más filtros» (los de arriba se ven siempre). */
 const FILTROS_SECUNDARIOS = [
   'pnMin', 'dto', 'pts', 'nota', 'noches', 'regimen', 'aloj', 'transporte', 'fuente', 'tipo', 'pais', 'region',
-  'nuevas', 'fav', 'cho', 'baja', 'hist', 'sindesc', 'dup', 'cru',
+  'nuevas', 'fav', 'cho', 'baja', 'hist', 'sindesc', 'frescas', 'dup', 'cru',
 ];
 /** Los que van en «Más filtros» de la vista de vuelos. */
-const FILTROS_MAS_VUELOS = ['dto', 'pts', 'cho', 'baja', 'hist', 'nuevas', 'fav', 'sindesc', 'dup'];
+const FILTROS_MAS_VUELOS = ['dto', 'pts', 'cho', 'baja', 'hist', 'nuevas', 'fav', 'sindesc', 'frescas', 'dup'];
 const HORAS_SORPRESA = 3;
 const ACTIVIDADES_FINDE = 4;
 const ETIQUETAS_ORDEN = {
@@ -101,9 +101,23 @@ export function ctxTarjetas(e, extra = {}) {
     historial: e.historial, distancias: e.distanciasOrigen, desde: nombreSalida(e),
     // El coste de coche que calcula el escaneo es desde su origen: desde otra salida no vale.
     salidaPropia: Boolean(e.salida), ...datosViaje(e), ahora: e.ahora, comparar: e.comparar ?? null, misEstados: e.misEstados ?? null,
-    intervalos: new Map((e.datos.fuentes ?? []).map((f) => [f.id, f.intervaloMin])), ...extra,
+    intervalos: intervalosDe(e), ...extra,
   };
 }
+
+/**
+ * Lo que no se enseña en las listas salvo que se pida («sindesc=0»): las descartadas con ✕ y
+ * las que has marcado «Ya no está disponible».
+ */
+export function ocultas(e) {
+  const noDisponibles = [...(e.misEstados ?? new Map())].filter(([, marca]) => marca === 'no-disponible').map(([id]) => id);
+  return noDisponibles.length ? new Set([...(e.descartadas ?? []), ...noDisponibles]) : (e.descartadas ?? new Set());
+}
+
+/** Intervalo de revisión de cada web (para saber cuándo una oferta lleva tiempo sin comprobarse). */
+const intervalosDe = (e) => new Map((e.datos.fuentes ?? []).map((f) => [f.id, f.intervaloMin]));
+/** Hora del escaneo: «sin comprobar» se mide hasta ella (si el escaneo se retrasa, no pasan todas a la vez). */
+const horaRevision = (e) => (Number.isFinite(Date.parse(e.datos.generado)) ? new Date(e.datos.generado) : e.ahora);
 
 /** Contexto de búsqueda: origen, fechas y preferencias de este navegador. */
 export function contextoBusqueda(e) {
@@ -118,8 +132,10 @@ export function contextoBusqueda(e) {
     puentes: e.datos.puentes,
     referencia: e.referencia,
     favoritos: e.favoritos,
-    descartadas: e.descartadas,
+    descartadas: ocultas(e),
     temas: e.temas,
+    revision: horaRevision(e),
+    intervalos: intervalosDe(e),
   };
 }
 
@@ -174,7 +190,8 @@ ${interruptor('hist', 'Solo mínimo histórico', f.historico)}`;
 function filtrosListas(f) {
   return `${interruptor('fav', 'Solo favoritos', f.fav)}
 ${interruptor('nuevas', 'Solo novedades', f.nuevas)}
-${interruptorDefecto('sindesc', 'Ocultar las descartadas', f.sinDescartadas)}
+${interruptorDefecto('sindesc', 'Ocultar las descartadas y las no disponibles', f.sinDescartadas)}
+${interruptor('frescas', 'Ocultar las que su web lleva días sin publicar', f.soloComprobadas)}
 ${interruptor('dup', 'Mostrar las repetidas en varias webs', f.conDuplicadas)}`;
 }
 
@@ -280,7 +297,8 @@ export function contenidoSorpresa(e, params = {}, vistos = null) {
   const f = leerFiltrosEscapadas(params);
   const { ofertas, distancias } = buscarEscapadas(e.datos.ofertas, f, contextoBusqueda(e));
   // Ni tus favoritos (ya salen arriba) ni lo que haya salido antes en la portada.
-  const planes = sinVistas(planesSorpresa(ofertas.filter((o) => !e.favoritos?.has(o.id) && !vistos?.has(o.id)), { distancias }, { salto: e.salto ?? 0, horasMax: HORAS_SORPRESA }), vistos);
+  const busqueda = contextoBusqueda(e);
+  const planes = sinVistas(planesSorpresa(ofertas.filter((o) => !e.favoritos?.has(o.id) && !vistos?.has(o.id) && !sinComprobar(o, busqueda)), { distancias }, { salto: e.salto ?? 0, horasMax: HORAS_SORPRESA }), vistos);
   if (!planes.length) {
     return estadoVacio(`No hay planes a menos de ${HORAS_SORPRESA} h con estos filtros.`, 'Prueba a quitar alguna temática o a subir el precio máximo.');
   }
@@ -297,7 +315,7 @@ function bloqueSorpresa(e, params, vistos) {
 
 /** «Actividades para este finde»: tres o cuatro planes sueltos que se pueden reservar ya. */
 function bloqueActividades(e, finde, vistos = null) {
-  const lista = sinVistas(actividadesPara(e.datos.ofertas, periodoFinde(finde), { max: ACTIVIDADES_FINDE * 3, descartadas: e.descartadas }), vistos, ACTIVIDADES_FINDE);
+  const lista = sinVistas(actividadesPara(e.datos.ofertas, periodoFinde(finde), { max: ACTIVIDADES_FINDE * 3, descartadas: ocultas(e) }), vistos, ACTIVIDADES_FINDE);
   if (!lista.length) return '';
   return seccion(conIcono('actividades', 'Actividades para este finde'),
     `<p class="seccion__intro">Entradas, visitas y free tours para estos días, con el precio por persona.</p>
@@ -313,7 +331,8 @@ function bloqueRecomendado(e, params, vistos = null) {
   }
   const f = leerFiltrosEscapadas(params);
   const { ofertas, distancias } = buscarEscapadas(e.datos.ofertas, f, contextoBusqueda(e));
-  const lista = recomendadas(ofertas.filter((o) => !vistos?.has(o.id)), perfil, { ...contextoBusqueda(e), distancias }, { max: 6 });
+  const busqueda = contextoBusqueda(e);
+  const lista = recomendadas(ofertas.filter((o) => !vistos?.has(o.id) && !sinComprobar(o, busqueda)), perfil, { ...busqueda, distancias }, { max: 6 });
   for (const r of lista) vistos?.add(r.oferta.id);
   const ctx = ctxTarjetas(e, { distancias, desde: f.punto?.nombre ?? nombreSalida(e) });
   const gustos = perfil.temas.slice(0, 2).map(({ valor }) => e.temas.get(valor)?.nombre ?? valor).join(', ');
@@ -383,7 +402,10 @@ export function vistaFinde(e, params = {}) {
   const hayVuelosConFecha = e.datos.ofertas.some(tieneVuelo);
   const escapadas = buscarEscapadas(e.datos.ofertas, leerFiltrosEscapadas({ ...params, cuando: 'finde' }), contextoBusqueda(e)).ofertas;
   // Las descartadas con ✕ no vuelven a salir, tampoco aquí.
-  const top = chollazos(e.datos.ofertas).filter((o) => !e.descartadas.has(o.id));
+  // Tampoco las marcadas «no disponible» ni las que su web lleva días sin publicar.
+  const ocultasFinde = ocultas(e);
+  const busqueda = contextoBusqueda(e);
+  const top = chollazos(e.datos.ofertas).filter((o) => !ocultasFinde.has(o.id) && !sinComprobar(o, busqueda));
   const favoritos = e.datos.ofertas.filter((o) => e.favoritos.has(o.id));
   const puenteSiguiente = siguiente && puenteDelFinde(siguiente, e.datos.puentes);
   // Cada bloque se pinta en orden y no repite lo que ya ha salido más arriba (tampoco el destacado).
@@ -718,7 +740,8 @@ ${plegableMovil(e, 'actividades', params)}<form class="filtros" data-filtros="ac
     ${numero('nota', 'Valoración mín. (0–10)', f.nota, ' max="10" step="0.5" placeholder="Cualquiera"')}
     <label class="campo">Ordenar por <select name="orden">${opciones(ORDENES_ACTIVIDADES.map((o) => [o, ETIQUETAS_ORDEN_ACTIVIDADES[o]]), f.orden)}</select></label>
     ${interruptor('gratis', 'Solo gratis', f.gratis)}
-    ${interruptorDefecto('sindesc', 'Ocultar las descartadas', f.sinDescartadas)}
+    ${interruptorDefecto('sindesc', 'Ocultar las descartadas y las no disponibles', f.sinDescartadas)}
+    ${interruptor('frescas', 'Ocultar las que su web lleva días sin publicar', f.soloComprobadas)}
   </div>
   ${bloqueBusquedas(e, 'actividades')}
 </form></details>
@@ -796,7 +819,7 @@ function textoPedir(pedir) {
 }
 
 export function vistaPuentes(e) {
-  const resumen = resumenPuentes(e.datos.ofertas, e.datos.puentes, e.hoy, { descartadas: e.descartadas });
+  const resumen = resumenPuentes(e.datos.ofertas, e.datos.puentes, e.hoy, { descartadas: ocultas(e) });
   if (!resumen.length) {
     return `<h1 class="titulo-vista" tabindex="-1">Puentes</h1>
 ${estadoVacio('No hay ningún puente a la vista', 'Se miran los próximos cuatro meses con los festivos de tu comunidad y los locales que tengas en los ajustes.')}`;

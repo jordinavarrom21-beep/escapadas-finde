@@ -139,7 +139,7 @@ export default {
   fuente: el almacén borra sus ofertas guardadas que ya no aparecen. Una función
   limita el borrado a las ofertas que devuelvan `true` (p. ej. solo las de las consultas
   de Ryanair que han ido bien). Sin `reemplazar`, las ofertas antiguas caducan por
-  `retencionDias`.
+  `retencionDias` o, en html y api, por revisiones sin verlas (ver `podar`).
 - Si la fuente falla del todo, lanza un error con un mensaje claro en español.
 - Si `requiere` contiene variables que no están en `ctx.env`, el orquestador no la
   ejecuta y la marca como `desactivada`, indicando qué falta.
@@ -264,8 +264,12 @@ export default {
   archivo temporal y después renombrar).
 - `fusionar(estado, fuenteId, {ofertas, reemplazar}, ahora)`: conserva `vistaPrimera`,
   actualiza `vistaUltima` y aplica `reemplazar`.
-- `podar(estado, ahora, {retencionDias})`: quita las ofertas caducadas, cualquier oferta
-  (no solo vuelos) cuya salida ya ha pasado y las que no se ven desde hace más de `retencionDias`.
+- `podar(estado, ahora, {retencionDias, fuentes})`: quita las ofertas caducadas, cualquier oferta
+  (no solo vuelos) cuya salida ya ha pasado, las que no se ven desde hace más de `retencionDias`
+  (o `fuentes[id].retencionDias`) y, en las fuentes `adaptable` (modo html o api) sin retención
+  propia, las que su última lectura buena (`estado.fuentes[id].ultimoOk`) no trae desde hace
+  `REVISIONES_SIN_VER` (8) intervalos y al menos 2 días. `fuentes`: `{id: {intervaloMin,
+  retencionDias?, adaptable}}` (lo arma el pipeline con `ajustes.fuentes` y el `modo` de cada una).
   Por eso una fuente no debe poner en `fechas` algo que no sea la fecha del viaje (Nomolesten
   ponía la del precio y la poda la vaciaba cada medianoche).
 

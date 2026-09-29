@@ -122,7 +122,8 @@ Todo se cambia editando archivos del repo (se puede hacer desde la web de GitHub
   vale solo para ese año.
 - `viajeros`: cuántos viajáis (2 por defecto). Reparte los precios «por alojamiento» y los
   totales para calcular el precio por persona y noche.
-- `fuentes.<id>`: `activa`, `intervaloMin`.
+- `fuentes.<id>`: `activa`, `intervaloMin` y, opcional, `retencionDias` (ver «Ofertas que ya no están»).
+- `retencionDias` (10): lo máximo que se guarda una oferta que ya no se ve en su web.
 - `emails.chollazos`: umbrales (vuelo de ida y vuelta ≤ 30 €, escapada ≤ 25 € por persona y noche…).
   Cambiarlos no rompe nada: los tests usan su propia copia de los ajustes.
 - `preferencias`: `temasFavoritos` (suben 10 puntos), `evitarTemas` y `evitarDestinos` (nombre,
@@ -156,6 +157,25 @@ Por ejemplo, «dos personas, menos de 180 €, a unas 2 h de Girona, cualquier f
 El panel lo genera con «Copiar como vigilado» y, en Vigilados, dice si los avisos por email
 están activos de verdad (con los secretos del correo) o no.
 Si uno está mal escrito, el registro del escaneo lo dice y el resto sigue funcionando.
+
+## Ofertas que ya no están
+
+No se visita cada oferta para ver si sigue (serían miles de peticiones y las webs bloquean):
+se deduce de lo que cada web deja de publicar.
+
+- **Se retiran** en el escaneo: las caducadas, las que salen en una fecha ya pasada, las que su
+  web ya no trae cuando se lee su catálogo completo y, en las webs que se leen enteras en cada
+  revisión (html y api), las que llevan **8 revisiones buenas seguidas** sin aparecer (y al
+  menos 2 días): una web que se revisa cada 6 h las retira a los 2 días; una de cada 12 h, a los
+  4. Se cuenta hasta la última lectura buena, así que si una web falla varios días sus ofertas
+  no se pierden. Los blogs y foros (Viajeros Piratas, Chollometro, Fly4free) solo publican lo
+  último: sus ofertas se guardan `fuentes.<id>.retencionDias` (5) días; el resto, como mucho
+  `retencionDias` (10).
+- **En el panel**, las que su web lleva más de 24 h (o 3 revisiones) sin publicar dicen «Sin
+  comprobar…», van **al final** de las listas y no salen en el destacado, la sorpresa ni las
+  recomendaciones. «Ocultar las que su web lleva días sin publicar» (en Más filtros) las quita.
+- **«Ya no está disponible»** (en la ficha) la oculta de las listas en tu navegador, como la ✕;
+  para volver a verlas, desmarca «Ocultar las descartadas y las no disponibles».
 
 ## Buscadores y enlaces para compartir
 

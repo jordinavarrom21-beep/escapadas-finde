@@ -8,14 +8,14 @@ import {
   duracionActividad, esActividad, esNovedad, filtrarVuelos, leerFiltrosActividades, leerFiltrosComunes,
   leerFiltrosEscapadas, leerFiltrosVuelos, leerRuta, medirDistancias, perfilFavoritos, periodoFinde,
   planesSorpresa, recomendadas, referenciaNovedades, resumenCalendario, resumenFuentes, resumenPuentes,
-  urlEditarVigilados, vuelosParaMapa,
+  alFinalSinComprobar, filtrosActivos, sinComprobar, urlEditarVigilados, vuelosParaMapa,
 } from '../site/js/filtros.js';
 import { estadoFinde, findesProximos, proximoPuente } from '../site/js/fechas.js';
 import { cuentaAtras, euros } from '../site/js/formato.js';
 import { parsearPhoton, urlPhoton } from '../site/js/geo.js';
 import { contenidoFicha, tarjeta } from '../site/js/plantillas.js';
 import {
-  contenidoSorpresa, resultadosVuelos, vistaActividades, vistaCalendario, vistaEscapadas, vistaFinde,
+  contenidoSorpresa, contextoBusqueda, ocultas, resultadosVuelos, vistaActividades, vistaCalendario, vistaEscapadas, vistaFinde,
   vistaFuentes, vistaPuentes,
 } from '../site/js/vistas.js';
 import { crearServidor, rutaArchivo } from '../scripts/servir.js';
@@ -670,5 +670,47 @@ describe('servidor local', () => {
     } finally {
       servidor.close();
     }
+  });
+});
+
+describe('ofertas que ya no están', () => {
+  const hora = (h) => new Date(AHORA.getTime() - h * 3_600_000).toISOString();
+  const ctx = { revision: AHORA, intervalos: new Map([['lenta', 720]]) };
+
+  it('«sin comprobar»: más de 24 h (o 3 revisiones de su web) sin verla, medido hasta la hora del escaneo', () => {
+    assert.equal(sinComprobar({ fuente: 'rapida', vistaUltima: hora(23) }, ctx), false);
+    assert.equal(sinComprobar({ fuente: 'rapida', vistaUltima: hora(25) }, ctx), true);
+    assert.equal(sinComprobar({ fuente: 'lenta', vistaUltima: hora(30) }, ctx), false, 'cada 12 h: hasta 36 h');
+    assert.equal(sinComprobar({ fuente: 'lenta', vistaUltima: hora(37) }, ctx), true);
+    // Si el escaneo se retrasa, no pasan todas a «sin comprobar» de golpe.
+    assert.equal(sinComprobar({ fuente: 'rapida', vistaUltima: hora(2) }, { revision: new Date(AHORA.getTime() - 3_600_000), ahora: new Date(AHORA.getTime() + 48 * 3_600_000) }), false);
+  });
+
+  it('van al final sin cambiar el orden entre ellas, y con «frescas=1» no salen', () => {
+    const [a, b, c] = [{ id: 'a', fuente: 'x', vistaUltima: hora(40) }, { id: 'b', fuente: 'x', vistaUltima: hora(1) }, { id: 'c', fuente: 'x', vistaUltima: hora(2) }];
+    assert.deepEqual(alFinalSinComprobar([a, b, c], ctx).map((o) => o.id), ['b', 'c', 'a']);
+
+    const e = estadoPanel();
+    const base = contextoBusqueda(e);
+    const todas = buscarEscapadas(ofertas, leerFiltrosEscapadas({}), base).ofertas;
+    const i = todas.findIndex((o) => sinComprobar(o, base));
+    if (i >= 0) assert.ok(todas.slice(i).every((o) => sinComprobar(o, base)), 'las sin comprobar, todas detrás');
+    const frescas = buscarEscapadas(ofertas, leerFiltrosEscapadas({ frescas: '1' }), base).ofertas;
+    assert.ok(frescas.every((o) => !sinComprobar(o, base)));
+    assert.deepEqual(filtrosActivos('escapadas', { frescas: '1' }).map((c) => c.texto), ['Solo comprobadas hace poco']);
+  });
+
+  it('las marcadas «Ya no está disponible» se ocultan como las descartadas', () => {
+    const e = estadoPanel();
+    const [una, otra] = buscarEscapadas(ofertas, leerFiltrosEscapadas({}), contextoBusqueda(e)).ofertas;
+    e.descartadas = new Set([una.id]);
+    e.misEstados = new Map([[otra.id, 'no-disponible']]);
+    assert.deepEqual([...ocultas(e)].sort(), [una.id, otra.id].sort());
+    const ids = buscarEscapadas(ofertas, leerFiltrosEscapadas({}), contextoBusqueda(e)).ofertas.map((o) => o.id);
+    assert.ok(!ids.includes(una.id) && !ids.includes(otra.id));
+    const conTodas = buscarEscapadas(ofertas, leerFiltrosEscapadas({ sindesc: '0' }), contextoBusqueda(e)).ofertas.map((o) => o.id);
+    assert.ok(conTodas.includes(otra.id));
+    e.misEstados = new Map([[otra.id, 'reservada']]);
+    assert.deepEqual([...ocultas(e)], [una.id], 'la reservada sigue saliendo');
   });
 });

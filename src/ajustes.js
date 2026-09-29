@@ -95,6 +95,8 @@ function problemasFuentes(fuentes) {
       `fuentes.${id}.activa debe ser true o false`);
     exigir(config.intervaloMin === undefined || esPositivo(config.intervaloMin),
       `fuentes.${id}.intervaloMin debe ser un número de minutos mayor que 0`);
+    exigir(config.retencionDias === undefined || esPositivo(config.retencionDias),
+      `fuentes.${id}.retencionDias debe ser un número de días mayor que 0`);
   }
   return problemas;
 }

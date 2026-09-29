@@ -244,4 +244,45 @@ describe('podar', () => {
     assert.equal(podar(estado, AHORA, { retencionDias: 30 }), 0);
     assert.deepEqual(Object.keys(estado.ofertas), [antigua.id]);
   });
+
+  describe('al ritmo de cada web', () => {
+    const hace = (dias) => new Date(AHORA.getTime() - dias * 86_400_000);
+    // Una web que se lee cada 6 h: 8 revisiones son 2 días.
+    const cada6h = { web: { intervaloMin: 360, adaptable: true } };
+    const conOfertas = (vistas, ultimoOk = AHORA) => {
+      const estado = estadoInicial();
+      const ofertas = vistas.map((dias) => {
+        const o = oferta({ fuente: 'web' });
+        fusionar(estado, 'web', { ofertas: [o] }, hace(dias));
+        return o;
+      });
+      estado.fuentes.web = { estado: 'ok', ultimoOk: ultimoOk.toISOString() };
+      return { estado, ofertas };
+    };
+
+    test('retira lo que su web lleva 8 revisiones buenas sin publicar (y al menos 2 días)', () => {
+      const { estado, ofertas: [ayer, hace3] } = conOfertas([1, 3]);
+      assert.equal(podar(estado, AHORA, { retencionDias: 10, fuentes: cada6h }), 1);
+      assert.deepEqual(Object.keys(estado.ofertas), [ayer.id]);
+      assert.ok(!estado.ofertas[hace3.id]);
+    });
+
+    test('una web que se revisa cada 30 min no retira nada antes de 2 días', () => {
+      const { estado } = conOfertas([1.5]);
+      assert.equal(podar(estado, AHORA, { retencionDias: 10, fuentes: { web: { intervaloMin: 30, adaptable: true } } }), 0);
+    });
+
+    test('si la web lleva días fallando, sus ofertas no se retiran por eso', () => {
+      const { estado } = conOfertas([4], hace(3.5));
+      assert.equal(podar(estado, AHORA, { retencionDias: 10, fuentes: cada6h }), 0);
+    });
+
+    test('feeds y buzón (no adaptables) y webs con retencionDias propio: por días sin verlas', () => {
+      const feed = conOfertas([3, 6]);
+      assert.equal(podar(feed.estado, AHORA, { retencionDias: 10, fuentes: { web: { intervaloMin: 30, adaptable: false } } }), 0);
+      const propia = conOfertas([3, 6]);
+      assert.equal(podar(propia.estado, AHORA, { retencionDias: 10, fuentes: { web: { intervaloMin: 360, adaptable: true, retencionDias: 5 } } }), 1);
+      assert.deepEqual(Object.keys(propia.estado.ofertas), [propia.ofertas[0].id]);
+    });
+  });
 });
