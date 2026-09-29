@@ -171,7 +171,16 @@ export async function escanear({
   for (const { fuente, error } of ejecutadas) {
     if (error) conPrefijo(fuente.id)(`fallo inesperado al ejecutar la fuente: ${error.message}`);
   }
-  const podadas = podar(estado, ahora, { retencionDias: ajustes.retencionDias });
+  // Cada web con su ritmo: las que se leen enteras (html, api) retiran antes lo que dejan de
+  // publicar; los feeds y el buzón, por días sin verlas (los de la web o los generales).
+  const podadas = podar(estado, ahora, {
+    retencionDias: ajustes.retencionDias,
+    fuentes: Object.fromEntries(fuentes.map((f) => [f.id, {
+      intervaloMin: ajustes.fuentes?.[f.id]?.intervaloMin ?? 60,
+      retencionDias: ajustes.fuentes?.[f.id]?.retencionDias,
+      adaptable: ['html', 'api'].includes(f.modo),
+    }])),
+  });
 
   // Se completan por si vienen de un estado guardado antes de añadir campos nuevos.
   for (const [id, oferta] of Object.entries(estado.ofertas)) estado.ofertas[id] = completarOferta(oferta);

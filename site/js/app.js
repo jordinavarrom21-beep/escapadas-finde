@@ -509,7 +509,7 @@ function alternarDescartada(id) {
   // Las descartadas se ocultan por defecto en todas las listas (salvo «sindesc=0»).
   const { vista, params } = leerRuta(location.hash);
   if (VISTAS_HTML[vista].resultados) actualizarResultados(vista, params);
-  anunciar('Oferta descartada. Para volver a verla, desmarca «Ocultar las descartadas» en los filtros.');
+  anunciar('Oferta descartada. Para volver a verla, desmarca «Ocultar las descartadas y las no disponibles» en los filtros.');
 }
 
 function mostrarFicha(id, disparador) {
@@ -594,7 +594,7 @@ function alternarMiEstado(id, nuevo) {
   document.querySelectorAll(`[data-mi-estado][data-oferta="${CSS.escape(id)}"]`).forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.miEstado === marcado)));
   const { vista, params } = leerRuta(location.hash);
   if (VISTAS_HTML[vista].resultados) actualizarResultados(vista, params);
-  anunciar(marcado === 'reservada' ? 'Marcada como reservada (solo en este navegador)' : marcado ? 'Marcada como no disponible (solo en este navegador)' : 'Marca quitada');
+  anunciar(marcado === 'reservada' ? 'Marcada como reservada (solo en este navegador)' : marcado ? 'Marcada como no disponible: ya no sale en las listas (solo en este navegador; para verla, desmarca «Ocultar las descartadas y las no disponibles»)' : 'Marca quitada');
 }
 
 const ACCIONES = '[data-actualizar], [data-compartir-busqueda], [data-usar-viaje], [data-mi-estado], [data-abrir-filtros], [data-comparar], [data-vaciar-comparar], [data-mi-viaje], [data-cerrar-viaje], [data-ficha], [data-fav], [data-descartar], [data-mas], [data-sorpresa],'

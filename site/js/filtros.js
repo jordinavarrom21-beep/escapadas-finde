@@ -74,9 +74,11 @@ export function leerFiltrosComunes(p = {}) {
     region: p.region ?? '',
     nuevas: p.nuevas === '1',
     fav: p.fav === '1',
-    // Las descartadas (✕) se ocultan salvo que se pida verlas («sindesc=0»).
+    // Las descartadas (✕) y las que marcas «Ya no está disponible» se ocultan salvo que se pida verlas («sindesc=0»).
     sinDescartadas: p.sindesc !== '0',
     conDuplicadas: p.dup === '1',
+    // Las que su web lleva días sin publicar van al final; con «frescas=1», ni eso.
+    soloComprobadas: p.frescas === '1',
     noTemas: lista(p.notemas),
     noDestinos: lista(p.nodest),
     desde: dia(p.desde),
@@ -144,6 +146,30 @@ const ascendente = (a, b) => (a === b ? 0 : a == null ? 1 : b == null ? -1 : a <
 /** Descendente con los null al final. */
 const descendente = (a, b) => (a === b ? 0 : a == null ? 1 : b == null ? -1 : a < b ? 1 : -1);
 const porPuntuacion = (a, b) => b.puntuacion - a.puntuacion;
+
+/** Sin volver a verla en su web durante más de esto (o de 3 intervalos de su fuente), puede haber cambiado. */
+export const HORAS_SIN_COMPROBAR = 24;
+
+/**
+ * ¿Lleva su web más de `HORAS_SIN_COMPROBAR` (o 3 intervalos de revisión) sin publicarla?
+ * Se mide hasta `ctx.revision` (la hora del escaneo) si viene: así, si el escaneo se
+ * retrasa, no pasan todas a «sin comprobar» a la vez. Si no, hasta `ctx.ahora`.
+ */
+export function sinComprobar(o, ctx = {}) {
+  const vista = Date.parse(o.vistaUltima);
+  if (!Number.isFinite(vista)) return false;
+  const hasta = (ctx.revision ?? ctx.ahora ?? new Date()).getTime();
+  const intervaloMin = ctx.intervalos?.get(o.fuente);
+  const limiteHoras = Math.max(HORAS_SIN_COMPROBAR, intervaloMin ? (3 * intervaloMin) / 60 : 0);
+  return (hasta - vista) / 3_600_000 > limiteHoras;
+}
+
+/** Mismo orden, pero las que su web lleva tiempo sin publicar, al final. */
+export function alFinalSinComprobar(lista, ctx = {}) {
+  const [frescas, viejas] = [[], []];
+  for (const o of lista) (sinComprobar(o, ctx) ? viejas : frescas).push(o);
+  return frescas.concat(viejas);
+}
 const porPrecio = (a, b) => ascendente(a.precio, b.precio) || porPuntuacion(a, b);
 
 // ── Utilidades comunes ───────────────────────────────────────────────────────
@@ -287,6 +313,7 @@ function cumpleComunes(o, f, ctx) {
     && (!f.fav || Boolean(ctx.favoritos?.has(o.id)))
     && (!f.sinDescartadas || !ctx.descartadas?.has(o.id))
     && (f.conDuplicadas || !esDuplicada(o))
+    && (!f.soloComprobadas || !sinComprobar(o, ctx))
     && (!f.soloCerradas || Boolean(o.fechas?.salida))
     && cumpleFechas(o, f, ctx);
 }
@@ -301,13 +328,14 @@ const COMPARADORES_VUELOS = {
 
 /** Vuelos con fechas que cumplen los filtros, ya ordenados. `finde` admite el id de un finde o de un puente. */
 export function filtrarVuelos(ofertas, f, ctx = {}) {
-  return ofertas
+  const lista = ofertas
     .filter((o) => tieneVuelo(o)
       && (!f.finde || o.fechas?.findeId === f.finde || o.fechas?.puenteId === f.finde)
       && (!f.aero || o.vuelo.origen === f.aero)
       && (!f.ideal || o.vuelo.horarioIdeal)
       && cumpleComunes(o, f, ctx))
     .sort(COMPARADORES_VUELOS[f.orden] ?? porPrecio);
+  return alFinalSinComprobar(lista, ctx);
 }
 
 const PREFIJO_SALIDA = 'sale-de:';
@@ -340,14 +368,14 @@ const cumpleChollo = (o, f, ctx) => esVuelo(o) && !o.vuelo && cumpleComunes(o, f
 
 /** Billetes de vuelo sin fechas concretas (blogs y comunidades): no aplican finde ni horario. */
 export function chollosDeVuelos(ofertas, f, ctx = {}) {
-  return ofertas
+  return alFinalSinComprobar(ofertas
     .filter((o) => !esPromocion(o) && cumpleChollo(o, f, ctx))
-    .sort(f.orden === 'precio' ? porPrecio : porPuntuacion);
+    .sort(f.orden === 'precio' ? porPrecio : porPuntuacion), ctx);
 }
 
 /** Promociones de aerolíneas (descuentos, códigos, rebajas): aparte, porque no son billetes. */
 export function promocionesDeVuelos(ofertas, f, ctx = {}) {
-  return ofertas.filter((o) => esPromocion(o) && cumpleChollo(o, f, ctx)).sort(porPuntuacion);
+  return alFinalSinComprobar(ofertas.filter((o) => esPromocion(o) && cumpleChollo(o, f, ctx)).sort(porPuntuacion), ctx);
 }
 
 /** El vuelo más barato de cada destino (para el mapa). */
@@ -464,7 +492,7 @@ export function buscarEscapadas(ofertas, f, ctx) {
   const sinTotal = f.presupuesto ? lista.filter((o) => costes.get(o.id).total == null).length : 0;
   if (f.presupuesto) lista = lista.filter((o) => cabeEnPresupuesto(costes.get(o.id), f));
   const comparador = comparadoresEscapadas(distancias, costes)[f.orden] ?? porPuntuacion;
-  return { ofertas: lista.sort(comparador), distancias, costes, sinTotal };
+  return { ofertas: alFinalSinComprobar(lista.sort(comparador), ctx), distancias, costes, sinTotal };
 }
 
 // ── Actividades ──────────────────────────────────────────────────────────────
@@ -484,8 +512,8 @@ const cumpleActividad = (o, f, ctx) => cumpleComunes(o, f, ctx)
  * Las distancias son siempre desde el origen: se toman de `ctx.distancias` si vienen.
  */
 export function buscarActividades(ofertas, f, ctx = {}) {
-  return ofertas.filter((o) => esActividad(o) && cumpleActividad(o, f, ctx))
-    .sort(COMPARADORES_ACTIVIDADES[f.orden] ?? porPuntuacion);
+  return alFinalSinComprobar(ofertas.filter((o) => esActividad(o) && cumpleActividad(o, f, ctx))
+    .sort(COMPARADORES_ACTIVIDADES[f.orden] ?? porPuntuacion), ctx);
 }
 
 /** Las mejores actividades que se pueden hacer en un periodo {id, desde}. */
@@ -527,7 +555,7 @@ export function radioBusquedaKm(f) {
 
 /** Búsqueda global (vuelos y escapadas) con los filtros comunes, ordenada por puntuación. */
 export function buscarTexto(ofertas, f, ctx = {}) {
-  return ofertas.filter((o) => cumpleComunes(o, f, ctx)).sort(porPuntuacion);
+  return alFinalSinComprobar(ofertas.filter((o) => cumpleComunes(o, f, ctx)).sort(porPuntuacion), ctx);
 }
 
 // ── Ayudas para encontrar las mejores ofertas ────────────────────────────────
@@ -919,7 +947,8 @@ function textoFiltro(clave, valor, ctx) {
     cho: () => 'Solo chollazos',
     baja: () => 'Con bajada de precio',
     hist: () => 'Mínimo histórico',
-    sindesc: () => (valor === '0' ? 'Con las descartadas' : null),
+    sindesc: () => (valor === '0' ? 'Con las descartadas y las no disponibles' : null),
+    frescas: () => 'Solo comprobadas hace poco',
     dup: () => 'Con las repetidas',
     cru: () => (valor === '0' ? 'Con cruceros' : null),
     cerradas: () => 'Solo con fechas cerradas',

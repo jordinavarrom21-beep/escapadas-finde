@@ -42,7 +42,7 @@ describe('auditoría: descartadas', () => {
   it('se ocultan por defecto (la ✕ ya no depende de un filtro que se olvidaba)', () => {
     assert.equal(leerFiltrosEscapadas({}).sinDescartadas, true);
     assert.equal(leerFiltrosEscapadas({ sindesc: '0' }).sinDescartadas, false);
-    assert.deepEqual(filtrosActivos('escapadas', { sindesc: '0' }).map((c) => c.texto), ['Con las descartadas']);
+    assert.deepEqual(filtrosActivos('escapadas', { sindesc: '0' }).map((c) => c.texto), ['Con las descartadas y las no disponibles']);
     assert.deepEqual(filtrosActivos('escapadas', { sindesc: '1' }), []);
   });
 

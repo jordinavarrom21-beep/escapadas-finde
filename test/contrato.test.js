@@ -216,6 +216,8 @@ describe('contrato de la configuración', () => {
     assert.match(validarAjustes(sin('vuelos', { findes: 2.5 })).join('; '), /vuelos\.findes/);
     assert.match(validarAjustes(sin('coche', { consumoL100km: 0 })).join('; '), /coche\.consumoL100km/);
     assert.match(validarAjustes({ ...AJUSTES, viajeros: 0 }).join('; '), /viajeros/);
+    assert.match(validarAjustes({ ...AJUSTES, fuentes: { chollometro: { retencionDias: 0 } } }).join('; '), /fuentes\.chollometro\.retencionDias/);
+    assert.deepEqual(validarAjustes({ ...AJUSTES, fuentes: { chollometro: { retencionDias: 5 } } }), []);
   });
 
   test('emails necesita resumen y chollazos completos', () => {
