@@ -112,6 +112,7 @@ describe('tuscasasrurales: parsear (páginas reales)', () => {
   it('rellena todos los campos de El Pla de Besora como los enseña su tarjeta', () => {
     const casa = porId(parsear(BARCELONA), '15573');
     assert.equal(casa.titulo, 'El Pla de Besora');
+    assert.equal(casa.establecimiento, 'El Pla de Besora');
     assert.equal(casa.url, `${WEB}/el-pla-de-besora-f15573.htm`);
     assert.equal(casa.imagen, `${WEB}/imagenes/galeria/15573_g63/ico_15573.jpg`, 'la ruta relativa se hace absoluta');
     assert.equal(casa.precio, 30);

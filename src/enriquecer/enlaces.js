@@ -50,6 +50,31 @@ function enlacesAlojamiento(nombre, { entrada, salida }) {
   return enlaces;
 }
 
+/** Casas rurales, campings y apartamentos casi nunca están en Google Hoteles: su propia web, sí. */
+const FUERA_DE_GOOGLE_HOTELES = new Set(['casa-rural', 'camping', 'apartamento']);
+
+/**
+ * El mismo alojamiento en otras webs, para comparar su precio con un clic: Booking con las
+ * fechas y Google (Google Hoteles compara el precio de varias webs; de una casa rural o un
+ * camping sale su propia web, donde reservar directo suele ser lo más barato). Solo con el
+ * nombre propio que publica la fuente (`establecimiento`), nunca con el título de un pack.
+ */
+function enlacesEsteAlojamiento(oferta, { entrada, salida }) {
+  const nombre = oferta.establecimiento;
+  const lugar = oferta.lugar.nombre;
+  const busqueda = sinTildes(nombre).includes(sinTildes(lugar)) ? nombre : `${nombre}, ${lugar}`;
+  const google = FUERA_DE_GOOGLE_HOTELES.has(oferta.alojamiento)
+    ? { etiqueta: 'Su web y opiniones en Google', url: `https://www.google.com/search?q=${cod(busqueda)}&hl=es` }
+    : { etiqueta: 'Precios en Google Hoteles', url: `https://www.google.com/travel/search?q=${cod(busqueda)}&hl=es&gl=es` };
+  return [
+    {
+      etiqueta: 'Este alojamiento en Booking',
+      url: `https://www.booking.com/searchresults.es.html?ss=${cod(busqueda)}&checkin=${entrada}&checkout=${salida}&group_adults=2&no_rooms=1&group_children=0`,
+    },
+    google,
+  ].map((enlace) => ({ ...enlace, grupo: 'este-alojamiento' }));
+}
+
 function enlacesVuelo({ origen, destino, nombreDestino }, { entrada, salida }) {
   const enlaces = [{
     etiqueta: 'Comparar en Google Flights',
@@ -95,7 +120,8 @@ function enlacesTransporte(oferta, origen, { entrada }) {
 
 /**
  * Enlaces extra de una oferta (además de su propia URL), agrupados por para qué
- * sirven: comparar el vuelo, buscar alojamiento, llegar y qué hacer allí.
+ * sirven: comparar el vuelo, buscar alojamiento, llegar y qué hacer allí. Aparte, sin
+ * contar para `max`, los de buscar este mismo alojamiento en otras webs.
  * @param {import('../modelo.js').Oferta} oferta
  * @param {{origen: {nombre: string, lat: number, lon: number}, ahora?: Date, max?: number}} opciones
  */
@@ -119,5 +145,9 @@ export function enlacesPara(oferta, { origen, ahora = new Date(), max = 8 }) {
     if (oferta.lugar?.lat != null && oferta.lugar?.lon != null) enlaces.push(enlaceRuta(origen, oferta.lugar));
     enlaces.push(...enlacesTransporte(oferta, origen, fechas));
   }
-  return enlaces.slice(0, max);
+  // El panel los enseña en «Comparar precios», no entre los demás: no quitan sitio a la ruta.
+  const esteAlojamiento = oferta.establecimiento && nombre && !['vuelo', 'actividad'].includes(oferta.tipo)
+    ? enlacesEsteAlojamiento(oferta, fechas)
+    : [];
+  return [...enlaces.slice(0, max), ...esteAlojamiento];
 }

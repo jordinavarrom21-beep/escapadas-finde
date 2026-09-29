@@ -106,6 +106,12 @@ describe('modelo: catálogos', () => {
     for (const transporte of TRANSPORTES) assert.deepEqual(validarOferta(crearOferta(base({ transporte }))), []);
     for (const alojamiento of ALOJAMIENTOS) assert.deepEqual(validarOferta(crearOferta(base({ alojamiento }))), []);
   });
+
+  test('establecimiento: el nombre propio del alojamiento o null, nunca vacío', () => {
+    assert.equal(crearOferta(base()).establecimiento, null);
+    assert.deepEqual(validarOferta(crearOferta(base({ establecimiento: 'Can Salvà' }))), []);
+    for (const malo of ['', '   ', 42]) assert.throws(() => crearOferta(base({ establecimiento: malo })), /establecimiento no válido/);
+  });
 });
 
 describe('modelo: fechas y lugar', () => {

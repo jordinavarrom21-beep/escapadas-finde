@@ -55,6 +55,7 @@ describe('parsear (páginas reales de Cataluña)', () => {
   it('interpreta precio total, descuento, régimen, temas, lugar y etiquetas', () => {
     const lloret = flash.find((o) => o.id === 'weekendesk:21843318');
     assert.equal(lloret.titulo, 'Disfruta de Lloret de Mar en media pensión y acceso al Spa');
+    assert.equal(lloret.establecimiento, 'Augusta Club & Spa +16', 'el hotel, no el nombre del plan');
     assert.equal(lloret.precio, 117);
     assert.equal(lloret.precioTexto, '117 € en total (1 noche para 2)');
     assert.equal(lloret.precioAnterior, 162);

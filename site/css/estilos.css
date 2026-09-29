@@ -849,7 +849,8 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 .ficha__barra .boton-icono { background: var(--tinta); border-color: var(--tinta); color: var(--tinta-texto); }
 .ficha__contenido { overflow-y: auto; padding: 0 18px 22px; display: grid; gap: 18px; }
 .ficha__cuerpo { display: grid; gap: 22px; align-items: start; }
-.ficha__principal, .ficha__lateral { display: grid; gap: 16px; min-width: 0; }
+/* Una sola columna que no crece con su contenido (el lienzo de la gráfica nace con 300 px). */
+.ficha__principal, .ficha__lateral { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; min-width: 0; }
 .ficha__lateral {
   padding: 20px; border-radius: 24px; background: var(--superficie); border: 1px solid var(--borde); box-shadow: var(--sombra);
 }
@@ -871,11 +872,13 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 .ficha__datos dt { font-size: 0.72rem; color: var(--texto-suave); font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; }
 .ficha__datos dd { margin: 2px 0 0; }
 .ficha__tramos { padding: 12px 14px; border-radius: var(--radio-medio); background: var(--superficie); border: 1px solid var(--borde); font-size: 0.95rem; }
-.ficha__historial { display: grid; gap: 8px; }
-.ficha__grafica { position: relative; height: 180px; }
+.ficha__historial { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.ficha__grafica { position: relative; height: 180px; min-width: 0; }
+.ficha__grafica canvas { max-width: 100%; }
 .ficha__enlaces { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
-.ficha__enlaces li:first-child { flex-basis: 100%; }
-.ficha__enlaces li:first-child .boton { width: 100%; min-height: 52px; font-size: 1rem; }
+.ficha__enlaces:not(.ficha__enlaces--resto) li:first-child { flex-basis: 100%; }
+.ficha__enlaces:not(.ficha__enlaces--resto) li:first-child .boton { width: 100%; min-height: 52px; font-size: 1rem; }
+.ficha__mas-enlaces { display: grid; gap: 8px; }
 .ficha h3 { display: flex; align-items: center; gap: 8px; font-size: 1.05rem; }
 .ficha h3 .ic { color: var(--acento); }
 .ficha__coste, .ficha__eventos, .ficha__actividades { display: grid; gap: 8px; }
@@ -894,6 +897,39 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 .coste__total .num { font-family: var(--fuente-titulos); font-size: 1.3rem; }
 .coste__falta { color: var(--aviso); }
 .etiqueta-estimado { font-size: 0.72rem; font-weight: 650; padding: 1px 7px; border-radius: 999px; background: var(--aviso-suave); color: var(--aviso); }
+
+/* Comparar precios (ficha): la misma oferta en otras webs y buscar este alojamiento. */
+.comparador {
+  position: relative;
+  display: grid; gap: 10px; padding: 14px; border-radius: var(--radio-medio);
+  background: color-mix(in srgb, var(--acento) 5%, var(--superficie));
+  border: 1px solid color-mix(in srgb, var(--acento) 24%, var(--borde));
+}
+.comparador > * { margin: 0; }
+.comparador__tabla th, .comparador__tabla td { vertical-align: middle; padding: 8px 4px; }
+.comparador__tabla .num { white-space: normal; }
+.comparador__tabla .num strong { white-space: nowrap; }
+.comparador__unidad { display: block; font-size: 0.74rem; line-height: 1.25; color: var(--texto-suave); }
+.comparador__leyenda { caption-side: top; text-align: left; padding-bottom: 2px; font-size: 0.82rem; color: var(--texto-suave); }
+.comparador__tabla tbody tr:last-child > * { border-bottom: 0; }
+.comparador__tabla tbody th { overflow-wrap: break-word; }
+.comparador__tabla strong { font-family: var(--fuente-titulos); font-size: 1.05rem; }
+.comparador__fila--actual th { font-weight: 800; }
+.comparador__accion { width: 1%; text-align: right; white-space: nowrap; font-size: 0.8rem; }
+@media (min-width: 720px) {
+  .comparador__accion .boton { min-height: 32px; padding: 4px 12px; }
+}
+.comparador__mejor {
+  display: inline-block; margin-left: 2px; padding: 1px 8px; border-radius: 999px; white-space: nowrap;
+  font-size: 0.7rem; font-weight: 800; background: var(--acento-suave); color: var(--acento-suave-texto);
+}
+.comparador__dif { font-size: 0.78rem; font-weight: 650; color: var(--texto-suave); }
+.comparador__ahorro { display: flex; align-items: flex-start; gap: 8px; font-size: 0.92rem; }
+.comparador__ahorro > .ic { flex: none; margin-top: 0.15em; color: var(--acento); }
+.comparador__nota { font-size: 0.78rem; }
+.comparador__buscar { font-size: 0.88rem; font-weight: 650; }
+.comparador__enlaces { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.dato-extra--comparar strong { color: var(--texto); font-weight: 750; }
 
 /* ── Comparar ─────────────────────────────────────────────────────────────── */
 
@@ -1034,6 +1070,10 @@ main { padding-block: 22px 56px; min-height: 60vh; }
   .marca { font-size: 1rem; }
   .estado-fuentes { width: 40px; padding: 0; justify-content: center; }
   .estado-fuentes__texto { display: none; }
+  /* La ficha en 320 px: el total del coste del viaje («≈ 139,43 €») cabe en su columna. */
+  .ficha__lateral { padding: 16px 14px; }
+  .coste .num { white-space: normal; }
+  .coste__total .num { font-size: 1.12rem; }
 }
 
 /* ── Pantallas medianas y grandes ─────────────────────────────────────────── */

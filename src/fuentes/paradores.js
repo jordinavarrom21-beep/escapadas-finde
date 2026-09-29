@@ -85,12 +85,14 @@ function ofertaDe(datos) {
   const url = new URL(datos.href, WEB);
   url.search = '';
   const parador = paradorDe(datos);
+  const establecimiento = paradorDe(datos, { completo: true });
   const condiciones = datos.condiciones.join(' ');
   return crearOferta({
     id: `${ID}:${datos.nid}`,
     fuente: ID,
     tipo: 'hotel',
     titulo: datos.titulo,
+    establecimiento,
     descripcion: recortar(limpiar(`${datos.descripcion} ${condiciones ? `Condiciones: ${condiciones}` : ''}`)),
     url: url.href,
     imagen: datos.imagen ? new URL(datos.imagen, WEB).href : null,
@@ -109,13 +111,14 @@ function ofertaDe(datos) {
 
 /**
  * Parador concreto de la promoción («… en el Parador de Ibiza»), buscado en el
- * título, la descripción y, si no, el nombre de la imagen; null si es general.
+ * título, la descripción y, si no, el nombre de la imagen: el lugar («Ibiza») o, con
+ * `completo`, su nombre («Parador de Ibiza»); null si es general.
  */
-export function paradorDe({ titulo = '', descripcion = '', imagen = null }) {
+export function paradorDe({ titulo = '', descripcion = '', imagen = null }, { completo = false } = {}) {
   const archivo = imagen ? decodificar(new URL(imagen, WEB).pathname.split('/').pop()).replace(/[\d\s_-]*\.\w+$/, '') : '';
   for (const texto of [titulo, descripcion, archivo]) {
-    const nombre = PARADOR_CONCRETO.exec(texto.normalize('NFC'))?.[1];
-    if (nombre) return nombre;
+    const encontrado = PARADOR_CONCRETO.exec(texto.normalize('NFC'));
+    if (encontrado) return completo ? encontrado[0] : encontrado[1];
   }
   return null;
 }

@@ -77,6 +77,7 @@ function ofertaDe(dato, tarjeta) {
     fuente: 'campings',
     tipo: 'hotel',
     titulo: `${camping}: ${texto(dato.oferta_nombre)}`,
+    establecimiento: nombre ? camping : null,
     descripcion: recortar(detalle.replace(/(…|\.{3,})+$/, '…')),
     url,
     imagen: dato.foto || null,

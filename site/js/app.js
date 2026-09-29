@@ -523,6 +523,8 @@ function mostrarFicha(id, disparador) {
     distancias,
     desde: punto?.nombre ?? nombreSalida(estado),
     actividades: actividadesCerca(estado.datos.ofertas, oferta),
+    // Para enlazar las otras webs de «Comparar precios» con su enlace de reserva.
+    porId: estado.porId,
   }));
 }
 

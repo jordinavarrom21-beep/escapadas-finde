@@ -1,13 +1,15 @@
 /**
- * La misma escapada publicada en varias webs. Se agrupan las ofertas cuyo nombre
- * de alojamiento normalizado y cuya localidad coinciden; la más barata se queda
- * con la lista de `equivalentes` y las demás se marcan con la etiqueta «duplicada».
+ * La misma escapada publicada en varias webs. Se agrupan las ofertas del mismo
+ * alojamiento (nombre normalizado) en el mismo sitio (localidad o, si las webs la
+ * escriben distinto, coordenadas a pocos km); cada una guarda en `equivalentes` las de
+ * las otras webs y todas menos la más barata se marcan con la etiqueta «duplicada».
  *
  * Es deliberadamente conservador: ante la duda (título genérico, sin localidad,
- * nombre demasiado corto o una sola web) no agrupa nada. Mejor enseñar dos veces
- * la misma casa que esconder una oferta distinta.
+ * nombre demasiado corto, otra provincia o una sola web) no agrupa nada. Mejor
+ * enseñar dos veces la misma casa que esconder una oferta distinta.
  */
 import { normalizarTexto } from '../util/xml.js';
+import { distanciaKm } from './geo.js';
 import { precioPorPersonaNoche } from './puntuacion.js';
 
 export const ETIQUETA_DUPLICADA = 'duplicada';
@@ -24,6 +26,16 @@ const TITULO_GENERICO = [
 ];
 const MINIMO_PALABRAS = 2;
 const MINIMO_CARACTERES = 6;
+/** Lo que queda al quitar «Can», «Cal», «Casa» o «Rural» del principio ha de decir algo por sí solo. */
+const MINIMO_NUCLEO = 4;
+/** Palabras que cada web pone o no delante del nombre: «Can Mas Vila» es «Rural Mas Vila». */
+const PREFIJOS = new Set(['rural', 'casa', 'can', 'cal', 'ca']);
+/** Formas de decir lo mismo: «Masía ca l'Estrada» es «Mas Ca l'Estrada». */
+const SINONIMOS = { masia: 'mas' };
+/** El mismo nombre en pueblos distintos (municipio en una web, pedanía en otra) solo si están así de cerca. */
+const CERCA_KM = 4;
+/** Con el mismo nombre de pueblo pero más lejos son dos pueblos que se llaman igual. */
+const HOMONIMOS_KM = 25;
 
 const limpiar = (texto) => texto.replace(/\s+/g, ' ').trim();
 
@@ -52,7 +64,33 @@ function quitarLugar(texto, lugar) {
   return limpiar(texto.replace(new RegExp(`\\s+(en|de)\\s+${sitio}\\b.*$`), ''));
 }
 
-const localidadDe = (oferta) => normalizarTexto(oferta.lugar?.nombre ?? '').trim() || null;
+/**
+ * El nombre sin lo que cada web pone o no delante («can mas vila» y «rural mas vila» →
+ * «mas vila»). Si lo que queda es demasiado corto para distinguir nada, el nombre entero.
+ */
+export function nucleoNombre(nombre) {
+  const palabras = nombre.split(' ').map((palabra) => SINONIMOS[palabra] ?? palabra).filter((palabra) => palabra.length > 1);
+  while (palabras.length > 1 && PREFIJOS.has(palabras[0])) palabras.shift();
+  const nucleo = palabras.join(' ');
+  return nucleo.length >= MINIMO_NUCLEO ? nucleo : nombre;
+}
+
+// Sin signos: «Vilobí d'Onyar», «Vilobi d Onyar» y «Castell de l´Areny» se escriben de muchas formas.
+const localidadDe = (oferta) => normalizarTexto(oferta.lugar?.nombre ?? '').replace(/[^a-z0-9]+/g, ' ').trim() || null;
+const provinciaDe = (oferta) => normalizarTexto(oferta.lugar?.provincia ?? '').trim() || null;
+const tieneCoordenadas = (lugar) => Number.isFinite(lugar?.lat) && Number.isFinite(lugar?.lon);
+
+/**
+ * ¿Están las dos en el mismo sitio? Misma localidad (y no a más de `HOMONIMOS_KM`) o,
+ * con el mismo nombre exacto, localidades distintas a menos de `CERCA_KM`. Nunca en
+ * provincias distintas.
+ */
+function mismoSitio(a, b) {
+  if (a.provincia && b.provincia && a.provincia !== b.provincia) return false;
+  const km = tieneCoordenadas(a.oferta.lugar) && tieneCoordenadas(b.oferta.lugar) ? distanciaKm(a.oferta.lugar, b.oferta.lugar) : null;
+  if (a.localidad === b.localidad) return km === null || km <= HOMONIMOS_KM;
+  return a.nombre === b.nombre && km !== null && km <= CERCA_KM;
+}
 
 /** Lo comparable entre webs: precio por persona y noche y, si no se sabe, el precio. */
 function valorComparable(oferta) {
@@ -60,20 +98,46 @@ function valorComparable(oferta) {
   return noche ?? oferta.precio ?? Infinity;
 }
 
-const resumir = (oferta) => ({ fuente: oferta.fuente, precio: oferta.precio, unidad: oferta.unidad, url: oferta.url });
+/** Lo que el panel necesita para comparar: web, precio, unidad, precio por persona y noche y enlace. */
+const resumir = (oferta) => ({
+  id: oferta.id, fuente: oferta.fuente, precio: oferta.precio, unidad: oferta.unidad,
+  precioNoche: oferta.precioNoche ?? precioPorPersonaNoche(oferta), url: oferta.url,
+});
+
+/** Reparte las ofertas del mismo núcleo de nombre en grupos del mismo sitio (componentes conexas). */
+function porSitio(candidatas) {
+  const grupos = [];
+  const pendientes = new Set(candidatas);
+  for (const inicio of candidatas) {
+    if (!pendientes.delete(inicio)) continue;
+    const grupo = [inicio];
+    for (let i = 0; i < grupo.length; i++) {
+      for (const otra of [...pendientes]) {
+        if (mismoSitio(grupo[i], otra)) {
+          pendientes.delete(otra);
+          grupo.push(otra);
+        }
+      }
+    }
+    grupos.push(grupo.map((c) => c.oferta));
+  }
+  return grupos;
+}
 
 function agrupar(ofertas) {
-  const grupos = new Map();
+  const porNucleo = new Map();
   for (const oferta of ofertas) {
     const nombre = nombreAlojamiento(oferta);
     const localidad = localidadDe(oferta);
     if (!nombre || !localidad) continue;
-    const clave = `${nombre}|${localidad}`;
-    if (!grupos.has(clave)) grupos.set(clave, []);
-    grupos.get(clave).push(oferta);
+    const nucleo = nucleoNombre(nombre);
+    if (!porNucleo.has(nucleo)) porNucleo.set(nucleo, []);
+    porNucleo.get(nucleo).push({ oferta, nombre, localidad, provincia: provinciaDe(oferta) });
   }
   // La misma escapada en varias webs: dos ofertas de la misma web son cosas distintas.
-  return [...grupos.values()].filter((grupo) => new Set(grupo.map((o) => o.fuente)).size >= 2);
+  return [...porNucleo.values()]
+    .flatMap(porSitio)
+    .filter((grupo) => new Set(grupo.map((o) => o.fuente)).size >= 2);
 }
 
 /**
@@ -117,11 +181,13 @@ export function marcarEquivalentes(ofertas) {
     // Dos ofertas de la misma web son cosas distintas (otra habitación, otro régimen): la
     // hermana de la más barata no se esconde como «duplicada», aunque haya una tercera web.
     const repetidas = resto.filter((oferta) => oferta.fuente !== mejor.fuente);
-    mejor.equivalentes = repetidas.map(resumir);
-    for (const oferta of repetidas) {
-      oferta.equivalentes = [resumir(mejor)];
-      oferta.etiquetas.push(ETIQUETA_DUPLICADA);
+    // Cada una ve las de las otras webs, de la más barata a la más cara (la primera de una
+    // repetida es siempre la más barata del grupo).
+    const comparadas = [mejor, ...repetidas];
+    for (const oferta of comparadas) {
+      oferta.equivalentes = comparadas.filter((otra) => otra.fuente !== oferta.fuente).map(resumir);
     }
+    for (const oferta of repetidas) oferta.etiquetas.push(ETIQUETA_DUPLICADA);
   }
   marcarCopias(ofertas.filter((oferta) => !oferta.etiquetas.includes(ETIQUETA_DUPLICADA)));
   return ofertas;

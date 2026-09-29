@@ -109,6 +109,7 @@ function ofertaDe(casa) {
     fuente: 'escapadarural',
     tipo: 'hotel',
     titulo: limpiar(casa.name),
+    establecimiento: limpiar(casa.name) || null,
     descripcion: recortar(limpiar(casa.description)),
     url: `${WEB}/casa-rural/${casa.province.slug}/${casa.slug}`,
     imagen: casa.media?.thumb ?? null,

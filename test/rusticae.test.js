@@ -58,6 +58,7 @@ describe('parsear (páginas reales)', () => {
 
     const aldaca = porId(ofertas, 'hotel-de-aldaca-rural');
     assert.equal(aldaca.titulo, 'Hotel De Aldaca Rural');
+    assert.equal(aldaca.establecimiento, 'Hotel De Aldaca Rural');
     assert.deepEqual(aldaca.lugar, {
       nombre: 'Jerte', region: 'Extremadura', pais: 'España', codigoPais: 'ES', lat: 40.222591400146, lon: -5.750094890594, iata: null,
     });
