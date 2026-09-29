@@ -898,6 +898,7 @@ export const ATAJOS_ESCAPADAS = [
   { texto: 'Spa a menos de 2 h', icono: 'tema-spa', params: { temas: 'spa', h: '2' } },
   { texto: 'Con niños', icono: 'tema-familia', params: { ninos: 'apto' } },
   { texto: 'Niños gratis o con descuento', icono: 'tema-familia', params: { ninos: 'ventaja' } },
+  { texto: 'Campings', icono: 'camping', params: { aloj: 'camping' } },
   { texto: 'Sin coche', icono: 'tren', params: { sincoche: '1' } },
   { texto: 'Solo chollazos', icono: 'fuego', params: { cho: '1' } },
   { texto: 'Con fechas cerradas', icono: 'calendario', params: { cerradas: '1' } },

@@ -111,6 +111,14 @@
       "activa": true,
       "intervaloMin": 720
     },
+    "sandaya": {
+      "activa": true,
+      "intervaloMin": 1440
+    },
+    "huttopia": {
+      "activa": true,
+      "intervaloMin": 1440
+    },
     "volotea": {
       "activa": true,
       "intervaloMin": 360
