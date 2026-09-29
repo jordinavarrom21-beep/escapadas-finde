@@ -308,6 +308,18 @@ function bloqueChollazos(e, ctx, top, vistos) {
 ${bloquePuente(e, vistos)}`;
 }
 
+/**
+ * Escapadas en las que los niños van gratis o con descuento (cualquier fecha): lo que busca
+ * una familia. No sale si no hay ninguna.
+ */
+function bloqueNinos(e, ctx, vistos) {
+  const { ofertas } = buscarEscapadas(e.datos.ofertas, leerFiltrosEscapadas({ ninos: 'ventaja' }), contextoBusqueda(e));
+  const lista = sinVistas(ofertas, vistos, 6);
+  if (!lista.length) return '';
+  return seccion(conIcono('tema-familia', 'Con niños: gratis o con descuento'), rejilla(lista, ctx, { mostradas: 6, clave: 'finde-ninos' }),
+    { href: crearHash('escapadas', { ninos: 'ventaja' }), texto: `Ver las ${ofertas.length}` });
+}
+
 /** Planes de la sorpresa (se repinta solo al pulsar «Otra ronda»). */
 export function contenidoSorpresa(e, params = {}, vistos = null) {
   const f = leerFiltrosEscapadas(params);
@@ -455,6 +467,7 @@ ${seccion(conIcono('escapadas', 'Mejores escapadas para este finde'), escapadas.
     ? rejilla(sinVistas(escapadas, vistos, 6), ctx, { mostradas: 6, clave: 'finde-escapadas' })
     : estadoVacio('No hay escapadas para este finde.'), { href: crearHash('escapadas', { cuando: 'finde' }), texto: `Ver las ${escapadas.length}` })}
 ${bloqueActividades(e, actual, vistos)}
+${bloqueNinos(e, ctx, vistos)}
 ${bloqueRecomendado(e, params, vistos)}
 ${bloqueChollazos(e, ctx, top.filter((o) => !vistos.has(o.id)), vistos)}
 </div>`;
@@ -561,7 +574,9 @@ ${promociones.length ? `<section class="seccion">
 // ── Escapadas y mapa ─────────────────────────────────────────────────────────
 
 function chipsTemas(e, f) {
-  return e.datos.temas.map((t) => `<label class="chip chip--tema" style="--color-tema:var(--tema-${esc(t.id)})"><input type="checkbox" name="temas" value="${esc(t.id)}"${marcado(f.temas.includes(t.id))}> ${iconoTema(t.id)}${esc(t.nombre)}</label>`).join('');
+  // «Familia» va en «¿Vas con niños?», que además distingue si los niños van gratis o con
+  // descuento; aquí solo sale si ya venía marcada (enlaces antiguos), para poder quitarla.
+  return e.datos.temas.filter((t) => t.id !== 'familia' || f.temas.includes(t.id)).map((t) => `<label class="chip chip--tema" style="--color-tema:var(--tema-${esc(t.id)})"><input type="checkbox" name="temas" value="${esc(t.id)}"${marcado(f.temas.includes(t.id))}> ${iconoTema(t.id)}${esc(t.nombre)}</label>`).join('');
 }
 
 function chipsCuando(e, f) {
@@ -632,6 +647,12 @@ function campoComo(f) {
   return `<fieldset class="chips"><legend>¿Cómo vas?</legend><div class="chips__lista">${opcion('', 'Da igual')}${opcion('coche', 'En coche')}${opcion('sincoche', 'Sin coche')}</div></fieldset>`;
 }
 
+/** «¿Con niños?»: da igual, planes para ir con niños, niños gratis o con descuento, o solo gratis. */
+function campoNinos(f) {
+  const opcion = (valor, texto) => `<label class="chip"><input type="radio" name="ninos" value="${valor}"${marcado(f.ninos === valor)}> ${texto}</label>`;
+  return `<fieldset class="chips chips--desplazables"><legend>¿Vas con niños?</legend><div class="chips__lista">${opcion('', 'Da igual')}${opcion('apto', 'Para ir con niños')}${opcion('ventaja', 'Gratis o con descuento')}${opcion('gratis', 'Niños gratis')}</div></fieldset>`;
+}
+
 /** Cuántos filtros de «Más filtros» hay puestos (para su contador). */
 // «En coche» se elige arriba, en «¿Cómo vas?»: no es un filtro de «Más filtros».
 export const contarSecundarios = (params = {}) => FILTROS_SECUNDARIOS
@@ -648,7 +669,7 @@ const ICONOS_FILTRO = {
   notemas: 'prohibido', nodest: 'prohibido', cuando: 'calendario', finde: 'calendario', desde: 'calendario', hasta: 'calendario',
   lugar: 'pin', h: 'coche', km: 'regla', pres: 'cartera', max: 'cartera', nota: 'estrella', clasica: 'cama', sincoche: 'tren',
   dest: 'pin', aero: 'avion', ideal: 'reloj', mios: 'despegue', nuevas: 'nuevo', fav: 'corazon', cho: 'fuego', baja: 'bajada',
-  cerradas: 'calendario', gratis: 'actividades', cru: 'crucero', q: 'buscar', aloj: 'cama', regimen: 'cubiertos', transporte: 'coche',
+  cerradas: 'calendario', gratis: 'actividades', ninos: 'tema-familia', cru: 'crucero', q: 'buscar', aloj: 'cama', regimen: 'cubiertos', transporte: 'coche',
 };
 const iconoFiltro = (c) => (c.clave === 'temas' ? iconoTema(c.valor) : icono(ICONOS_FILTRO[c.clave] ?? ''));
 
@@ -725,6 +746,7 @@ function formularioEscapadas(e, params, vista) {
   </fieldset>
   <fieldset class="bloque"><legend class="bloque__titulo">¿Qué te apetece?</legend>
     <div class="chips chips--desplazables"><div class="chips__lista">${chipsTemas(e, f)}</div></div>
+    ${campoNinos(f)}
   </fieldset>
   <div class="bloque"><h2 class="bloque__titulo">¿Dónde?</h2>${campoUbicacion(e, f)}</div>
   <div class="bloque"><h2 class="bloque__titulo">¿Cómo vas?</h2>${campoComo(f)}</div>
@@ -817,6 +839,7 @@ ${avisoMemoria(e, 'actividades')}${avisoViajeCompartido(e, params)}
 <div class="explorar__filtros">${plegableMovil(e, 'actividades', params)}<form class="filtros" data-filtros="actividades" aria-label="Filtros de actividades">
   <div class="filtros__fila">${campoTexto(f)}</div>
   <fieldset class="chips chips--desplazables"><legend>Temática</legend><div class="chips__lista">${chipsTemas(e, f)}</div></fieldset>
+  ${campoNinos(f)}
   <div class="filtros__fila">
     <label class="campo">Lugar o destino <select name="dest">${opciones(lugares.map((l) => [l, l]), f.dest, 'Todos')}</select></label>
     <label class="campo">Precio máx. por persona (€) <input type="number" name="max" min="0" step="5" inputmode="numeric" placeholder="Sin límite" value="${f.max ?? ''}"></label>

@@ -116,6 +116,7 @@ export function completarOferta(datos) {
     enlaces: [],
     alojamiento: null,
     establecimiento: null,
+    ninos: null,
     valoracion: null,
     precioNoche: null,
     referencia: null,
@@ -165,4 +166,5 @@ export function completarOferta(datos) {
  * @property {boolean} chollazo
  * @property {{etiqueta: string, url: string}[]} enlaces
  * @property {string|null} establecimiento  nombre propio del alojamiento («Can Salvà»), solo si la web lo da como dato
+ * @property {{ventaja: 'gratis'|'descuento'|'reducido'|null, descuento: number|null, detalle: string|null}|null} ninos  para ir con niños (enriquecer/ninos.js)
  */

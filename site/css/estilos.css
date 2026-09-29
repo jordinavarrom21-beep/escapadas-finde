@@ -290,6 +290,8 @@ pre code { background: none; padding: 0; }
 .insignia--puente { background: var(--puente-suave); color: var(--puente); }
 .insignia--chollazo { background: var(--chollo); color: var(--chollo-texto); }
 .insignia--mio { background: var(--acento-suave); color: var(--acento-suave-texto); }
+.insignia--ninos { background: color-mix(in srgb, var(--tema-familia) 16%, var(--superficie)); color: var(--texto); }
+.insignia--ninos .ic { color: var(--tema-familia); }
 
 .puntuacion {
   display: inline-grid; place-items: center; min-width: 2.1em; height: 2.1em; padding: 0 5px; flex: none;
