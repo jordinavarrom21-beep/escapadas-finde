@@ -11,14 +11,17 @@ import {
 } from './filtros.js';
 import { contar, cuentaAtras, escaparHtml as esc, haceCuanto } from './formato.js';
 import {
-  borrarBusqueda, cargarBusquedas, cargarDescartadas, cargarFavoritos, cargarFiltros, guardarBusqueda,
-  guardarDescartadas, guardarFavoritos, guardarFiltros, guardarTema, tomarVisitaAnterior,
+  borrarBusqueda, cargarBusquedas, cargarDescartadas, cargarFavoritos, cargarFiltros, cargarSalida, cargarViaje,
+  guardarBusqueda, guardarDescartadas, guardarFavoritos, guardarFiltros, guardarSalida, guardarTema, guardarViaje,
+  tomarVisitaAnterior,
 } from './local.js';
+import { salidaEfectiva, validarSalida, validarViaje } from './viaje.js';
 import { destruirMapa, pintarMapa } from './mapa.js';
 import { estadoVacio } from './plantillas.js';
 import { activarUbicacion } from './ubicacion.js';
 import {
-  VISTAS_HTML, contarSecundarios, contenidoSorpresa, contextoBusqueda, ctxTarjetas, datosMapa, resultadosMapa,
+  VISTAS_HTML, contarSecundarios, contenidoSorpresa, contextoBusqueda, ctxTarjetas, datosMapa, formularioViaje, nombreSalida,
+  resultadosMapa, textoViaje,
 } from './vistas.js';
 
 const $ = (selector) => document.querySelector(selector);
@@ -58,6 +61,8 @@ function crearEstado(datos, historial, vigilados) {
   const hoy = fechaLocal(ahora);
   const findes = (datos.findes ?? []).filter((f) => f.domingo >= hoy);
   const visitaAnterior = tomarVisitaAnterior(ahora);
+  // Tu salida (si no es el origen del escaneo), viajeros y noches: solo en este navegador.
+  const salida = salidaEfectiva(validarSalida(cargarSalida()), datos.origen);
   return {
     datos: { ...datos, puentes: datos.puentes ?? [], fuentes: datos.fuentes ?? [], temas: datos.temas ?? [] },
     historial,
@@ -75,7 +80,10 @@ function crearEstado(datos, historial, vigilados) {
     temas: new Map((datos.temas ?? []).map((t) => [t.id, t])),
     fuentes: new Map((datos.fuentes ?? []).map((f) => [f.id, f.nombre])),
     porId: new Map(datos.ofertas.map((o) => [o.id, o])),
-    distanciasOrigen: medirDistancias(datos.ofertas, null, datos.origen),
+    salida,
+    viaje: validarViaje(cargarViaje(), datos.viajeros),
+    // Desde tu salida: desde el origen del escaneo, con los tiempos reales; si no, estimados.
+    distanciasOrigen: medirDistancias(datos.ofertas, salida, datos.origen),
     paginas: new Map(),
     ubicacion: { hostname: location.hostname, pathname: location.pathname },
   };
@@ -96,6 +104,7 @@ function pintarReloj() {
 
 function pintarCabecera() {
   pintarReloj();
+  pintarBotonViaje();
   const p = estado.puente;
   const aviso = $('#aviso-puente');
   if (p) {
@@ -198,7 +207,7 @@ function render({ enfocar = true } = {}) {
     else a.removeAttribute('aria-current');
   });
   $('#q').value = vista === 'buscar' ? params.q ?? '' : '';
-  principal.querySelectorAll('form[data-filtros]').forEach((form) => activarUbicacion(form, estado.datos.origen));
+  principal.querySelectorAll('form[data-filtros]').forEach((form) => activarUbicacion(form, estado.datos.origen, { salida: estado.salida }));
   if (vista === 'mapa') prepararMapa(params);
   sincronizarMasFiltros(params);
   if (cambiaVista && enfocar) {
@@ -409,12 +418,47 @@ function mostrarFicha(id, disparador) {
   origenFicha = disparador;
   abrirFicha(dialogo, oferta, ctxTarjetas(estado, {
     distancias,
-    desde: punto?.nombre ?? estado.datos.origen.nombre,
+    desde: punto?.nombre ?? nombreSalida(estado),
     actividades: actividadesCerca(estado.datos.ofertas, oferta),
   }));
 }
 
-const ACCIONES = '[data-ficha], [data-fav], [data-descartar], [data-mas], [data-sorpresa],'
+// ── Tu viaje: salida, viajeros y noches ──────────────────────────────────────
+
+const dialogoViaje = $('#mi-viaje');
+let origenViaje = null;
+
+function pintarBotonViaje() {
+  $('#boton-viaje').textContent = textoViaje(estado);
+}
+
+function abrirViaje(disparador) {
+  const formulario = $('#form-viaje');
+  formulario.innerHTML = formularioViaje(estado);
+  activarUbicacion(formulario, estado.datos.origen, { salida: estado.salida, prefijo: 'salida' });
+  origenViaje = disparador;
+  dialogoViaje.showModal();
+  formulario.querySelector('#salida-texto')?.focus();
+}
+
+/** Guarda tu viaje y rehace distancias, aeropuertos y costes (nada sale del navegador). */
+function guardarMiViaje(evento) {
+  evento.preventDefault();
+  const d = Object.fromEntries(new FormData(evento.target));
+  const salida = validarSalida({ nombre: d.lugar, lat: d.lat, lon: d.lon });
+  const viaje = validarViaje({ viajeros: d.viajeros, noches: d.noches }, estado.datos.viajeros);
+  guardarSalida(salida);
+  guardarViaje(viaje);
+  estado.salida = salidaEfectiva(salida, estado.datos.origen);
+  estado.viaje = viaje;
+  estado.distanciasOrigen = medirDistancias(estado.datos.ofertas, estado.salida, estado.datos.origen);
+  dialogoViaje.close();
+  pintarBotonViaje();
+  render({ enfocar: false });
+  anunciar(`Guardado en este navegador: ${textoViaje(estado).replace(/^📍 /, '')}.`);
+}
+
+const ACCIONES = '[data-mi-viaje], [data-cerrar-viaje], [data-ficha], [data-fav], [data-descartar], [data-mas], [data-sorpresa],'
   + ' [data-guardar-busqueda], [data-borrar-busqueda], [data-copiar-vigilado], [data-cerrar-ficha], [data-cerrar-novedades],'
   + ' [data-olvidar-filtros], [data-cerrar-mas]';
 
@@ -422,7 +466,9 @@ function manejarClic(evento) {
   const objetivo = evento.target.closest(ACCIONES);
   if (!objetivo) return;
   const d = objetivo.dataset;
-  if (d.ficha) mostrarFicha(d.ficha, objetivo);
+  if ('miViaje' in d) abrirViaje(objetivo);
+  else if ('cerrarViaje' in d) dialogoViaje.close();
+  else if (d.ficha) mostrarFicha(d.ficha, objetivo);
   else if (d.fav) alternarFavorito(d.fav);
   else if (d.descartar) alternarDescartada(d.descartar);
   else if ('mas' in d) verMas(objetivo);
@@ -480,6 +526,14 @@ function conectarEventos() {
     if (evento.key !== 'Escape') return;
     evento.preventDefault();
     dialogo.close();
+  });
+  $('#form-viaje').addEventListener('submit', guardarMiViaje);
+  dialogoViaje.addEventListener('click', (evento) => {
+    if (evento.target === dialogoViaje) dialogoViaje.close();
+  });
+  dialogoViaje.addEventListener('close', () => {
+    if (origenViaje?.isConnected) origenViaje.focus();
+    origenViaje = null;
   });
   dialogo.addEventListener('close', () => {
     liberarFicha();

@@ -93,3 +93,11 @@ describe('geo: calcularCosteCoche', () => {
     assert.deepEqual(peticiones, []);
   });
 });
+
+describe('geo: precio del litro para el panel', () => {
+  it('calcularCosteCoche devuelve el precio usado, o null si no había nada que calcular', async () => {
+    const { ctx } = crearCtx({ respuestas: ministerio });
+    assert.equal(await calcularCosteCoche([oferta({ cocheKm: 100 })], ctx), 1.899);
+    assert.equal(await calcularCosteCoche([oferta({ tipo: 'vuelo' })], ctx), null);
+  });
+});

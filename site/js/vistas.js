@@ -16,6 +16,7 @@ import {
   puenteDelFinde, radioBusquedaKm, recomendadas, resumenCalendario, resumenFuentes, resumenPuentes, tieneVuelo,
   urlEditarVigilados, valoresUnicos, vuelosParaMapa,
 } from './filtros.js';
+import { NOCHES, VIAJEROS, aeropuertosCercanos } from './viaje.js';
 import {
   ESTADOS_FUENTE, estadoVacio, filaOferta, insigniaEstado, rejilla, tarjeta, tarjetaConMotivo, textoAyudaUbicacion,
 } from './plantillas.js';
@@ -42,12 +43,58 @@ const ETIQUETAS_ORDEN = {
 
 const mostradas = (e, clave) => e.paginas.get(clave) ?? POR_PAGINA;
 
+/** Desde dónde sales: lo que elegiste en este navegador o, si no, el origen del escaneo. */
+export const puntoSalida = (e) => e.salida ?? e.datos.origen;
+export const nombreSalida = (e) => puntoSalida(e).nombre;
+
+/** Tus aeropuertos: los de los ajustes desde el origen del escaneo; desde otra salida, los cercanos. */
+export const misAeropuertos = (e) => (e.salida ? aeropuertosCercanos(e.salida) : e.datos.aeropuertos ?? []);
+
+/** «📍 Desde Girona · 2 personas · 2 noches» para el botón de la cabecera. */
+export const textoViaje = (e) => `📍 Desde ${nombreSalida(e)} · ${contar(e.viaje.viajeros, 'persona')} · ${contar(e.viaje.noches, 'noche')}`;
+
+/** Contenido de «Tu viaje»: salida (sin geolocalización obligatoria), viajeros y noches. */
+export function formularioViaje(e) {
+  const s = e.salida;
+  const noches = Array.from({ length: NOCHES.max - NOCHES.min + 1 }, (_, i) => [String(NOCHES.min + i), contar(NOCHES.min + i, 'noche')]);
+  return `<div class="ficha__barra"><button type="button" class="boton-icono" data-cerrar-viaje aria-label="Cerrar sin guardar">✕</button></div>
+<div class="ficha__contenido">
+  <h2 id="viaje-titulo">Tu viaje</h2>
+  <p class="suave">Sirve para medir distancias, elegir tus aeropuertos y calcular el coste total. Se guarda solo en este navegador.</p>
+  <fieldset class="ubicacion"><legend>Salgo desde</legend>
+    <div class="ubicacion__fila">
+      <div class="combo">
+        <label class="sr" for="salida-texto">Ciudad o pueblo de salida</label>
+        <input id="salida-texto" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="salida-sugerencias" autocomplete="off" placeholder="${esc(e.datos.origen.nombre)}" value="${esc(s?.nombre ?? '')}">
+        <ul id="salida-sugerencias" class="combo__lista" role="listbox" aria-label="Sugerencias" hidden></ul>
+        <input type="hidden" name="lugar" value="${esc(s?.nombre ?? '')}"><input type="hidden" name="lat" value="${s?.lat ?? ''}"><input type="hidden" name="lon" value="${s?.lon ?? ''}">
+      </div>
+      <button type="button" class="boton boton--suave" data-mi-ubicacion>📍 Usar mi ubicación</button>
+    </div>
+    <p class="ayuda" id="salida-ayuda" role="status">${s
+    ? `Desde ${esc(s.nombre)} las distancias y la gasolina son estimaciones (línea recta × 1,3). Déjalo vacío para volver a ${esc(e.datos.origen.nombre)}.`
+    : `Desde ${esc(e.datos.origen.nombre)} hay tiempos reales por carretera. Escribe otra ciudad si sales de otro sitio.`}</p>
+  </fieldset>
+  <div class="filtros__fila">
+    <label class="campo">Viajeros <input type="number" name="viajeros" min="${VIAJEROS.min}" max="${VIAJEROS.max}" step="1" inputmode="numeric" value="${e.viaje.viajeros}"></label>
+    <label class="campo">Noches (si la oferta no las fija) <select name="noches">${opciones(noches, String(e.viaje.noches))}</select></label>
+  </div>
+  <p class="acciones"><button type="submit" class="boton boton--primario">Guardar</button></p>
+</div>`;
+}
+
+/** Viajeros, noches y coche para calcular el coste del viaje. */
+const datosViaje = (e) => ({
+  viajeros: e.viaje?.viajeros ?? e.datos.viajeros ?? 2, noches: e.viaje?.noches ?? 2, coche: e.datos.coche ?? null,
+});
+
 /** Contexto que necesitan las plantillas de tarjetas. */
 export function ctxTarjetas(e, extra = {}) {
   return {
     temas: e.temas, fuentes: e.fuentes, favoritos: e.favoritos, referencia: e.referencia,
-    historial: e.historial, distancias: e.distanciasOrigen, desde: e.datos.origen.nombre,
-    viajeros: e.datos.viajeros ?? null, ahora: e.ahora,
+    historial: e.historial, distancias: e.distanciasOrigen, desde: nombreSalida(e),
+    // El coste de coche que calcula el escaneo es desde su origen: desde otra salida no vale.
+    salidaPropia: Boolean(e.salida), ...datosViaje(e), ahora: e.ahora,
     intervalos: new Map((e.datos.fuentes ?? []).map((f) => [f.id, f.intervaloMin])), ...extra,
   };
 }
@@ -56,7 +103,9 @@ export function ctxTarjetas(e, extra = {}) {
 export function contextoBusqueda(e) {
   return {
     origen: e.datos.origen,
-    aeropuertos: e.datos.aeropuertos ?? [],
+    salida: e.salida ?? null,
+    ...datosViaje(e),
+    aeropuertos: misAeropuertos(e),
     finde: e.findes[0],
     puente: e.puente,
     findes: e.findes,
@@ -199,13 +248,13 @@ export function contenidoSorpresa(e, params = {}) {
   if (!planes.length) {
     return estadoVacio(`No hay planes a menos de ${HORAS_SORPRESA} h con estos filtros.`, 'Prueba a quitar alguna temática o a subir el precio máximo.');
   }
-  const ctx = ctxTarjetas(e, { distancias, desde: f.punto?.nombre ?? e.datos.origen.nombre });
+  const ctx = ctxTarjetas(e, { distancias, desde: f.punto?.nombre ?? nombreSalida(e) });
   return `<div class="rejilla">${planes.map((o) => tarjeta(o, ctx)).join('')}</div>`;
 }
 
 function bloqueSorpresa(e, params) {
   return seccion('✨ Sorpréndeme',
-    `<p class="seccion__intro">Tres planes de temáticas distintas a menos de ${HORAS_SORPRESA} h de ${esc(e.datos.origen.nombre)}, con los filtros que tengas puestos.</p>
+    `<p class="seccion__intro">Tres planes de temáticas distintas a menos de ${HORAS_SORPRESA} h de ${esc(nombreSalida(e))}, con los filtros que tengas puestos.</p>
      <p class="enlaces-linea"><button type="button" class="boton boton--primario" data-sorpresa>✨ Otra ronda</button></p>
      <div id="sorpresa">${contenidoSorpresa(e, params)}</div>`);
 }
@@ -229,7 +278,7 @@ function bloqueRecomendado(e, params) {
   const f = leerFiltrosEscapadas(params);
   const { ofertas, distancias } = buscarEscapadas(e.datos.ofertas, f, contextoBusqueda(e));
   const lista = recomendadas(ofertas, perfil, { ...contextoBusqueda(e), distancias }, { max: 6 });
-  const ctx = ctxTarjetas(e, { distancias, desde: f.punto?.nombre ?? e.datos.origen.nombre });
+  const ctx = ctxTarjetas(e, { distancias, desde: f.punto?.nombre ?? nombreSalida(e) });
   const gustos = perfil.temas.slice(0, 2).map(({ valor }) => e.temas.get(valor)?.nombre ?? valor).join(', ');
   return seccion('💚 Recomendado para ti',
     `<p class="seccion__intro">Por tus ${contar(perfil.total, 'favorito')}${gustos ? `: te van los planes de ${esc(gustos.toLowerCase())}` : ''}.</p>
@@ -302,7 +351,7 @@ ${avisoMemoria(e, 'vuelos')}
 }
 
 /** «BCN, GRO o REU». */
-const listaAeropuertos = (e) => enumerar(e.datos.aeropuertos ?? [], 'o') || 'mis aeropuertos';
+const listaAeropuertos = (e) => enumerar(misAeropuertos(e), 'o') || `aeropuertos cerca de ${nombreSalida(e)}`;
 
 function sinVuelosConFecha(e) {
   const fuentes = e.datos.fuentes.filter((f) => MODOS_VUELOS_CON_FECHA.includes(f.modo) && f.estado !== 'ok');
@@ -363,7 +412,7 @@ function campoUbicacion(e, f) {
   <div class="ubicacion__fila">
     <div class="combo">
       <label class="sr" for="lugar-texto">Pueblo, ciudad o zona</label>
-      <input id="lugar-texto" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="lugar-sugerencias" autocomplete="off" placeholder="${esc(e.datos.origen.nombre)} (origen)" value="${esc(p?.nombre ?? '')}">
+      <input id="lugar-texto" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="lugar-sugerencias" autocomplete="off" placeholder="${esc(nombreSalida(e))} (tu salida)" value="${esc(p?.nombre ?? '')}">
       <ul id="lugar-sugerencias" class="combo__lista" role="listbox" aria-label="Sugerencias" hidden></ul>
       <input type="hidden" name="lugar" value="${esc(p?.nombre ?? '')}"><input type="hidden" name="lat" value="${p?.lat ?? ''}"><input type="hidden" name="lon" value="${p?.lon ?? ''}">
     </div>
@@ -374,7 +423,7 @@ function campoUbicacion(e, f) {
     <label class="campo">Distancia máx. (km) <input type="number" name="km" min="1" step="10" inputmode="numeric" placeholder="Sin límite" value="${f.km ?? ''}"></label>
     ${interruptor('sincoche', '🚆 Sin coche (avión, tren, bus o ferry)', f.sinCoche)}
   </div>
-  <p class="ayuda" id="ubicacion-ayuda" role="status">${esc(textoAyudaUbicacion(p, e.datos.origen))}</p>
+  <p class="ayuda" id="lugar-ayuda" role="status">${esc(textoAyudaUbicacion(p, e.datos.origen, e.salida))}</p>
 </fieldset>`;
 }
 
@@ -487,7 +536,7 @@ ${formularioEscapadas(e, params, 'escapadas')}
 export function resultadosEscapadas(e, params) {
   const f = leerFiltrosEscapadas(params);
   const { ofertas, distancias } = buscarEscapadas(e.datos.ofertas, f, contextoBusqueda(e));
-  const ctx = ctxTarjetas(e, { distancias, desde: f.punto?.nombre ?? e.datos.origen.nombre });
+  const ctx = ctxTarjetas(e, { distancias, desde: f.punto?.nombre ?? nombreSalida(e) });
   const acciones = `<a class="boton boton--suave" href="${crearHash('mapa', params)}">🗺️ Ver en el mapa</a>`;
   return `${filaActivos(e, 'escapadas', params)}${resumenResultados(contar(ofertas.length, 'escapada'), acciones)}
 ${ofertas.length
@@ -550,9 +599,9 @@ export function datosMapa(e, params) {
     sinUbicacion: ofertas.filter((o) => !distancias.has(o.id)).length,
     destinos,
     distancias,
-    punto: f.punto ?? e.datos.origen,
+    punto: f.punto ?? puntoSalida(e),
     radioKm: radioBusquedaKm(f),
-    desde: f.punto?.nombre ?? e.datos.origen.nombre,
+    desde: f.punto?.nombre ?? nombreSalida(e),
   };
 }
 

@@ -86,7 +86,8 @@ const conTransporteIncluido = (o) => SIN_COCHE.includes(o.transporte);
 
 /** «⛽ ≈ 34 € de gasolina ida y vuelta · estimado, un coche para 2 personas» (sin etiqueta: se envuelve fuera). */
 function textoCosteCoche(o, ctx) {
-  if (!(o.costeCoche?.eur > 0) || conTransporteIncluido(o)) return '';
+  // El del escaneo es desde su origen: con otra salida lo da el coste del viaje (coste.js).
+  if (!(o.costeCoche?.eur > 0) || conTransporteIncluido(o) || ctx.salidaPropia) return '';
   const personas = ctx.viajeros ? ` para ${contar(ctx.viajeros, 'persona')}` : '';
   const litros = o.costeCoche.litros ? `: ${o.costeCoche.litros.toLocaleString('es-ES', { maximumFractionDigits: 1 })} l` : '';
   return `<span class="coste-coche" title="Estimación con el consumo y el precio medio del carburante${litros}. Sin peajes ni aparcamiento.">⛽ ≈ ${euros(Math.round(o.costeCoche.eur))} de gasolina ida y vuelta · estimado, un coche${personas}</span>`;
@@ -224,7 +225,9 @@ function textoCoche(distancia, desde, o) {
     return `<span class="coche" title="Distancia en línea recta desde ${esc(desde)}">📍 ${Math.round(distancia.km)} km</span>`;
   }
   if (distancia.minutos != null) {
-    return `<span class="coche" title="En coche desde ${esc(desde)}">🚗 ${duracion(distancia.minutos)}${distancia.estimado ? ' aprox.' : ''}</span>`;
+    // «0 min aprox.» es la propia ciudad de salida: se dice así.
+    const tiempo = distancia.minutos < 5 ? 'menos de 5 min' : `${duracion(distancia.minutos)}${distancia.estimado ? ' aprox.' : ''}`;
+    return `<span class="coche" title="En coche desde ${esc(desde)}">🚗 ${tiempo}</span>`;
   }
   return `<span class="coche" title="En línea recta desde ${esc(desde)}">📍 ${Math.round(distancia.km)} km</span>`;
 }
@@ -396,9 +399,10 @@ function queHacerAlli(ctx) {
 }
 
 /** Explica desde dónde se miden las distancias en el buscador por ubicación. */
-export function textoAyudaUbicacion(punto, origen) {
-  return punto
-    ? `Midiendo desde ${punto.nombre} (estimación: línea recta × 1,3 a 80 km/h).`
+export function textoAyudaUbicacion(punto, origen, salida = null) {
+  const desde = punto ?? salida;
+  return desde
+    ? `Midiendo desde ${desde.nombre} (estimación: línea recta × 1,3 a 80 km/h).`
     : `Midiendo desde ${origen.nombre} con el tiempo real por carretera.`;
 }
 

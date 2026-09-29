@@ -21,6 +21,7 @@ const INTERFAZ = [
   'manifest.webmanifest',
   'js/app.js',
   'js/cdn.js',
+  'js/coste.js',
   'js/fechas.js',
   'js/ficha.js',
   'js/filtros.js',
@@ -31,6 +32,7 @@ const INTERFAZ = [
   'js/plantillas.js',
   'js/tema.js',
   'js/ubicacion.js',
+  'js/viaje.js',
   'js/vistas.js',
 ];
 

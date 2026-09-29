@@ -214,6 +214,10 @@ pre code { background: none; padding: 0; }
 .cabecera__info { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
 .pastilla { padding: 4px 12px; border-radius: var(--radio-chico); background: var(--acento-suave); font-weight: 700; font-size: 0.875rem; }
 .pastilla--puente { background: var(--puente-suave); }
+.pastilla--viaje { border: 1px solid var(--borde, transparent); color: inherit; font: inherit; font-weight: 700; font-size: 0.875rem; cursor: pointer; min-height: 32px; }
+.pastilla--viaje:hover { text-decoration: underline; text-underline-offset: 3px; }
+.pastilla--viaje:focus-visible { outline: 3px solid var(--acento); outline-offset: 2px; }
+.ficha--viaje { max-width: 560px; }
 .pastilla--puente a { color: var(--puente) !important; text-decoration: none; }
 .cabecera__actualizado { font-size: 0.8rem; color: var(--texto-suave); }
 .cabecera__actualizado.antiguo { color: var(--aviso); font-weight: 700; }

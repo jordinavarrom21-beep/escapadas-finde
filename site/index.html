@@ -43,6 +43,7 @@
       <p id="cuenta-atras" class="pastilla"></p>
       <p id="aviso-puente" class="pastilla pastilla--puente" hidden></p>
       <p id="actualizado" class="cabecera__actualizado"></p>
+      <button id="boton-viaje" class="pastilla pastilla--viaje" type="button" data-mi-viaje aria-haspopup="dialog">📍 Tu salida</button>
     </div>
     <form id="buscador" class="contenedor buscador" role="search">
       <label class="sr" for="q">Buscar en todas las ofertas</label>
@@ -85,6 +86,10 @@
       </div>
       <div class="ficha__contenido"></div>
     </div>
+  </dialog>
+
+  <dialog id="mi-viaje" class="ficha ficha--viaje" aria-labelledby="viaje-titulo">
+    <form class="ficha__caja" id="form-viaje"></form>
   </dialog>
 
   <div id="aviso" class="aviso-flotante" role="status" aria-live="polite"></div>

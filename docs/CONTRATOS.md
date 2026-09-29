@@ -297,6 +297,8 @@ Otros archivos de `data/`: `cache.json` (Cache), `historial.json`.
   generado: ISO,
   origen: { nombre, lat, lon },
   aeropuertos: ['BCN', 'GRO', 'REU'],
+  viajeros: 2,
+  coche: { consumoL100km, precioLitro, carburante }, // precioLitro: el medio del Ministerio de hoy, o el de los ajustes
   temas: TEMAS,
   findes: Finde[],        // {id, viernes, sabado, domingo, etiqueta, puenteId}
   puentes: Puente[],

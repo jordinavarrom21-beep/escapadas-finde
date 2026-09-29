@@ -425,7 +425,8 @@ const comparadoresEscapadas = (distancias) => ({
  * @returns {{ofertas: object[], distancias: Map}}
  */
 export function buscarEscapadas(ofertas, f, ctx) {
-  const distancias = medirDistancias(ofertas, f.punto, ctx.origen);
+  // Sin un punto en los filtros, desde tu salida (o desde el origen del escaneo).
+  const distancias = medirDistancias(ofertas, f.punto ?? ctx.salida ?? null, ctx.origen);
   const lista = ofertas.filter((o) => esEscapada(o) && cumpleEscapada(o, f, ctx, distancias.get(o.id)));
   const comparador = comparadoresEscapadas(distancias)[f.orden] ?? porPuntuacion;
   return { ofertas: lista.sort(comparador), distancias };

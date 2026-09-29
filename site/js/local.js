@@ -1,6 +1,6 @@
 /**
  * Preferencias de este navegador (favoritos, descartadas, búsquedas guardadas,
- * última visita y modo de color).
+ * última visita, modo de color, salida, viajeros y noches).
  * El almacenamiento puede no estar disponible (modo privado, bloqueos): se ignora.
  */
 
@@ -12,6 +12,8 @@ const CLAVE_VISITA = 'escapadas:ultimaVisita';
 const CLAVE_REFERENCIA = 'escapadas:referenciaSesion';
 const CLAVE_TEMA = 'escapadas:tema';
 const CLAVE_FILTROS = 'escapadas:filtros';
+const CLAVE_SALIDA = 'escapadas:salida';
+const CLAVE_VIAJE = 'escapadas:viaje';
 
 function leer(almacen, clave) {
   try {
@@ -106,6 +108,14 @@ export function guardarFiltros(vista, params = {}) {
   else delete actuales[vista];
   escribir(local, CLAVE_FILTROS, JSON.stringify(actuales));
 }
+
+/** Desde dónde sales ({nombre, lat, lon}) o null: sin validar (lo hace viaje.js). */
+export const cargarSalida = () => leerJson(CLAVE_SALIDA, null);
+export const guardarSalida = (salida) => escribir(local, CLAVE_SALIDA, JSON.stringify(salida));
+
+/** Viajeros y noches ({viajeros, noches}) o null: sin validar (lo hace viaje.js). */
+export const cargarViaje = () => leerJson(CLAVE_VIAJE, null);
+export const guardarViaje = (viaje) => escribir(local, CLAVE_VIAJE, JSON.stringify(viaje));
 
 /** 'claro', 'oscuro' o null (seguir al sistema). */
 export const temaGuardado = () => leer(local, CLAVE_TEMA);

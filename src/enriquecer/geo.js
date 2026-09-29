@@ -202,17 +202,20 @@ export const vaEnCoche = (oferta) => oferta.transporte == null || oferta.transpo
 
 /**
  * Rellena `costeCoche` `{eur, litros}` del viaje de ida y vuelta desde el origen
- * en las ofertas que tienen `cocheKm` y a las que se va en coche.
+ * en las ofertas que tienen `cocheKm` y a las que se va en coche. Devuelve el precio
+ * del litro usado (el panel lo necesita para estimar desde otra salida), o null si
+ * no había nada que calcular.
  */
 export async function calcularCosteCoche(ofertas, ctx) {
   const { coche } = ctx.ajustes;
   for (const oferta of ofertas) oferta.costeCoche = null;
   const candidatas = ofertas.filter((oferta) => oferta.cocheKm > 0 && vaEnCoche(oferta));
-  if (!candidatas.length) return;
+  if (!candidatas.length) return null;
 
   const precioLitro = await precioDelLitro(ctx);
   for (const oferta of candidatas) {
     const litros = (2 * oferta.cocheKm * coche.consumoL100km) / 100;
     oferta.costeCoche = { eur: redondear(litros * precioLitro, 1), litros: redondear(litros, 1) };
   }
+  return precioLitro;
 }

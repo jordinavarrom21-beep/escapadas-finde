@@ -185,7 +185,7 @@ export async function escanear({
   }
   await m.geolocalizar(ofertas, crearCtx('geo'));
   await m.calcularCoche(ofertas, crearCtx('coche'));
-  await m.calcularCosteCoche(ofertas, crearCtx('coche'));
+  const precioLitro = await m.calcularCosteCoche(ofertas, crearCtx('coche'));
   const dudosos = m.revisarPrecios(ofertas, conPrefijo('precios'));
   if (dudosos) conPrefijo('precios')(`${dudosos} ofertas con un precio no creíble: se muestran sin precio`);
   m.calcularReferencia(ofertas);
@@ -203,6 +203,8 @@ export async function escanear({
   const salida = {
     ofertas: {
       generado: ahora.toISOString(), origen: ajustes.origen, aeropuertos: ajustes.vuelos.aeropuertos, viajeros: ajustes.viajeros ?? 2,
+      // Para que el panel estime la gasolina desde la salida que elija cada persona.
+      coche: { consumoL100km: ajustes.coche.consumoL100km, precioLitro: precioLitro ?? ajustes.coche.precioLitro, carburante: ajustes.coche.carburante },
       temas: TEMAS, findes, puentes, fuentes: estadoFuentes, ofertas,
     },
     historial: m.seriesPara(historial, ofertas.map((o) => o.id)),
