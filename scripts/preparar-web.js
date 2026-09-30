@@ -19,7 +19,8 @@ export function leerArgumentos(argv) {
   for (let i = 0; i < argv.length; i++) {
     const [clave, valor] = argv[i].replace(/^--/, '').split('=');
     if (valor !== undefined) opciones[clave] = valor;
-    else if (argv[i + 1] && !argv[i + 1].startsWith('--')) opciones[clave] = argv[++i];
+    // Un valor vacío («--dominio ""») también es un valor: el de una variable sin definir.
+    else if (argv[i + 1] !== undefined && !argv[i + 1].startsWith('--')) opciones[clave] = argv[++i];
     else opciones[clave] = true;
   }
   return opciones;
@@ -51,6 +52,14 @@ function versionar(dir, version) {
   const nuevo = texto.replace(/escapadas-interfaz-[\w.-]+'/, `escapadas-interfaz-${version}'`);
   if (!nuevo.includes(`'escapadas-interfaz-${version}'`)) throw new Error('No se encuentra la versión de la caché en sw.js');
   writeFileSync(ruta, nuevo);
+}
+
+/** Quita la dirección absoluta (vista previa y canónica): para una web sin dominio fijo. */
+export function quitarDireccion(html) {
+  return html
+    .replace(/<meta property="og:image" content="[^"]*og\.png">/, '<meta property="og:image" content="og.png">')
+    .replace(/\s*<meta property="og:url" content="[^"]*">/, '')
+    .replace(/\s*<link rel="canonical" href="[^"]*">/, '');
 }
 
 /** index.html y 404.html con la dirección absoluta de la web. Se puede repetir sin duplicar nada. */
@@ -107,8 +116,9 @@ AddType image/svg+xml .svg
   RewriteCond %{HTTPS} !=on
   RewriteCond %{HTTP:X-Forwarded-Proto} !=https
   RewriteRule ^ https://${destino}%{REQUEST_URI} [R=301,L]
-${unDominio}  # Las copias de seguridad de datos nunca se sirven.
+${unDominio}  # Las copias de seguridad de datos y la carpeta .git (despliegue desde Git) nunca se sirven.
   RewriteRule \\.(bak|tmp)$ - [F,L]
+  RewriteRule (^|/)\\.git(/|$) - [F,L]
 </IfModule>
 
 <IfModule mod_headers.c>

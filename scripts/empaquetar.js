@@ -16,7 +16,7 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 import { CARPETAS, generarPaginas } from '../src/paginas.js';
-import { leerArgumentos, normalizarBase, ponerDireccion, prepararWeb } from './preparar-web.js';
+import { leerArgumentos, normalizarBase, ponerDireccion, prepararWeb, quitarDireccion } from './preparar-web.js';
 import { basePages } from './datos-publicados.js';
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -65,7 +65,7 @@ function paginasDelRepositorio() {
   }
 }
 
-export function empaquetar({ dominio = null, salida = path.join(RAIZ, 'dist'), datos = paginasDelRepositorio() } = {}) {
+export function empaquetar({ dominio = null, salida = path.join(RAIZ, 'dist'), datos = paginasDelRepositorio(), conZip = true } = {}) {
   const base = dominio ? normalizarBase(dominio) : null;
   if (dominio && !base) throw new Error(`«${dominio}» no es un dominio válido`);
   const sitio = path.join(RAIZ, 'site');
@@ -88,15 +88,20 @@ export function empaquetar({ dominio = null, salida = path.join(RAIZ, 'dist'), d
     writeFileSync(archivo, contenido);
   }
 
-  const version = `zip-${datosPanel.generado.replace(/\D/g, '').slice(0, 12)}`;
+  // En GitHub Actions, la del commit (la misma que Pages): la interfaz se renueva solo si cambia.
+  const version = process.env.GITHUB_SHA ? `hosting-${process.env.GITHUB_SHA.slice(0, 12)}` : `zip-${datosPanel.generado.replace(/\D/g, '').slice(0, 12)}`;
   const hecho = prepararWeb({ dir: destino, base, version, conHtaccess: true, datos });
-  // Sin dominio, el enlace de la 404 va a la raíz (la 404 se sirve en cualquier ruta).
+  // Sin dominio: nada de direcciones de otra web (la de GitHub Pages, si site/ ya venía
+  // preparada) y el enlace de la 404 a la raíz (la 404 se sirve en cualquier ruta).
   if (!base) {
+    const indice = path.join(destino, 'index.html');
+    writeFileSync(indice, quitarDireccion(readFileSync(indice, 'utf8')));
     const error404 = path.join(destino, '404.html');
     writeFileSync(error404, ponerDireccion(readFileSync(error404, 'utf8'), '/', { pagina: '404' }));
   }
   writeFileSync(path.join(destino, 'LEEME-HOSTINGER.txt'), instrucciones({ base, generado: datosPanel.generado, datos }));
 
+  if (!conZip) return { destino, zip: null, paginas: archivos.length, hecho };
   const zip = path.join(salida, `${NOMBRE}.zip`);
   rmSync(zip, { force: true });
   execFileSync('zip', ['-r', '-q', '-X', zip, '.'], { cwd: destino });
@@ -108,8 +113,11 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   try {
     // --sin-datos-remotos: la web usa solo la copia de los datos del zip (no se actualiza sola).
     const datos = opciones['sin-datos-remotos'] ? null : normalizarBase(opciones.datos) ?? undefined;
-    const { zip, paginas, hecho } = empaquetar({ dominio: opciones.dominio ?? null, salida: opciones.salida ? path.resolve(opciones.salida) : undefined, datos });
-    console.log(`Listo: ${path.relative(RAIZ, zip)} (${paginas} páginas para buscadores · ${hecho.join(' · ')})`);
+    // --sin-zip: solo la carpeta (para publicarla en la rama «web-hosting»).
+    const { zip, destino, paginas, hecho } = empaquetar({
+      dominio: opciones.dominio || null, salida: opciones.salida ? path.resolve(opciones.salida) : undefined, datos, conZip: !opciones['sin-zip'],
+    });
+    console.log(`Listo: ${path.relative(RAIZ, zip ?? destino)} (${paginas} páginas para buscadores · ${hecho.join(' · ')})`);
   } catch (error) {
     console.error(error.message);
     process.exit(1);

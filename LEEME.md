@@ -282,28 +282,31 @@ Nada más: cada escaneo publica en tu dominio. No hace falta el zip.
 
 ### B · La web en el hosting de Hostinger
 
-1. Prepara el zip: en GitHub → *Actions* → **Empaquetar para tu hosting** → *Run workflow*
-   (escribe tu dominio). El zip queda en la rama `web-hosting` (entra en ella, pulsa el zip y
-   *Download raw file*). O en tu PC:
-   ```bash
-   npm run datos:publicados                      # los datos de la web publicada
-   npm run empaquetar -- --dominio tudominio.es   # → dist/escapadas-finde-web.zip
-   ```
-   Sin `--dominio` vale para cualquier dominio (solo fuerza HTTPS). Con él, además fija ese
-   dominio (con o sin `www`, el que pongas), la dirección canónica y el sitemap.
-2. hPanel → *Sitios web* → *Administrar* → *Administrador de archivos* → `public_html`: borra lo
-   que haya, sube el zip, botón derecho → *Extraer* aquí (deben quedar `index.html`, `.htaccess`,
-   `css/`, `js/`… directamente en `public_html`).
+Cada escaneo deja la web lista para tu hosting en la rama **`web-hosting`** de GitHub (con su
+`.htaccess`), y esa web lee las ofertas de la de GitHub Pages: siempre enseña las del momento.
+Hostinger la despliega sola con cada cambio:
+
+1. hPanel → *Sitios web* → *Administrar* → *Avanzado* → **Git**: conecta tu cuenta de GitHub
+   (una vez).
+2. En esa misma pantalla, *Despliegue automático*: repositorio `jordinavarrom21-beep/escapadas-finde`,
+   rama **`web-hosting`**, carpeta vacía (la raíz de `public_html`). Guarda: la despliega en el
+   momento y, desde entonces, con cada escaneo.
 3. hPanel → *Seguridad* → *SSL*: el certificado gratuito tiene que estar activo (el `.htaccess`
    manda todo a `https://`).
-4. **Para que se actualice solo** (si no, se queda con los datos del zip): en GitHub
-   - *Secrets*: `FTP_SERVIDOR` (hPanel → *Archivos* → *Cuentas FTP*: el «Host FTP», p. ej.
-     `ftp.tudominio.es` o una IP), `FTP_USUARIO` y `FTP_CONTRASENA` (la de esa cuenta FTP).
-   - *Variables*: `FTP_ACTIVO` = `true`. Opcionales: `FTP_CARPETA` (por defecto `public_html`) y
-     `FTP_VERIFICAR_TLS` = `yes` si el certificado del FTP es el de tu dominio.
+4. Cuando tengas dominio: apúntalo a la web del hosting en hPanel y crea en GitHub las variables
+   **`HOSTING_URL`** y `PANEL_URL`, las dos = `https://tudominio.es/` (canónica, sitemap, enlaces
+   de los emails y un solo dominio, con o sin `www`).
 
-   Desde entonces cada escaneo sube la web por FTP cifrado y borra en el hosting lo que ya no
-   esté (salvo `.well-known`). No pegues nunca estas contraseñas en un chat: solo en GitHub.
+**Sin Git (a mano)**: *Actions* → **Empaquetar para tu hosting** → *Run workflow* deja un zip en
+la rama `web-zip`… o en tu PC `npm run datos:publicados && npm run empaquetar -- --dominio
+tudominio.es` (→ `dist/escapadas-finde-web.zip`). Súbelo a `public_html` con el *Administrador de
+archivos*, *Extraer*, y listo. Las ofertas se actualizan igual (las lee de GitHub Pages); las
+páginas para buscadores son las del zip.
+
+**Por FTP** (si prefieres que GitHub suba la web a tu hosting): secretos `FTP_SERVIDOR`,
+`FTP_USUARIO` y `FTP_CONTRASENA` y variable `FTP_ACTIVO` = `true` (opcionales `FTP_CARPETA`,
+por defecto `public_html`, y `FTP_VERIFICAR_TLS` = `yes`). Borra en el hosting lo que ya no esté,
+salvo `.well-known`. No pegues nunca contraseñas en un chat: solo en GitHub.
 
 El `.htaccess` (lo genera `scripts/preparar-web.js`) sirve la página 404, comprime, pone
 cabeceras de seguridad, no guarda en caché los datos (cambian cada 15 min) y nunca sirve las

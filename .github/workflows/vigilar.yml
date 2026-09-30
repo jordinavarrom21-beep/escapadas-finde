@@ -152,6 +152,25 @@ jobs:
         if: ${{ !cancelled() && steps.escaneo.conclusion != 'skipped' && hashFiles('site/data/ofertas.json') != '' }}
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5
 
+      # La web lista para tu hosting (Hostinger…) en la rama «web-hosting», sin historial: tu
+      # hosting la despliega sola con cada push (despliegue desde Git). Lee los datos de esta
+      # web de Pages, así que siempre enseña las ofertas del momento. Con la variable
+      # HOSTING_URL (tu dominio), además su dirección canónica, sitemap y un solo dominio.
+      - name: Web para tu hosting (rama web-hosting)
+        if: ${{ !cancelled() && steps.escaneo.conclusion != 'skipped' && hashFiles('site/data/ofertas.json') != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HOSTING_URL: ${{ vars.HOSTING_URL }}
+        run: |
+          node scripts/empaquetar.js --sin-zip --dominio "$HOSTING_URL"
+          cd dist/escapadas-finde-web
+          git init -q -b web-hosting
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Web para tu hosting ($(date -u +'%Y-%m-%d %H:%M') UTC)"
+          git push -q --force "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" web-hosting
+
       # Opcional: copia la web a tu hosting (p. ej. Hostinger) por FTP con TLS en cada escaneo,
       # para que tu dominio tenga siempre los datos al día. Se activa con la variable
       # FTP_ACTIVO = true y los secretos FTP_SERVIDOR, FTP_USUARIO y FTP_CONTRASENA (ver LEEME).

@@ -1,6 +1,7 @@
 # Genera a mano el zip de la web para subir a un hosting propio (Hostinger…), con los datos
-# que se están publicando ahora. El zip queda en la rama «web-hosting»: en GitHub, entra en
-# esa rama, pulsa escapadas-finde-web.zip y «Download raw file».
+# que se están publicando ahora. El zip queda en la rama «web-zip»: en GitHub, entra en esa
+# rama, pulsa escapadas-finde-web.zip y «Download raw file». (La rama «web-hosting» es la web
+# sin comprimir que publica cada escaneo, para el despliegue desde Git.)
 name: Empaquetar para tu hosting
 
 on:
@@ -45,16 +46,16 @@ jobs:
         run: |
           if [ -n "$DOMINIO" ]; then npm run empaquetar -- --dominio "$DOMINIO"; else npm run empaquetar; fi
 
-      - name: Guardar en la rama «web-hosting»
+      - name: Guardar en la rama «web-zip»
         run: |
           cp dist/escapadas-finde-web.zip /tmp/
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git checkout --orphan web-hosting
+          git checkout --orphan web-zip
           git rm -rq --cached .
           git clean -fdxq
           cp /tmp/escapadas-finde-web.zip .
           printf 'Zip de la web para tu hosting, generado el %s. Instrucciones dentro (LEEME-HOSTINGER.txt).\n' "$(date -u +'%Y-%m-%d %H:%M') UTC" > LEEME.md
           git add escapadas-finde-web.zip LEEME.md
           git commit -qm "Web para tu hosting ($(date -u +'%Y-%m-%d %H:%M') UTC)"
-          git push -qf origin web-hosting
+          git push -qf origin web-zip

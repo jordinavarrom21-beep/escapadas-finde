@@ -69,3 +69,15 @@ describe('datos remotos (hosting propio que lee las ofertas de GitHub Pages)', (
     assert.match(una, /connect-src 'self' https:\/\/usuario\.github\.io https:\/\/photon\.komoot\.io/);
   });
 });
+
+describe('web para un hosting sin dominio fijo', () => {
+  it('quita la dirección de otra web y acepta un --dominio vacío', async () => {
+    const { quitarDireccion } = await import('../scripts/preparar-web.js');
+    const conDireccion = ponerDireccion(readFileSync(new URL('index.html', SITE), 'utf8'), 'https://usuario.github.io/escapadas-finde/');
+    const limpia = quitarDireccion(conDireccion);
+    assert.doesNotMatch(limpia, /og:url|rel="canonical"|usuario\.github\.io/);
+    assert.match(limpia, /<meta property="og:image" content="og\.png">/);
+    assert.deepEqual(leerArgumentos(['--sin-zip', '--dominio', '']), { 'sin-zip': true, dominio: '' });
+    assert.match(htaccess(null), /RewriteRule \(\^\|\/\)\\\.git\(\/\|\$\) - \[F,L\]/, '.git nunca se sirve');
+  });
+});
