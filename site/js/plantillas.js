@@ -12,7 +12,7 @@ import {
 } from './formato.js';
 import { SIN_COCHE, duracionActividad, esDuplicada, esNovedad, precioDeSerie, salidasDe, sinComprobar, sufijoSerie, tieneVuelo } from './filtros.js';
 import { escena, icono, iconoTema, iconoTiempo, tipoEscena } from './iconos.js';
-import { conFechas } from './fechas-enlaces.js';
+import { conFechas, ofertaConFechas } from './fechas-enlaces.js';
 
 export const ESTADOS_FUENTE = {
   ok: { texto: 'Funciona', clase: 'ok' },
@@ -309,8 +309,8 @@ const relEnlace = (pagado) => (pagado ? 'sponsored noopener noreferrer' : 'noope
 /** Atributos para contar el clic (proveedor, tipo de enlace y tipo de oferta), sin datos personales. */
 const atributosClic = (o, afiliado) => ` data-clic="${esc(o.fuente)}" data-clic-tipo="${afiliado ? 'afiliado' : o.patrocinada ? 'patrocinado' : 'normal'}" data-clic-oferta="${esc(o.tipo)}"`;
 
-function enlaceOferta(o, texto = 'Ver oferta') {
-  const url = urlSegura(o.urlReserva ?? o.url);
+function enlaceOferta(o, texto = 'Ver oferta', ctx = {}) {
+  const url = urlSegura(urlPropia(o, ctx));
   const pagado = Boolean(o.afiliado || o.patrocinada);
   return url ? `<a class="boton boton--primario" href="${esc(url)}" target="_blank" rel="${relEnlace(pagado)}"${atributosClic(o, o.afiliado)}>${texto}${icono('externo')}<span class="sr"> (se abre en otra pestaña${o.afiliado ? '; enlace de afiliado' : ''})</span></a>` : '';
 }
@@ -399,6 +399,26 @@ const enlaceConBusqueda = (url, o, ctx) => {
   const b = busquedaPara(o, ctx);
   return b ? conFechas(url, b, ctx.viajeros) : url;
 };
+
+/**
+ * La web de la oferta: con tus fechas si es de fechas flexibles y esa web las entiende en la
+ * URL (Holidu, Clubrural); si no, tal cual.
+ */
+function urlPropia(o, ctx = {}) {
+  const propia = o.urlReserva ?? o.url;
+  const b = busquedaPara(o, ctx);
+  return (b && ofertaConFechas(propia, b, ctx.viajeros)) || propia;
+}
+
+/** Junto al botón de la ficha: si abre tus fechas o cuáles tienes que elegir en su web. */
+function notaFechasOferta(o, ctx) {
+  const b = busquedaPara(o, ctx);
+  if (!b) return '';
+  const web = esc(ctx.fuentes?.get(o.fuente) ?? o.fuente);
+  return ofertaConFechas(o.urlReserva ?? o.url, b, ctx.viajeros)
+    ? `<p class="dato-extra nota-fechas nota-fechas--ok">${conIcono('calendario', `Se abre con tus fechas: <strong>${esc(b.etiqueta)}</strong>`)}</p>`
+    : `<p class="dato-extra nota-fechas">${conIcono('calendario', `${web} no deja abrirla con fechas: al reservar, elige <strong>${esc(b.etiqueta)}</strong>`)}</p>`;
+}
 
 /**
  * «Promoción hasta el mié 30 sep»: hasta cuándo se puede reservar, que no es cuándo se viaja.
@@ -528,7 +548,7 @@ export function tarjetaOferta(o, ctx) {
     <div class="tarjeta__pie">
       ${precio(o)}
       ${lineaCoste(o, ctx)}
-      <div class="acciones">${botonComparar(o, ctx)}${enlaceOferta(o)}</div>
+      <div class="acciones">${botonComparar(o, ctx)}${enlaceOferta(o, undefined, ctx)}</div>
     </div>
     ${origenTarjeta(o, ctx)}${avisoAfiliado(o)}
   </div>
@@ -560,7 +580,7 @@ export function tarjetaDestacada(o, ctx, etiqueta = 'Chollazo destacado') {
     <h2 class="destacado__titulo"><button type="button" class="enlace-ficha" data-ficha="${esc(o.id)}">${esc(o.titulo)}</button></h2>
     ${precio(o)}
     ${ahorro ? `<p class="destacado__ahorro">${icono('bajada')}<span>${esc(ahorro)}</span></p>` : ''}
-    <div class="destacado__pie"><span>${total}</span>${enlaceOferta(o)}</div>
+    <div class="destacado__pie"><span>${total}</span>${enlaceOferta(o, undefined, ctx)}</div>
   </div>
 </article>`;
 }
@@ -670,7 +690,7 @@ export function tarjetaVuelo(o, ctx) {
   <div class="billete__pie">
     <div class="insignias">${extras}${insignias(o, ctx)}</div>
     ${textoComprobada(o, ctx)}
-    <div class="acciones">${botonDescartar(o)}${botonComparar(o, ctx)}${botonFavorito(o, ctx)}${enlaceOferta(o, 'Reservar')}</div>
+    <div class="acciones">${botonDescartar(o)}${botonComparar(o, ctx)}${botonFavorito(o, ctx)}${enlaceOferta(o, 'Reservar', ctx)}</div>
   </div>
 </article>`;
 }
@@ -849,8 +869,9 @@ function enlacesFicha(o, ctx = {}) {
   const propia = o.urlReserva ?? o.url;
   if (!enlaces.some((e) => e.url === propia || e.url === o.url)) enlaces.unshift({ etiqueta: 'Ver la oferta', url: propia, afiliado: o.afiliado, propia: true });
   return enlaces
-    // La web de la oferta se abre tal cual; los buscadores (Booking, Skyscanner…), con tus fechas.
-    .map((e) => ({ ...e, url: urlSegura(e.propia ? e.url : enlaceConBusqueda(e.url, o, ctx)) }))
+    // Los buscadores (Booking, Skyscanner…) abren tus fechas; la web de la oferta, solo si las
+    // entiende en la URL (si no, tal cual: cambiarle la URL podría romperla).
+    .map((e) => ({ ...e, url: urlSegura(e.propia ? urlPropia(o, ctx) : enlaceConBusqueda(e.url, o, ctx)) }))
     .filter((e) => e.url)
     .map((e, i) => {
       const pagado = Boolean(e.afiliado || (e.propia && o.patrocinada));
@@ -962,6 +983,7 @@ export function contenidoFicha(o, ctx) {
   ${textoComprobada(o, ctx)}
   <h3 class="sr">Reservar</h3>
   <ul class="ficha__enlaces">${enlaces[0] ?? ''}</ul>
+  ${notaFechasOferta(o, ctx)}
   ${comparadorFicha(o, ctx)}
   ${enlaces.length > 1 ? `<section class="ficha__mas-enlaces" aria-labelledby="ficha-enlaces-titulo">
     <h3 id="ficha-enlaces-titulo">${icono('enlace')}Organiza el viaje${busquedaPara(o, ctx) ? ` <span class="suave">(${esc(busquedaPara(o, ctx).etiqueta)})</span>` : ''}</h3>
@@ -978,7 +1000,7 @@ export function contenidoFicha(o, ctx) {
   </section>
   ${ctx.misEstados ? botonesMiEstado(o, ctx) : ''}
 </aside>
-${barraReserva(o)}
+${barraReserva(o, ctx)}
 </div>`;
 }
 
@@ -986,8 +1008,8 @@ ${barraReserva(o)}
  * En el móvil el precio y el botón quedan al final de la ficha: esta barra los deja siempre a
  * mano, abajo (solo se ve con una columna; ver estilos).
  */
-function barraReserva(o) {
-  const boton = enlaceOferta(o);
+function barraReserva(o, ctx) {
+  const boton = enlaceOferta(o, undefined, ctx);
   if (!boton) return '';
   const cifra = typeof o.precio !== 'number' ? ''
     : o.precio === 0 ? '<strong>Gratis</strong>'
