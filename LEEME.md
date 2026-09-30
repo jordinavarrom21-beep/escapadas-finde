@@ -365,7 +365,11 @@ permite, la fuente queda «bloqueada» y no se toca. Además se espacian las pet
 nunca se intenta saltar un captcha ni una protección anti-bot.
 
 Por eso **Ryanair está desactivada**: su robots.txt prohíbe `/api`. Los vuelos con fecha
-llegarán por vías legítimas (Travelpayouts, SerpApi o las alertas por email). Trivago y
+y hora llegan de **Wizz Air**, gratis y sin registro: su web usa una API pública (mapa de
+rutas y calendario de precios por día) que su robots.txt no prohíbe. Para cada finde y
+puente da la tarifa más baja de la ida y de la vuelta y todas las horas de salida de esos
+días; la hora exacta de la tarifa más baja se ve al reservar. Hoy vuela desde Barcelona
+(Girona y Reus no tienen rutas de Wizz). Trivago y
 Booking solo aparecen como enlaces con destino y fechas ya puestos, porque no permiten leer
 sus resultados.
 

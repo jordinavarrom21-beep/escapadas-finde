@@ -45,7 +45,7 @@ export function rutasDesde(mapa, origenes) {
     .map((conexion) => {
       const ciudad = porIata.get(conexion.iata);
       return {
-        iata: ciudad.iata, ciudad: ciudad.shortName, pais: ciudad.countryName ?? null,
+        iata: ciudad.iata, ciudad: String(ciudad.shortName ?? ciudad.iata).trim(), pais: ciudad.countryName?.trim() || null,
         codigoPais: ciudad.countryCode ?? null, lat: ciudad.latitude ?? null, lon: ciudad.longitude ?? null,
       };
     })]));
