@@ -119,6 +119,14 @@
       "activa": true,
       "intervaloMin": 1440
     },
+    "muchoviaje": {
+      "activa": true,
+      "intervaloMin": 720
+    },
+    "grandvalira": {
+      "activa": true,
+      "intervaloMin": 1440
+    },
     "volotea": {
       "activa": true,
       "intervaloMin": 360

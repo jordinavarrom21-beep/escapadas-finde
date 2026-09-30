@@ -2,7 +2,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-import fuente, { esDeViajes, parsear } from '../src/fuentes/chollometro.js';
+import fuente, { CATEGORIAS_VIAJES, esDeViajes, parsear } from '../src/fuentes/chollometro.js';
 import { validarOferta } from '../src/modelo.js';
 import { rutaPermitida } from '../src/util/robots.js';
 
@@ -143,12 +143,12 @@ describe('obtener', () => {
   }
   const [URL_SUBIENDO, URL_NUEVOS] = fuente.urls;
 
-  it('lee los dos feeds espaciados y deduplica las ofertas', async () => {
+  it('lee todos los feeds (generales y de categorías de viajes) espaciados y deduplica las ofertas', async () => {
     const vueloNuevo = VUELO.replace('182° - ', '');
     const ctx = contexto({ [URL_SUBIENDO]: conItems(SUBIENDO, VUELO), [URL_NUEVOS]: conItems(NUEVOS, vueloNuevo, HOTEL) });
     const { ofertas, reemplazar } = await fuente.obtener(ctx);
     assert.deepEqual(ctx.pedidas, fuente.urls);
-    assert.equal(ctx.esperas.length, 1);
+    assert.equal(ctx.esperas.length, fuente.urls.length - 1);
     assert.deepEqual(ofertas.map((o) => o.id), ['chollometro:3000001', 'chollometro:3000002']);
     assert.ok(ofertas[0].etiquetas.includes('temperatura:182'));
     // Solo retira lo guardado que ya no pasa el filtro: lo demás caduca por retencionDias.
@@ -169,5 +169,16 @@ describe('obtener', () => {
   it('declara solo URLs que permite robots.txt', () => {
     const robots = leer('chollometro-robots.txt');
     for (const url of fuente.urls) assert.equal(rutaPermitida(robots, new URL(url).pathname), true, url);
+  });
+});
+
+describe('feeds de categorías de viajes', () => {
+  it('se piden las categorías de viajes y su feed trae muchos más chollos de viajes que los generales', () => {
+    assert.deepEqual(fuente.urls.slice(2), CATEGORIAS_VIAJES.map((c) => `https://www.chollometro.com/rss/categorias/${c}`));
+    const ofertas = parsear(leer('chollometro-categoria-viajes.xml'), contextoFalso());
+    assert.ok(ofertas.length >= 20, `${ofertas.length} de 30`);
+    assert.ok(ofertas.some((o) => /Peñíscola/.test(o.titulo)));
+    assert.ok(!ofertas.some((o) => /Samsonite|Bolsa Viaje/i.test(o.titulo)), 'una bolsa de viaje no es un viaje');
+    for (const o of ofertas) assert.deepEqual(validarOferta(o), [], o.id);
   });
 });

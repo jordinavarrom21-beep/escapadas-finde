@@ -10,10 +10,12 @@ import escapadarural from './escapadarural.js';
 import ferryhopper from './ferryhopper.js';
 import flixbus from './flixbus.js';
 import fly4free from './fly4free.js';
+import grandvalira from './grandvalira.js';
 import guruwalk from './guruwalk.js';
 import holidayguru from './holidayguru.js';
 import holidu from './holidu.js';
 import huttopia from './huttopia.js';
+import muchoviaje from './muchoviaje.js';
 import nomolesten from './nomolesten.js';
 import ouigo from './ouigo.js';
 import paradores from './paradores.js';
@@ -28,7 +30,9 @@ import weekendesk from './weekendesk.js';
 
 export const FUENTES = [
   // Escapadas, hoteles y paquetes
-  buscounchollo, viajerospiratas, holidayguru, atrapalo, weekendesk, nomolesten, rusticae, paradores,
+  buscounchollo, viajerospiratas, holidayguru, atrapalo, weekendesk, nomolesten, rusticae, paradores, muchoviaje,
+  // Esquí
+  grandvalira,
   // Casas rurales, apartamentos y campings
   escapadarural, clubrural, tuscasasrurales, holidu, campings, sandaya, huttopia,
   // Actividades y experiencias

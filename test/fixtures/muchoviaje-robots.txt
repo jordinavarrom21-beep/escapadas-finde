@@ -1,0 +1,171 @@
+# =========================================================
+# Última revisión: 2026-07-03
+# =========================================================
+
+User-agent: *
+Disallow: /seleccion-viajes/*/dynamic/Attach
+Disallow: /viajes-baratos/*/dynamic/Attach
+Disallow: /*/*/null/
+Disallow: /front/
+Disallow: /reservas/
+Disallow: /b2b/
+Disallow: /packages/availability/
+Disallow: /checkout/
+Disallow: /sites/
+Disallow: /documents/
+Disallow: /evelop/
+Disallow: /alquiler-vehiculos/
+Disallow: /billetes-tren-renfe/
+Disallow: /bp-marcas/
+Disallow: /bp-ofertas/
+Disallow: /commons/assets-content/logged
+Disallow: /*/searchselectiontours
+Disallow: /*/*/searchselectiontours
+Disallow: /*/productcontent/
+
+#
+# Bots de SEO que consumen mucho ancho de banda (se ralentizan, no se bloquean)
+#
+User-agent: SemrushBot
+Crawl-delay: 10
+
+User-agent: SiteAuditBot
+Crawl-delay: 10
+
+User-agent: AhrefsBot
+Crawl-delay: 10
+
+User-agent: meta-externalagent
+Crawl-delay: 10
+
+User-agent: meta-webindexer
+Crawl-delay: 10
+
+#
+# Motores de IA generativa (GEO) — visibilidad en respuestas de IA
+# Se permite el acceso a los bots de búsqueda/recuperación en tiempo real
+# (los que citan la web en respuestas) y se bloquea el uso del contenido
+# para ENTRENAMIENTO de modelos. Crawl-delay para limitar la carga.
+#
+User-agent: OAI-SearchBot
+Crawl-delay: 10
+
+User-agent: ChatGPT-User
+Crawl-delay: 10
+
+User-agent: Claude-User
+Crawl-delay: 10
+
+User-agent: Claude-SearchBot
+Crawl-delay: 10
+
+User-agent: PerplexityBot
+Crawl-delay: 10
+
+User-agent: Applebot-Extended
+Crawl-delay: 10
+
+User-agent: GPTBot
+Disallow: /
+
+
+User-agent: ClaudeBot
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: Bytespider
+Disallow: /
+
+
+#
+# Robots peligrosos, obsoletos o que consumen ancho de banda sin aportar valor
+#
+User-agent: AdNetTrack
+User-agent: LEIAcrawler
+User-agent: MindCrawler
+User-agent: SearchTone2.0
+User-agent: WhatsUp_Gold/5.01
+User-agent: 008
+User-agent: ASpider/0.09
+User-agent: AbachoBOT
+User-agent: Aqua_Products
+User-agent: Arachnophilia
+User-agent: BaiDuSpider
+User-agent: Bookmark search tool
+User-agent: BsshoppingCrawler
+User-agent: CompSpyBot
+User-agent: Curious George
+User-agent: DoCoMo
+User-agent: ExB Language Crawler
+User-agent: Ezooms
+User-agent: FairAd Client
+User-agent: Flaming AttackBot
+User-agent: Flamingo_SearchEngine
+User-agent: Gaisbot
+User-agent: Genio
+User-agent: GetRight/4.2
+User-agent: HTTrack
+User-agent: HenryTheMiragoRobot
+User-agent: IbouBot
+User-agent: Iron33/1.0.2
+User-agent: Kenjin Spider
+User-agent: LWNutch
+User-agent: LinkWalker
+User-agent: MegaIndex.ru
+User-agent: MojeekBot
+User-agent: NPBot
+User-agent: Nocilla
+User-agent: OpenWebIndex
+User-agent: Openfind
+User-agent: PabloElRobot
+User-agent: PerMan
+User-agent: PetalBot
+User-agent: Radiation Retriever 1.1
+User-agent: RediffNewsBot
+User-agent: SEOENGWorldBot
+User-agent: SQLMAP
+User-agent: Scanmine
+User-agent: Screaming Frog SEO Spider
+User-agent: ShowyouBot
+User-agent: SlySearch
+User-agent: SuperBot
+User-agent: Szukacz/1.4
+User-agent: Teleport
+User-agent: Thinkbot
+User-agent: True_Robot
+User-agent: True_Robot/1.0
+User-agent: VayalaCreep
+User-agent: WebCopier
+User-agent: WebTrafficExpress
+User-agent: Wget
+User-agent: WocBot
+User-agent: Yandex
+User-agent: Yeti
+User-agent: YoudaoBot
+User-agent: Zeus
+User-agent: Zeus 32297 Webster Pro V2.9 Win32
+User-agent: ^Jakarta
+User-agent: ^Java
+User-agent: appie/1.1 (www.walhello.com)
+User-agent: barkrowler
+User-agent: bumblebee@relevare.com
+User-agent: daumoa
+User-agent: dotbot
+User-agent: gsa-crawler
+User-agent: libcrawl
+User-agent: lmspider
+User-agent: magpie-crawler
+User-agent: psbot
+User-agent: repparser
+User-agent: rogerbot
+User-agent: searchpreview
+User-agent: sogou
+User-agent: voyager/1.0
+User-agent: woriobot
+User-agent: yacybot
+User-agent: yolinkBot
+Disallow: /
+
+Sitemap: https://www.muchoviaje.com/sitemap.xml
