@@ -6,17 +6,19 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { USER_AGENT } from '../src/util/http.js';
 
 const WEBS = [
-  ['muchoviaje', 'https://www.muchoviaje.com/ofertas/fin-de-semana', [
-    'https://www.muchoviaje.com/ofertas/fin-de-semana?page=2', 'https://www.muchoviaje.com/ofertas/fin-de-semana?pagina=2',
-    'https://www.muchoviaje.com/ofertas/puente-del-pilar', 'https://www.muchoviaje.com/ofertas/ultima-hora', 'https://www.muchoviaje.com/ofertas/parques-tematicos',
-  ]],
-  ['grandvalira', 'https://www.grandvalira.com/es/ofertas', [
-    'https://www.grandvalira.com/es/ofertas-esqui-andorra', 'https://www.grandvalira.com/es/ofertas-hotel-forfait',
-    'https://www.grandvalira.com/es/ofertas-esqui-diciembre', 'https://www.grandvalira.com/es/ofertas-navidad-fin-de-ano',
-  ]],
-  ['chollometro', 'https://www.chollometro.com/', [
-    'https://www.chollometro.com/grupo/viajes', 'https://www.chollometro.com/rss/grupo/viajes', 'https://www.chollometro.com/rss/grupos/viajes-y-hoteles',
-    'https://www.chollometro.com/grupo/vuelos', 'https://www.chollometro.com/rss/grupo/vuelos', 'https://www.chollometro.com/grupo/hoteles', 'https://www.chollometro.com/rss/grupo/hoteles',
+  ['chollometro', 'https://www.chollometro.com/rss/nuevos', [
+    'https://www.chollometro.com/viajes',
+    'https://www.chollometro.com/categorias/viajes',
+    'https://www.chollometro.com/categoria/viajes',
+    'https://www.chollometro.com/rss/viajes',
+    'https://www.chollometro.com/rss/categorias/viajes',
+    'https://www.chollometro.com/rss/categoria/viajes',
+    'https://www.chollometro.com/grupo/viajes-y-vacaciones',
+    'https://www.chollometro.com/rss/grupo/viajes-y-vacaciones',
+    'https://www.chollometro.com/tag/viajes',
+    'https://www.chollometro.com/rss/tag/viajes',
+    'https://www.chollometro.com/grupos/viajes-y-vacaciones',
+    'https://www.chollometro.com/rss/grupos/viajes-y-vacaciones',
   ]],
 ];
 const PISTA = /ofert|promo|descuent|chollo|escapad|last.?minute|ultima|forfait|paquete/i;
@@ -46,10 +48,10 @@ for (const [id, portada, extra] of WEBS) {
     .filter((u) => u && u.startsWith(origen) && PISTA.test(new URL(u).pathname)))];
   console.log(`\n=== ${id} robots ${robots.estado} | portada ${inicio.estado} ${inicio.url} ${JSON.stringify(resumen(inicio.texto))}${inicio.error ? ` ERROR ${inicio.error}` : ''}`);
   console.log(`  enlaces: ${enlaces.slice(0, 12).join(' ')}`);
-  for (const url of [...new Set([...extra, ...enlaces.slice(0, 4)])].slice(0, 8)) {
+  for (const url of [...new Set([...extra, ...enlaces.slice(0, 4)])].slice(0, 14)) {
     await new Promise((r) => setTimeout(r, 1500));
     const p = await pedir(url);
     console.log(`  → ${p.estado} ${p.url} ${JSON.stringify(resumen(p.texto))}${p.error ? ` ERROR ${p.error}` : ''}`);
-    if (p.estado === 200 || /rss|page|pagina/.test(url)) writeFileSync(`sondeo/${id}/${nombre(url)}.html`, `<!-- ${p.estado} ${p.url} -->\n${p.texto}`);
+    if (p.estado === 200) writeFileSync(`sondeo/${id}/${nombre(url)}.html`, `<!-- ${p.estado} ${p.url} -->\n${p.texto}`);
   }
 }
