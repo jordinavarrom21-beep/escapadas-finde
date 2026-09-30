@@ -119,7 +119,7 @@ function ofertaDe(ruta) {
     url,
     precio,
     precioTexto: `desde ${euros(precio)} por trayecto (solo ida, tasas incluidas)${vuelta}`,
-    unidad: null,
+    unidad: 'trayecto',
     transporte: 'avion',
     lugar: {
       nombre: destino,

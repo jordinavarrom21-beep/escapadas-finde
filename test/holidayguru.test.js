@@ -93,7 +93,7 @@ describe('parsear (páginas reales)', () => {
 
     const algarve = porTitulo(ultimo, 'Vuelos al Algarve');
     assert.equal(algarve.precio, 18);
-    assert.equal(algarve.unidad, null);
+    assert.equal(algarve.unidad, 'trayecto');
     assert.match(algarve.precioTexto, /trayecto/);
   });
 

@@ -15,6 +15,11 @@ import { AHORA, AJUSTES, crearCtx, oferta } from './ayudas.js';
 const escapada = (campos) => ({ tipo: 'escapada', titulo: '', descripcion: '', etiquetas: [], temas: [], lugar: null, ...campos });
 
 describe('auditoría: noches', () => {
+  test('una actividad sin alojamiento no tiene noches: «2 días de forfait» no es 1 noche', () => {
+    assert.equal(clasificar(escapada({ tipo: 'actividad', titulo: 'Grandvalira: Forfait + Alquiler de material, 2 días de forfait' })).noches, null);
+    assert.equal(clasificar(escapada({ tipo: 'actividad', alojamiento: 'hotel', titulo: 'Esquí con hotel, 3 noches' })).noches, 3);
+  });
+
   test('no las saca de las etiquetas de categoría (que traen varios rangos a la vez)', () => {
     assert.equal(clasificar(escapada({ titulo: 'Hotel en Lloret', etiquetas: ['Escapada de 3 a 6 noches', 'Escapada 1-2 noches'] })).noches, null);
   });

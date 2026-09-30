@@ -176,6 +176,22 @@ describe('auditoría: tiempo, eventos y geolocalización', () => {
     await geolocalizar([o], ctx);
     assert.deepEqual([o.lugar.lat, o.lugar.lon], [42.18, 2.49]);
   });
+
+  test('un lugar de España no acaba en otro continente: se busca en el país y lo guardado imposible se repite', async () => {
+    const { ctx } = crearCtx();
+    ctx.cache.guardar('geo:centro barcelona, barcelona, espana', { lat: -17.89, lon: -51.74 }, AHORA.getTime());
+    const pedidas = [];
+    ctx.http.json = async (url) => { pedidas.push(url); return [{ lat: '41.385', lon: '2.173' }]; };
+    const o = oferta({ lugar: { nombre: 'Centro Barcelona', region: 'Barcelona', pais: 'España', codigoPais: 'ES', lat: null, lon: null } });
+    await geolocalizar([o], ctx);
+    assert.deepEqual([o.lugar.lat, o.lugar.lon], [41.385, 2.173]);
+    assert.match(pedidas[0], /&countrycodes=es$/);
+    // Si aun así devuelve algo imposible, mejor sin coordenadas que en Brasil.
+    ctx.http.json = async () => [{ lat: '-17.89', lon: '-51.74' }];
+    const otra = oferta({ lugar: { nombre: 'Centro', region: 'Lleida', pais: 'España', lat: null, lon: null } });
+    await geolocalizar([otra], ctx);
+    assert.equal(otra.lugar.lat, null);
+  });
 });
 
 describe('auditoría: la portada avisa de las webs con problemas', () => {

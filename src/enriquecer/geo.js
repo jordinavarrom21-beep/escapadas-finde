@@ -48,6 +48,23 @@ const ISLAS = [
 ];
 export const enIsla = ({ lat, lon }) => ISLAS.some((c) => lat >= c.latMin && lat <= c.latMax && lon >= c.lonMin && lon <= c.lonMax);
 
+/** País de un lugar en ISO-3166 (minúsculas), si se sabe. */
+const codigoPais = (lugar) => (lugar.codigoPais ?? (normalizarTexto(lugar.pais ?? '') === 'espana' ? 'ES' : ''))?.toLowerCase() || '';
+/** España con Canarias: un punto de «España» fuera de esta caja es otro sitio con el mismo nombre. */
+const CAJA_ESPANA = { latMin: 27.4, latMax: 44, lonMin: -18.5, lonMax: 4.6 };
+
+/**
+ * Si la coordenada puede ser la de ese lugar: «Centro Barcelona» daba un Barcelona de
+ * Brasil, y con él distancias, mapas y tiempo en coche absurdos.
+ */
+export function puntoCreible(lugar, punto) {
+  if (!punto) return true;
+  if (!Number.isFinite(punto.lat) || !Number.isFinite(punto.lon)) return false;
+  if (codigoPais(lugar) !== 'es') return true;
+  const c = CAJA_ESPANA;
+  return punto.lat >= c.latMin && punto.lat <= c.latMax && punto.lon >= c.lonMin && punto.lon <= c.lonMax;
+}
+
 /**
  * Completa `lugar.lat/lon` de las ofertas que tienen nombre de lugar pero no
  * coordenadas. Hace como mucho `maxNuevas` consultas nuevas por ejecución.
@@ -57,13 +74,17 @@ export async function geolocalizar(ofertas, ctx, { maxNuevas = 40 } = {}) {
   let nuevas = 0;
   let aplazadas = 0;
   for (const { lugar } of ofertas) {
-    if (!lugar?.nombre || tieneCoordenadas(lugar)) continue;
+    if (!lugar?.nombre || (tieneCoordenadas(lugar) && puntoCreible(lugar, lugar))) continue;
+    // Una coordenada imposible que viniera de antes se descarta (y se vuelve a buscar).
+    if (tieneCoordenadas(lugar)) Object.assign(lugar, { lat: null, lon: null });
     const consulta = [lugar.nombre, lugar.region, lugar.pais].filter(Boolean).join(', ');
     const clave = `geo:${normalizarTexto(consulta)}`;
-    let punto = ctx.cache.obtener(clave, CADUCIDAD_GEO_MS, ahora);
+    // Lo guardado que no puede ser de ese país se vuelve a pedir (ya acotado al país).
+    const increible = (p) => (p === undefined || puntoCreible(lugar, p) ? p : undefined);
+    let punto = increible(ctx.cache.obtener(clave, CADUCIDAD_GEO_MS, ahora));
     if (punto === undefined) {
       // Una coordenada caducada sigue valiendo si no se puede renovar: los pueblos no se mueven.
-      const caducada = ctx.cache.obtener(clave);
+      const caducada = increible(ctx.cache.obtener(clave));
       if (nuevas >= maxNuevas) {
         if (caducada === undefined) { aplazadas++; continue; }
         punto = caducada;
@@ -71,8 +92,10 @@ export async function geolocalizar(ofertas, ctx, { maxNuevas = 40 } = {}) {
         if (nuevas > 0) await ctx.http.esperar(PAUSA_NOMINATIM_MS);
         nuevas++;
         try {
-          const [resultado] = await ctx.http.json(URL_NOMINATIM + encodeURIComponent(consulta));
+          const pais = codigoPais(lugar);
+          const [resultado] = await ctx.http.json(URL_NOMINATIM + encodeURIComponent(consulta) + (pais ? `&countrycodes=${pais}` : ''));
           punto = resultado ? { lat: Number(resultado.lat), lon: Number(resultado.lon) } : null;
+          if (!puntoCreible(lugar, punto)) punto = null;
           ctx.cache.guardar(clave, punto, ahora);
         } catch (error) {
           ctx.log(`No se ha podido geolocalizar «${consulta}»: ${error.message}`);
