@@ -96,14 +96,19 @@ describe('calidad: el tiempo y los eventos son los de las fechas del viaje', () 
 });
 
 describe('calidad: la fecha del viaje no se confunde con la caducidad de la promoción', () => {
-  it('una oferta flexible dice «Fechas flexibles» y aparte hasta cuándo vale la promoción', () => {
+  it('en la tarjeta, una flexible solo dice hasta cuándo vale (en corto y urgente si acaba ya); la ficha lo explica', () => {
     const o = oferta({ caduca: '2026-09-30T21:00:00.000Z' });
     const pasadaMedianoche = oferta({ caduca: '2026-09-30T22:30:00.000Z' });
-    assert.match(tarjeta(pasadaMedianoche, ctxPara([pasadaMedianoche])), /Promoción hasta el jue 1 oct/);
-    const html = tarjeta(o, ctxPara([o]));
-    assert.match(html, /Fechas flexibles<\/span><\/li><li>[^]*?Promoción hasta el mié 30 sep<\/span><\/li>/, 'en hora de Madrid: las 23:00 del 30');
-    assert.ok(!/Fechas flexibles · hasta el/.test(html));
+    const ahora = new Date('2026-09-20T10:00:00Z');
+    assert.match(tarjeta(pasadaMedianoche, { ...ctxPara([pasadaMedianoche]), ahora }), /Hasta el jue 1 oct/);
+    const html = tarjeta(o, { ...ctxPara([o]), ahora });
+    assert.match(html, /Hasta el mié 30 sep<\/span><\/li>/, 'en hora de Madrid: las 23:00 del 30');
+    assert.ok(!/Fechas flexibles/.test(html));
+    assert.match(tarjeta(o, { ...ctxPara([o]), ahora: new Date('2026-09-29T10:00:00Z') }), /<li class="dato--urgente">[^]*?Acaba mañana/);
+    assert.match(tarjeta(o, { ...ctxPara([o]), ahora: new Date('2026-09-30T10:00:00Z') }), /Acaba hoy/);
     const ficha = contenidoFicha(o, ctxPara([o]));
+    const conPrecio = { ...o, precio: 90, unidad: 'pp' };
+    assert.match(contenidoFicha(conPrecio, ctxPara([conPrecio])), /<div class="ficha__reserva"><p class="ficha__reserva-precio"><span class="suave">desde<\/span> <strong>90\s€<\/strong> <span class="suave">por persona<\/span><\/p><a [^>]*>Ver oferta/, 'precio y botón siempre a mano en el móvil');
     assert.match(ficha, /<dt>Fechas de viaje<\/dt><dd>Flexibles: la web no publica fechas concretas/);
     assert.match(ficha, /<dt>Reserva<\/dt><dd>Promoción hasta el mié 30 sep/);
   });

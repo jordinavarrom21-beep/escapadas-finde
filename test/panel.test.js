@@ -366,6 +366,12 @@ describe('actividades', () => {
     const portada = vistaFinde(estadoPanel(), {});
     assert.match(portada, /Planes para este finde/);
     assert.match(portada, /href="#\/actividades"/);
+    // «De un vistazo»: cifras que llevan a la misma búsqueda que cuentan.
+    const vistazo = portada.match(/<ul class="vistazo"[^]*?<\/ul>/)?.[0] ?? '';
+    const escapadasFinde = vistazo.match(/<strong>(\d+)<\/strong> escapadas? este finde/)?.[1];
+    assert.ok(escapadasFinde, 'dice cuántas escapadas hay este finde');
+    assert.match(vistazo, /href="#\/escapadas\?cuando=finde&amp;orden=noche"|href="#\/escapadas\?cuando=finde&orden=noche"/);
+    assert.match(vistazo, /desde \d+\s€ por persona y noche/);
 
     const conActividades = contenidoFicha(escapadaGirona, { ...ctxFicha, actividades: actividadesCerca(ofertas, escapadaGirona) });
     assert.match(conActividades, /Qué hacer allí/);

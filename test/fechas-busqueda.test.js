@@ -61,7 +61,7 @@ describe('ofertas de fechas flexibles y de fechas cerradas', () => {
 
   it('la flexible: la tarjeta dice que puede valer y los buscadores abren tus fechas (la web de la oferta, tal cual)', () => {
     assert.equal(busquedaPara(flexible, ctx), busqueda);
-    assert.match(tarjeta(flexible, ctx), /Fechas flexibles: puede valer para el 16–18 oct/);
+    assert.match(tarjeta(flexible, ctx), /Puede valer para el 16–18 oct/);
     const html = contenidoFicha(flexible, ctx);
     assert.match(html, /checkin=2026-10-16&amp;checkout=2026-10-18&amp;group_adults=3/);
     assert.doesNotMatch(html, /checkin=2026-10-02/, 'ni en «Organiza el viaje» ni en «Comparar precios»');

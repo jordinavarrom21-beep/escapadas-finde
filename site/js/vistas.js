@@ -434,6 +434,30 @@ export function paramsBuscadorFinde({ cuando = '', pres = '', como = '', temas =
   };
 }
 
+/**
+ * «De un vistazo»: lo que hay este finde en cuatro cifras que llevan a la lista (escapadas y
+ * desde cuánto, chollazos, con niños gratis o con descuento y planes gratis).
+ */
+function vistazoPortada(e, escapadas) {
+  const busqueda = contextoBusqueda(e);
+  // Las mismas búsquedas que abren los enlaces: la cifra coincide con la lista.
+  const top = buscarEscapadas(e.datos.ofertas, leerFiltrosEscapadas({ cho: '1' }), busqueda).ofertas;
+  const noches = escapadas.map((o) => o.precioNoche).filter((p) => p > 0);
+  const ninos = buscarEscapadas(e.datos.ofertas, leerFiltrosEscapadas({ cuando: 'finde', ninos: 'ventaja' }), busqueda).ofertas.length;
+  const gratis = buscarActividades(e.datos.ofertas, leerFiltrosActividades({ cuando: 'finde', gratis: '1' }), busqueda).length;
+  const cifra = (n, texto, href, ic, extra = '') => (n
+    ? `<li><a class="vistazo__cifra" href="${href}">${icono(ic)}<span><strong>${n.toLocaleString('es-ES')}</strong> ${esc(texto)}${extra ? `<span class="vistazo__extra">${esc(extra)}</span>` : ''}</span></a></li>`
+    : '');
+  const items = [
+    cifra(escapadas.length, escapadas.length === 1 ? 'escapada este finde' : 'escapadas este finde', crearHash('escapadas', { cuando: 'finde', orden: 'noche' }), 'escapadas',
+      noches.length ? `desde ${euros(Math.round(Math.min(...noches)))} por persona y noche` : ''),
+    cifra(top.length, top.length === 1 ? 'chollazo' : 'chollazos', crearHash('escapadas', { cho: '1' }), 'fuego', 'muy por debajo de lo normal'),
+    cifra(ninos, 'con niños gratis o con descuento', crearHash('escapadas', { cuando: 'finde', ninos: 'ventaja' }), 'tema-familia'),
+    cifra(gratis, gratis === 1 ? 'plan gratis' : 'planes gratis', crearHash('actividades', { cuando: 'finde', gratis: '1' }), 'actividades', 'este finde'),
+  ].join('');
+  return items ? `<ul class="vistazo" aria-label="Este finde de un vistazo">${items}</ul>` : '';
+}
+
 export function vistaFinde(e, params = {}) {
   const [actual, siguiente] = e.findes;
   const ctx = ctxTarjetas(e);
@@ -469,6 +493,7 @@ export function vistaFinde(e, params = {}) {
   <div class="portada__texto">
     <p class="portada__ceja"><span class="pastilla">${icono('calendario')}<span>${esc(etiquetaDia(actual.viernes))} – ${esc(etiquetaDia(actual.domingo))}<span id="cuenta-atras" class="pastilla__extra"></span></span></span><span id="aviso-puente" class="pastilla pastilla--puente" hidden></span><span class="portada__revision"><span class="punto" aria-hidden="true"></span>${esc(revision)}</span>${avisoProblemas}</p>
     <h1 class="titulo-vista" tabindex="-1">¿Dónde nos escapamos <em>este finde</em>?</h1>
+    ${vistazoPortada(e, escapadas)}
     ${buscadorFinde(e)}
   </div>
   ${destacado ? `<div class="portada__destacado">${tarjetaDestacada(destacado, ctx)}</div>` : ''}
