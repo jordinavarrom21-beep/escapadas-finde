@@ -6,19 +6,15 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { USER_AGENT } from '../src/util/http.js';
 
 const WEBS = [
-  ['chollometro', 'https://www.chollometro.com/rss/nuevos', [
-    'https://www.chollometro.com/viajes',
-    'https://www.chollometro.com/categorias/viajes',
-    'https://www.chollometro.com/categoria/viajes',
-    'https://www.chollometro.com/rss/viajes',
-    'https://www.chollometro.com/rss/categorias/viajes',
-    'https://www.chollometro.com/rss/categoria/viajes',
-    'https://www.chollometro.com/grupo/viajes-y-vacaciones',
-    'https://www.chollometro.com/rss/grupo/viajes-y-vacaciones',
-    'https://www.chollometro.com/tag/viajes',
-    'https://www.chollometro.com/rss/tag/viajes',
-    'https://www.chollometro.com/grupos/viajes-y-vacaciones',
-    'https://www.chollometro.com/rss/grupos/viajes-y-vacaciones',
+  ['chollometro', 'https://www.chollometro.com/categorias/hoteles', [
+    'https://www.chollometro.com/rss/categorias/viajes-y-ocio',
+    'https://www.chollometro.com/rss/categorias/hoteles',
+    'https://www.chollometro.com/rss/categorias/escapada',
+    'https://www.chollometro.com/rss/categorias/billetes-de-avion',
+    'https://www.chollometro.com/rss/categorias/esqui',
+    'https://www.chollometro.com/rss/categorias/viajes-todo-incluido',
+    'https://www.chollometro.com/rss/grupos/viajes-y-ocio',
+    'https://www.chollometro.com/rss/grupo/viajes-y-ocio',
   ]],
 ];
 const PISTA = /ofert|promo|descuent|chollo|escapad|last.?minute|ultima|forfait|paquete/i;
