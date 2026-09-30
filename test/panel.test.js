@@ -8,7 +8,7 @@ import {
   duracionActividad, esActividad, esNovedad, filtrarVuelos, leerFiltrosActividades, leerFiltrosComunes,
   leerFiltrosEscapadas, leerFiltrosVuelos, leerRuta, medirDistancias, perfilFavoritos, periodoFinde,
   planesSorpresa, recomendadas, referenciaNovedades, resumenCalendario, resumenFuentes, resumenPuentes,
-  alFinalSinComprobar, filtrosActivos, sinComprobar, urlEditarVigilados, vuelosParaMapa,
+  alFinalSinComprobar, coincideTexto, conFaltas, distanciaPalabras, filtrosActivos, sinComprobar, urlEditarVigilados, vuelosParaMapa,
 } from '../site/js/filtros.js';
 import { estadoFinde, findesProximos, proximoPuente } from '../site/js/fechas.js';
 import { cuentaAtras, euros } from '../site/js/formato.js';
@@ -474,6 +474,32 @@ describe('búsqueda, novedades y resúmenes', () => {
     assert.ok(buscarTexto(ofertas, leerFiltrosComunes({ q: 'hotel -sitges' }), ctxBusqueda).every((o) => o.lugar?.nombre !== 'Sitges'));
   });
 
+  it('da igual que sobren o falten espacios', () => {
+    const lloret = (q) => buscarTexto(ofertas, leerFiltrosComunes({ q }), ctxBusqueda).some((o) => o.lugar?.nombre === 'Lloret de Mar');
+    for (const q of ['lloret de mar', 'lloretdemar', '  lloret   de  mar ', 'LLORET DE MAR']) assert.ok(lloret(q), q);
+    assert.ok(coincideTexto({ titulo: 'Hotel en Barcelona' }, 'barce lona'));
+    assert.ok(coincideTexto({ titulo: "Casa rural en L'Escala" }, 'lescala'));
+    assert.ok(coincideTexto({ titulo: 'Sant Cugat del Vallès' }, 'santcugat'));
+    // Sin espacios solo se juntan palabras a partir de 5 letras: «del» no es cualquier «de l…».
+    assert.ok(!coincideTexto({ titulo: 'Casa de la Vall' }, 'del'));
+  });
+
+  it('con alguna falta, solo si no hay nada exacto y sin tocar lo que ya se encontraba', () => {
+    assert.equal(distanciaPalabras('girnoa', 'girona'), 1);
+    assert.equal(distanciaPalabras('barclona', 'barcelona'), 1);
+    assert.ok(!coincideTexto({ titulo: 'Hotel en Barcelona' }, 'barclona'), 'sin «aproximado», exacto (los avisos por email)');
+    assert.ok(coincideTexto({ titulo: 'Hotel en Barcelona' }, 'barclona', { aproximado: true }));
+    assert.ok(!coincideTexto({ titulo: 'Monasterio de Santes Creus' }, 'reus', { aproximado: true }), 'palabras cortas, sin faltas');
+    const busca = (q) => conFaltas((g) => buscarTexto(ofertas, g, ctxBusqueda), leerFiltrosComunes({ q }));
+    const exacta = busca('girona');
+    assert.equal(exacta.aproximado, false);
+    const conFalta = busca('girnoa');
+    assert.equal(conFalta.aproximado, true);
+    assert.deepEqual(ids(conFalta.resultado), ids(exacta.resultado));
+    assert.ok(busca('sitjes').resultado.some((o) => o.lugar?.nombre === 'Sitges'));
+    assert.deepEqual(busca('xyzzy'), { resultado: [], aproximado: false });
+  });
+
   it('la primera visita toma como novedades las últimas 24 h', () => {
     assert.equal(referenciaNovedades(null, '2026-09-18T05:30:00.000Z'), '2026-09-17T05:30:00.000Z');
     assert.equal(referenciaNovedades('2026-09-10T00:00:00Z', '2026-09-18T05:30:00Z'), '2026-09-10T00:00:00Z');
@@ -759,6 +785,14 @@ describe('menú de cuatro apartados', () => {
     const html = resultadosBuscar(estadoPanel(), { q: 'girona' });
     assert.match(html, /href="#\/escapadas\?q=girona"[^>]*>[^]*?En Escapadas <span class="suave">\(\d+\)/);
     assert.ok(!/nuevas=1/.test(resultadosBuscar(estadoPanel(), { nuevas: '1' }).match(/buscar__pestanas/) ?? ''));
+  });
+
+  it('sin nada exacto, el buscador y Explorar enseñan lo más parecido y lo dicen', () => {
+    const aviso = /Nada coincide exactamente con «girnoa»/;
+    assert.match(resultadosBuscar(estadoPanel(), { q: 'girnoa' }), aviso);
+    assert.match(resultadosEscapadas(estadoPanel(), { q: 'girnoa' }), aviso);
+    assert.doesNotMatch(resultadosBuscar(estadoPanel(), { q: 'girona' }), /Nada coincide exactamente/);
+    assert.match(resultadosBuscar(estadoPanel(), { q: 'xyzzy' }), /Nada coincide con «xyzzy»/);
   });
 });
 
