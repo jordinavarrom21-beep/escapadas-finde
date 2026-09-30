@@ -252,9 +252,14 @@ export default {
   version: 1,
   ofertas: { [id]: Oferta },
   fuentes: { [id]: { ultimoIntento, ultimoOk, error, desdeError, total, duracionMs, aviso, desdeAviso, referencia } },
-  // aviso: la última lectura trae menos del 30 % de lo normal (referencia.total, con ≥ 10) o la
-  // parte con precio cae a menos de la mitad (referencia.conPrecio ≥ 0,6). La fuente sigue «ok»,
-  // no se borra nada de golpe y la referencia no baja; si dura 7 días, pasa a ser lo normal.
+  // aviso: la última lectura trae menos del 30 % de lo normal (referencia.total, con ≥ 10) o un
+  // detalle que venía en ≥ 60 % de las ofertas (referencia.detalles: precio, foto, descripción,
+  // lugar, coordenadas, valoración, estrellas, fechas, noches, régimen, nombre del alojamiento,
+  // caducidad) cae a menos de la mitad. La fuente sigue «ok», no se borra nada de golpe y la
+  // referencia no cambia; si dura 7 días, pasa a ser lo normal.
+  // Si una fuente falla o avisa, data/muestras/<fuente>/ guarda las páginas que leyó (sin
+  // robots.txt, hasta 3 y 2 MB cada una) y un LEEME.txt con el motivo y las URLs; se borran
+  // cuando vuelve a ir bien. Van a la rama «datos» con el resto.
   emails: {
     inicializado: false,
     resumenEnviado: null,            // 'YYYY-MM-DD' del viernes del último resumen

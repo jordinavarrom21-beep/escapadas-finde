@@ -71,6 +71,28 @@ export function leerDatos(ruta, porDefecto, avisar = console.warn) {
  * Páginas con URL legible para buscadores (src/paginas.js) y el sitemap. Las de la pasada
  * anterior se borran: una guía que ya no tiene ofertas suficientes no debe quedarse publicada.
  */
+/**
+ * Muestras para arreglar lectores: en data/muestras/<fuente>/ las páginas que leyó en esta
+ * ejecución una fuente que ha fallado o que avisa de que su web ha cambiado, con un LEEME.txt
+ * que dice por qué y de qué URL es cada una. Se guardan en la rama «datos» con el resto, así
+ * se puede ajustar el lector con la página real. Las de una fuente que vuelve a ir bien se borran.
+ * @param {{guardar: Array<{fuente: string, cuando: string, motivo: string, paginas: {url: string, cuerpo: string}[]}>, sanas: string[]}} muestras
+ * @param {string} carpeta
+ */
+export function escribirMuestras(muestras, carpeta) {
+  if (!muestras) return;
+  for (const id of muestras.sanas) rmSync(path.join(carpeta, id), { recursive: true, force: true });
+  for (const { fuente, cuando, motivo, paginas } of muestras.guardar) {
+    const destino = path.join(carpeta, fuente);
+    rmSync(destino, { recursive: true, force: true });
+    mkdirSync(destino, { recursive: true });
+    const nombres = paginas.map(({ cuerpo }, i) => `pagina-${i + 1}.${/^\s*[[{]/.test(cuerpo) ? 'json' : 'html'}`);
+    paginas.forEach(({ cuerpo }, i) => writeFileSync(path.join(destino, nombres[i]), cuerpo));
+    const indice = paginas.map(({ url }, i) => `${nombres[i]}: ${url}`).join('\n');
+    writeFileSync(path.join(destino, 'LEEME.txt'), `Fuente: ${fuente}\nCuándo: ${cuando}\nMotivo: ${motivo}\n\n${indice}\n`);
+  }
+}
+
 function escribirPaginas(datos, base) {
   const sitio = path.join(RAIZ, 'site');
   for (const carpeta of CARPETAS) rmSync(path.join(sitio, carpeta), { recursive: true, force: true });
@@ -142,6 +164,7 @@ async function principal() {
   guardarJson(ruta('panelHistorial'), resultado.salida.historial);
   guardarJson(ruta('panelVigilados'), resultado.salida.vigilados);
   escribirPaginas(resultado.salida.ofertas, urlPanel(ajustes, process.env));
+  escribirMuestras(resultado.muestras, path.join(RAIZ, 'data', 'muestras'));
   imprimirInforme(resultado.informe);
 
   if (codigoSalida(resultado.informe, resultado.salida.ofertas.generado)) process.exitCode = 1;

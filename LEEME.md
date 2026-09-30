@@ -301,6 +301,22 @@ Civitatis, GetYourGuide y GuruWalk.
 Si alguna te interesa igualmente, suscribe el Gmail dedicado a su newsletter: entrará
 por el buzón sin tocar código.
 
+## Si una web cambia
+
+Cada web tiene su lector y el resto sigue funcionando aunque una falle. En cada revisión se
+compara lo leído con lo normal de esa web:
+
+- **Falla o no trae nada** → «Con errores» en Fuentes; se conservan sus ofertas.
+- **Trae muchas menos ofertas** (menos del 30 % de lo normal) → «Revisar»: no se borra nada de
+  golpe; si de verdad ya no están, se retiran solas en unos días.
+- **Deja de traer un detalle que casi siempre traía** (precio, foto, lugar, valoración,
+  estrellas, fechas, noches, régimen…) → «Revisar», diciendo cuál.
+- Si dura 12 h, la portada dice «N webs con problemas»; a las 24 h llega un email (con el
+  correo configurado). Si un aviso dura 7 días, se da por lo normal.
+- Mientras falla o avisa, la rama `datos` guarda en `data/muestras/<web>/` las páginas que leyó
+  y el motivo: con ellas se ajusta su lector sobre la página real, y se borran solas cuando
+  vuelve a ir bien.
+
 ## Fuentes y uso justo
 
 Antes de consultar una web, se comprueba que su **robots.txt** lo permite. Si no lo

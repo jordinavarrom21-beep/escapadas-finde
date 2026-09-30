@@ -73,29 +73,74 @@ function tocaEjecutar(fuente, config, previo, ahora, opciones) {
 }
 
 /**
+ * Detalles que se vigilan en cada lectura, tal como los devuelve el lector (antes de
+ * enriquecer): si uno que venía en casi todas las ofertas deja de venir, lo más probable
+ * es que la web haya cambiado dónde o cómo lo pone.
+ */
+export const DETALLES = {
+  precio: { nombre: 'precio', tiene: (o) => typeof o.precio === 'number' },
+  imagen: { nombre: 'foto', tiene: (o) => Boolean(o.imagen) },
+  descripcion: { nombre: 'descripción', tiene: (o) => Boolean(o.descripcion?.trim()) },
+  lugar: { nombre: 'lugar', tiene: (o) => Boolean(o.lugar?.nombre) },
+  coordenadas: { nombre: 'coordenadas', tiene: (o) => Number.isFinite(o.lugar?.lat) && Number.isFinite(o.lugar?.lon) },
+  valoracion: { nombre: 'valoración', tiene: (o) => o.valoracion?.nota >= 0 },
+  estrellas: { nombre: 'estrellas', tiene: (o) => o.estrellas != null },
+  fechas: { nombre: 'fechas', tiene: (o) => Boolean(o.fechas?.salida) },
+  noches: { nombre: 'noches', tiene: (o) => o.noches > 0 },
+  regimen: { nombre: 'régimen', tiene: (o) => Boolean(o.regimen) },
+  establecimiento: { nombre: 'nombre del alojamiento', tiene: (o) => Boolean(o.establecimiento) },
+  caduca: { nombre: 'fecha de caducidad', tiene: (o) => Boolean(o.caduca) },
+};
+/** Un detalle «de siempre» (en al menos esta parte de las ofertas) que cae a menos de la mitad. */
+const DETALLE_HABITUAL = 0.6;
+const MINIMO_DETALLES = 5;
+const pct = (valor) => `${Math.round(valor * 100)} %`;
+
+/** Qué parte de las ofertas trae cada detalle: {precio: 0.95, imagen: 1, …}. */
+export function coberturaDetalles(ofertas) {
+  const n = ofertas.length;
+  return Object.fromEntries(Object.entries(DETALLES).map(([clave, { tiene }]) => [
+    clave, n ? Math.round((ofertas.filter(tiene).length / n) * 100) / 100 : 0,
+  ]));
+}
+
+/**
  * ¿Se parece esta lectura a las anteriores? Compara con `previo.referencia` (lo normal de
- * la fuente: ofertas y parte con precio). Si trae muchas menos o casi sin precio, devuelve
- * un aviso y no deja borrar las guardadas de golpe; si no, la referencia pasa a ser esta.
- * @returns {{aviso: string|null, reemplazar: boolean|Function, referencia: {total: number, conPrecio: number}}}
+ * la fuente: cuántas ofertas y qué parte trae cada detalle). Si trae muchas menos, avisa y
+ * no deja borrar las guardadas de golpe; si un detalle habitual (foto, lugar, valoración…)
+ * deja de venir, avisa de cuál. Si no hay nada raro, la referencia pasa a ser esta lectura.
+ * @returns {{aviso: string|null, detallesPerdidos: string[], reemplazar: boolean|Function, referencia: {total: number, detalles: Record<string, number>}}}
  */
 export function revisarLectura(resultado, previo, ahora) {
   const n = resultado.ofertas.length;
-  const conPrecio = n ? resultado.ofertas.filter((o) => typeof o.precio === 'number').length / n : 0;
-  const actual = { total: n, conPrecio: Math.round(conPrecio * 100) / 100 };
-  // Referencias guardadas antes de existir este campo: lo que se leyó la última vez.
-  const normal = previo.referencia ?? (previo.total ? { total: previo.total, conPrecio: null } : null);
+  const actual = { total: n, detalles: coberturaDetalles(resultado.ofertas) };
+  const normal = referenciaDe(previo);
   const viejo = previo.desdeAviso && ahora - Date.parse(previo.desdeAviso) >= DIAS_NUEVA_NORMALIDAD * DIA_MS;
-  if (!normal || normal.total < MINIMO_COMPARABLE || viejo) return { aviso: null, reemplazar: resultado.reemplazar, referencia: actual };
+  const sinAviso = { aviso: null, detallesPerdidos: [], reemplazar: resultado.reemplazar, referencia: actual };
+  if (!normal || normal.total < MINIMO_COMPARABLE || viejo) return sinAviso;
   const avisos = [];
   const menos = n < normal.total * CAIDA_FUERTE;
   if (menos) {
     avisos.push(`Solo ${n} ofertas (lo normal son unas ${normal.total}): no se borran las demás de golpe; si de verdad ya no están, se retiran solas en unos días`);
   }
-  if (normal.conPrecio >= 0.6 && n >= 5 && actual.conPrecio < normal.conPrecio / 2) {
-    avisos.push(`Solo el ${Math.round(actual.conPrecio * 100)} % trae precio (lo normal es el ${Math.round(normal.conPrecio * 100)} %): puede que la web haya cambiado cómo lo muestra`);
+  const perdidos = n >= MINIMO_DETALLES
+    ? Object.keys(DETALLES).filter((clave) => (normal.detalles[clave] ?? 0) >= DETALLE_HABITUAL && actual.detalles[clave] < normal.detalles[clave] / 2)
+    : [];
+  if (perdidos.length) {
+    const lista = perdidos.map((clave) => `${DETALLES[clave].nombre} (${pct(actual.detalles[clave])}; lo normal, ${pct(normal.detalles[clave])})`);
+    avisos.push(`Faltan datos que antes traía casi siempre: ${lista.join(', ')}. Puede que la web haya cambiado dónde los pone`);
   }
-  if (!avisos.length) return { aviso: null, reemplazar: resultado.reemplazar, referencia: actual };
-  return { aviso: `${avisos.join('. ')}. ¿Ha cambiado la web?`, reemplazar: menos ? false : resultado.reemplazar, referencia: normal };
+  if (!avisos.length) return sinAviso;
+  // Lo normal no cambia por una lectura rara: así el aviso sigue mientras dure el problema.
+  return { aviso: `${avisos.join('. ')}. ¿Ha cambiado la web?`, detallesPerdidos: perdidos, reemplazar: menos ? false : resultado.reemplazar, referencia: normal };
+}
+
+/** Lo normal de la fuente, también de estados guardados antes de vigilar todos los detalles. */
+function referenciaDe(previo) {
+  const r = previo.referencia;
+  if (r?.detalles) return r;
+  if (r) return { total: r.total, detalles: r.conPrecio != null ? { precio: r.conPrecio } : {} };
+  return previo.total ? { total: previo.total, detalles: {} } : null;
 }
 
 async function ejecutarFuente(fuente, { estado, ajustes, env, ahora, opciones, crearCtx }) {
@@ -156,6 +201,55 @@ async function ejecutarFuente(fuente, { estado, ajustes, env, ahora, opciones, c
   }
 }
 
+/** Páginas que se guardan como muestra de cada fuente, y tamaño máximo de cada una. */
+const MUESTRAS_POR_FUENTE = 3;
+const MAXIMO_MUESTRA = 2_000_000;
+
+/**
+ * Cliente HTTP que además recuerda las primeras páginas que lee la fuente (no el
+ * robots.txt). Solo en memoria: se escriben si la fuente falla o avisa (`muestrasPara`).
+ */
+export function conMuestras(http, leidas, id) {
+  const anotar = (url, cuerpo) => {
+    if (/\/robots\.txt$/.test(url)) return;
+    const lista = leidas.get(id) ?? [];
+    if (lista.length < MUESTRAS_POR_FUENTE) lista.push({ url, cuerpo: String(cuerpo).slice(0, MAXIMO_MUESTRA) });
+    leidas.set(id, lista);
+  };
+  return {
+    ...http,
+    texto: async (url, opciones) => {
+      const cuerpo = await http.texto(url, opciones);
+      anotar(url, cuerpo);
+      return cuerpo;
+    },
+    json: async (url, opciones) => {
+      const datos = await http.json(url, opciones);
+      anotar(url, JSON.stringify(datos, null, 1));
+      return datos;
+    },
+  };
+}
+
+/**
+ * Muestras para arreglar un lector: las páginas que leyó en esta ejecución cada fuente que
+ * ha fallado (sin contar robots.txt ni las que no llegaron a bajar) o que avisa de que la web
+ * ha cambiado. `sanas` son las que funcionan sin aviso: sus muestras viejas sobran.
+ * @returns {{guardar: Array<{fuente: string, cuando: string, motivo: string, paginas: {url: string, cuerpo: string}[]}>, sanas: string[]}}
+ */
+export function muestrasPara(estado, fuentes, leidas, ahora) {
+  const guardar = [];
+  const sanas = [];
+  for (const { id } of fuentes) {
+    const s = estado.fuentes[id];
+    if (s?.ultimoIntento !== ahora.toISOString()) continue;
+    const motivo = s.estado === 'error' ? s.error : s.estado === 'ok' ? s.aviso : null;
+    if (s.estado === 'ok' && !s.aviso) sanas.push(id);
+    else if (motivo && leidas.get(id)?.length) guardar.push({ fuente: id, cuando: ahora.toISOString(), motivo, paginas: leidas.get(id) });
+  }
+  return { guardar, sanas };
+}
+
 /**
  * Estado de cada fuente para el panel. `total` son las ofertas suyas que se enseñan
  * ahora (tras la poda); `leidas`, cuántas trajo su última lectura; `intervaloMin`, cada
@@ -203,7 +297,9 @@ export async function escanear({
   // Con el cliente de verdad, cada parte pide con su nombre puesto: así los reintentos
   // se leen como «viajerospiratas: reintento 2/3 tras HTTP 429…». Los tests inyectan el suyo.
   const httpDe = (id) => (http === clienteHttp ? crearClienteHttp({ etiqueta: id, log: conPrefijo(id) }) : http);
-  const crearCtx = (id) => ({ ...ctxBase, http: httpDe(id), log: conPrefijo(id), findes, puentes });
+  // Las páginas que lee cada fuente, por si hay que guardarlas como muestra (ver `muestrasPara`).
+  const leidas = new Map();
+  const crearCtx = (id) => ({ ...ctxBase, http: conMuestras(httpDe(id), leidas, id), log: conPrefijo(id), findes, puentes });
   const ejecutadas = await ejecutarFuentes(fuentes, {
     maxParalelo: ajustes.maxFuentesEnParalelo,
     ejecutar: (fuente) => ejecutarFuente(fuente, { estado, ajustes, env, ahora, opciones, crearCtx }),
@@ -286,6 +382,7 @@ export async function escanear({
     cache,
     historial,
     salida,
+    muestras: muestrasPara(estado, fuentes, leidas, ahora),
     informe: { fuentes: estadoFuentes, podadas, total: ofertas.length, emails, puentes, red: metricasHttp() },
   };
 }
