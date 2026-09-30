@@ -96,7 +96,6 @@ export function completarOferta(datos) {
     regimen: null,
     temas: [],
     transporte: null,
-    lugar: null,
     cocheMin: null,
     cocheKm: null,
     cocheEstimado: false,

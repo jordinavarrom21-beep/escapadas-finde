@@ -60,6 +60,8 @@ export const MODULOS = {
 
 /** URL del panel: la de los ajustes o la de GitHub Pages del repo. */
 export function urlPanel(ajustes, env) {
+  // Tu dominio: la variable PANEL_URL del repositorio manda sobre ajustes.panelUrl.
+  if (env.PANEL_URL) return env.PANEL_URL.replace(/\/?$/, '/');
   if (ajustes.panelUrl) return ajustes.panelUrl;
   const [propietario, repo] = env.GITHUB_REPOSITORY?.split('/') ?? [];
   return propietario && repo ? `https://${propietario}.github.io/${repo}/` : null;

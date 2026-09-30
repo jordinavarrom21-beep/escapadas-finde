@@ -916,7 +916,7 @@ function datosFicha(o, ctx) {
  * Lo esencial de un vistazo, bajo el título: alojamiento y estrellas, valoración, noches,
  * régimen, transporte incluido, solo adultos y niños.
  */
-function resumenFicha(o, ctx) {
+function resumenFicha(o) {
   const v = o.valoracion;
   const minutos = duracionActividad(o);
   const datos = [
@@ -1070,7 +1070,7 @@ export function contenidoFicha(o, ctx) {
     <p class="tarjeta__origen">${temasIconos(o, ctx)} ${esc(ETIQUETAS_TIPO[o.tipo] ?? o.tipo)} · ${esc(ctx.fuentes.get(o.fuente) ?? o.fuente)}</p>
     <h2 id="ficha-titulo">${esc(o.titulo)}</h2>
     <p class="tarjeta__lugar">${textoLugar(o)}</p>
-    ${resumenFicha(o, ctx)}
+    ${resumenFicha(o)}
   </header>
   <div class="ficha__media">${escena(tipoEscena(o))}${imagen ? `<img class="ficha__imagen" src="${esc(imagen)}" alt="" referrerpolicy="no-referrer">` : ''}</div>
   <div class="insignias">${insignias(o, ctx)}</div>

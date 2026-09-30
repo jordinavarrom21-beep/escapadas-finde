@@ -19,7 +19,7 @@ import {
 import { NOCHES, VIAJEROS, aeropuertosCercanos } from './viaje.js';
 import {
   QUE_MIDE_LA_NOTA, certeza, costeDe, textoAlojamiento, textoCaducidad, textoFechas, textoLugar,
-  ESTADOS_FUENTE, estadoVacio, filaOferta, insigniaEstado, rejilla, tarjeta, tarjetaConMotivo, tarjetaDestacada, textoAyudaUbicacion,
+  estadoVacio, filaOferta, insigniaEstado, rejilla, tarjeta, tarjetaConMotivo, tarjetaDestacada, textoAyudaUbicacion,
 } from './plantillas.js';
 import { icono, iconoTema } from './iconos.js';
 

@@ -77,7 +77,8 @@ jobs:
           cache: npm
 
       # Ninguna dependencia necesita scripts de instalación: así no se ejecuta código al instalar.
-      - run: npm ci --ignore-scripts
+      # Sin las de desarrollo (ESLint, Playwright): las usa «Comprobar» en cada PR, no el escaneo.
+      - run: npm ci --ignore-scripts --omit=dev
       - run: npm test
 
       - name: Escanear ofertas
@@ -92,6 +93,8 @@ jobs:
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
           SMTP_FROM: ${{ secrets.SMTP_FROM }}
           BUZON_NOMBRES: ${{ secrets.BUZON_NOMBRES }}
+          # Tu dominio (variable del repositorio, no secreto): enlaces de los emails, sitemap y robots.txt.
+          PANEL_URL: ${{ vars.PANEL_URL }}
         run: npm run escanear -- ${{ inputs.forzar && '--forzar' || '' }}
 
       - name: Email de prueba
@@ -124,30 +127,19 @@ jobs:
           git commit -q -m "Datos del $(date -u +'%Y-%m-%d %H:%M') UTC"
           git push -q --force "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" datos
 
-      # Cada commit cambia la versión de la caché del service worker: los navegadores
-      # instalan la interfaz nueva entera en lugar de mezclarla con la vieja.
-      - name: Versionar la caché del panel
-        if: ${{ !cancelled() && steps.escaneo.conclusion != 'skipped' && hashFiles('site/data/ofertas.json') != '' }}
-        run: |
-          version="escapadas-interfaz-${GITHUB_SHA::12}"
-          sed -i "s/escapadas-interfaz-dev/${version}/" site/sw.js
-          grep -q "'${version}'" site/sw.js
-
       - id: pages
         uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6
         if: ${{ !cancelled() && steps.escaneo.conclusion != 'skipped' && hashFiles('site/data/ofertas.json') != '' }}
 
-      # Las redes y WhatsApp solo enseñan la vista previa con la URL absoluta de la imagen, y
-      # la página 404 se sirve en cualquier ruta: las dos necesitan la dirección de la web.
-      - name: Direcciones absolutas (vista previa al compartir y página 404)
+      # La web lista para publicar (scripts/preparar-web.js, lo mismo que el zip de Hostinger):
+      # sin copias de datos, caché versionada con el commit (cada despliegue instala la
+      # interfaz nueva entera) y la dirección absoluta para compartir y para la 404. Con
+      # la variable PANEL_URL (tu dominio), esa es la dirección; si no, la de GitHub Pages.
+      - name: Preparar la web
         if: ${{ !cancelled() && steps.escaneo.conclusion != 'skipped' && hashFiles('site/data/ofertas.json') != '' }}
         env:
-          BASE: ${{ steps.pages.outputs.base_url }}
-        run: |
-          base="${BASE%/}/"
-          sed -i "s#<meta property=\"og:image\" content=\"og.png\">#<meta property=\"og:image\" content=\"${base}og.png\">\n  <meta property=\"og:url\" content=\"${base}\">#" site/index.html
-          sed -i "s#href=\"./\" data-inicio#href=\"${base}\" data-inicio#" site/404.html
-          grep -q "content=\"${base}og.png\"" site/index.html
+          BASE: ${{ vars.PANEL_URL || steps.pages.outputs.base_url }}
+        run: node scripts/preparar-web.js --dir site --base "$BASE" --version "${GITHUB_SHA::12}" --htaccess
 
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5
         if: ${{ !cancelled() && steps.escaneo.conclusion != 'skipped' && hashFiles('site/data/ofertas.json') != '' }}
@@ -157,6 +149,24 @@ jobs:
       - id: despliegue
         if: ${{ !cancelled() && steps.escaneo.conclusion != 'skipped' && hashFiles('site/data/ofertas.json') != '' }}
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5
+
+      # Opcional: copia la web a tu hosting (p. ej. Hostinger) por FTP con TLS en cada escaneo,
+      # para que tu dominio tenga siempre los datos al día. Se activa con la variable
+      # FTP_ACTIVO = true y los secretos FTP_SERVIDOR, FTP_USUARIO y FTP_CONTRASENA (ver LEEME).
+      # Borra en el hosting lo que ya no está en la web, salvo .well-known (certificado SSL).
+      - name: Subir a tu hosting (FTP)
+        if: ${{ !cancelled() && steps.escaneo.conclusion != 'skipped' && hashFiles('site/data/ofertas.json') != '' && vars.FTP_ACTIVO == 'true' }}
+        env:
+          FTP_SERVIDOR: ${{ secrets.FTP_SERVIDOR }}
+          FTP_USUARIO: ${{ secrets.FTP_USUARIO }}
+          LFTP_PASSWORD: ${{ secrets.FTP_CONTRASENA }}
+          FTP_CARPETA: ${{ vars.FTP_CARPETA || 'public_html' }}
+          # El certificado del FTP de muchos hostings es del servidor, no de tu dominio: por
+          # eso por defecto no se comprueba (la conexión va cifrada igual). Pon «yes» si el tuyo casa.
+          FTP_VERIFICAR_TLS: ${{ vars.FTP_VERIFICAR_TLS || 'no' }}
+        run: |
+          sudo apt-get install -y -qq lftp > /dev/null
+          lftp --env-password -u "$FTP_USUARIO" "$FTP_SERVIDOR" -e "set ftp:ssl-force true; set ssl:verify-certificate $FTP_VERIFICAR_TLS; set net:max-retries 2; set net:timeout 30; mirror --reverse --delete --parallel=6 --exclude-glob .well-known/ --exclude-glob cgi-bin/ site/ $FTP_CARPETA/; bye"
 
       # GitHub desactiva los crons de los repos sin actividad en 60 días.
       - name: Mantener vivo el cron

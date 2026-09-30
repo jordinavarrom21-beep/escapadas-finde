@@ -19,6 +19,9 @@ const TIPOS_POR_SECCION = {
   vacaciones: 'paquete',
 };
 
+// Se quitan uno a uno los puntos de código de los emojis (también el ZWJ y el selector
+// de variante), así que da igual que una secuencia compuesta caiga partida en la clase.
+// eslint-disable-next-line no-misleading-character-class
 const EMOJIS = /[\p{Extended_Pictographic}\p{Regional_Indicator}\u{1F3FB}-\u{1F3FF}\u{FE0F}\u{200D}\u{20E3}]/gu;
 
 // Precio: «38€ por persona», «desde solo 99€», «76€ la noche», «29€ ida y vuelta».

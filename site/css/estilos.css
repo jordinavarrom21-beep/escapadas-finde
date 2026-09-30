@@ -1183,6 +1183,12 @@ main { padding-block: 22px 56px; min-height: 60vh; }
   background: var(--banda); color: var(--banda-texto); box-shadow: 0 10px 30px rgb(0 0 0 / 28%);
 }
 .barra-comparar[hidden] { display: none; }
+.barra-comparar { transition: transform 0.25s ease, opacity 0.25s ease; }
+.barra-comparar--oculta { opacity: 0; pointer-events: none; transform: translate(-50%, calc(100% + 24px)); }
+.barra-comparar--compacta.barra-comparar--oculta { transform: translateY(calc(100% + 24px)); }
+@media (prefers-reduced-motion: reduce) { .barra-comparar { transition: none; } }
+/* Hueco al final para que la barra nunca tape la última tarjeta. */
+@media (max-width: 719px) { main { padding-bottom: calc(96px + var(--barra-movil)); } }
 /* Solo «Filtros» y «Mapa» (sin nada que comparar): pequeña, a la derecha, sin tapar las tarjetas. */
 .barra-comparar--compacta { left: auto; right: var(--espacio); transform: none; padding: 4px; gap: 4px; }
 .barra-comparar--compacta .boton { min-height: 40px; padding: 6px 14px; font-size: 0.86rem; }

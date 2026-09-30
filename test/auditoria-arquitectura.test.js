@@ -22,7 +22,7 @@ describe('auditoría: el workflow no despliega un panel sin datos', () => {
   const workflow = readFileSync(new URL('../.github/workflows/vigilar.yml', import.meta.url), 'utf8');
 
   it('versionar, configurar, subir y desplegar Pages exigen que exista site/data/ofertas.json', () => {
-    for (const paso of ['Versionar la caché del panel', 'actions/configure-pages', 'actions/upload-pages-artifact', 'actions/deploy-pages']) {
+    for (const paso of ['Preparar la web', 'actions/configure-pages', 'actions/upload-pages-artifact', 'actions/deploy-pages']) {
       const i = workflow.indexOf(paso);
       assert.ok(i > 0, paso);
       const bloque = workflow.slice(Math.max(0, i - 200), i + 300);
