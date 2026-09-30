@@ -17,6 +17,12 @@ import {
   textoFechas, textoLugar, textoMinimo, textoNinos, tiempo, tramo, urlPropia,
 } from './plantillas.js';
 
+/** «Foto: Wikimedia Commons» con el enlace a su página (autor y licencia), si la foto es de allí. */
+function creditoFoto(o) {
+  const url = urlSegura(o.imagenCredito?.url);
+  return url && o.imagen ? `<a class="ficha__credito" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(o.imagenCredito.texto ?? 'Foto')}</a>` : '';
+}
+
 /** «Coste del viaje» en la ficha: cada parte, qué es estimado, lo supuesto y lo que falta. */
 function costeFicha(o, ctx) {
   const c = costeDe(o, ctx);
@@ -317,9 +323,10 @@ export function contenidoFicha(o, ctx) {
     <p class="tarjeta__lugar">${textoLugar(o)}</p>
     ${resumenFicha(o)}
   </header>
-  <div class="ficha__media">${escena(tipoEscena(o))}${imagen ? `<img class="ficha__imagen" src="${esc(imagen)}" alt="" referrerpolicy="no-referrer">` : ''}</div>
+  <div class="ficha__media">${escena(tipoEscena(o))}${imagen ? `<img class="ficha__imagen" src="${esc(imagen)}" alt="" referrerpolicy="no-referrer">` : ''}${creditoFoto(o)}</div>
   <div class="insignias">${insignias(o, ctx)}</div>
   ${vueloFicha(o.vuelo)}
+  ${o.resumen ? `<p class="ficha__resumen-ia"><strong>En una frase:</strong> ${esc(o.resumen)} <span class="suave">(resumen automático del texto de la web)</span></p>` : ''}
   ${descripcionFicha(o)}
   ${notaFicha(o, ctx)}
   ${opinionesFicha(o, ctx)}

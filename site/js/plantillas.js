@@ -452,7 +452,8 @@ export function textoLugar(o) {
 /** La foto de la oferta, con la ilustración debajo por si no hay foto o no carga. */
 function mediaOferta(o) {
   const url = urlSegura(o.imagen);
-  return `${escena(tipoEscena(o))}${url ? `<img class="tarjeta__imagen" src="${esc(url)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" width="480" height="300">` : ''}`;
+  const credito = o.imagenCredito?.texto ? ` title="${esc(o.imagenCredito.texto)}"` : '';
+  return `${escena(tipoEscena(o))}${url ? `<img class="tarjeta__imagen" src="${esc(url)}" alt=""${credito} loading="lazy" decoding="async" referrerpolicy="no-referrer" width="480" height="300">` : ''}`;
 }
 
 /** Lo que va sobre la foto: sello, favorito, tiempo en coche y el tiempo que hará. */

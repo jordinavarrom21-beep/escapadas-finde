@@ -93,6 +93,8 @@ jobs:
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
           SMTP_FROM: ${{ secrets.SMTP_FROM }}
           BUZON_NOMBRES: ${{ secrets.BUZON_NOMBRES }}
+          # Opcional y de pago: resúmenes de una frase con Claude (src/enriquecer/resumenes.js).
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           # Tu dominio (variable del repositorio, no secreto): enlaces de los emails, sitemap y robots.txt.
           PANEL_URL: ${{ vars.PANEL_URL }}
         run: npm run escanear -- ${{ inputs.forzar && '--forzar' || '' }}

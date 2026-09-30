@@ -1456,3 +1456,14 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 .leyenda-calor span:first-child { margin-right: 4px; }
 .leyenda-calor span:last-child { margin-left: 4px; }
 .leyenda-calor__paso { display: inline-block; width: 22px; height: 12px; border-radius: 3px; border: 1px solid var(--borde); }
+
+/* Crédito de las fotos de Wikimedia Commons, sobre la foto de la ficha. */
+.ficha__credito {
+  position: absolute; right: 8px; bottom: 8px; padding: 3px 8px; border-radius: 999px;
+  background: rgb(0 0 0 / 55%); color: #fff !important; font-size: 0.72rem; text-decoration: none;
+}
+.ficha__credito:hover, .ficha__credito:focus-visible { text-decoration: underline; }
+
+/* «En una frase»: el resumen automático de lo que incluye la oferta. */
+.ficha__resumen-ia { margin: 0; padding: 10px 14px; border-radius: 14px; background: var(--acento-suave); color: var(--texto); font-size: 0.95rem; }
+.ficha__resumen-ia .suave { font-size: 0.8rem; }

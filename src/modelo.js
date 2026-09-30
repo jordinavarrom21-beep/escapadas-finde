@@ -111,6 +111,8 @@ export function completarOferta(datos) {
     chollazo: false,
     chollazoMotivo: null,
     notaDetalle: null,
+    imagenCredito: null,
+    resumen: null,
     urlReserva: null,
     afiliado: null,
     patrocinada: null,
