@@ -21,7 +21,7 @@ jobs:
       - name: Guardar en la rama sondeo-vuelos
         run: |
           mkdir -p sondeo && cp escaneo.log sondeo/
-          node -e 'const o=require("./data/ofertas.json");const l=(o.ofertas??o).filter(x=>x.fuente==="wizzair");require("fs").writeFileSync("sondeo/wizz.json",JSON.stringify({n:l.length,muestra:l.slice(0,5),rutas:[...new Set(l.map(x=>x.vuelo.origen+"-"+x.vuelo.destino))]},null,1))' || true
+          node -e 'const o=require("./site/data/ofertas.json");const l=(o.ofertas??o).filter(x=>x.fuente==="wizzair");require("fs").writeFileSync("sondeo/wizz.json",JSON.stringify({n:l.length,muestra:l.slice(0,5),rutas:[...new Set(l.map(x=>x.vuelo.origen+"-"+x.vuelo.destino))]},null,1))' || true
           git config user.name "sondeo" && git config user.email "sondeo@users.noreply.github.com"
           git checkout --orphan sondeo-vuelos-2
           git rm -rq --cached .
