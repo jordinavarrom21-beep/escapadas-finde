@@ -6,7 +6,7 @@ import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { Cache } from '../src/cache.js';
-import { escanear, revisarLectura } from '../src/core/scan-pipeline.js';
+import { coberturaDetalles, escanear, revisarLectura } from '../src/core/scan-pipeline.js';
 import { estadoInicial } from '../src/almacen.js';
 import { procesarEmails } from '../src/emails/decidir.js';
 import { geolocalizar } from '../src/enriquecer/geo.js';
@@ -45,22 +45,32 @@ describe('auditoría: flujo del escaneo', () => {
     assert.match(estado.fuentes.sitio.aviso, /Solo 3 ofertas \(lo normal son unas 40\)[^]*¿Ha cambiado la web\?/);
     assert.equal(Object.keys(estado.ofertas).length, 40, 'no se borra nada de golpe');
     assert.equal(estado.ofertas['sitio:1'].precio, 45, 'lo que sí trae se actualiza');
-    assert.deepEqual(estado.fuentes.sitio.referencia, { total: 40, conPrecio: 1 }, 'lo normal no baja por una lectura rara');
+    assert.deepEqual(estado.fuentes.sitio.referencia, { total: 40, detalles: { precio: 1 } }, 'lo normal no baja por una lectura rara (y la antigua se entiende)');
     assert.match(salida.ofertas.fuentes.find((f) => f.id === 'sitio').aviso, /Solo 3 ofertas/);
   });
 
-  test('avisa si casi ninguna oferta trae precio; una bajada normal o un aviso de hace una semana no', () => {
-    const conPrecio = (n, precio) => Array.from({ length: n }, (_, i) => ({ id: `s:${i}`, precio: i < precio ? 10 : null }));
-    const normal = { total: 40, conPrecio: 0.9 };
-    const sinPrecio = revisarLectura({ ofertas: conPrecio(40, 4), reemplazar: true }, { referencia: normal }, AHORA);
-    assert.match(sinPrecio.aviso, /Solo el 10 % trae precio \(lo normal es el 90 %\)/);
-    assert.equal(sinPrecio.reemplazar, true, 'con las ofertas completas se puede reemplazar');
-    const pocas = revisarLectura({ ofertas: conPrecio(30, 30), reemplazar: true }, { referencia: normal }, AHORA);
-    assert.deepEqual([pocas.aviso, pocas.referencia], [null, { total: 30, conPrecio: 1 }], '30 de 40 es normal');
+  test('avisa del detalle que deja de venir (precio, foto, valoración…); una bajada normal o un aviso de hace una semana no', () => {
+    const lectura = (n, { precio = n, foto = n, nota = n } = {}) => Array.from({ length: n }, (_, i) => ({
+      id: `s:${i}`, precio: i < precio ? 10 : null, imagen: i < foto ? 'https://x.es/f.jpg' : null, valoracion: i < nota ? { nota: 8 } : null,
+    }));
+    const previo = { referencia: { total: 40, detalles: coberturaDetalles(lectura(40)) } };
+    const sinPrecio = revisarLectura({ ofertas: lectura(40, { precio: 4 }), reemplazar: true }, previo, AHORA);
+    assert.match(sinPrecio.aviso, /Faltan datos que antes traía casi siempre: precio \(10 %; lo normal, 100 %\)/);
+    assert.deepEqual(sinPrecio.detallesPerdidos, ['precio']);
+    assert.equal(sinPrecio.reemplazar, true, 'con todas las ofertas se puede reemplazar');
+    const sinFotoNiNota = revisarLectura({ ofertas: lectura(40, { foto: 0, nota: 3 }), reemplazar: true }, previo, AHORA);
+    assert.deepEqual(sinFotoNiNota.detallesPerdidos, ['imagen', 'valoracion']);
+    assert.match(sinFotoNiNota.aviso, /foto \(0 %; lo normal, 100 %\), valoración \(8 %; lo normal, 100 %\)/);
+    assert.equal(sinFotoNiNota.referencia, previo.referencia, 'lo normal no cambia mientras dura');
+    const pocas = revisarLectura({ ofertas: lectura(30, { nota: 20 }), reemplazar: true }, previo, AHORA);
+    assert.equal(pocas.aviso, null, '30 de 40 y dos tercios con nota es normal');
+    assert.equal(pocas.referencia.total, 30);
     const haceSemana = new Date(AHORA.getTime() - 8 * DIA_MS).toISOString();
-    const aceptada = revisarLectura({ ofertas: conPrecio(5, 5), reemplazar: true }, { referencia: normal, desdeAviso: haceSemana }, AHORA);
+    const aceptada = revisarLectura({ ofertas: lectura(5, { foto: 0 }), reemplazar: true }, { ...previo, desdeAviso: haceSemana }, AHORA);
     assert.deepEqual([aceptada.aviso, aceptada.referencia.total, aceptada.reemplazar], [null, 5, true], 'tras una semana es lo normal');
-    assert.equal(revisarLectura({ ofertas: conPrecio(1, 1), reemplazar: true }, { total: 4 }, AHORA).aviso, null, 'con pocas no se compara');
+    assert.equal(revisarLectura({ ofertas: lectura(1), reemplazar: true }, { total: 4 }, AHORA).aviso, null, 'con pocas no se compara');
+    const antigua = revisarLectura({ ofertas: lectura(40, { precio: 2 }), reemplazar: true }, { referencia: { total: 40, conPrecio: 0.9 } }, AHORA);
+    assert.deepEqual(antigua.detallesPerdidos, ['precio'], 'las referencias guardadas antes se siguen entendiendo');
   });
 
   test('un error después de «falta configurar» enseña el error, no lo que faltaba', async () => {
@@ -180,5 +190,37 @@ describe('auditoría: la portada avisa de las webs con problemas', () => {
       { id: 'e', estado: 'bloqueada' },
     ];
     assert.deepEqual(webConProblemas(fuentes, AHORA).map((f) => f.id), ['a', 'c']);
+  });
+});
+
+describe('auditoría: muestras para arreglar un lector', () => {
+  test('guarda las páginas que leyó la fuente que falla o avisa (no robots.txt) y borra las de la que vuelve a ir bien', async () => {
+    const { mkdtempSync, readFileSync, existsSync, readdirSync, mkdirSync: crear } = await import('node:fs');
+    const { tmpdir } = await import('node:os');
+    const path = await import('node:path');
+    const { escribirMuestras } = await import('../src/escanear.js');
+    const estado = estadoInicial();
+    const http = {
+      ...sinRed,
+      texto: async (url) => (url.endsWith('/robots.txt') ? '' : `<html>${url}</html>`),
+      json: async () => ({ ofertas: [] }),
+    };
+    const rota = fuente('rota', async (ctx) => { await ctx.http.texto('https://rota.es/ofertas'); throw new Error('sin tarjetas'); });
+    const buena = fuente('buena', async (ctx) => { await ctx.http.texto('https://buena.es/'); return { ofertas: [oferta({ fuente: 'buena' })] }; });
+    const api = fuente('api', async (ctx) => { await ctx.http.json('https://api.es/v1'); throw new Error('formato nuevo'); });
+    const { muestras } = await correr(estado, [rota, buena, api], { http });
+    assert.deepEqual(muestras.guardar.map((m) => [m.fuente, m.motivo, m.paginas.map((p) => p.url)]), [
+      ['rota', 'sin tarjetas', ['https://rota.es/ofertas']],
+      ['api', 'formato nuevo', ['https://api.es/v1']],
+    ]);
+    assert.deepEqual(muestras.sanas, ['buena']);
+
+    const carpeta = mkdtempSync(path.join(tmpdir(), 'muestras-'));
+    crear(path.join(carpeta, 'buena'), { recursive: true });
+    escribirMuestras(muestras, carpeta);
+    assert.deepEqual(readdirSync(carpeta).sort(), ['api', 'rota'], 'la de la fuente sana se borra');
+    assert.equal(readFileSync(path.join(carpeta, 'rota', 'pagina-1.html'), 'utf8'), '<html>https://rota.es/ofertas</html>');
+    assert.ok(existsSync(path.join(carpeta, 'api', 'pagina-1.json')));
+    assert.match(readFileSync(path.join(carpeta, 'rota', 'LEEME.txt'), 'utf8'), /Motivo: sin tarjetas[^]*pagina-1\.html: https:\/\/rota\.es\/ofertas/);
   });
 });
