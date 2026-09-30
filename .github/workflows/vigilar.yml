@@ -140,8 +140,12 @@ jobs:
       - name: Preparar la web
         if: ${{ !cancelled() && steps.escaneo.conclusion != 'skipped' && hashFiles('site/data/ofertas.json') != '' }}
         env:
-          BASE: ${{ vars.PANEL_URL || steps.pages.outputs.base_url }}
-        run: node scripts/preparar-web.js --dir site --base "$BASE" --version "${GITHUB_SHA::12}" --htaccess
+          PANEL_URL: ${{ vars.PANEL_URL }}
+          PAGES_URL: ${{ steps.pages.outputs.base_url }}
+        run: |
+          # Tu dominio (variable PANEL_URL o «panelUrl» de config/ajustes.json); si no, la de Pages.
+          base="${PANEL_URL:-$(node -p "require('./config/ajustes.json').panelUrl || ''")}"
+          node scripts/preparar-web.js --dir site --base "${base:-$PAGES_URL}" --version "${GITHUB_SHA::12}" --htaccess
 
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5
         if: ${{ !cancelled() && steps.escaneo.conclusion != 'skipped' && hashFiles('site/data/ofertas.json') != '' }}
@@ -162,7 +166,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           HOSTING_URL: ${{ vars.HOSTING_URL }}
         run: |
-          node scripts/empaquetar.js --sin-zip --dominio "$HOSTING_URL"
+          dominio="${HOSTING_URL:-$(node -p "require('./config/ajustes.json').panelUrl || ''")}"
+          node scripts/empaquetar.js --sin-zip --dominio "$dominio"
           cd dist/escapadas-finde-web
           git init -q -b web-hosting
           git config user.name "github-actions[bot]"
