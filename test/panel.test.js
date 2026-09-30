@@ -544,7 +544,7 @@ describe('fechas, formato, geocodificación y plantillas', () => {
     const besalu = tarjeta(casaBesalu, ctxTarjeta);
     assert.match(besalu, /Un 35 % por debajo de lo normal/);
     assert.match(besalu, /Casa rural<\/span><\/li>/);
-    assert.match(besalu, /class="tarjeta__opiniones"[^>]*>[^]*?<strong>8<\/strong> Muy bien/, 'las opiniones, a la vista');
+    assert.match(besalu, /class="tarjeta__opiniones"[^>]*>[^]*?<strong>8<\/strong><span class="tarjeta__opiniones-texto">Muy bien/, 'las opiniones, a la vista');
     assert.match(besalu, /≈ \d+\s€ de gasolina ida y vuelta · estimado, un coche para 2 personas/);
     // Fechas flexibles: los eventos son los del próximo finde, así que van a la ficha y avisando.
     assert.ok(!besalu.includes('Mercat medieval de Besalú'));

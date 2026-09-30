@@ -98,7 +98,7 @@ describe('ficha: rica y coherente', () => {
   it('datos en tres bloques, sin «Transporte: coche» y con la valoración atribuida a su web', () => {
     assert.deepEqual([...html.matchAll(/class="ficha__bloque"><h3>([^<]+)</g)].map(([, t]) => t), ['La oferta', 'El precio', 'Seguimiento']);
     assert.doesNotMatch(html, /Transporte/);
-    assert.match(html, /<dt>Valoración<\/dt><dd>8,8 \/ 10 · Muy bien · 5 opiniones en Weekendesk/);
+    assert.match(html, /class="ficha__opiniones"[^]*<strong>8,8<\/strong>[^]*Muy bien[^]*5 opiniones de clientes en Weekendesk\. Solo 5 opiniones[^]*Ver opiniones en Weekendesk/);
     assert.match(html, /<dt>Alojamiento<\/dt><dd>Hotel 4★ · solo adultos/);
     assert.match(html, /<dt>Por persona y noche<\/dt><dd>45\s€ \(90\s€ en total, para 1 noche y 2 personas\)/);
     assert.match(html, /<dt>Precio habitual<\/dt><dd>58\s€: lo normal en escapadas románticas en Cataluña, por persona y noche \(mediana de 14 ofertas\)/);
