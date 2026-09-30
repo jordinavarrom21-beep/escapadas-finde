@@ -1,0 +1,50 @@
+{
+ "robots-apiw": {
+  "estado": 501,
+  "tipo": "text/plain; charset=utf-8",
+  "bytes": 0,
+  "inicio": ""
+ },
+ "best-v1": {
+  "estado": 200,
+  "tipo": "application/json; charset=utf-8",
+  "bytes": 541,
+  "inicio": "{\"bestPrices\":{\"value\":[{\"originCode\":\"BCN\",\"destinationCode\":\"LIS\",\"isDirect\":true,\"departureDate\":\"2026-11-15T06:15:00\",\"integerPartPrice\":19,\"decimalPartPrice\":0},{\"originCode\":\"BCN\",\"destinationCo"
+ },
+ "best-v2": {
+  "estado": 404,
+  "tipo": "application/problem+json; charset=utf-8",
+  "bytes": 139,
+  "inicio": "{\"type\":\"https://httpstatuses.io/404\",\"title\":\"Not Found\",\"status\":404,\"traceId\":\"00-f16a3ad644e9929587f12164ea0ff6f0-9068e490fbed693c-00\"}"
+ },
+ "stations-vy": {
+  "estado": 400,
+  "tipo": "application/problem+json",
+  "bytes": 125,
+  "inicio": "{\"type\":\"https://tools.ietf.org/html/rfc7231#section-6.5.1\",\"title\":\"230\",\"status\":400,\"detail\":\"Station provider not found\"}"
+ },
+ "stations-vueling": {
+  "estado": 400,
+  "tipo": "application/problem+json",
+  "bytes": 125,
+  "inicio": "{\"type\":\"https://tools.ietf.org/html/rfc7231#section-6.5.1\",\"title\":\"230\",\"status\":400,\"detail\":\"Station provider not found\"}"
+ },
+ "avail-vy": {
+  "estado": 400,
+  "tipo": "application/problem+json",
+  "bytes": 130,
+  "inicio": "{\"type\":\"https://tools.ietf.org/html/rfc7231#section-6.5.1\",\"title\":\"232\",\"status\":400,\"detail\":\"Availability provider not found\"}"
+ },
+ "avail-v2-vy": {
+  "estado": 400,
+  "tipo": "application/problem+json",
+  "bytes": 130,
+  "inicio": "{\"type\":\"https://tools.ietf.org/html/rfc7231#section-6.5.1\",\"title\":\"232\",\"status\":400,\"detail\":\"Availability provider not found\"}"
+ },
+ "static-stations": {
+  "estado": 404,
+  "tipo": null,
+  "bytes": 10,
+  "inicio": "Not found "
+ }
+}
