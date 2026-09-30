@@ -164,14 +164,16 @@ async function obtenerVersion(ctx, { renovar = false } = {}) {
 
 async function obtenerMapa(ctx, version) {
   const ahora = ctx.ahora.getTime();
-  const guardado = ctx.cache.obtener(CLAVE_MAPA, SIETE_DIAS_MS, ahora);
+  // Por aeropuertos de salida: si cambian en los ajustes, se vuelve a pedir el mapa.
+  const clave = `${CLAVE_MAPA}:${ctx.ajustes.vuelos.aeropuertos.join(',')}`;
+  const guardado = ctx.cache.obtener(clave, SIETE_DIAS_MS, ahora);
   if (guardado) return guardado;
   try {
     const mapa = rutasDesde(await ctx.http.json(`${API}/${version}/Api/asset/map?languageCode=es-es`, { cabeceras: CABECERAS }), ctx.ajustes.vuelos.aeropuertos);
-    ctx.cache.guardar(CLAVE_MAPA, mapa, ahora);
+    ctx.cache.guardar(clave, mapa, ahora);
     return mapa;
   } catch (error) {
-    const viejo = ctx.cache.obtener(CLAVE_MAPA);
+    const viejo = ctx.cache.obtener(clave);
     if (!viejo) throw error;
     ctx.log(`No se ha podido actualizar el mapa de rutas: ${error.message}`);
     return viejo;

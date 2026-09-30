@@ -28,7 +28,8 @@ describe('preparar la web para publicar (GitHub Pages y Hostinger)', () => {
 
   it('.htaccess: HTTPS y un solo dominio, 404, sin copias de datos, caché y cabeceras', () => {
     const texto = htaccess('https://www.midominio.es/');
-    assert.match(texto, /RewriteCond %\{HTTP_HOST\} !\^www\\\.midominio\\\.es\$ \[NC\]\n {2}RewriteRule \^\(\.\*\)\$ https:\/\/www\.midominio\.es\/\$1 \[R=301,L\]/);
+    assert.match(texto, /RewriteCond %\{HTTP_HOST\} !\^www\\\.midominio\\\.es\$ \[NC\]\n {2}RewriteRule \^ https:\/\/www\.midominio\.es%\{REQUEST_URI\} \[R=301,L\]/);
+    assert.match(texto, /RewriteCond %\{HTTPS\} !=on\n {2}RewriteCond %\{HTTP:X-Forwarded-Proto\} !=https\n/, 'sin bucle detrás de un CDN');
     assert.match(texto, /ErrorDocument 404 \/404\.html/);
     assert.match(texto, /RewriteRule \\\.\(bak\|tmp\)\$ - \[F,L\]/);
     assert.match(texto, /X-Content-Type-Options "nosniff"/);

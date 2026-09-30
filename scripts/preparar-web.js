@@ -83,9 +83,12 @@ AddType image/svg+xml .svg
 <IfModule mod_rewrite.c>
   RewriteEngine On
   # Siempre HTTPS y siempre ${host} (${conWww ? `${sinWww} → ${host}` : `www.${sinWww} → ${host}`}).
-  RewriteCond %{HTTPS} !=on [OR]
+  # Detrás de un CDN o proxy, HTTPS llega en X-Forwarded-Proto: se miran los dos (sin bucles).
+  RewriteCond %{HTTPS} !=on
+  RewriteCond %{HTTP:X-Forwarded-Proto} !=https
+  RewriteRule ^ https://${host}%{REQUEST_URI} [R=301,L]
   RewriteCond %{HTTP_HOST} !^${hostEscapado}$ [NC]
-  RewriteRule ^(.*)$ https://${host}/$1 [R=301,L]
+  RewriteRule ^ https://${host}%{REQUEST_URI} [R=301,L]
   # Las copias de seguridad de datos nunca se sirven.
   RewriteRule \\.(bak|tmp)$ - [F,L]
 </IfModule>
