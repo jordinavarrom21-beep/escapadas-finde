@@ -1,0 +1,1277 @@
+{
+ "weekendesk": {
+  "base": {
+   "estado": 200,
+   "final": "https://www.weekendesk.es/fin-de-semana/21843318/escapadas-fin-de-semana-en-Lloret_de_Mar-Cataluna-hoteles-solo-adultos",
+   "marcas": 0,
+   "bytes": 468114
+  },
+  "variantes": {
+   "checkin": {
+    "estado": 200,
+    "marcas": 4,
+    "final": "="
+   },
+   "check_in": {
+    "estado": 200,
+    "marcas": 4,
+    "final": "="
+   },
+   "checkIn": {
+    "estado": 200,
+    "marcas": 4,
+    "final": "="
+   },
+   "arrival": {
+    "estado": 200,
+    "marcas": 4,
+    "final": "="
+   },
+   "arrivalDate": {
+    "estado": 200,
+    "marcas": 4,
+    "final": "="
+   },
+   "fecha_entrada": {
+    "estado": 200,
+    "marcas": 4,
+    "final": "="
+   },
+   "fechaEntrada": {
+    "estado": 202,
+    "marcas": 0,
+    "final": "="
+   },
+   "startDate": {
+    "estado": 202,
+    "marcas": 0,
+    "final": "="
+   },
+   "date_from": {
+    "estado": 202,
+    "marcas": 0,
+    "final": "="
+   },
+   "dateFrom": {
+    "estado": 202,
+    "marcas": 0,
+    "final": "="
+   },
+   "from": {
+    "estado": 202,
+    "marcas": 0,
+    "final": "="
+   },
+   "date": {
+    "estado": 202,
+    "marcas": 0,
+    "final": "="
+   },
+   "fecha": {
+    "estado": 202,
+    "marcas": 0,
+    "final": "="
+   },
+   "entrada_es": {
+    "estado": 202,
+    "marcas": 0,
+    "final": "="
+   },
+   "checkin_es": {
+    "estado": 202,
+    "marcas": 0,
+    "final": "="
+   }
+  }
+ },
+ "atrapalo": {
+  "base": {
+   "estado": 200,
+   "final": "https://www.atrapalo.com/escapadas/escapada-romantica-con-cava-en-hotel-desitges-a-3-minutos-de-sitges_v69292",
+   "marcas": 2,
+   "bytes": 392950
+  },
+  "variantes": {
+   "checkin": {
+    "estado": 200,
+    "marcas": 3,
+    "final": "="
+   },
+   "check_in": {
+    "estado": 200,
+    "marcas": 3,
+    "final": "="
+   },
+   "checkIn": {
+    "estado": 200,
+    "marcas": 3,
+    "final": "="
+   },
+   "arrival": {
+    "estado": 200,
+    "marcas": 3,
+    "final": "="
+   },
+   "arrivalDate": {
+    "estado": 200,
+    "marcas": 3,
+    "final": "="
+   },
+   "fecha_entrada": {
+    "estado": 200,
+    "marcas": 3,
+    "final": "="
+   },
+   "fechaEntrada": {
+    "estado": 200,
+    "marcas": 3,
+    "final": "="
+   },
+   "startDate": {
+    "estado": 200,
+    "marcas": 3,
+    "final": "="
+   },
+   "date_from": {
+    "estado": 429,
+    "marcas": 0,
+    "final": "="
+   },
+   "dateFrom": {
+    "estado": 429,
+    "marcas": 0,
+    "final": "="
+   },
+   "from": {
+    "estado": 429,
+    "marcas": 0,
+    "final": "="
+   },
+   "date": {
+    "estado": 429,
+    "marcas": 0,
+    "final": "="
+   },
+   "fecha": {
+    "estado": 429,
+    "marcas": 0,
+    "final": "="
+   },
+   "entrada_es": {
+    "estado": 429,
+    "marcas": 0,
+    "final": "="
+   },
+   "checkin_es": {
+    "estado": 429,
+    "marcas": 0,
+    "final": "="
+   }
+  }
+ },
+ "buscounchollo": {
+  "base": {
+   "estado": 200,
+   "final": "https://www.buscounchollo.com/reserva-chollo/39689/plan-familiar-en-magic-world-con-todo-incluido-1-nino-gratis",
+   "marcas": 0,
+   "bytes": 808865
+  },
+  "variantes": {
+   "checkin": {
+    "estado": 200,
+    "marcas": 7,
+    "final": "="
+   },
+   "check_in": {
+    "estado": 200,
+    "marcas": 7,
+    "final": "="
+   },
+   "checkIn": {
+    "estado": 200,
+    "marcas": 7,
+    "final": "="
+   },
+   "arrival": {
+    "estado": 200,
+    "marcas": 7,
+    "final": "="
+   },
+   "arrivalDate": {
+    "estado": 200,
+    "marcas": 7,
+    "final": "="
+   },
+   "fecha_entrada": {
+    "estado": 200,
+    "marcas": 7,
+    "final": "="
+   },
+   "fechaEntrada": {
+    "estado": 200,
+    "marcas": 7,
+    "final": "="
+   },
+   "startDate": {
+    "estado": 200,
+    "marcas": 7,
+    "final": "="
+   },
+   "date_from": {
+    "estado": 200,
+    "marcas": 7,
+    "final": "="
+   },
+   "dateFrom": {
+    "estado": 200,
+    "marcas": 7,
+    "final": "="
+   },
+   "from": {
+    "estado": 200,
+    "marcas": 7,
+    "final": "="
+   },
+   "date": {
+    "estado": 200,
+    "marcas": 7,
+    "final": "="
+   },
+   "fecha": {
+    "estado": 200,
+    "marcas": 7,
+    "final": "="
+   },
+   "entrada_es": {
+    "estado": 200,
+    "marcas": 6,
+    "final": "="
+   },
+   "checkin_es": {
+    "estado": 200,
+    "marcas": 6,
+    "final": "="
+   }
+  }
+ },
+ "holidu": {
+  "base": {
+   "estado": 200,
+   "final": "https://www.holidu.es/d/47720395",
+   "marcas": 0,
+   "bytes": 317243
+  },
+  "variantes": {
+   "checkin": {
+    "estado": 200,
+    "marcas": 4,
+    "final": "="
+   },
+   "check_in": {
+    "estado": 200,
+    "marcas": 1,
+    "final": "="
+   },
+   "checkIn": {
+    "estado": 200,
+    "marcas": 1,
+    "final": "="
+   },
+   "arrival": {
+    "estado": 200,
+    "marcas": 1,
+    "final": "="
+   },
+   "arrivalDate": {
+    "estado": 200,
+    "marcas": 1,
+    "final": "="
+   },
+   "fecha_entrada": {
+    "estado": 200,
+    "marcas": 1,
+    "final": "="
+   },
+   "fechaEntrada": {
+    "estado": 200,
+    "marcas": 1,
+    "final": "="
+   },
+   "startDate": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "date_from": {
+    "estado": 200,
+    "marcas": 1,
+    "final": "="
+   },
+   "dateFrom": {
+    "estado": 200,
+    "marcas": 1,
+    "final": "="
+   },
+   "from": {
+    "estado": 200,
+    "marcas": 4,
+    "final": "="
+   },
+   "date": {
+    "estado": 200,
+    "marcas": 1,
+    "final": "="
+   },
+   "fecha": {
+    "estado": 200,
+    "marcas": 1,
+    "final": "="
+   },
+   "entrada_es": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "checkin_es": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   }
+  }
+ },
+ "escapadarural": {
+  "base": {
+   "estado": 200,
+   "final": "https://www.escapadarural.com/casa-rural/burgos/casa-rural-muralla-de-haza",
+   "marcas": 0,
+   "bytes": 560592
+  },
+  "variantes": {
+   "checkin": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "check_in": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "checkIn": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "arrival": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "arrivalDate": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "fecha_entrada": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "fechaEntrada": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "startDate": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "date_from": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "dateFrom": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "from": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "date": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "fecha": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "entrada_es": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "checkin_es": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   }
+  }
+ },
+ "tuscasasrurales": {
+  "base": {
+   "estado": 200,
+   "final": "https://www.tuscasasrurales.com/la-balconada-f15530.htm",
+   "marcas": 0,
+   "bytes": 91413
+  },
+  "variantes": {
+   "checkin": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "check_in": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "checkIn": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "arrival": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "arrivalDate": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "fecha_entrada": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "fechaEntrada": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "startDate": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "date_from": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "dateFrom": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "from": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "date": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "fecha": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "entrada_es": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "checkin_es": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   }
+  }
+ },
+ "rusticae": {
+  "base": {
+   "estado": 200,
+   "final": "https://rusticae.es/hotel/hotel-de-aldaca-rural",
+   "marcas": 0,
+   "bytes": 176495
+  },
+  "variantes": {
+   "checkin": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "check_in": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "checkIn": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "arrival": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "arrivalDate": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "fecha_entrada": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "fechaEntrada": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "startDate": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "date_from": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "dateFrom": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "from": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "date": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "fecha": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "entrada_es": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "checkin_es": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   }
+  }
+ },
+ "muchoviaje": {
+  "base": {
+   "estado": 200,
+   "final": "https://www.muchoviaje.com/hotel/balneario-cervantes-en-santa-cruz-de-mudela-ciudad-real-espana?niche=fin-de-semana",
+   "marcas": 0,
+   "bytes": 102659
+  },
+  "variantes": {
+   "checkin": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "check_in": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "checkIn": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "arrival": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "arrivalDate": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "fecha_entrada": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "fechaEntrada": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "startDate": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "date_from": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "dateFrom": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "from": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "date": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "fecha": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "entrada_es": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "checkin_es": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   }
+  }
+ },
+ "nomolesten": {
+  "base": {
+   "estado": 404,
+   "final": "https://nomolesten.com/hoteles-con-encanto/monroyo/consolacion/",
+   "marcas": 0,
+   "bytes": 105182
+  },
+  "variantes": {
+   "checkin": {
+    "estado": 404,
+    "marcas": 3,
+    "final": "https://nomolesten.com/hoteles-con-encanto/monroyo/consolacion/?checkin=2026-11-13&checkout=2026-11-15&adults=2"
+   },
+   "check_in": {
+    "estado": 200,
+    "marcas": 3,
+    "final": "https://nomolesten.com/hoteles-con-encanto/monroyo/consolacion/?check_in=2026-11-13&check_out=2026-11-15"
+   },
+   "checkIn": {
+    "estado": 200,
+    "marcas": 3,
+    "final": "https://nomolesten.com/hoteles-con-encanto/monroyo/consolacion/?checkIn=2026-11-13&checkOut=2026-11-15"
+   },
+   "arrival": {
+    "estado": 200,
+    "marcas": 3,
+    "final": "https://nomolesten.com/hoteles-con-encanto/monroyo/consolacion/?arrival=2026-11-13&departure=2026-11-15"
+   },
+   "arrivalDate": {
+    "estado": 200,
+    "marcas": 3,
+    "final": "https://nomolesten.com/hoteles-con-encanto/monroyo/consolacion/?arrivalDate=2026-11-13&departureDate=2026-11-15"
+   },
+   "fecha_entrada": {
+    "estado": 200,
+    "marcas": 3,
+    "final": "https://nomolesten.com/hoteles-con-encanto/monroyo/consolacion/?fecha_entrada=2026-11-13&fecha_salida=2026-11-15"
+   },
+   "fechaEntrada": {
+    "estado": 200,
+    "marcas": 3,
+    "final": "https://nomolesten.com/hoteles-con-encanto/monroyo/consolacion/?fechaEntrada=2026-11-13&fechaSalida=2026-11-15"
+   },
+   "startDate": {
+    "estado": 200,
+    "marcas": 3,
+    "final": "https://nomolesten.com/hoteles-con-encanto/monroyo/consolacion/?startDate=2026-11-13&endDate=2026-11-15"
+   },
+   "date_from": {
+    "estado": 200,
+    "marcas": 3,
+    "final": "https://nomolesten.com/hoteles-con-encanto/monroyo/consolacion/?date_from=2026-11-13&date_to=2026-11-15"
+   },
+   "dateFrom": {
+    "estado": 200,
+    "marcas": 3,
+    "final": "https://nomolesten.com/hoteles-con-encanto/monroyo/consolacion/?dateFrom=2026-11-13&dateTo=2026-11-15"
+   },
+   "from": {
+    "estado": 200,
+    "marcas": 57,
+    "final": "https://nomolesten.com/hoteles-con-encanto/monroyo/consolacion/?from=2026-11-13&to=2026-11-15"
+   },
+   "date": {
+    "estado": 200,
+    "marcas": 3,
+    "final": "https://nomolesten.com/hoteles-con-encanto/monroyo/consolacion/?date=2026-11-13"
+   },
+   "fecha": {
+    "estado": 200,
+    "marcas": 3,
+    "final": "https://nomolesten.com/hoteles-con-encanto/monroyo/consolacion/?fecha=2026-11-13"
+   },
+   "entrada_es": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "https://nomolesten.com/hoteles-con-encanto/monroyo/consolacion/?entrada=13%2F11%2F2026&salida=15%2F11%2F2026"
+   },
+   "checkin_es": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "https://nomolesten.com/hoteles-con-encanto/monroyo/consolacion/?checkin=13%2F11%2F2026&checkout=15%2F11%2F2026"
+   }
+  }
+ },
+ "clubrural": {
+  "base": {
+   "estado": 200,
+   "final": "https://www.clubrural.com/s/Provincia-de-Madrid--Espa%C3%B1a?propertyType=AGRITOURISM&includeOfferIds=56956009",
+   "marcas": 0,
+   "bytes": 822980
+  },
+  "variantes": {
+   "checkin": {
+    "estado": 200,
+    "marcas": 74,
+    "final": "="
+   },
+   "check_in": {
+    "estado": 200,
+    "marcas": 1,
+    "final": "="
+   },
+   "checkIn": {
+    "estado": 200,
+    "marcas": 1,
+    "final": "="
+   },
+   "arrival": {
+    "estado": 200,
+    "marcas": 1,
+    "final": "="
+   },
+   "arrivalDate": {
+    "estado": 200,
+    "marcas": 1,
+    "final": "="
+   },
+   "fecha_entrada": {
+    "estado": 200,
+    "marcas": 1,
+    "final": "="
+   },
+   "fechaEntrada": {
+    "estado": 200,
+    "marcas": 1,
+    "final": "="
+   },
+   "startDate": {
+    "estado": 200,
+    "marcas": 1,
+    "final": "="
+   },
+   "date_from": {
+    "estado": 200,
+    "marcas": 1,
+    "final": "="
+   },
+   "dateFrom": {
+    "estado": 200,
+    "marcas": 1,
+    "final": "="
+   },
+   "from": {
+    "estado": 200,
+    "marcas": 64,
+    "final": "="
+   },
+   "date": {
+    "estado": 200,
+    "marcas": 1,
+    "final": "="
+   },
+   "fecha": {
+    "estado": 200,
+    "marcas": 1,
+    "final": "="
+   },
+   "entrada_es": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "checkin_es": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   }
+  }
+ },
+ "campings": {
+  "base": {
+   "estado": 200,
+   "final": "https://www.campings.net/ofertas-camping-pena-montanesa-en-labuerda-ainsa.htm",
+   "marcas": 0,
+   "bytes": 52067
+  },
+  "variantes": {
+   "checkin": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "check_in": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "checkIn": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "arrival": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "arrivalDate": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "fecha_entrada": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "fechaEntrada": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "startDate": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "date_from": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "dateFrom": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "from": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "date": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "fecha": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "entrada_es": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "checkin_es": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   }
+  }
+ },
+ "civitatis": {
+  "base": {
+   "estado": 200,
+   "final": "https://www.civitatis.com/es/barcelona/visita-guiada-sagrada-familia/",
+   "marcas": 0,
+   "bytes": 690559
+  },
+  "variantes": {
+   "checkin": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "check_in": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "checkIn": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "arrival": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "arrivalDate": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "fecha_entrada": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "fechaEntrada": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "startDate": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "date_from": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "dateFrom": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "from": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "date": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "fecha": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "entrada_es": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "checkin_es": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   }
+  }
+ },
+ "guruwalk": {
+  "base": {
+   "estado": 200,
+   "final": "https://www.guruwalk.com/es/walks/564-free-tour-por-el-casco-antiguo-de-barcelona-barrio-gotico-y-el-borne",
+   "marcas": 0,
+   "bytes": 649563
+  },
+  "variantes": {
+   "checkin": {
+    "estado": 200,
+    "marcas": 3,
+    "final": "="
+   },
+   "check_in": {
+    "estado": 200,
+    "marcas": 3,
+    "final": "="
+   },
+   "checkIn": {
+    "estado": 200,
+    "marcas": 3,
+    "final": "="
+   },
+   "arrival": {
+    "estado": 200,
+    "marcas": 3,
+    "final": "="
+   },
+   "arrivalDate": {
+    "estado": 200,
+    "marcas": 3,
+    "final": "="
+   },
+   "fecha_entrada": {
+    "estado": 200,
+    "marcas": 3,
+    "final": "="
+   },
+   "fechaEntrada": {
+    "estado": 200,
+    "marcas": 3,
+    "final": "="
+   },
+   "startDate": {
+    "estado": 200,
+    "marcas": 3,
+    "final": "="
+   },
+   "date_from": {
+    "estado": 200,
+    "marcas": 3,
+    "final": "="
+   },
+   "dateFrom": {
+    "estado": 200,
+    "marcas": 3,
+    "final": "="
+   },
+   "from": {
+    "estado": 200,
+    "marcas": 3,
+    "final": "="
+   },
+   "date": {
+    "estado": 200,
+    "marcas": 3,
+    "final": "="
+   },
+   "fecha": {
+    "estado": 200,
+    "marcas": 3,
+    "final": "="
+   },
+   "entrada_es": {
+    "estado": 200,
+    "marcas": 1,
+    "final": "="
+   },
+   "checkin_es": {
+    "estado": 200,
+    "marcas": 1,
+    "final": "="
+   }
+  }
+ },
+ "holidayguru": {
+  "base": {
+   "estado": 200,
+   "final": "https://www.holidayguru.es/deal/pt/fin-de-semana-en-basilea-suiza-8b9f0f69-4a4a-46e4-8961-619b58a05662/",
+   "marcas": 6,
+   "bytes": 514468
+  },
+  "variantes": {
+   "checkin": {
+    "estado": 200,
+    "marcas": 8,
+    "final": "="
+   },
+   "check_in": {
+    "estado": 200,
+    "marcas": 8,
+    "final": "="
+   },
+   "checkIn": {
+    "estado": 200,
+    "marcas": 8,
+    "final": "="
+   },
+   "arrival": {
+    "estado": 200,
+    "marcas": 8,
+    "final": "="
+   },
+   "arrivalDate": {
+    "estado": 200,
+    "marcas": 8,
+    "final": "="
+   },
+   "fecha_entrada": {
+    "estado": 200,
+    "marcas": 8,
+    "final": "="
+   },
+   "fechaEntrada": {
+    "estado": 200,
+    "marcas": 8,
+    "final": "="
+   },
+   "startDate": {
+    "estado": 200,
+    "marcas": 8,
+    "final": "="
+   },
+   "date_from": {
+    "estado": 200,
+    "marcas": 8,
+    "final": "="
+   },
+   "dateFrom": {
+    "estado": 200,
+    "marcas": 8,
+    "final": "="
+   },
+   "from": {
+    "estado": 200,
+    "marcas": 8,
+    "final": "="
+   },
+   "date": {
+    "estado": 200,
+    "marcas": 8,
+    "final": "="
+   },
+   "fecha": {
+    "estado": 200,
+    "marcas": 8,
+    "final": "="
+   },
+   "entrada_es": {
+    "estado": 200,
+    "marcas": 7,
+    "final": "="
+   },
+   "checkin_es": {
+    "estado": 200,
+    "marcas": 7,
+    "final": "="
+   }
+  }
+ },
+ "sandaya": {
+  "base": {
+   "estado": 200,
+   "final": "https://www.sandaya.es/ofertas-especiales/su-fin-de-semana-a-partir-de-119-para-4-personas",
+   "marcas": 0,
+   "bytes": 251137
+  },
+  "variantes": {
+   "checkin": {
+    "estado": 200,
+    "marcas": 6,
+    "final": "="
+   },
+   "check_in": {
+    "estado": 200,
+    "marcas": 6,
+    "final": "="
+   },
+   "checkIn": {
+    "estado": 200,
+    "marcas": 6,
+    "final": "="
+   },
+   "arrival": {
+    "estado": 200,
+    "marcas": 6,
+    "final": "="
+   },
+   "arrivalDate": {
+    "estado": 200,
+    "marcas": 6,
+    "final": "="
+   },
+   "fecha_entrada": {
+    "estado": 200,
+    "marcas": 6,
+    "final": "="
+   },
+   "fechaEntrada": {
+    "estado": 200,
+    "marcas": 6,
+    "final": "="
+   },
+   "startDate": {
+    "estado": 200,
+    "marcas": 6,
+    "final": "="
+   },
+   "date_from": {
+    "estado": 200,
+    "marcas": 6,
+    "final": "="
+   },
+   "dateFrom": {
+    "estado": 200,
+    "marcas": 6,
+    "final": "="
+   },
+   "from": {
+    "estado": 200,
+    "marcas": 6,
+    "final": "="
+   },
+   "date": {
+    "estado": 200,
+    "marcas": 6,
+    "final": "="
+   },
+   "fecha": {
+    "estado": 200,
+    "marcas": 6,
+    "final": "="
+   },
+   "entrada_es": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   },
+   "checkin_es": {
+    "estado": 200,
+    "marcas": 0,
+    "final": "="
+   }
+  }
+ }
+}
