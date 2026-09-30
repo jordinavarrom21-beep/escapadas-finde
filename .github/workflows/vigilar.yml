@@ -92,6 +92,9 @@ jobs:
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
           SMTP_FROM: ${{ secrets.SMTP_FROM }}
           BUZON_NOMBRES: ${{ secrets.BUZON_NOMBRES }}
+          # Vuelos con fecha (Aviasales): el token de la API y tu id de afiliado (opcional).
+          TRAVELPAYOUTS_TOKEN: ${{ secrets.TRAVELPAYOUTS_TOKEN }}
+          TRAVELPAYOUTS_MARKER: ${{ secrets.TRAVELPAYOUTS_MARKER }}
         run: npm run escanear -- ${{ inputs.forzar && '--forzar' || '' }}
 
       - name: Email de prueba
