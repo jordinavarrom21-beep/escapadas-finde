@@ -1,0 +1,54 @@
+# Genera a mano el zip de la web para subir a un hosting propio (Hostinger…), con los datos
+# que se están publicando ahora. El zip queda en la rama «web-hosting»: en GitHub, entra en
+# esa rama, pulsa escapadas-finde-web.zip y «Download raw file».
+name: Empaquetar para tu hosting
+
+on:
+  workflow_dispatch:
+    inputs:
+      dominio:
+        description: Tu dominio (p. ej. midominio.es). Vacío = vale para cualquiera
+        type: string
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  empaquetar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci --ignore-scripts --omit=dev
+
+      - name: Datos de la web publicada
+        env:
+          PANEL_URL: ${{ vars.PANEL_URL }}
+        run: npm run datos:publicados
+
+      - name: Zip
+        env:
+          DOMINIO: ${{ inputs.dominio }}
+        run: |
+          if [ -n "$DOMINIO" ]; then npm run empaquetar -- --dominio "$DOMINIO"; else npm run empaquetar; fi
+
+      - name: Guardar en la rama «web-hosting»
+        run: |
+          cp dist/escapadas-finde-web.zip /tmp/
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan web-hosting
+          git rm -rq --cached .
+          git clean -fdxq
+          cp /tmp/escapadas-finde-web.zip .
+          printf 'Zip de la web para tu hosting, generado el %s. Instrucciones dentro (LEEME-HOSTINGER.txt).\n' "$(date -u +'%Y-%m-%d %H:%M') UTC" > LEEME.md
+          git add escapadas-finde-web.zip LEEME.md
+          git commit -qm "Web para tu hosting ($(date -u +'%Y-%m-%d %H:%M') UTC)"
+          git push -qf origin web-hosting

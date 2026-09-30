@@ -282,7 +282,9 @@ Nada más: cada escaneo publica en tu dominio. No hace falta el zip.
 
 ### B · La web en el hosting de Hostinger
 
-1. Prepara el zip (o usa el que ya tengas):
+1. Prepara el zip: en GitHub → *Actions* → **Empaquetar para tu hosting** → *Run workflow*
+   (escribe tu dominio). El zip queda en la rama `web-hosting` (entra en ella, pulsa el zip y
+   *Download raw file*). O en tu PC:
    ```bash
    npm run datos:publicados                      # los datos de la web publicada
    npm run empaquetar -- --dominio tudominio.es   # → dist/escapadas-finde-web.zip
