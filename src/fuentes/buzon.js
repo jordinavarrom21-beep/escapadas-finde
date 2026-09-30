@@ -596,7 +596,7 @@ async function conectar(cliente) {
   } catch (error) {
     throw new Error(error.authenticationFailed
       ? 'Gmail rechaza GMAIL_USER/GMAIL_APP_PASSWORD (¿contraseña de aplicación correcta e IMAP activado?)'
-      : `No se pudo conectar a imap.gmail.com: ${error.message}`);
+      : `No se pudo conectar a imap.gmail.com: ${error.message}`, { cause: error });
   }
 }
 

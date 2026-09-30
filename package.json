@@ -24,14 +24,14 @@
     "@anthropic-ai/sdk": "^0.130.0",
     "cheerio": "^1.2.0",
     "fast-xml-parser": "^5.11.1",
-    "imapflow": "^2.0.5",
+    "imapflow": "^2.1.2",
     "mailparser": "^3.9.29",
-    "nodemailer": "^10.0.10"
+    "nodemailer": "^10.0.13"
   },
   "devDependencies": {
-    "@eslint/js": "^9.39.5",
-    "eslint": "^9.39.5",
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.11.0",
     "globals": "^17.12.0",
-    "playwright": "1.56.1"
+    "playwright": "^1.63.0"
   }
 }

@@ -217,7 +217,7 @@ async function obtener(ctx) {
   try {
     html = await ctx.http.texto(INDICE, { reintentos: 0 });
   } catch (error) {
-    if (esBloqueo(error)) throw new Error(`Sandaya ha bloqueado o limitado la petición (HTTP ${error.estado})`);
+    if (esBloqueo(error)) throw new Error(`Sandaya ha bloqueado o limitado la petición (HTTP ${error.estado})`, { cause: error });
     throw error;
   }
   const promociones = parsearIndice(html);
