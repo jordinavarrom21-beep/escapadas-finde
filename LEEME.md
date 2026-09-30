@@ -203,19 +203,33 @@ El panel vive en `#/…` (una sola página para los buscadores). Por eso cada es
 también **páginas estáticas con URL legible**, sin JavaScript y con datos propios (coste del
 viaje completo, tiempo de viaje, fechas, cuándo se comprobó), solo si tienen al menos 5 ofertas:
 
-- `escapadas/`, `escapadas/menos-de-100-euros/`, `escapadas/este-finde/`, `escapadas/spa/`,
-  `escapadas/con-ninos/`, `escapadas/rurales/`, `escapadas/romanticas/`, `escapadas/sin-coche/`
+- **Generales**: `escapadas/`, `escapadas/menos-de-100-euros/`, `escapadas/este-finde/`,
+  `escapadas/puente/` (el próximo puente), `escapadas/a-menos-de-1-hora/`,
+  `escapadas/a-menos-de-2-horas/` y `escapadas/sin-coche/`
+- **Por temática y alojamiento**: `escapadas/spa/`, `con-ninos/`, `rurales/`, `romanticas/`,
+  `playa/`, `gastronomicas/`, `con-perro/`, `aventura-y-nieve/`, `ciudades/`,
+  `alojamientos-singulares/`, `parques-tematicos/`, `casas-rurales/` y `campings/`
+- **Por zona**: las provincias, comunidades y países con más escapadas (`escapadas/girona/`,
+  `escapadas/cataluna/`, `escapadas/andorra/`…), como mucho 16
 - `vuelos/` (chollos que salen de tu origen) y `actividades/gratis/`
 - `sitemap.xml` con todas ellas
 
-Cada una tiene su `canonical`, enlaza al panel con esos filtros puestos y no copia las
-descripciones de los proveedores. Las combinaciones de filtros siguen en `#/…` y no se
-indexan. Los enlaces antiguos (`#/finde`, `#/escapadas?…`) siguen funcionando igual.
+Cada una tiene su `canonical`, migas de pan, datos estructurados (schema.org: la web, la
+página con su lista y las migas), imagen para compartir y enlaces a todas las demás guías.
+Enlaza al panel con esos filtros puestos y no copia las descripciones de los proveedores. Las
+combinaciones de filtros siguen en `#/…` y no se indexan. Los enlaces antiguos (`#/finde`,
+`#/escapadas?…`) siguen funcionando igual.
+
+La **portada** también se lee sin JavaScript: al publicar, `scripts/preparar-web.js` pone en
+`index.html` qué es la web, lo mejor de ahora y los enlaces a todas las guías (el panel lo
+sustituye al pintar), y en su `<head>` los datos estructurados de la web.
 
 Para que Google las encuentre: en [Search Console](https://search.google.com/search-console)
-añade `https://<tu-usuario>.github.io/escapadas-finde/` y envía `sitemap.xml`. Cada escaneo
-escribe también un `robots.txt` (fuera `data/`, con el sitemap), pero los buscadores solo leen
-el de la raíz del dominio: sirve con un dominio propio (ver «Publicar la web»).
+añade tu dominio y envía `sitemap.xml`. El archivo de verificación de Search Console
+(`site/googleb….html`) está en el repositorio: si solo estuviera en el hosting, el siguiente
+despliegue lo borraría y se perdería la verificación. El `robots.txt` deja leer todo, también
+`data/` (el panel la necesita para pintarse cuando lo pinta Google); que los datos en bruto no
+salgan en los resultados lo dice su cabecera `X-Robots-Tag: noindex` del `.htaccess`.
 
 ## Afiliación y patrocinios (`config/afiliacion.json`)
 

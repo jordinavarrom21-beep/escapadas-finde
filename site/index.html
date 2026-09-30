@@ -7,8 +7,10 @@
        (las de las ofertas); conexiones solo al propio sitio y al buscador de lugares. -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' https: data:; connect-src 'self' https://photon.komoot.io; object-src 'none'; base-uri 'self'; form-action 'self'">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Escapadas Finde</title>
-  <meta name="description" content="Escapadas de fin de semana, casas rurales, planes y chollos de vuelos de más de 20 webs de viajes, juntos y revisados cada 15 minutos, con el coste del viaje completo.">
+  <!-- La portada conserva este título al pintarse (app.js): es el que enseñan los buscadores. -->
+  <title>Escapadas de fin de semana desde Barcelona · Escapadas Finde</title>
+  <meta name="description" content="Escapadas de fin de semana desde Barcelona: casas rurales, hoteles con spa, planes y chollos de vuelos de más de 20 webs, revisados cada 15 minutos y con el coste del viaje completo.">
+  <meta name="robots" content="max-image-preview:large">
   <!-- Vista previa al compartir el enlace (WhatsApp, redes). El despliegue pone la URL
        absoluta de og.png (las redes no aceptan rutas relativas). -->
   <meta property="og:type" content="website">
@@ -38,6 +40,8 @@
   <link rel="modulepreload" href="js/plantillas.js">
   <link rel="modulepreload" href="js/iconos.js">
   <script type="module" src="js/app.js"></script>
+  <!-- datos-estructurados: el despliegue (scripts/preparar-web.js) pone aquí el JSON-LD de la web. -->
+  <!-- /datos-estructurados -->
 </head>
 <body>
   <a class="saltar" href="#principal">Saltar al contenido</a>
@@ -76,6 +80,9 @@
   </div>
 
   <main id="principal" class="contenedor" tabindex="-1">
+    <!-- portada-estatica: el despliegue (scripts/preparar-web.js) pone aquí, para quien no
+         ejecuta el panel (buscadores, vistas previas), qué es la web, lo mejor de ahora y las guías. -->
+    <!-- /portada-estatica -->
     <p class="cargando" role="status">Cargando ofertas…</p>
   </main>
 
