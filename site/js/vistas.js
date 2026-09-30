@@ -64,7 +64,7 @@ ${plegableMovil(e, 'vuelos', params)}<form class="filtros" data-filtros="vuelos"
     <label class="campo">Aeropuerto <select name="aero">${opciones(e.datos.aeropuertos.map((a) => [a, a]), f.aero, 'Todos')}</select></label>
     <label class="campo">País <select name="pais">${opciones(paises.map((p) => [p, p]), f.pais, 'Todos')}</select></label>
     <label class="campo">Precio máx. (€) <input type="number" name="max" min="0" step="5" inputmode="numeric" placeholder="Sin límite" value="${f.max ?? ''}"></label>
-    <label class="campo">Orden <select name="orden">${opciones([['precio', 'Precio'], ['puntuacion', 'Puntuación'], ['hora', 'Hora de salida']], f.orden)}</select></label>
+    <label class="campo">Orden <select name="orden">${opciones([['precio', 'Precio'], ['puntuacion', 'Valor de la oferta'], ['hora', 'Hora de salida']], f.orden)}</select></label>
     <label class="interruptor"><input type="checkbox" name="ideal" value="1"${marcado(f.ideal)}> Solo horario ideal</label>
     <label class="interruptor"><input type="checkbox" name="mios" value="1"${marcado(f.mios)}> Solo desde ${esc(listaAeropuertos(e))}</label>
   </div>
@@ -87,7 +87,7 @@ ${avisoMemoria(e, 'vuelos')}${avisoViajeCompartido(e, params)}
   <div class="filtros__fila">
     <label class="campo">País <select name="pais">${opciones(paises.map((p) => [p, p]), f.pais, 'Todos')}</select></label>
     <label class="campo">Precio máx. (€) <input type="number" name="max" min="0" step="5" inputmode="numeric" placeholder="Sin límite" value="${f.max ?? ''}"></label>
-    <label class="campo">Orden <select name="orden">${opciones([['precio', 'Precio'], ['puntuacion', 'Nota del chollo']], f.orden)}</select></label>
+    <label class="campo">Orden <select name="orden">${opciones([['precio', 'Precio'], ['puntuacion', 'Valor de la oferta']], f.orden)}</select></label>
     <label class="interruptor"><input type="checkbox" name="mios" value="1"${marcado(f.mios)}> Solo desde ${esc(listaAeropuertos(e))}</label>
   </div>
   <details class="filtros__mas"${FILTROS_MAS_VUELOS.some((clave) => params[clave]) ? ' open' : ''}><summary>Más filtros</summary>
@@ -412,7 +412,7 @@ ${ofertas.length
 
 // ── Actividades ──────────────────────────────────────────────────────────────
 
-const ETIQUETAS_ORDEN_ACTIVIDADES = { puntuacion: 'Puntuación', precio: 'Precio', valoracion: 'Mejor valoradas' };
+const ETIQUETAS_ORDEN_ACTIVIDADES = { puntuacion: 'Valor de la oferta', precio: 'Precio', valoracion: 'Mejor valoradas' };
 
 export function vistaActividades(e, params) {
   const f = leerFiltrosActividades(params);

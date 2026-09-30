@@ -570,7 +570,7 @@ describe('fechas, formato, geocodificación y plantillas', () => {
     const besalu = tarjeta(casaBesalu, ctxTarjeta);
     assert.match(besalu, /Un 35 % por debajo de lo normal/);
     assert.match(besalu, /Casa rural<\/span><\/li>/);
-    assert.match(besalu, /class="tarjeta__opiniones"[^>]*>[^]*?<strong>8<\/strong><span class="tarjeta__opiniones-texto">Muy bien/, 'las opiniones, a la vista');
+    assert.match(besalu, /class="tarjeta__opiniones"[^>]*>[^]*?<strong>8<span class="tarjeta__opiniones-max">\/10<\/span><\/strong><span class="tarjeta__opiniones-texto">Muy bien/, 'las opiniones, a la vista');
     assert.match(besalu, /≈ \d+\s€ de gasolina ida y vuelta · estimado, un coche para 2 personas/);
     // Fechas flexibles: los eventos son los del próximo finde, así que van a la ficha y avisando.
     assert.ok(!besalu.includes('Mercat medieval de Besalú'));
@@ -769,7 +769,7 @@ describe('ofertas que ya no están', () => {
 });
 
 describe('menú de cuatro apartados', () => {
-  it('Explorar, Fechas y Mis cosas llevan sus pestañas, con la actual marcada', () => {
+  it('Explorar, Fechas y Guardados llevan sus pestañas, con la actual marcada', () => {
     const e = estadoPanel();
     const explorar = vistaEscapadas(e, {});
     assert.match(explorar, /<nav class="pestanas" aria-label="Explorar">/);
@@ -778,7 +778,7 @@ describe('menú de cuatro apartados', () => {
     assert.match(vistaActividades(e, {}), /<h1 class="titulo-vista" tabindex="-1">Planes<\/h1>/);
     assert.match(vistaCalendario(e), /<nav class="pestanas" aria-label="Fechas">[^]*data-vista="calendario" aria-current="page"/);
     assert.match(vistaPuentes(e), /data-vista="puentes" aria-current="page"/);
-    assert.match(vistaMis(e), /<nav class="pestanas" aria-label="Mis cosas">[^]*data-vista="mis" aria-current="page"/);
+    assert.match(vistaMis(e), /<nav class="pestanas" aria-label="Guardados">[^]*data-vista="mis"[^>]*aria-current="page"/);
   });
 
   it('el buscador de la cabecera lleva a cada pestaña de Explorar con la búsqueda puesta', () => {
@@ -825,7 +825,7 @@ describe('mis cosas: búsquedas guardadas que avisan', () => {
     e.misEstados = new Map([[una.id, 'no-disponible']]);
     const html = vistaMis(e);
     assert.match(html, /Aún no has guardado ninguna búsqueda/);
-    assert.match(html, /Guardar y avisarme/);
+    assert.match(html, /Guardar búsqueda/);
     assert.match(html, /Ya no disponibles/);
     assert.match(html, new RegExp(`data-ficha="${una.id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`));
   });

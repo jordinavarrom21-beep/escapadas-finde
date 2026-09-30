@@ -121,7 +121,7 @@ if (nSug) {
 
 // Búsquedas guardadas, copiar vigilado y compartir
 await c.grantPermissions(['clipboard-read', 'clipboard-write']);
-await p.locator('details.filtros__mas:has(> summary:has-text("Guardar y avisarme")) > summary').click();
+await p.locator('details.filtros__mas:has(> summary:has-text("Guardar búsqueda")) > summary').click();
 await p.locator('[data-nombre-busqueda]').fill('Prueba Girona');
 await p.locator('[data-guardar-busqueda]').click();
 await p.waitForTimeout(300);
@@ -239,7 +239,7 @@ await p.locator('.navegacion a[data-vista="escapadas"]').click(); await p.waitFo
 await p.locator('.pestanas a[data-vista="actividades"]').click(); await p.waitForTimeout(300);
 ok((await p.locator('.titulo-vista').textContent()).trim() === 'Planes' && (await p.locator('.navegacion a[aria-current="page"]').textContent()).includes('Explorar'), 'pestañas: Planes dentro de «Explorar»');
 await p.locator('.navegacion a[data-vista="mis"]').click(); await p.waitForTimeout(300);
-ok((await p.locator('.titulo-vista').textContent()).trim() === 'Mis cosas', 'menú: «Mis cosas»');
+ok((await p.locator('.titulo-vista').textContent()).trim() === 'Guardados', 'menú: «Guardados»');
 await p.locator('.pestanas a[data-vista="vigilados"]').click(); await p.waitForTimeout(300);
 ok((await p.locator('.titulo-vista').textContent()).trim() === 'Avisos por email', 'pestañas: avisos por email dentro de «Mis cosas»');
 await p.locator('#estado-fuentes').click(); await p.waitForTimeout(300);

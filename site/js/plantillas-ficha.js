@@ -150,7 +150,7 @@ function datosFicha(o, ctx) {
       ['Bajada', textoBajada(o)],
       ['Mínimo', textoMinimo(o, ctx)?.detalle],
       // Sin desglose (datos antiguos), la nota con lo que mide; con él, va en «Por qué tiene un N».
-      ['Nota del chollo', !motivosNota(o).length && `${o.puntuacion} / 100 · ${nivelNota(o)}. ${QUE_MIDE_LA_NOTA}`],
+      ['Valor de la oferta', !motivosNota(o).length && `${o.puntuacion} / 100 · ${nivelNota(o)}. ${QUE_MIDE_LA_NOTA}`],
     ]],
     ['Seguimiento', [
       ['Publicada', o.publicada && etiquetaDia(o.publicada)],

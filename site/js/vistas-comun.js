@@ -19,7 +19,7 @@ export const FILTROS_MAS_VUELOS = ['dto', 'pts', 'cho', 'baja', 'hist', 'nuevas'
 export const HORAS_SORPRESA = 3;
 export const ACTIVIDADES_FINDE = 4;
 export const ETIQUETAS_ORDEN = {
-  puntuacion: 'Puntuación',
+  puntuacion: 'Valor de la oferta',
   total: 'Coste total del viaje',
   persona: 'Coste total por persona',
   calidad: 'Calidad/precio (nota por persona)',
@@ -141,7 +141,7 @@ export const selectorModo = `<div class="selector-modo" role="group" aria-label=
 export const PESTANAS = {
   explorar: ['Explorar', [['escapadas', 'Escapadas', 'escapadas'], ['actividades', 'Planes', 'actividades'], ['vuelos', 'Vuelos', 'vuelos'], ['mapa', 'Mapa', 'mapa']]],
   fechas: ['Fechas', [['calendario', 'Calendario', 'calendario'], ['puentes', 'Puentes', 'puentes']]],
-  mis: ['Mis cosas', [['mis', 'Guardado', 'corazon'], ['comparar', 'Comparar lado a lado', 'comparar', 'Comparar'], ['vigilados', 'Avisos por email', 'vigilados', 'Por email']]],
+  mis: ['Guardados', [['mis', 'Favoritos y búsquedas', 'corazon', 'Guardados'], ['comparar', 'Comparar lado a lado', 'comparar', 'Comparar'], ['vigilados', 'Avisos por email', 'vigilados', 'Por email']]],
 };
 export function pestanas(apartado, activa, e = null) {
   const [nombre, todas] = PESTANAS[apartado];
@@ -195,7 +195,7 @@ export function campoTexto(f) {
 /** Filtros de chollo que valen igual para vuelos y escapadas. */
 export function filtrosChollo(f) {
   return `${numero('dto', 'Descuento mín. (%)', f.dto, ' max="99" placeholder="Cualquiera"')}
-${numero('pts', 'Puntuación mín.', f.puntos, ' max="100" placeholder="0–100"')}
+${numero('pts', 'Valor de la oferta mín. (0–100)', f.puntos, ' max="100" placeholder="0–100"')}
 ${interruptor('cho', 'Solo chollazos', f.chollazo)}
 ${interruptor('baja', 'Solo con bajada de precio', f.bajada)}
 ${interruptor('hist', 'Solo mínimo histórico', f.historico)}`;
@@ -244,15 +244,15 @@ export function bloqueBusquedas(e, vista) {
   <button type="button" class="boton-icono boton-icono--mini" data-borrar-busqueda="${esc(b.nombre)}" aria-label="Borrar la búsqueda guardada ${esc(b.nombre)}">${icono('cerrar')}</button>
 </span>`).join('');
   return `<details class="filtros__mas"${e.busquedas.length ? ' open' : ''}>
-  <summary>Guardar y avisarme</summary>
+  <summary>Guardar búsqueda</summary>
   <div class="filtros__fila">
     <label class="campo campo--ancho">Nombre
       <input type="text" data-nombre-busqueda placeholder="Spa cerca y barato" autocomplete="off" maxlength="60">
     </label>
-    <button type="button" class="boton boton--primario" data-guardar-busqueda="${esc(vista)}">${icono('guardar')}Guardar y avisarme</button>
+    <button type="button" class="boton boton--primario" data-guardar-busqueda="${esc(vista)}">${icono('guardar')}Guardar búsqueda</button>
     <button type="button" class="boton boton--suave" data-compartir-busqueda="${esc(vista)}">${icono('enlace')}Compartir esta búsqueda</button>
   </div>
-  <p class="ayuda">Se guarda en este navegador: en <a href="#/mis">Mis cosas</a> verás cuántas ofertas nuevas la cumplen cada vez que entres.${e.propietario ? ` ¿La quieres por email? <button type="button" class="enlace-boton" data-copiar-vigilado="${esc(vista)}">Copiar para los avisos por email</button> y pégala en <code>config/vigilados.json</code>.` : ''}</p>
+  <p class="ayuda">Se guarda en este navegador. No te llega nada: cuando vuelvas, en <a href="#/mis">Guardados</a> verás las ofertas nuevas que la cumplen.${e.propietario ? ` ¿La quieres por email? <button type="button" class="enlace-boton" data-copiar-vigilado="${esc(vista)}">Copiar para los avisos por email</button> y pégala en <code>config/vigilados.json</code>.` : ''}</p>
   ${chips ? `<div class="chips__lista">${chips}</div>` : ''}
 </details>`;
 }

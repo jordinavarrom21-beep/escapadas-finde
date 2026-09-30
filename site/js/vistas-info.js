@@ -185,11 +185,11 @@ export function vistaAyuda(e) {
 <section class="seccion">
   <h2 class="subtitulo">Preguntas frecuentes</h2>
   ${pregunta('¿De dónde salen las ofertas?', `<p>De webs de viajes públicas: ${esc(enumerar(webs))}. Solo se leen las páginas que esas webs permiten leer. Si una oferta lleva días sin aparecer en su web, se avisa con «Puede haber terminado».</p><p><a href="#/fuentes">Estado de cada web</a></p>`)}
-  ${pregunta('¿Qué es la «Nota» de cada oferta?', `<p>Una nota de 0 a 100 de lo buena que es como chollo. ${esc(nota)}. Un <strong>Chollazo</strong> está muy por debajo de lo normal para ofertas parecidas.</p>`)}
+  ${pregunta('¿Qué es el «Valor» de cada oferta?', `<p>Un valor de 0 a 100 de lo buena que es la oferta como chollo (no es la opinión de los clientes, que va de 0 a 10). ${esc(nota)}. Un <strong>Chollazo</strong> está muy por debajo de lo normal para ofertas parecidas.</p>`)}
   ${pregunta('¿Qué significan las estrellas y las opiniones?', '<p>«★ 8,2 Muy bien · 266 opiniones» es la valoración de otros clientes en la web de la oferta, de 0 a 10. Las estrellas (4★) son la categoría del hotel.</p>')}
   ${pregunta('¿Por qué hay precios «por persona», «por noche» o «en total»?', '<p>Cada web publica el precio a su manera. Por eso cada oferta dice a qué corresponde y, cuando se puede, se pasa a <strong>por persona y noche</strong> para compararlas, y se calcula <strong>el viaje completo</strong> para tus viajeros, con la gasolina estimada si vas en coche.</p>')}
   ${pregunta('¿Las fechas son exactas?', '<p>Muchas ofertas son de <strong>fechas flexibles</strong>: valen cualquier día hasta que caducan, según disponibilidad. Las de <strong>fechas cerradas</strong> dicen el día exacto. Si buscas unas fechas, los buscadores (y algunas webs) se abren ya con ellas.</p>')}
-  ${pregunta('¿Me avisa cuando salga algo que me interese?', '<p>Sí: monta tu búsqueda y pulsa «Guardar y avisarme». Cada vez que entres, <a href="#/mis">Mis cosas</a> te dirá cuántas ofertas nuevas la cumplen.</p>')}
+  ${pregunta('¿Me avisa cuando salga algo que me interese?', '<p>En la web, sin email: monta tu búsqueda y pulsa «Guardar búsqueda». Cuando vuelvas, <a href="#/mis">Guardados</a> te dirá cuántas ofertas nuevas la cumplen (y el número del menú también).</p>')}
 </section>
 <section class="seccion" id="privacidad">
   <h2 class="subtitulo">Privacidad</h2>
@@ -262,7 +262,7 @@ function bloqueAvisos(e) {
   const avisos = avisosDeBusquedas(e);
   if (!avisos.length) {
     return estadoVacio('Aún no has guardado ninguna búsqueda',
-      'En Explorar, pon los filtros que quieras y pulsa «Guardar y avisarme». Aquí verás cuántas ofertas nuevas la cumplen cada vez que entres.',
+      'En Explorar, pon los filtros que quieras y pulsa «Guardar búsqueda». Cuando vuelvas, aquí verás cuántas ofertas nuevas la cumplen.',
       '<a class="boton boton--primario" href="#/escapadas">Ir a Explorar</a>');
   }
   const contexto = { temas: e.temas, fuentes: e.fuentes, findes: e.findes, puentes: e.datos.puentes };
@@ -294,7 +294,7 @@ export function vistaMis(e) {
   const noDisponibles = marcadas('no-disponible');
   const comparar = [...(e.comparar ?? [])].filter((id) => e.porId.has(id)).length;
   const email = e.datos.avisos?.email;
-  return `${pestanas('mis', 'mis', e)}<h1 class="titulo-vista" tabindex="-1">Mis cosas</h1>
+  return `${pestanas('mis', 'mis', e)}<h1 class="titulo-vista" tabindex="-1">Guardados</h1>
 <p class="seccion__intro">Tus búsquedas guardadas, favoritos y marcas. Todo se guarda solo en este navegador.</p>
 <div class="carruseles">
 ${seccion(conIcono('nuevo', 'Búsquedas guardadas y avisos'), bloqueAvisos(e))}

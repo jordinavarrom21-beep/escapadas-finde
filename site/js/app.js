@@ -43,7 +43,7 @@ const VISTAS_CON_MEMORIA = ['escapadas', 'actividades', 'vuelos'];
 const TITULOS = {
   finde: 'Este finde', vuelos: 'Vuelos', escapadas: 'Escapadas', actividades: 'Planes', mapa: 'Mapa',
   calendario: 'Calendario', puentes: 'Puentes', vigilados: 'Avisos por email', fuentes: 'Estado de las webs', buscar: 'Buscar',
-  comparar: 'Comparar lado a lado', mis: 'Mis cosas', ayuda: 'Cómo funciona',
+  comparar: 'Comparar lado a lado', mis: 'Guardados', ayuda: 'Cómo funciona',
 };
 /** Qué apartado del menú se marca en cada vista (Inicio, Explorar, Fechas o Mis cosas). */
 const APARTADO = {
@@ -229,7 +229,7 @@ function pintarAvisoMis() {
   const n = totalNovedadesGuardadas(estado);
   aviso.textContent = n > 99 ? '99+' : String(n);
   aviso.hidden = n === 0;
-  aviso.closest('a')?.setAttribute('aria-label', n ? `Mis cosas: ${n} ${n === 1 ? 'oferta nueva' : 'ofertas nuevas'} en tus búsquedas guardadas` : 'Mis cosas');
+  aviso.closest('a')?.setAttribute('aria-label', n ? `Guardados: ${n} ${n === 1 ? 'oferta nueva' : 'ofertas nuevas'} en tus búsquedas guardadas` : 'Guardados');
 }
 
 /** Marca «Tarjetas» o «Lista» según el modo puesto (una clase en <html>, ver tema.js). */
@@ -468,7 +468,7 @@ function guardarBusquedaActual(vista) {
   }
   estado.busquedas = guardarBusqueda({ nombre, vista, hash: location.hash || crearHash(vista, {}) });
   render({ enfocar: false });
-  anunciar(`Búsqueda «${nombre}» guardada: en «Mis cosas» verás las ofertas nuevas que la cumplan.`);
+  anunciar(`Búsqueda «${nombre}» guardada: cuando vuelvas, en «Guardados» verás las ofertas nuevas que la cumplan.`);
 }
 
 function borrarBusquedaGuardada(nombre) {

@@ -1116,7 +1116,7 @@ function textoFiltro(clave, valor, ctx) {
     pnMin: () => `Desde ${numeroEuros(valor)} por persona y noche`,
     pnMax: () => `Hasta ${numeroEuros(valor)} por persona y noche`,
     dto: () => `Descuento del ${valor} % o más`,
-    pts: () => `Puntuación ${valor} o más`,
+    pts: () => `Valor de la oferta ${valor} o más`,
     nota: () => `Valoración ${valor} o más`,
     noches: () => textoNochesFiltro(valor),
     clasica: () => 'Escapada clásica (2 noches)',

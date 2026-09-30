@@ -303,6 +303,7 @@ pre code { background: none; padding: 0; }
   font-variant-numeric: tabular-nums;
 }
 .puntuacion__etiqueta { font-weight: 700; opacity: 0.85; }
+.puntuacion__max, .tarjeta__opiniones-max { font-size: 0.78em; font-weight: 600; opacity: 0.75; }
 .tarjeta__cabeza .puntuacion { padding: 0 9px; }
 .puntuacion--alta { background: var(--chollo-suave); color: var(--chollo-fuerte); }
 .puntuacion--media { background: var(--acento-suave); color: var(--acento-suave-texto); }

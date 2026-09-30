@@ -274,8 +274,8 @@ export const nivelNota = (o) => (o.chollazo ? 'Chollazo' : o.puntuacion >= 60 ? 
 function puntuacion(o, ctx = {}) {
   const nivel = o.chollazo ? 'alta' : o.puntuacion >= 60 ? 'media' : 'baja';
   const motivo = motivoPrincipal(o, ctx.ahora);
-  const texto = `Nota del chollo: ${o.puntuacion} de 100 (${nivelNota(o).toLowerCase()}). ${motivo ? `${motivo}.` : QUE_MIDE_LA_NOTA}`;
-  return `<span class="puntuacion puntuacion--${nivel}" title="${esc(texto)}"><span aria-hidden="true"><span class="puntuacion__etiqueta">Nota</span> ${o.puntuacion}</span><span class="sr">${esc(texto)}</span></span>`;
+  const texto = `Valor de la oferta: ${o.puntuacion} de 100 (${nivelNota(o).toLowerCase()}). ${motivo ? `${motivo}.` : QUE_MIDE_LA_NOTA}`;
+  return `<span class="puntuacion puntuacion--${nivel}" title="${esc(texto)}"><span aria-hidden="true"><span class="puntuacion__etiqueta">Valor</span> ${o.puntuacion}<span class="puntuacion__max">/100</span></span><span class="sr">${esc(texto)}</span></span>`;
 }
 
 export function botonFavorito(o, ctx) {
@@ -578,7 +578,7 @@ function opinionesTarjeta(o, web) {
   }
   const f = fiabilidadOpiniones(v.n);
   const cuantas = v.n ? ` · ${contar(v.n, 'opinión', 'opiniones')}` : '';
-  return `<p class="tarjeta__opiniones" title="Valoración de los clientes en ${esc(web)}. ${esc(f.larga)}">${icono('estrella')}<strong>${nota(v.nota)}</strong><span class="tarjeta__opiniones-texto">${adjetivoNota(v.nota)}${cuantas}${f.corta ? ` · <span class="aviso-suave">${f.corta}</span>` : ''}</span></p>`;
+  return `<p class="tarjeta__opiniones" title="Valoración de los clientes en ${esc(web)}. ${esc(f.larga)}">${icono('estrella')}<strong>${nota(v.nota)}<span class="tarjeta__opiniones-max">/10</span></strong><span class="tarjeta__opiniones-texto">${adjetivoNota(v.nota)}${cuantas}${f.corta ? ` · <span class="aviso-suave">${f.corta}</span>` : ''}</span></p>`;
 }
 
 /** «Por qué 66: más barata que 180 de 206 escapadas parecidas · ha bajado 12 €». */
