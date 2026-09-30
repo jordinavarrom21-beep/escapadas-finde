@@ -472,7 +472,7 @@ function datosTarjeta(o, ctx = {}) {
     o.fechas?.salida ? dato('calendario', textoFechas(o))
       : busquedaPara(o, ctx) ? dato('calendario', `Puede valer para el ${busquedaPara(o, ctx).etiqueta}`) : '',
     // Aparte: «hasta el 30» junto a las fechas se leería como el último día del viaje.
-    caduca ? `<li class="${caduca.urgente ? 'dato--urgente' : ''}">${icono('arena')}<span>${esc(caduca.texto)}</span></li>` : '',
+    caduca ? `<li${caduca.urgente ? ' class="dato--urgente"' : ''}>${icono('arena')}<span>${esc(caduca.texto)}</span></li>` : '',
     dato(o.noches || o.alojamiento || o.estrellas ? 'noches' : 'reloj', incluye),
     llegar,
   ].join('');

@@ -835,6 +835,22 @@ ${atajosEscapadas('escapadas')}
 </div>`;
 }
 
+/** Los órdenes más usados, a un toque encima de los resultados (el resto, en «Ordenar por»). */
+const ORDEN_RAPIDO = [
+  ['puntuacion', 'Recomendadas'], ['noche', 'Más baratas por noche'], ['total', 'Viaje más barato'],
+  ['comodo', 'Más cerca'], ['valoracion', 'Mejor valoradas'], ['ahorro', 'Más rebajadas'],
+];
+
+function ordenRapido(vista, params, actual) {
+  const enlaces = ORDEN_RAPIDO.map(([orden, texto]) => {
+    const href = crearHash(vista, { ...params, orden: orden === 'puntuacion' ? '' : orden });
+    return orden === actual
+      ? `<a class="chip chip--elegido" aria-current="true" href="${href}">${esc(texto)}</a>`
+      : `<a class="chip" href="${href}">${esc(texto)}</a>`;
+  }).join('');
+  return `<nav class="orden-rapido chips--desplazables-lista" aria-label="Ordenar">${enlaces}</nav>`;
+}
+
 /** Por qué salen en este orden: qué se suma, desde dónde, para cuántos y qué va al final. */
 function explicacionOrden(e, f, costes) {
   const desde = f.punto?.nombre ?? nombreSalida(e);
@@ -858,7 +874,7 @@ export function resultadosEscapadas(e, params) {
   // En el móvil el «Mapa» ya está en la pastilla flotante: aquí sobra.
   const acciones = `<a class="boton boton--suave solo-ancho-flex" href="${crearHash('mapa', params)}">${icono('mapa')}Ver en el mapa</a>`;
   return `${filaActivos(e, 'escapadas', params)}${resumenResultados(contar(ofertas.length, 'escapada'), acciones)}
-${explicacionOrden(e, f, costes)}${f.presupuesto ? `<p class="seccion__intro">Presupuesto: viaje completo (oferta y gasolina estimada) de hasta ${esc(euros(f.presupuesto))} ${f.presupuestoPor === 'persona' ? 'por persona' : 'en total'} para ${esc(contar(e.viaje?.viajeros ?? 2, 'persona'))}.${sinTotal ? ` ${esc(contar(sinTotal, 'oferta'))} sin datos suficientes para un total no se pueden comprobar y no salen.` : ''}</p>` : ''}
+${ordenRapido('escapadas', params, f.orden)}${explicacionOrden(e, f, costes)}${f.presupuesto ? `<p class="seccion__intro">Presupuesto: viaje completo (oferta y gasolina estimada) de hasta ${esc(euros(f.presupuesto))} ${f.presupuestoPor === 'persona' ? 'por persona' : 'en total'} para ${esc(contar(e.viaje?.viajeros ?? 2, 'persona'))}.${sinTotal ? ` ${esc(contar(sinTotal, 'oferta'))} sin datos suficientes para un total no se pueden comprobar y no salen.` : ''}</p>` : ''}
 ${ofertas.length
     ? rejilla(ofertas, ctx, { mostradas: mostradas(e, 'escapadas'), clave: 'escapadas' })
     : estadoVacio('Ninguna escapada cumple estos filtros', 'Prueba a quitar alguna temática, ampliar la distancia o subir el precio máximo.', botonLimpiar('escapadas'))}`;
