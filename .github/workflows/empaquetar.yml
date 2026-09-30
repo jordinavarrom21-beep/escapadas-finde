@@ -36,7 +36,6 @@ jobs:
       # La web del hosting lee los datos de GitHub Pages: tiene que permitirlo (CORS).
       - name: GitHub Pages deja leer los datos desde otro dominio
         run: |
-
           curl -sSI -H "Origin: https://ejemplo.hostingersite.com" "https://${GITHUB_REPOSITORY_OWNER,,}.github.io/${GITHUB_REPOSITORY#*/}/data/version.json" | tee cabeceras.txt
           grep -qi '^access-control-allow-origin: \*' cabeceras.txt
 
