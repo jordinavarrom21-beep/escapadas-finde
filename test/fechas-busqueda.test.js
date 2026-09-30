@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { conFechas, fechasDeBusqueda } from '../site/js/fechas-enlaces.js';
+import { conFechas, fechasDeBusqueda, ofertaConFechas } from '../site/js/fechas-enlaces.js';
 import { buscarEscapadas, leerFiltrosEscapadas } from '../site/js/filtros.js';
 import { busquedaPara, contenidoFicha, tarjeta } from '../site/js/plantillas.js';
 import { oferta } from './ayudas.js';
@@ -40,6 +40,12 @@ describe('enlaces con las fechas buscadas', () => {
     assert.match(conFechas('https://www.omio.es/search-frontend/results?departurePosition=Barcelona&arrivalPosition=Roses&departureDate=2026-10-02', fechas), /departureDate=2026-10-16/);
   });
 
+  it('la web de la oferta, solo si entiende las fechas en la URL (Holidu, Clubrural)', () => {
+    assert.equal(ofertaConFechas('https://www.holidu.es/d/47720395', fechas, 3), 'https://www.holidu.es/d/47720395?checkin=2026-10-16&checkout=2026-10-18&adults=3');
+    assert.match(ofertaConFechas('https://www.clubrural.com/s/Madrid?propertyType=AGRITOURISM&includeOfferIds=56956009', fechas), /includeOfferIds=56956009&checkin=2026-10-16&checkout=2026-10-18&adults=2$/);
+    for (const url of ['https://www.weekendesk.es/fin-de-semana/21843318/lloret', 'https://www.atrapalo.com/escapadas/x_v69292', 'no es una url']) assert.equal(ofertaConFechas(url, fechas), null, url);
+  });
+
   it('las demás webs, tal cual', () => {
     for (const url of ['https://www.civitatis.com/es/buscar/?q=Roses', 'https://www.google.com/maps/dir/?api=1&origin=1,2', 'no es una url']) {
       assert.equal(conFechas(url, fechas), url);
@@ -68,6 +74,19 @@ describe('ofertas de fechas flexibles y de fechas cerradas', () => {
     assert.match(html, /Organiza el viaje <span class="suave">\(16–18 oct\)<\/span>/);
     assert.match(html, /Los buscadores de abajo ya abren tus fechas \(16–18 oct\)/);
     assert.match(html, /href="https:\/\/ejemplo\.es\/oferta"/, 'la web de la oferta no se toca');
+  });
+
+  it('Holidu abre la oferta con tus fechas; en las demás, la ficha dice qué fechas elegir', () => {
+    const holidu = { ...flexible, fuente: 'holidu', url: 'https://www.holidu.es/d/47720395', urlReserva: null };
+    const ctxHolidu = { ...ctx, fuentes: new Map([['holidu', 'Holidu'], ['prueba', 'Prueba']]) };
+    assert.match(tarjeta(holidu, ctxHolidu), /href="https:\/\/www\.holidu\.es\/d\/47720395\?checkin=2026-10-16&amp;checkout=2026-10-18&amp;adults=3"/);
+    const ficha = contenidoFicha(holidu, ctxHolidu);
+    assert.match(ficha, /Se abre con tus fechas: <strong>16–18 oct<\/strong>/);
+    assert.match(ficha, /class="ficha__reserva"[^]*checkin=2026-10-16/, 'también la barra del móvil');
+    assert.match(contenidoFicha(flexible, ctxHolidu), /Prueba no deja abrirla con fechas: al reservar, elige <strong>16–18 oct<\/strong>/);
+    const sinBusqueda = contenidoFicha(holidu, { ...ctxHolidu, busqueda: null });
+    assert.doesNotMatch(sinBusqueda, /nota-fechas|holidu\.es\/d\/47720395\?/);
+    assert.match(sinBusqueda, /href="https:\/\/www\.holidu\.es\/d\/47720395"/, 'sin fechas buscadas, tal cual');
   });
 
   it('la de fechas cerradas o la que caduca antes conservan lo suyo', () => {

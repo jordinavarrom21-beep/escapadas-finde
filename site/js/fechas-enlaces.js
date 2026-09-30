@@ -68,3 +68,35 @@ export function conFechas(url, { entrada, salida }, viajeros = 2) {
   else return url;
   return u.href;
 }
+
+/**
+ * Webs de ofertas cuya ficha entiende las fechas en la URL (comprobado con sus páginas: con
+ * `checkin`/`checkout` muestran «vie, 13 nov – dom, 15 nov» y el precio de esos días). Las
+ * demás (Weekendesk, Atrápalo, BuscoUnChollo, Escapada Rural…) las ignoran: allí se eligen
+ * en su calendario.
+ */
+const FICHA_CON_FECHAS = {
+  'holidu.es': (u, { entrada, salida }, personas) => { u.searchParams.set('checkin', entrada); u.searchParams.set('checkout', salida); u.searchParams.set('adults', personas); },
+  'clubrural.com': (u, { entrada, salida }, personas) => { u.searchParams.set('checkin', entrada); u.searchParams.set('checkout', salida); u.searchParams.set('adults', personas); },
+};
+
+/**
+ * La web de la propia oferta con las fechas (y viajeros) de la búsqueda, o null si esa web no
+ * las entiende en la URL.
+ * @param {string} url
+ * @param {{entrada: string, salida: string}} fechas
+ * @param {number} [viajeros]
+ * @returns {string|null}
+ */
+export function ofertaConFechas(url, fechas, viajeros = 2) {
+  let u;
+  try {
+    u = new URL(url);
+  } catch {
+    return null;
+  }
+  const poner = FICHA_CON_FECHAS[u.hostname.replace(/^www\./, '')];
+  if (!poner) return null;
+  poner(u, fechas, String(Math.max(1, Math.round(viajeros) || 2)));
+  return u.href;
+}

@@ -702,6 +702,9 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 
 .dato-extra { font-size: 0.83rem; color: var(--texto-suave); overflow-wrap: anywhere; display: flex; align-items: flex-start; gap: 6px; }
 .dato-extra > .ic { margin-top: 0.15em; }
+.nota-fechas { margin: -6px 0 0; }
+.nota-fechas strong { color: var(--texto); }
+.nota-fechas--ok > .ic { color: var(--acento); }
 .dato-extra a { color: var(--enlace); }
 .comprobada { font-size: 0.78rem; }
 .comprobada--antigua { color: var(--aviso); }
