@@ -49,11 +49,15 @@ const TIPOS = [
   ['hotel', /\b(?:hotel(?:es)?|hostal(?:es)?|apartamentos?|paradore?s?|resorts?|casas? rurale?s?|\d+ noches?|booking|airbnb)\b/i],
 ];
 
+// Tras la cifra: «26€/persona», «19€ pp», «62€/per», «94€/p», «69€ P.P», «6€ Trayecto».
+const TRAS_EUROS_PP = /€\s*(?:\/\s*|\s)(?:pp\b|p\.\s?p\.?|pers(?:ona)?\b\.?|per\b|p\b(?!\.?\s*\d))/i;
 const UNIDADES = [
   ['i/v', /\bi\/v\b|\bida y vuelta\b/i],
-  ['pp/noche', /\bpor persona y noche\b/i],
+  ['pp/noche', /\bpor persona(?: y)? noche\b|€\s*\/\s*(?:pp|pers(?:ona)?)\s*\/\s*noche\b/i],
+  ['trayecto', /\bpor trayecto\b|€\s*(?:\/\s*)?trayecto\b/i],
   ['noche', /(?:\bpor|\bla|\/)\s*noche\b/i],
-  ['pp', /\bpor persona\b|\bp\.\s?p\./i],
+  ['pp', /\bpor persona\b|\bp\.\s?p\.|\bpor pers\b/i],
+  ['pp', TRAS_EUROS_PP],
 ];
 
 const TEMPERATURA = /^(-?\d+)\s*[°º]\s*-\s*/;
@@ -88,7 +92,7 @@ export function esDeViajes(item) {
 }
 
 const tipoDe = (titulo) => TIPOS.find(([, patron]) => patron.test(sinTildes(titulo)))?.[0] ?? 'escapada';
-const unidadDe = (titulo) => UNIDADES.find(([, patron]) => patron.test(sinTildes(titulo)))?.[0] ?? null;
+export const unidadDe = (titulo) => UNIDADES.find(([, patron]) => patron.test(sinTildes(titulo)))?.[0] ?? null;
 
 function urlLimpia(enlace) {
   if (!enlace) throw new TypeError('la entrada no tiene enlace');

@@ -123,7 +123,9 @@ export function clasificar(oferta) {
   return {
     temas: detectarTemas(texto, oferta),
     regimen: REGIMENES.find(([, patron]) => patron.test(texto))?.[0] ?? null,
-    noches: oferta.tipo === 'vuelo' ? null : detectarNoches(normalizarTexto(`${oferta.titulo} · ${oferta.descripcion}`)),
+    // Un vuelo o una actividad sin alojamiento no tiene noches: «2 días de forfait» no es 1 noche.
+    noches: oferta.tipo === 'vuelo' || (oferta.tipo === 'actividad' && !oferta.alojamiento)
+      ? null : detectarNoches(normalizarTexto(`${oferta.titulo} · ${oferta.descripcion}`)),
     transporte: detectarTransporte(texto, oferta),
   };
 }

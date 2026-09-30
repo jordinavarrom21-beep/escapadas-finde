@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 import fuente, { CATEGORIAS_VIAJES, esDeViajes, parsear } from '../src/fuentes/chollometro.js';
+import { unidadDe } from '../src/fuentes/chollometro.js';
 import { validarOferta } from '../src/modelo.js';
 import { rutaPermitida } from '../src/util/robots.js';
 
@@ -180,5 +181,22 @@ describe('feeds de categorías de viajes', () => {
     assert.ok(ofertas.some((o) => /Peñíscola/.test(o.titulo)));
     assert.ok(!ofertas.some((o) => /Samsonite|Bolsa Viaje/i.test(o.titulo)), 'una bolsa de viaje no es un viaje');
     for (const o of ofertas) assert.deepEqual(validarOferta(o), [], o.id);
+  });
+});
+
+describe('chollometro: a qué corresponde el precio del título', () => {
+  it('«pp», «/pers», «/p», «P.P», «por persona noche» y «Trayecto» junto a la cifra', () => {
+    const casos = [
+      ['SORIA, Vinuesa. Hotel 4* + desayuno. Desde 19€ pp. Octubre', 'pp'],
+      ['2 NOCHES en OPORTO (desde 62€/per Nov-dic)', 'pp'],
+      ['Costa Brava: Platja d\'Aro 3* Desayuno por 26€/persona | Octubre', 'pp'],
+      ['2 Noches en Menorca hotel 4* con TODO INCLUIDO en octubre 94€/p', 'pp'],
+      ['¡Lloret de Mar con Todo Incluido! Desde 69€ P.P / Septiembre', 'pp'],
+      ['Fuerteventura: Todo incluido a 59€ por persona noche | septiembre', 'pp/noche'],
+      ['¡IBIZA! Vuelos DIRECTOS por solo 6€ Trayecto (nov - dic)', 'trayecto'],
+      ['Madrid – Nueva York ida y vuelta por 246 €', 'i/v'],
+      ['Finde low cost para 4 pers en Disney', null],
+    ];
+    for (const [titulo, unidad] of casos) assert.equal(unidadDe(titulo), unidad, titulo);
   });
 });

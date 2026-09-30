@@ -42,7 +42,7 @@ describe('parsear (páginas reales)', () => {
       assert.equal(o.tipo, 'vuelo');
       assert.equal(o.vuelo, null);
       assert.equal(o.transporte, 'avion');
-      assert.equal(o.unidad, null);
+      assert.equal(o.unidad, 'trayecto', 'por persona y trayecto: así el coste del viaje cuenta ida y vuelta');
       assert.match(o.precioTexto, /por trayecto \(solo ida, tasas incluidas\)/);
       assert.notEqual(o.lugar.nombre, 'Barcelona');
       assert.match(o.url, /^https:\/\/www\.volotea\.com\/es\/ofertas-vuelos\/barcelona\/[a-z-]+\/$/);

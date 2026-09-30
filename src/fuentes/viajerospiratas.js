@@ -46,10 +46,11 @@ const REGIMENES = [
 ];
 
 // Lugar: lo que va tras « a », « al », « en » o « por » hasta el siguiente conector.
-const ANTES_DE_LUGAR = /\s+(?:a|al|en|por)\s+/i;
-const FIN_DE_LUGAR = /\s+(?:y|e|o|u|con|cerca|desde|para|junto|durante|sin)\s|\s+\d|\s[-–—|]\s|[¡!¿?(),:;]/i;
+const ANTES_DE_LUGAR = /(?:\s+|,\s*)(?:a|al|en|por)\s+/i;
+const FIN_DE_LUGAR = /\s+(?:y|e|o|u|con|cerca|desde|para|junto|durante|sin)\s|\s+\d|\s[-–—|]\s|\.(?:\s|(?=\p{Lu}))|\s?\+|[¡!¿?(),:;]/iu;
 const ARTICULO = /^(?:el|la|los|las)\s+/;
 const PARTICULAS = new Set(['de', 'del', 'el', 'la', 'las', 'los', 'y']);
+const sinTildes = (texto) => texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 /**
  * Palabras con mayúscula que van tras «a», «en» o «por» y no son un sitio: fiestas y
  * comercios («Escapada por Navidad a Andorra», «Visto en Instagram», «…en MediaMarkt»).
@@ -58,15 +59,67 @@ const PARTICULAS = new Set(['de', 'del', 'el', 'la', 'las', 'los', 'y']);
 const NO_SON_LUGARES = new Set([
   'navidad', 'nochevieja', 'fin de ano', 'ano nuevo', 'reyes', 'semana santa', 'pascua', 'san valentin',
   'halloween', 'black friday', 'cyber monday', 'puente', 'verano', 'invierno', 'otono', 'primavera',
-  'instagram', 'facebook', 'tiktok', 'youtube', 'amazon', 'aliexpress', 'mediamarkt', 'el corte ingles',
+  'instagram', 'facebook', 'tiktok', 'youtube', 'amazon', 'aliexpress', 'mediamarkt', 'el corte ingles', 'pccomponentes',
   'booking', 'booking.com', 'airbnb', 'expedia', 'edreams', 'skyscanner', 'kayak', 'trivago', 'groupon',
+  'europa', 'asia', 'africa', 'america',
   'renfe', 'iryo', 'ouigo', 'ryanair', 'vueling', 'iberia', 'volotea', 'easyjet', 'atrapalo', 'logitravel',
 ]);
-const esNoLugar = (texto) => NO_SON_LUGARES.has(texto.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase());
+/**
+ * Palabras de oferta que no forman parte de un nombre de sitio: un candidato que empieza por
+ * una no es un lugar («Hotel», «Oct Dsd Sevilla») y donde aparece se corta («Menorca hotel»,
+ * «La Palma Vuelos directos»). Meses (y sus abreviaturas) incluidos.
+ */
+const GENERICAS = new Set([
+  'hotel', 'hoteles', 'hostal', 'apartamento', 'apartamentos', 'aparthotel', 'spa', 'camping', 'bungalow',
+  'vuelo', 'vuelos', 'viaje', 'viajes', 'viajazo', 'vacaciones', 'escapada', 'escapadas', 'finde', 'ferry', 'crucero', 'cruceros',
+  'todo', 'incluido', 'media', 'pension', 'completa', 'desayuno', 'desayunos', 'all', 'inclusive',
+  'oferta', 'ofertas', 'oferton', 'chollo', 'chollos', 'ultima', 'paquete', 'circuito', 'ruta', 'dias', 'noches', 'noche',
+  'un', 'una', 'dsd', 'salidas', 'salida', 'recopilacion', 'visto', 'lujo', 'relax', 'chollazo', 'exclusivo', 'especial',
+  'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'setiembre', 'octubre', 'noviembre', 'diciembre',
+  'ene', 'feb', 'abr', 'jun', 'jul', 'ago', 'sep', 'sept', 'oct', 'nov', 'dic',
+]);
+const esNoLugar = (texto) => NO_SON_LUGARES.has(sinTildes(texto)) || GENERICAS.has(sinTildes(texto.split(/\s+/)[0]));
+/** «Corazón de Córdoba» → «Córdoba»; «Mercados de Navidad de Vilna» → «Vilna»; «Descubre Alijó» → «Alijó». */
+const PREFIJOS = /^(?:(?:(?:el\s+)?coraz[oó]n|centro|mercados?\s+de\s+navidad)\s+del?|descubre|vive|respira|disfruta(?:\s+de)?|conoce|explora|visita)\s+/i;
 
 /** Título sin emojis ni espacios sobrantes. */
 export function limpiarTitulo(titulo = '') {
   return textoPlano(String(titulo).replace(EMOJIS, ' '));
+}
+
+/**
+ * Deja solo el nombre: se corta en la primera palabra que ya no es del sitio (en minúscula
+ * y que no es «de», «del»…; de oferta; con cifras) y sin partículas al final.
+ */
+function recortarLugar(candidato) {
+  const palabras = candidato.replace(PREFIJOS, '').split(/\s+/).filter(Boolean);
+  const fin = palabras.findIndex((p, i) => i > 0 && (/\d|\+/.test(p) || GENERICAS.has(sinTildes(p))
+    || (/^\p{Ll}/u.test(p) && !PARTICULAS.has(p) && !/^[dl][’']\p{Lu}/u.test(p))));
+  const nombre = (fin === -1 ? palabras : palabras.slice(0, fin));
+  while (nombre.length > 1 && PARTICULAS.has(nombre.at(-1).toLowerCase())) nombre.pop();
+  return nombre.join(' ');
+}
+
+const conFormato = (lugar) => (esMayusculas(lugar) ? capitalizar(lugar) : lugar);
+
+/**
+ * El destino con el que empiezan muchos títulos de Chollómetro: «BENIDORM Hotel 3*…»,
+ * «Fuerteventura: Todo incluido…», «¡IBIZA! Vuelos…», «Gran Canaria - 5 Noches…»; en
+ * «Madrid – Nueva York» es el de después (el destino).
+ */
+function lugarAlPrincipio(titulo) {
+  const texto = titulo.replace(/^¡\s*/, '');
+  const ruta = texto.match(/^([\p{Lu}][\p{L} ]{1,30}?)\s*[–—]\s*(\p{Lu}[^,.:;!|()]*)/u);
+  if (ruta && !esNoLugar(recortarLugar(ruta[2]))) return recortarLugar(ruta[2]);
+  const hastaSigno = texto.match(/^([^:,.!|¡?()]+?)\s*(?::|,|\.\s|!|\s[-–—|]\s|\s¡)/u)?.[1];
+  const mayusculas = texto.match(/^((?:[\p{Lu}]{3,}\s?)+)(?=\s+[^\p{Lu}\s]|\s+\p{Lu}\p{Ll}|\s*$)/u)?.[1];
+  for (const candidato of [hastaSigno, mayusculas]) {
+    const limpio = candidato?.split(FIN_DE_LUGAR)[0].trim().replace(PREFIJOS, '');
+    // Solo si todo el trozo es el nombre: «Auriculares por 20 €» no es un sitio.
+    if (!limpio || !/^\p{Lu}/u.test(limpio) || limpio.split(/\s+/).length > 4 || esNoLugar(limpio)) continue;
+    if (recortarLugar(limpio) === limpio) return limpio;
+  }
+  return null;
 }
 
 /**
@@ -76,13 +129,16 @@ export function limpiarTitulo(titulo = '') {
  * @returns {string|null}
  */
 export function extraerLugar(titulo) {
-  const [, ...trozos] = limpiarTitulo(titulo).split(ANTES_DE_LUGAR);
+  // «CalpeEscapada Costa Blanca»: dos palabras pegadas se separan si la segunda es de oferta.
+  const limpio = limpiarTitulo(titulo).replace(/(\p{Ll})(\p{Lu}\p{Ll}+)/gu, (todo, a, b) => (GENERICAS.has(sinTildes(b)) ? `${a} ${b}` : todo));
+  const [, ...trozos] = limpio.split(ANTES_DE_LUGAR);
   for (const trozo of trozos) {
-    const candidato = trozo.split(FIN_DE_LUGAR)[0].replace(ARTICULO, '').replace(/[.\s]+$/, '');
+    const candidato = recortarLugar(trozo.split(FIN_DE_LUGAR)[0].replace(ARTICULO, '').replace(/[.\s]+$/, ''));
     if (!/^\p{Lu}/u.test(candidato) || esNoLugar(candidato)) continue;
-    return esMayusculas(candidato) ? capitalizar(candidato) : candidato;
+    return conFormato(candidato);
   }
-  return null;
+  const alPrincipio = lugarAlPrincipio(limpio);
+  return alPrincipio ? conFormato(alPrincipio) : null;
 }
 
 const esMayusculas = (texto) => texto === texto.toUpperCase() && /\p{Lu}{2}/u.test(texto);

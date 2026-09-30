@@ -209,7 +209,7 @@ function fechaCorta(texto) {
 
 /**
  * Los vuelos se anuncian «por trayecto»: si el texto da el precio de ida y
- * vuelta se usa ese; si no, se deja el del trayecto sin unidad. Los títulos
+ * vuelta se usa ese; si no, el del trayecto (por persona). Los títulos
  * del tipo «¡desde 20€/noche!» indican precio por persona y noche.
  */
 function precioDe({ precio, precioTexto }, tipo, titulo, subtitulo) {
@@ -219,7 +219,7 @@ function precioDe({ precio, precioTexto }, tipo, titulo, subtitulo) {
     const detalle = normalizarTexto(subtitulo);
     const idaVuelta = detalle.match(/ida y vuelta\D{0,5}(\d+(?:[.,]\d+)?)\s?€/);
     if (idaVuelta) return { precio: parsearPrecio(idaVuelta[1]), unidad: 'i/v', precioTexto: `${idaVuelta[1]} € ida y vuelta` };
-    if (detalle.includes('por trayecto')) return { precio, unidad: null, precioTexto: `${texto} y trayecto` };
+    if (detalle.includes('por trayecto')) return { precio, unidad: 'trayecto', precioTexto: `${texto} y trayecto` };
   }
   if (porPersona && /\/\s?noche|por noche/i.test(titulo)) return { precio, unidad: 'pp/noche', precioTexto: `${texto} y noche` };
   return { precio, unidad: porPersona ? 'pp' : null, precioTexto: texto };
