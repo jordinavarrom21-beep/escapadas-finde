@@ -1,0 +1,60 @@
+chunk-EEHS5XRC.js: https://g.co/ng/security#xss
+chunk-DGJQ3SBH.js: https://www.vueling.com/{culture}/vueling-club/partners/
+chunk-7OUGM6CR.js: https://tickets.vueling.com/
+chunk-J2G73LKC.js: https://www.facebook.com/Vueling
+chunk-J2G73LKC.js: https://www.youtube.com/c/vueling
+chunk-J2G73LKC.js: https://www.instagram.com/vueling/
+chunk-J2G73LKC.js: https://twitter.com/vueling
+chunk-RSWS24FY.js: PLANTILLA `${e}/${i}/${a} ${E} ${m}:${D}`
+chunk-J45WPU6L.js: PLANTILLA `${c}/bestPrices?originCode=${e}&destinationCodes=${t}&months=${i}&startDate=${a}&currencyCode=${n}`
+chunk-ATSUIFDK.js: PLANTILLA `${s}/bestPrices`
+chunk-TALNVEFC.js: PLANTILLA `${this.resultsEndpoint.trim()}/${t}`
+chunk-JVBZN3KJ.js: PLANTILLA `${r}/${o}/${s}`
+chunk-JVBZN3KJ.js: PLANTILLA `${(e.getMonth()+1).toString().padStart(2,"0")}/${e.getFullYear()}`
+chunk-JVBZN3KJ.js: PLANTILLA `${this.apiUrl}/availability?originCode=${e}&destinationCode=${i}&providerName=${n}${s}${l}`
+chunk-JVBZN3KJ.js: PLANTILLA `${this.apiUrlV2}/availability?originCode=${e}&destinationCode=${i}&providerName=${n}${s}${l}&includeSummary=true`
+chunk-JVBZN3KJ.js: PLANTILLA `${this.apiUrl}/stations?language=${a}&providerName=${e}`
+chunk-JVBZN3KJ.js: PLANTILLA `${this.staticUrl}/${a}.json`
+chunk-JVBZN3KJ.js: PLANTILLA `${this.baseUrl}/flights`
+chunk-JVBZN3KJ.js: PLANTILLA `${this.baseUrl}/flights/${e}`
+chunk-JVBZN3KJ.js: PLANTILLA `${this.baseUrl}/flightTracker`
+chunk-JVBZN3KJ.js: PLANTILLA `${this.baseUrl}/flightTracker/${e}`
+chunk-OETLQFFQ.js: PLANTILLA `${e.url}/currencyConversion/${t}`
+chunk-MOYNQNPP.js: https://ngrx.io/guide/store/configuration/runtime-checks
+chunk-CCZGYJQE.js: https://commercial-public-pre.vueling.com/Vueling.GeoLocalization.WCF.REST.WebService/WCFService/GetNearlyAirport_ByRequest_Ajax
+chunk-CCZGYJQE.js: https://corporate-apis-dev.vueling.app/api/v1
+chunk-CCZGYJQE.js: https://corporate-apis-dev.vueling.app/v1/flights
+chunk-CCZGYJQE.js: https://corporate-apis-dev.vueling.app/api/v2
+chunk-CCZGYJQE.js: https://ams-dev.vueling.app/asm/v1/Auth
+chunk-CCZGYJQE.js: https://ams-dev.vueling.app/vyc/v1/Accounts/retrieveinfo
+chunk-CCZGYJQE.js: https://ams-dev.vueling.app/asm/v1/Session
+chunk-CCZGYJQE.js: https://ams-dev.vueling.app/asm/v1/Session/cookie
+chunk-CCZGYJQE.js: https://static-int.vueling.com/corporativeCMS/Stations
+chunk-CCZGYJQE.js: https://corporate-cms-dev.vueling.app/v1/api/AlertsApi/getPaeAlert
+chunk-CCZGYJQE.js: https://corporate-cms-dev.vueling.app/v1/api/BlogCategoryApi/GetArticleCardsByCategory
+chunk-CCZGYJQE.js: https://corporate-apis-dev.vueling.app/api/v1/newsletter/subscribe
+chunk-CCZGYJQE.js: https://global.vueling.com/
+chunk-CCZGYJQE.js: https://tickets.vueling.com/booking/flightSearch
+chunk-CCZGYJQE.js: https://m.vueling.com/SB
+chunk-CCZGYJQE.js: https://tickets.vueling.com/vueling-club
+chunk-CCZGYJQE.js: https://tickets-dev.vueling.app/
+chunk-CCZGYJQE.js: https://commercial-public.vueling.com/Vueling.GeoLocalization.WCF.REST.WebService/WCFService/GetNearlyAirport_ByRequest_Ajax
+chunk-CCZGYJQE.js: https://apiw.vueling.com/api/v1
+chunk-CCZGYJQE.js: https://apiw.vueling.com/v1/flights
+chunk-CCZGYJQE.js: https://apiw.vueling.com/api/v2
+chunk-CCZGYJQE.js: https://ams.vueling.com/asm/v1/Auth
+chunk-CCZGYJQE.js: https://ams.vueling.com/vyc/v1/Accounts/retrieveinfo
+chunk-CCZGYJQE.js: https://ams.vueling.com/asm/v1/Session
+chunk-CCZGYJQE.js: https://ams.vueling.com/asm/v1/Session/cookie
+chunk-CCZGYJQE.js: https://static.vueling.com/corporativeCMS/Stations
+chunk-CCZGYJQE.js: https://www.vueling.com/v1/api/AlertsApi/getPaeAlert
+chunk-CCZGYJQE.js: https://www.vueling.com/v1/api/BlogCategoryApi/GetArticleCardsByCategory
+chunk-CCZGYJQE.js: https://apiw.vueling.com/api/v1/newsletter/subscribe
+chunk-2WUG7CIA.js: PLANTILLA `${Xt(e)}/${t[0]}`
+chunk-2WUG7CIA.js: PLANTILLA `${Xt(e)}/(${t.join("//")})`
+chunk-VYGIXE4O.js: http://www.w3.org/2000/svg
+chunk-VYGIXE4O.js: http://www.w3.org/1999/xhtml
+chunk-VYGIXE4O.js: http://www.w3.org/1999/xlink
+chunk-VYGIXE4O.js: http://www.w3.org/XML/1998/namespace
+chunk-VYGIXE4O.js: http://www.w3.org/2000/xmlns/
+chunk-VYGIXE4O.js: http://www.w3.org/1998/MathML/
