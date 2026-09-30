@@ -6,7 +6,7 @@ import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { Cache } from '../src/cache.js';
-import { escanear } from '../src/core/scan-pipeline.js';
+import { escanear, revisarLectura } from '../src/core/scan-pipeline.js';
 import { estadoInicial } from '../src/almacen.js';
 import { procesarEmails } from '../src/emails/decidir.js';
 import { geolocalizar } from '../src/enriquecer/geo.js';
@@ -33,6 +33,34 @@ describe('auditoría: flujo del escaneo', () => {
     assert.equal(estado.fuentes.campings.estado, 'error');
     assert.match(estado.fuentes.campings.error, /0 ofertas \(la última vez 2\)/);
     assert.deepEqual(Object.keys(estado.ofertas).sort(), ['campings:1', 'campings:2']);
+  });
+
+  test('si una web cambia y el lector trae muchas menos ofertas, avisa y no borra las demás de golpe', async () => {
+    const estado = estadoInicial();
+    for (let n = 1; n <= 40; n++) estado.ofertas[`sitio:${n}`] = oferta({ id: `sitio:${n}`, fuente: 'sitio', precio: 50, vistaUltima: AHORA.toISOString() });
+    estado.fuentes.sitio = { estado: 'ok', total: 40, referencia: { total: 40, conPrecio: 1 } };
+    const tres = [1, 2, 3].map((n) => oferta({ id: `sitio:${n}`, fuente: 'sitio', precio: 45 }));
+    const { salida } = await correr(estado, [fuente('sitio', async () => ({ ofertas: tres, reemplazar: true }))]);
+    assert.equal(estado.fuentes.sitio.estado, 'ok');
+    assert.match(estado.fuentes.sitio.aviso, /Solo 3 ofertas \(lo normal son unas 40\)[^]*¿Ha cambiado la web\?/);
+    assert.equal(Object.keys(estado.ofertas).length, 40, 'no se borra nada de golpe');
+    assert.equal(estado.ofertas['sitio:1'].precio, 45, 'lo que sí trae se actualiza');
+    assert.deepEqual(estado.fuentes.sitio.referencia, { total: 40, conPrecio: 1 }, 'lo normal no baja por una lectura rara');
+    assert.match(salida.ofertas.fuentes.find((f) => f.id === 'sitio').aviso, /Solo 3 ofertas/);
+  });
+
+  test('avisa si casi ninguna oferta trae precio; una bajada normal o un aviso de hace una semana no', () => {
+    const conPrecio = (n, precio) => Array.from({ length: n }, (_, i) => ({ id: `s:${i}`, precio: i < precio ? 10 : null }));
+    const normal = { total: 40, conPrecio: 0.9 };
+    const sinPrecio = revisarLectura({ ofertas: conPrecio(40, 4), reemplazar: true }, { referencia: normal }, AHORA);
+    assert.match(sinPrecio.aviso, /Solo el 10 % trae precio \(lo normal es el 90 %\)/);
+    assert.equal(sinPrecio.reemplazar, true, 'con las ofertas completas se puede reemplazar');
+    const pocas = revisarLectura({ ofertas: conPrecio(30, 30), reemplazar: true }, { referencia: normal }, AHORA);
+    assert.deepEqual([pocas.aviso, pocas.referencia], [null, { total: 30, conPrecio: 1 }], '30 de 40 es normal');
+    const haceSemana = new Date(AHORA.getTime() - 8 * DIA_MS).toISOString();
+    const aceptada = revisarLectura({ ofertas: conPrecio(5, 5), reemplazar: true }, { referencia: normal, desdeAviso: haceSemana }, AHORA);
+    assert.deepEqual([aceptada.aviso, aceptada.referencia.total, aceptada.reemplazar], [null, 5, true], 'tras una semana es lo normal');
+    assert.equal(revisarLectura({ ofertas: conPrecio(1, 1), reemplazar: true }, { total: 4 }, AHORA).aviso, null, 'con pocas no se compara');
   });
 
   test('un error después de «falta configurar» enseña el error, no lo que faltaba', async () => {
@@ -137,5 +165,20 @@ describe('auditoría: tiempo, eventos y geolocalización', () => {
     const o = oferta({ lugar: { nombre: 'Olot', region: 'Girona', lat: null, lon: null } });
     await geolocalizar([o], ctx);
     assert.deepEqual([o.lugar.lat, o.lugar.lon], [42.18, 2.49]);
+  });
+});
+
+describe('auditoría: la portada avisa de las webs con problemas', () => {
+  test('las que llevan 12 h fallando o leen mucho menos de lo normal; un fallo suelto no', async () => {
+    const { webConProblemas } = await import('../site/js/vistas.js');
+    const hace = (horas) => new Date(AHORA.getTime() - horas * 3_600_000).toISOString();
+    const fuentes = [
+      { id: 'a', estado: 'error', desdeError: hace(20) },
+      { id: 'b', estado: 'error', desdeError: hace(1) },
+      { id: 'c', estado: 'ok', aviso: 'Solo 3 ofertas' },
+      { id: 'd', estado: 'ok' },
+      { id: 'e', estado: 'bloqueada' },
+    ];
+    assert.deepEqual(webConProblemas(fuentes, AHORA).map((f) => f.id), ['a', 'c']);
   });
 });

@@ -305,7 +305,7 @@ pre code { background: none; padding: 0; }
 .punto { width: 9px; height: 9px; border-radius: 50%; background: var(--exito); display: inline-block; flex: none; }
 .estado--error .punto { background: var(--peligro); }
 .estado--inactiva .punto { background: var(--texto-suave); }
-.estado--pendiente .punto { background: var(--aviso); }
+.estado--pendiente .punto, .estado--aviso .punto { background: var(--aviso); }
 
 /* ── Cabecera y navegación ────────────────────────────────────────────────── */
 
@@ -422,6 +422,9 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 .portada__ceja { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; font-size: 0.9rem; color: var(--texto-suave); }
 .portada__ceja .pastilla { font-size: 0.86rem; }
 .portada__revision { display: inline-flex; align-items: center; gap: 8px; }
+.portada__problemas { display: inline-flex; align-items: center; gap: 6px; color: var(--aviso); font-weight: 700; text-decoration: none; }
+.portada__problemas:hover { text-decoration: underline; }
+.portada__problemas .ic { width: 16px; height: 16px; }
 .portada .titulo-vista { margin: 0; font-size: clamp(2.3rem, 5.6vw, 4.3rem); line-height: 1.02; letter-spacing: -0.035em; }
 .portada .titulo-vista em { font-style: normal; color: var(--acento); }
 

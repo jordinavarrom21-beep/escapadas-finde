@@ -756,6 +756,7 @@ export function resumenFuentes(fuentes = []) {
     activas: activas.length,
     ok: activas.filter((f) => f.estado === 'ok').length,
     conError: activas.filter((f) => f.estado === 'error').length,
+    conAviso: activas.filter((f) => f.estado === 'ok' && f.aviso).length,
     inactivas: fuentes.length - activas.length,
   };
 }

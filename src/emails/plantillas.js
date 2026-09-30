@@ -248,7 +248,9 @@ export function alertaVigilados({ coincidencias, panelUrl }) {
 /** Aviso de fuentes que llevan tiempo fallando. */
 export function alertaFuentes({ fuentes, panelUrl, ahora = new Date() }) {
   const horas = (iso) => Math.round((ahora - Date.parse(iso)) / 3_600_000);
-  const lineas = fuentes.map((f) => `${f.nombre}: falla desde hace ${horas(f.desdeError)} h (${f.error})`);
+  const lineas = fuentes.map((f) => (f.estado === 'error' || !f.aviso
+    ? `${f.nombre}: falla desde hace ${horas(f.desdeError)} h (${f.error})`
+    : `${f.nombre}: lee menos de lo normal desde hace ${horas(f.desdeAviso)} h (${f.aviso})`));
   const html = envolver({
     titulo: 'Hay fuentes que no funcionan',
     intro: 'Las demás siguen vigilando con normalidad. Si una web ha cambiado, habrá que ajustar su lector.',
