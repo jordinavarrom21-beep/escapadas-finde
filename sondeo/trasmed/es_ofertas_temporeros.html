@@ -1,0 +1,324 @@
+<!-- 200 https://www.trasmed.com/es/ofertas/temporeros -->
+<!DOCTYPE html>
+<html id="htmlLang" style="height:100%">
+<head><script>(function(){"use strict";var __webpack_modules__={348:function(e,t,r){r.d(t,{IP:function(){return i},Pz:function(){return a},Sg:function(){return l},XV:function(){return _},_9:function(){return c},e:function(){return o},qQ:function(){return s},t9:function(){return n}});const o="eudaEnableAgent",n="eudaSyncLoad",_="eudaAgentVersion",a="eudaLoaderVersion",c="eudaForce",s="eudaClearText",i="eudaFailed",l="eudaMode"},405:function(e,t,r){r.d(t,{Pt:function(){return n}});let o=!1;function n(e){o=e}}},__webpack_module_cache__={};function __webpack_require__(e){var t=__webpack_module_cache__[e];if(void 0!==t)return t.exports;var r=__webpack_module_cache__[e]={exports:{}};return __webpack_modules__[e](r,r.exports,__webpack_require__),r.exports}__webpack_require__.d=function(e,t){for(var r in t)__webpack_require__.o(t,r)&&!__webpack_require__.o(e,r)&&Object.defineProperty(e,r,{enumerable:!0,get:t[r]})},__webpack_require__.o=function(e,t){return Object.prototype.hasOwnProperty.call(e,t)};var __webpack_exports__={},_lib_local_storage_js__WEBPACK_IMPORTED_MODULE_0__=__webpack_require__(348),_lib_service_worker_wrapper_js__WEBPACK_IMPORTED_MODULE_1__=__webpack_require__(405);(function(){let registerSWStarted=!1;const resourceBasePath="/678c37f1-fcea-354f-853d-32b794d02404",csmBasePath="/4359d65e-dd82-3237-8c34-3c0c315503df",getVersionIntervalSeconds="60",loaderVersion="1.2";localStorage.setItem(_lib_local_storage_js__WEBPACK_IMPORTED_MODULE_0__.Pz,loaderVersion);const serviceWorkerUrl=`${resourceBasePath}/eudaapi/get-script/serviceworker`;let attempt=0,enableAgent=!1,syncLoad=!1,oldAgentVersion=!1,newAgentVersion=!1,agentVersion=!1,forceAgent=getBooleanFromLocalStorage(_lib_local_storage_js__WEBPACK_IMPORTED_MODULE_0__._9),clearText=getBooleanFromLocalStorage(_lib_local_storage_js__WEBPACK_IMPORTED_MODULE_0__.qQ),agentLoaded=!1;function getBooleanFromLocalStorage(e){return"true"===getFromLocalStorage(e)}function getFromLocalStorage(e){return localStorage.getItem(e)}function loader(){const e=parseInt(localStorage.getItem("eudaRefreshPolicyInterval"));let t=3e4;e>0?t=1e3*e:parseInt(getVersionIntervalSeconds)>0&&(t=1e3*getVersionIntervalSeconds),captureConfig(),init().then(()=>{"serviceWorker"in navigator&&navigator.serviceWorker.addEventListener("message",function(e){"reload"===e.data.type&&location.reload()}),setTimeout(loader,t)}).catch(e=>{if(attempt<3)setTimeout(loader,t);else{const e=Math.floor(Date.now()/1e3)+86400;localStorage.setItem(_lib_local_storage_js__WEBPACK_IMPORTED_MODULE_0__.IP,e.toString())}attempt++})}function captureConfig(e){enableAgent=getBooleanFromLocalStorage(_lib_local_storage_js__WEBPACK_IMPORTED_MODULE_0__.e),syncLoad=getBooleanFromLocalStorage(_lib_local_storage_js__WEBPACK_IMPORTED_MODULE_0__.t9),agentVersion=getFromLocalStorage(_lib_local_storage_js__WEBPACK_IMPORTED_MODULE_0__.XV),forceAgent=getBooleanFromLocalStorage(_lib_local_storage_js__WEBPACK_IMPORTED_MODULE_0__._9),oldAgentVersion=agentVersion,e&&(enableAgent=e.enableAgent,syncLoad=e.syncLoad,newAgentVersion=e.agentVersion,agentVersion=newAgentVersion,controlServiceWorker(newAgentVersion).then(()=>{}),localStorage.setItem(_lib_local_storage_js__WEBPACK_IMPORTED_MODULE_0__.XV,agentVersion),localStorage.setItem(_lib_local_storage_js__WEBPACK_IMPORTED_MODULE_0__.e,enableAgent),localStorage.setItem(_lib_local_storage_js__WEBPACK_IMPORTED_MODULE_0__.t9,syncLoad))}function init(){const e=getFromLocalStorage(_lib_local_storage_js__WEBPACK_IMPORTED_MODULE_0__.IP);if(!(null!==e&&Date.now()-Number(e)<=0))return localStorage.removeItem(_lib_local_storage_js__WEBPACK_IMPORTED_MODULE_0__.IP),new Promise(async(e,t)=>{syncLoad&&enableAgent?loadAgentCode().then(()=>loadConfigFromServer().then(()=>e()).catch(e=>t(e))).catch(e=>t(e)):loadConfigFromServer().then(()=>isAgentRequired()?loadAgentCode().then(()=>e()).catch(e=>t(e)):e()).catch(e=>t(e))})}function loadConfigFromServer(){return new Promise(async(e,t)=>{try{const r=await fetch(`${csmBasePath}/eudaapi/version`,{method:"POST",headers:{Accept:"application/json","Content-Type":"application/json"},body:JSON.stringify({location:location.href})});if(r.status>=400)return t(new Error("Bad response from server"));return captureConfig(await r.json()),e()}catch(e){return t(e)}})}function isAgentRequired(){return!!forceAgent||enableAgent}function loadAgentCodeAsync(e){return new Promise((t,r)=>{let o=0,n=setInterval(()=>{o++;let _=document.getElementsByTagName("head")[0];if(_){clearInterval(n);let r=document.createElement("script");return r.src=e,_.appendChild(r),agentLoaded=!0,t()}if(o>10)return clearInterval(n),console.info("couldn't load script no Head present"),r(new Error("couldn't load script no Head present"))},10)})}function loadAgentCodeSync(url){return new Promise((resolve,reject)=>{let xhr=new XMLHttpRequest;xhr.onreadystatechange=function(){if(this.readyState)return 200===this.status?(eval(xhr.responseText),agentLoaded=!0,resolve()):reject(new Error(`request returned status ${this.status}`))},xhr.open("GET",url,!1),xhr.send()})}function getModeArg(){let e="",t=getFromLocalStorage(_lib_local_storage_js__WEBPACK_IMPORTED_MODULE_0__.Sg);return t&&(e=`&mode=${encodeURIComponent(t)}`),e}function loadAgentCode(){return new Promise((e,t)=>{if(agentLoaded)return e();let r=`${resourceBasePath}/eudaapi/get-script/euda?ver=${agentVersion}${getModeArg()}`;(syncLoad?loadAgentCodeSync:loadAgentCodeAsync)(r).then(()=>e()).catch(e=>t(e))})}function compareAgentVersions(e){if(!oldAgentVersion)return!0;if(!e)return!1;return oldAgentVersion.substring(0,oldAgentVersion.lastIndexOf("."))<e.substring(0,e.lastIndexOf("."))}function registerServiceWorker(){return new Promise((e,t)=>{const r=setTimeout(()=>{t(new Error("service worker registration time out"))},3e4),o=agentVersion.substring(0,agentVersion.lastIndexOf("."));navigator.serviceWorker.register(`${serviceWorkerUrl}?v=${o}${getModeArg()}`,{scope:"/"}).then(t=>((0,_lib_service_worker_wrapper_js__WEBPACK_IMPORTED_MODULE_1__.Pt)(t),clearTimeout(r),e())).catch(e=>(clearTimeout(r),t(new Error(`service worker register failed: ${e}`))))})}function handleRegisterSW(e,t){registerServiceWorker().then(()=>(navigator.serviceWorker.ready.then(e=>{e.active&&e.active.postMessage({type:"FORCE_AGENT_VALUE",forceAgent:forceAgent})}).catch(e=>{console.warn("Failed to send force agent value to service worker:",e)}),registerSWStarted=!1,e())).catch(e=>(registerSWStarted=!1,t(e)))}function controlServiceWorker(e){return new Promise((t,r)=>{if(registerSWStarted)return t();const o="serviceWorker"in navigator,n=window.isSecureContext||"localhost"===location.hostname||"127.0.0.1"===location.hostname;if(!o||!n)return t();let _=compareAgentVersions(e);registerSWStarted=!0,navigator.serviceWorker.getRegistration("/").then(e=>e&&e.active?(e.active.postMessage({type:"FORCE_AGENT_VALUE",forceAgent:forceAgent}),_?handleRegisterSW(t,r):(registerSWStarted=!1,t())):enableAgent||forceAgent?handleRegisterSW(t,r):(registerSWStarted=!1,t())).catch(e=>(console.log(e),registerSWStarted=!1,r()))})}loader()})()})();
+//# sourceMappingURL=capture.bundle.js.map{}
+</script>
+
+    <!-- Inicio Google Tag Manager -->
+        <script>
+            dataLayer = [{}];
+        </script>
+        <script data-cookieconsent="ignore">
+            window.dataLayer = window.dataLayer || [];
+
+            function gtag() { dataLayer.push(arguments); }
+            gtag('consent', 'default', {
+                'ad_storage': 'denied',
+                'ad_user_data': 'denied',
+                'ad_personalization': 'denied',
+                'analytics_storage': 'denied',
+                'functionality_storage': 'denied',
+                'personalization_storage': 'denied',
+                'security_storage': 'granted',
+                'wait_for_update': 500
+            });
+
+            gtag("set", "ads_data_redaction", true);
+            gtag("set", "url_passthrough", false);
+        </script>
+            <script data-cookieconsent="ignore">
+            (function (w, d, s, l, i) {
+                w[l] = w[l] || []; w[l].push({
+                    'gtm.start':
+                    new Date().getTime(), event: 'gtm.js'
+                }); var f = d.getElementsByTagName(s)[0],
+                    j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
+                '//www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
+                })(window, document, 'script', 'dataLayer', 'GTM-P6K7R8V');
+            </script>
+    <!-- Fin Google Tag Manager -->
+
+
+    <!-- Inicio CMP Consent -->
+    <script type="text/javascript">
+
+        const supportedLanguages = ['en', 'es', 'fr', 'ca'];
+
+        var url = location.pathname,
+            hasLanguageInUrl = (url + '/').search(/(\/\w{2}\/)/) === 0,
+            lang = hasLanguageInUrl ? url.substr(1, 2) : 'es';
+
+        const language = supportedLanguages.includes(lang) ? lang : 'es'; // Idioma por defecto
+
+        // Establecer dinámicamente el script de CookieBot debido al idioma
+        const cookiebotScript = document.createElement('script');
+        cookiebotScript.id = "Cookiebot";
+        cookiebotScript.src = "https://consent.cookiebot.com/uc.js";
+        cookiebotScript.setAttribute('data-cbid', "77573a02-072c-494b-ad5a-7de85f1d98c0");
+        cookiebotScript.setAttribute('data-culture', language);
+        cookiebotScript.setAttribute('data-blockingmode', "auto");
+        cookiebotScript.type = "text/javascript";
+        document.head.appendChild(cookiebotScript);
+
+    </script>
+    <script type="text/javascript">
+
+        function CookiebotCallback_OnLoad() {
+            if (CookieConsent.consented) {
+                window.addEventListener('CookiebotOnLoad', function () {
+                    setTimeout(() => {
+                        checkCJUniversalTag();
+                    }, 2000);
+                });
+            }
+        }
+
+    </script>
+    <!-- Fin CMP Consent-->
+
+<!-- Inicio Lang -->
+<script type="text/javascript" data-cookieconsent="ignore">
+    document.documentElement.setAttribute('lang', lang);
+</script>
+<!-- Fin Lang -->
+    <script type="text/javascript">
+
+        document.addEventListener("DOMContentLoaded", function (event) {
+            setTimeout(checkCJUniversalTag, 2000);
+        });
+
+        function checkCJUniversalTag() {
+            if (CookieConsent.consented) {
+                if (CookieConsent.consent.statistics) { //Cambiar según el grupo al que pertenezca la cookie
+                    let cookieName = "cje";
+                    let domain = window.location.hostname == 'localhost' ? window.location.hostname : '.trasmed.com';
+                    const queryString = window.location.search;
+                    const urlParams = new URLSearchParams(queryString);
+                    let cjevent = urlParams.get('cjevent');
+                    if (cjevent != null) {
+                        $.ajax({
+                            type: 'POST',
+                            url: '/User/IsCJCookieEnabled',
+                            success: function (isEnabled) {
+                                if (isEnabled === 'True') {
+                                    var d = new Date();
+                                    d = new Date(d.setMonth(d.getMonth() + 1));
+                                    var expires = "expires=" + d.toGMTString();
+                                    var cookie_string = cookieName + "=" + cjevent + "; " + expires;
+                                    cookie_string += "; domain=" + domain + "; path=" + "/ " + ";secure;samesite=none;";
+                                    document.cookie = cookie_string;
+                                    saveCJValue(cjevent);
+                                };
+                            }
+                        });
+                    }
+                }
+            }
+        }
+
+        function saveCJValue(cjValue) {
+            var shoppingProcessId = "";
+            var step = "0";
+            if (cjValue != null && step > 1) {
+                var saveCJValueRequest = {
+                    shoppingProcessId: shoppingProcessId,
+                    cJValue: cjValue
+                }
+                $.ajax({
+                    type: 'POST',
+                    url: '/User/SaveCJValue',
+                    data: saveCJValueRequest
+                });
+            }
+        }
+
+    </script>
+
+        <!-- Inicio OneSignal -->
+        <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" type="text/plain" data-cookieconsent="preferences statistics marketing" defer></script>
+        <script type="text/plain" data-cookieconsent="preferences statistics marketing">
+            var translations = {
+                fr: {
+                    actionMessage: 'Abonnez-vous à nos notifications pour les dernières nouvelles et mises à jour. Vous pouvez désactiver à tout moment.',
+                    acceptButton: "S'abonner",
+                    cancelButton: 'Non merci',
+                },
+                en: {
+                    actionMessage: 'Subscribe to our notifications for the latest news and updates. You can disable anytime.',
+                    acceptButton: "Subscribe",
+                    cancelButton: 'No thanks',
+                },
+                ca: {
+                    actionMessage: 'Subscriu-te a les nostres notificacions per rebre les últimes notícies i actualitzacions. Podeu desactivar-lo en qualsevol moment.',
+                    acceptButton: "Subscriure",
+                    cancelButton: 'No, gràcies',
+                },
+                es: {
+                    actionMessage: 'Suscríbete a nuestras notificaciones para recibir las últimas noticias y actualizaciones. Puedes desactivarlo en cualquier momento.',
+                    acceptButton: 'Suscribir',
+                    cancelButton: 'No, gracias',
+                },
+                default: {
+                    actionMessage: 'Suscríbete a nuestras notificaciones para recibir las últimas noticias y actualizaciones. Puedes desactivarlo en cualquier momento.',
+                    acceptButton: 'Suscribir',
+                    cancelButton: 'No, gracias',
+                },
+            };
+
+            var thanksTranslations = {
+                fr: {
+                    message: "Merci de votre abonnement.",
+                    url: "https://www.trasmed.com/",
+                },
+                en: {
+                    message: "Thanks for subscribing.",
+                    url: "https://www.trasmed.com/",
+                },
+                ca: {
+                    message: "Gràcies per la vostra subscripció.",
+                    url: "https://www.trasmed.com/",
+                },
+                es: {
+                    message: "Gracias por suscribirte.",
+                    url: "https://www.trasmed.com/",
+                },
+                default: {
+                    message: "Gracias por suscribirte.",
+                    url: "https://www.trasmed.com/",
+                },
+            };
+
+            var translation = translations[lang] || translations.default;
+            var thanksTranslation = thanksTranslations[lang] || thanksTranslations.default;
+
+            window.OneSignalDeferred = window.OneSignalDeferred || [];
+            OneSignalDeferred.push(function (OneSignal) {
+                OneSignal.init({
+                    appId: "3635f4b9-d374-44ad-9e0e-4b5d5e84917a",
+                    serviceWorkerParam: { scope: "/Features/Shared/js/pixels/OneSignalServiceWorker/" },
+                    serviceWorkerPath: "Features/Shared/js/pixels/OneSignalServiceWorker/OneSignalSDKWorker.js",
+                    promptOptions: {
+                        slidedown: {
+                            prompts: [
+                                {
+                                    type: 'push',
+                                    autoPrompt: true,
+                                    text: { ...translation },
+                                },
+                            ],
+                        },
+                    },
+                    welcomeNotification: { ...thanksTranslation },
+                });
+            });
+        </script>
+        <!-- Fin OneSignal -->
+
+
+<title>CÓDIGO: TEMP25 - Trasmed</title>
+<meta name="description" content="Reserva tu ferry con Trasmed. Compra tu billete de barco a las Islas Baleares"/>
+<meta name="keywords" content="Ferry, Trasmed, viajar en ferry, barco islas, ferries, horario de ferries, reserva barco, compra billete ferry, reserva ferry, billete barco, ferry islas, ferry baleares, barco a Baleares, trasmed ferry, trasmed, naviera"/>
+
+<meta charset="utf-8" />
+<meta name="ROBOTS" content="INDEX , FOLLOW">
+<meta name="google-site-verification" content="XXMZmu3Up-3UpVIGaQnuQX0mpsO7142S-1yjrXGiP5A" />
+<meta name="facebook-domain-verification" content="9z950c2zfyf8yq56sw6yr3fvbmx54e" />
+<meta name="theme-color" content="#1E1E1E">
+<meta name="x-font-awesome-stylesheet-fallback-test" class="fa">
+<meta name="author" content="Trasmed">
+
+<link rel="shortcut icon" href="/Features/Shared/img/favicons/favicon.png">
+<link rel="canonical" href="https://www.trasmed.com/es/ofertas/temporeros" />
+<link rel="alternate" hreflang="es" href="https://www.trasmed.com/es/">
+<link rel="alternate" hreflang="en" href="https://www.trasmed.com/en/">
+<link rel="alternate" hreflang="fr" href="https://www.trasmed.com/fr/">
+<link rel="alternate" hreflang="ca" href="https://www.trasmed.com/ca/">
+<link rel="alternate" hreflang="x-default" href="https://www.trasmed.com/es/">
+
+<link href="/Features/Shared/Styles/vendors.css?d23c80bf-f380-4028-89d4-638ea0cda30e" rel="stylesheet" type="text/css" />
+<link href="/Features/Shared/Styles/site.css?d23c80bf-f380-4028-89d4-638ea0cda30e" rel="stylesheet" type="text/css" />
+
+<!--[if lt IE 9]>
+    <script src="~/Features/Shared/js/vendors/html5shiv/dist/html5shiv.js" type="text/javascript"></script>
+    <script src="~/Features/Shared/js/vendors/respond/dest/respond.min.js" type="text/javascript"></script>
+<![endif]-->
+
+<script>var __uzdbm_1 = "257ef134-78b0-43d8-8f59-cbb093101361";var __uzdbm_2 = "YjQzMGMzMTQtY2h0Ny00MjAwLTk1MDgtMzgyNGNhNDBmNWJjJDEzLjcxLjIzMi4xODM=";var __uzdbm_3 = "7f9000257ef134-78b0-43d8-8f59-cbb0931013611-17907528340570-0053f5d6bb161663d3b10";var __uzdbm_4 = "false";var __uzdbm_5 = "uzmx";var __uzdbm_6 = "7fc000ee533396-1394-4ecf-9be6-3c97338edccf1-17907528340570-0079567e12b1854c19210";var __uzdbm_7 = "trasmed.com";</script> <script>   (function (w, d, e, u, c, g, a, b) {     w["SSJSConnectorObj"] = w["SSJSConnectorObj"] || {       ss_cid: c,       domain_info: "auto",     };     w[g] = function (i, j) {       w["SSJSConnectorObj"][i] = j;     };     a = d.createElement(e);     a.async = true;     if (       navigator.userAgent.indexOf("MSIE") !== -1 ||       navigator.appVersion.indexOf("Trident/") > -1     ) {       u = u.replace("/advanced/", "/advanced/ie/");     }     a.src = u;     b = d.getElementsByTagName(e)[0];     b.parentNode.insertBefore(a, b);   })(     window,     document,     "script",     "https://www.trasmed.com/18f5227b-e27b-445a-a53f-f845fbe69b40/stormcaster.js",     "cht9",     "ssConf"   );   ssConf("c1", "https://www.trasmed.com");   ssConf("c3", "c99a4269-161c-4242-a3f0-28d44fa6ce24");   ssConf("au", "trasmed.com");   ssConf("cu", "validate.perfdrive.com, ssc"); </script> </head>
+<body>
+            <!-- Inicio Google Tag Manager (noscript) -->
+            <noscript>
+                <iframe src="https://www.googletagmanager.com/ns.html?id=GTM-P6K7R8V"
+                        height="0" width="0" style="display:none;visibility:hidden"></iframe>
+            </noscript>
+            <!-- Fin Google Tag Manager (noscript) -->
+
+    <div class="body-content no-padding" style="height: 100%; overflow-y: scroll !important;">
+        <session-manager></session-manager>
+        
+
+
+
+<view-dynamic-view></view-dynamic-view>
+        <message-popup params="{id : 'messagePopup'}"></message-popup>
+        <loading-component></loading-component>
+    </div>
+
+    <script data-cookieconsent='ignore' src="/Features/all.components.es-es.min.js?d23c80bf-f380-4028-89d4-638ea0cda30e"></script>
+    <script data-cookieconsent="ignore" src="/Features/Shared/js/trasmediterranea.boot.js"></script>
+
+    
+    <script type="text/javascript" src="/Features/Shared/js/vendors/tinymce/tinymce.min.js"></script>
+
+    
+
+
+
+    
+    <script type="text/javascript">
+        $(function () {
+            $('.hidden-before-load').css('display', 'block');
+        });
+    </script>
+
+<!-- Inicio Schema Markup -->
+<script type="application/ld+json">
+    {
+        "@context": "http://schema.org",
+        "@type": "Organization",
+        "name": "Trasmed",
+        "url": "https://www.trasmed.com",
+        "image": "https://www.trasmed.com/Features/Shared/img/logo.jpg",
+        "logo": "https://www.trasmed.com/Features/Shared/img/logo.jpg",
+        "email": "callcenter@trasmed.com",
+        "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Valencia",
+            "postalCode": "46024",
+            "streetAddress": "Calle Dique del Este s/n"
+        },
+        "contactPoint": [
+            {
+                "@type": "ContactPoint",
+                "url": "https://www.trasmed.com/es/contact",
+                "contactType": "customer service",
+                "availableLanguage": [
+                    "Spanish",
+                    "Catalan",
+                    "English",
+                    "French"
+                ]
+            }
+        ],
+        "sameAs": [
+            "https://www.facebook.com/trasmedferry",
+            "https://twitter.com/trasmedferry",
+            "https://www.instagram.com/trasmedferry",
+            "https://www.youtube.com/channel/UCOzh_tDIn1k_fQ2T_kN-AFw",
+            "https://es.linkedin.com/company/trasmed-gle-s-l"
+        ]
+    }
+</script>
+<!-- Fin Schema Markup -->
+</body>
+</html>
