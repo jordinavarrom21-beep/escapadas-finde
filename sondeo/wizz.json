@@ -1,0 +1,770 @@
+{
+ "n": 143,
+ "muestra": [
+  {
+   "id": "wizzair:BCN-PMO:2026-11-27:2026-11-29",
+   "fuente": "wizzair",
+   "tipo": "vuelo",
+   "titulo": "Palermo (Sicilia)\r\n",
+   "descripcion": "BCN → PMO · ida vie 27 nov (salidas: 22:25) · vuelta dom 29 nov (salidas: 19:45). Precio más bajo de cada día; la hora exacta de esa tarifa se ve al reservar.",
+   "url": "https://wizzair.com/es-es/booking/select-flight/BCN/PMO/2026-11-27/2026-11-29/1/0/0/null",
+   "imagen": null,
+   "precio": 45.18,
+   "precioTexto": "desde 45,18 € ida y vuelta",
+   "unidad": "i/v",
+   "precioAnterior": 49.98,
+   "descuento": null,
+   "noches": null,
+   "regimen": null,
+   "temas": [
+    "playa"
+   ],
+   "transporte": "avion",
+   "lugar": {
+    "nombre": "Palermo (Sicilia)\r\n",
+    "region": null,
+    "pais": "Italia",
+    "codigoPais": "IT",
+    "iata": "PMO",
+    "lat": 38.18194444444444,
+    "lon": 13.099444444444446,
+    "provincia": null,
+    "comunidad": null
+   },
+   "cocheMin": null,
+   "cocheKm": null,
+   "cocheEstimado": false,
+   "vuelo": {
+    "origen": "BCN",
+    "destino": "PMO",
+    "ida": {
+     "salida": "2026-11-27T22:25:00",
+     "llegada": null,
+     "numero": null,
+     "precio": 18.34,
+     "escalas": 0
+    },
+    "vuelta": {
+     "salida": "2026-11-29T19:45:00",
+     "llegada": null,
+     "numero": null,
+     "precio": 26.84,
+     "escalas": 0
+    },
+    "consultaId": "BCN:2026-11-27:2026-11-29:normal",
+    "horarioIdeal": true,
+    "patron": "vie-dom",
+    "nuevaRuta": false,
+    "directo": true
+   },
+   "etiquetas": [
+    "Italia",
+    "vie-dom",
+    "Directo"
+   ],
+   "publicada": null,
+   "caduca": null,
+   "vistaPrimera": "2026-09-30T19:12:11.580Z",
+   "vistaUltima": "2026-09-30T19:12:11.580Z",
+   "bajada": null,
+   "minimoHistorico": false,
+   "puntuacion": 59,
+   "chollazo": false,
+   "chollazoMotivo": null,
+   "urlReserva": "https://wizzair.com/es-es/booking/select-flight/BCN/PMO/2026-11-27/2026-11-29/1/0/0/null",
+   "afiliado": null,
+   "patrocinada": null,
+   "enlaces": [
+    {
+     "etiqueta": "Comparar en Google Flights",
+     "url": "https://www.google.com/travel/flights?q=Vuelos%20de%20BCN%20a%20PMO%20el%202026-11-27%20vuelta%202026-11-29&hl=es",
+     "grupo": "comparar",
+     "afiliado": null
+    },
+    {
+     "etiqueta": "Comparar en Skyscanner",
+     "url": "https://www.skyscanner.es/transporte/vuelos/bcn/pmo/261127/261129/?adultsv2=1",
+     "grupo": "comparar",
+     "afiliado": null
+    },
+    {
+     "etiqueta": "Comparar en KAYAK",
+     "url": "https://www.kayak.es/flights/BCN-PMO/2026-11-27/2026-11-29?sort=price_a",
+     "grupo": "comparar",
+     "afiliado": null
+    },
+    {
+     "etiqueta": "Hoteles en Booking",
+     "url": "https://www.booking.com/searchresults.es.html?ss=Palermo%20(Sicilia)%0D%0A&checkin=2026-11-27&checkout=2026-11-29&group_adults=2&no_rooms=1&group_children=0",
+     "grupo": "alojamiento",
+     "afiliado": null
+    },
+    {
+     "etiqueta": "Alojamientos en Airbnb",
+     "url": "https://www.airbnb.es/s/Palermo%20(Sicilia)%0D%0A/homes?checkin=2026-11-27&checkout=2026-11-29&adults=2",
+     "grupo": "alojamiento",
+     "afiliado": null
+    },
+    {
+     "etiqueta": "Actividades en Civitatis",
+     "grupo": "actividades",
+     "url": "https://www.civitatis.com/es/buscar/?q=Palermo%20(Sicilia)%0D%0A",
+     "afiliado": null
+    },
+    {
+     "etiqueta": "Visitas en GetYourGuide",
+     "grupo": "actividades",
+     "url": "https://www.getyourguide.es/s/?q=Palermo%20(Sicilia)%0D%0A&date_from=2026-11-27",
+     "afiliado": null
+    },
+    {
+     "etiqueta": "Free tours en GuruWalk",
+     "grupo": "actividades",
+     "url": "https://www.guruwalk.com/es/search?q=Palermo%20(Sicilia)%0D%0A",
+     "afiliado": null
+    }
+   ],
+   "alojamiento": null,
+   "establecimiento": null,
+   "ninos": null,
+   "estrellas": null,
+   "historialPorNoche": false,
+   "valoracion": null,
+   "precioNoche": null,
+   "referencia": {
+    "mediana": 61.86,
+    "ahorroPct": 27,
+    "grupo": "vuelo:BCN-PMO:i/v",
+    "descripcion": "vuelos BCN–PMO, ida y vuelta",
+    "n": 6
+   },
+   "equivalentes": [],
+   "costeCoche": null,
+   "tiempo": null,
+   "eventos": [],
+   "fechas": {
+    "salida": "2026-11-27T22:25:00",
+    "vuelta": "2026-11-29T19:45:00",
+    "findeId": "2026-11-27",
+    "puenteId": null
+   }
+  },
+  {
+   "id": "wizzair:BCN-PMO:2026-11-13:2026-11-15",
+   "fuente": "wizzair",
+   "tipo": "vuelo",
+   "titulo": "Palermo (Sicilia)\r\n",
+   "descripcion": "BCN → PMO · ida vie 13 nov (salidas: 22:25) · vuelta dom 15 nov (salidas: 19:45). Precio más bajo de cada día; la hora exacta de esa tarifa se ve al reservar.",
+   "url": "https://wizzair.com/es-es/booking/select-flight/BCN/PMO/2026-11-13/2026-11-15/1/0/0/null",
+   "imagen": null,
+   "precio": 50.28,
+   "precioTexto": "desde 50,28 € ida y vuelta",
+   "unidad": "i/v",
+   "precioAnterior": 55.98,
+   "descuento": null,
+   "noches": null,
+   "regimen": null,
+   "temas": [
+    "playa"
+   ],
+   "transporte": "avion",
+   "lugar": {
+    "nombre": "Palermo (Sicilia)\r\n",
+    "region": null,
+    "pais": "Italia",
+    "codigoPais": "IT",
+    "iata": "PMO",
+    "lat": 38.18194444444444,
+    "lon": 13.099444444444446,
+    "provincia": null,
+    "comunidad": null
+   },
+   "cocheMin": null,
+   "cocheKm": null,
+   "cocheEstimado": false,
+   "vuelo": {
+    "origen": "BCN",
+    "destino": "PMO",
+    "ida": {
+     "salida": "2026-11-13T22:25:00",
+     "llegada": null,
+     "numero": null,
+     "precio": 18.34,
+     "escalas": 0
+    },
+    "vuelta": {
+     "salida": "2026-11-15T19:45:00",
+     "llegada": null,
+     "numero": null,
+     "precio": 31.94,
+     "escalas": 0
+    },
+    "consultaId": "BCN:2026-11-13:2026-11-15:normal",
+    "horarioIdeal": true,
+    "patron": "vie-dom",
+    "nuevaRuta": false,
+    "directo": true
+   },
+   "etiquetas": [
+    "Italia",
+    "vie-dom",
+    "Directo"
+   ],
+   "publicada": null,
+   "caduca": null,
+   "vistaPrimera": "2026-09-30T19:12:11.580Z",
+   "vistaUltima": "2026-09-30T19:12:11.580Z",
+   "bajada": null,
+   "minimoHistorico": false,
+   "puntuacion": 57,
+   "chollazo": false,
+   "chollazoMotivo": null,
+   "urlReserva": "https://wizzair.com/es-es/booking/select-flight/BCN/PMO/2026-11-13/2026-11-15/1/0/0/null",
+   "afiliado": null,
+   "patrocinada": null,
+   "enlaces": [
+    {
+     "etiqueta": "Comparar en Google Flights",
+     "url": "https://www.google.com/travel/flights?q=Vuelos%20de%20BCN%20a%20PMO%20el%202026-11-13%20vuelta%202026-11-15&hl=es",
+     "grupo": "comparar",
+     "afiliado": null
+    },
+    {
+     "etiqueta": "Comparar en Skyscanner",
+     "url": "https://www.skyscanner.es/transporte/vuelos/bcn/pmo/261113/261115/?adultsv2=1",
+     "grupo": "comparar",
+     "afiliado": null
+    },
+    {
+     "etiqueta": "Comparar en KAYAK",
+     "url": "https://www.kayak.es/flights/BCN-PMO/2026-11-13/2026-11-15?sort=price_a",
+     "grupo": "comparar",
+     "afiliado": null
+    },
+    {
+     "etiqueta": "Hoteles en Booking",
+     "url": "https://www.booking.com/searchresults.es.html?ss=Palermo%20(Sicilia)%0D%0A&checkin=2026-11-13&checkout=2026-11-15&group_adults=2&no_rooms=1&group_children=0",
+     "grupo": "alojamiento",
+     "afiliado": null
+    },
+    {
+     "etiqueta": "Alojamientos en Airbnb",
+     "url": "https://www.airbnb.es/s/Palermo%20(Sicilia)%0D%0A/homes?checkin=2026-11-13&checkout=2026-11-15&adults=2",
+     "grupo": "alojamiento",
+     "afiliado": null
+    },
+    {
+     "etiqueta": "Actividades en Civitatis",
+     "grupo": "actividades",
+     "url": "https://www.civitatis.com/es/buscar/?q=Palermo%20(Sicilia)%0D%0A",
+     "afiliado": null
+    },
+    {
+     "etiqueta": "Visitas en GetYourGuide",
+     "grupo": "actividades",
+     "url": "https://www.getyourguide.es/s/?q=Palermo%20(Sicilia)%0D%0A&date_from=2026-11-13",
+     "afiliado": null
+    },
+    {
+     "etiqueta": "Free tours en GuruWalk",
+     "grupo": "actividades",
+     "url": "https://www.guruwalk.com/es/search?q=Palermo%20(Sicilia)%0D%0A",
+     "afiliado": null
+    }
+   ],
+   "alojamiento": null,
+   "establecimiento": null,
+   "ninos": null,
+   "estrellas": null,
+   "historialPorNoche": false,
+   "valoracion": null,
+   "precioNoche": null,
+   "referencia": {
+    "mediana": 61.86,
+    "ahorroPct": 19,
+    "grupo": "vuelo:BCN-PMO:i/v",
+    "descripcion": "vuelos BCN–PMO, ida y vuelta",
+    "n": 6
+   },
+   "equivalentes": [],
+   "costeCoche": null,
+   "tiempo": null,
+   "eventos": [],
+   "fechas": {
+    "salida": "2026-11-13T22:25:00",
+    "vuelta": "2026-11-15T19:45:00",
+    "findeId": "2026-11-13",
+    "puenteId": null
+   }
+  },
+  {
+   "id": "wizzair:BCN-PMO:2026-12-04:2026-12-06",
+   "fuente": "wizzair",
+   "tipo": "vuelo",
+   "titulo": "Palermo (Sicilia)\r\n",
+   "descripcion": "BCN → PMO · ida vie 4 dic (salidas: 22:25) · vuelta dom 6 dic (salidas: 19:45). Precio más bajo de cada día; la hora exacta de esa tarifa se ve al reservar.",
+   "url": "https://wizzair.com/es-es/booking/select-flight/BCN/PMO/2026-12-04/2026-12-06/1/0/0/null",
+   "imagen": null,
+   "precio": 64.23,
+   "precioTexto": "desde 64,23 € ida y vuelta",
+   "unidad": "i/v",
+   "precioAnterior": 69.98,
+   "descuento": null,
+   "noches": null,
+   "regimen": null,
+   "temas": [
+    "playa"
+   ],
+   "transporte": "avion",
+   "lugar": {
+    "nombre": "Palermo (Sicilia)\r\n",
+    "region": null,
+    "pais": "Italia",
+    "codigoPais": "IT",
+    "iata": "PMO",
+    "lat": 38.18194444444444,
+    "lon": 13.099444444444446,
+    "provincia": null,
+    "comunidad": null
+   },
+   "cocheMin": null,
+   "cocheKm": null,
+   "cocheEstimado": false,
+   "vuelo": {
+    "origen": "BCN",
+    "destino": "PMO",
+    "ida": {
+     "salida": "2026-12-04T22:25:00",
+     "llegada": null,
+     "numero": null,
+     "precio": 45.89,
+     "escalas": 0
+    },
+    "vuelta": {
+     "salida": "2026-12-06T19:45:00",
+     "llegada": null,
+     "numero": null,
+     "precio": 18.34,
+     "escalas": 0
+    },
+    "consultaId": "BCN:2026-12-04:2026-12-06:normal",
+    "horarioIdeal": true,
+    "patron": "vie-dom",
+    "nuevaRuta": false,
+    "directo": true
+   },
+   "etiquetas": [
+    "Italia",
+    "vie-dom",
+    "Directo"
+   ],
+   "publicada": null,
+   "caduca": null,
+   "vistaPrimera": "2026-09-30T19:12:11.580Z",
+   "vistaUltima": "2026-09-30T19:12:11.580Z",
+   "bajada": null,
+   "minimoHistorico": false,
+   "puntuacion": 56,
+   "chollazo": false,
+   "chollazoMotivo": null,
+   "urlReserva": "https://wizzair.com/es-es/booking/select-flight/BCN/PMO/2026-12-04/2026-12-06/1/0/0/null",
+   "afiliado": null,
+   "patrocinada": null,
+   "enlaces": [
+    {
+     "etiqueta": "Comparar en Google Flights",
+     "url": "https://www.google.com/travel/flights?q=Vuelos%20de%20BCN%20a%20PMO%20el%202026-12-04%20vuelta%202026-12-06&hl=es",
+     "grupo": "comparar",
+     "afiliado": null
+    },
+    {
+     "etiqueta": "Comparar en Skyscanner",
+     "url": "https://www.skyscanner.es/transporte/vuelos/bcn/pmo/261204/261206/?adultsv2=1",
+     "grupo": "comparar",
+     "afiliado": null
+    },
+    {
+     "etiqueta": "Comparar en KAYAK",
+     "url": "https://www.kayak.es/flights/BCN-PMO/2026-12-04/2026-12-06?sort=price_a",
+     "grupo": "comparar",
+     "afiliado": null
+    },
+    {
+     "etiqueta": "Hoteles en Booking",
+     "url": "https://www.booking.com/searchresults.es.html?ss=Palermo%20(Sicilia)%0D%0A&checkin=2026-12-04&checkout=2026-12-06&group_adults=2&no_rooms=1&group_children=0",
+     "grupo": "alojamiento",
+     "afiliado": null
+    },
+    {
+     "etiqueta": "Alojamientos en Airbnb",
+     "url": "https://www.airbnb.es/s/Palermo%20(Sicilia)%0D%0A/homes?checkin=2026-12-04&checkout=2026-12-06&adults=2",
+     "grupo": "alojamiento",
+     "afiliado": null
+    },
+    {
+     "etiqueta": "Actividades en Civitatis",
+     "grupo": "actividades",
+     "url": "https://www.civitatis.com/es/buscar/?q=Palermo%20(Sicilia)%0D%0A",
+     "afiliado": null
+    },
+    {
+     "etiqueta": "Visitas en GetYourGuide",
+     "grupo": "actividades",
+     "url": "https://www.getyourguide.es/s/?q=Palermo%20(Sicilia)%0D%0A&date_from=2026-12-04",
+     "afiliado": null
+    },
+    {
+     "etiqueta": "Free tours en GuruWalk",
+     "grupo": "actividades",
+     "url": "https://www.guruwalk.com/es/search?q=Palermo%20(Sicilia)%0D%0A",
+     "afiliado": null
+    }
+   ],
+   "alojamiento": null,
+   "establecimiento": null,
+   "ninos": null,
+   "estrellas": null,
+   "historialPorNoche": false,
+   "valoracion": null,
+   "precioNoche": null,
+   "referencia": {
+    "mediana": 61.86,
+    "ahorroPct": -4,
+    "grupo": "vuelo:BCN-PMO:i/v",
+    "descripcion": "vuelos BCN–PMO, ida y vuelta",
+    "n": 6
+   },
+   "equivalentes": [],
+   "costeCoche": null,
+   "tiempo": null,
+   "eventos": [],
+   "fechas": {
+    "salida": "2026-12-04T22:25:00",
+    "vuelta": "2026-12-06T19:45:00",
+    "findeId": "2026-12-04",
+    "puenteId": "2026-12-05"
+   }
+  },
+  {
+   "id": "wizzair:BCN-TRN:2026-10-16:2026-10-18",
+   "fuente": "wizzair",
+   "tipo": "vuelo",
+   "titulo": "Turín",
+   "descripcion": "BCN → TRN · ida vie 16 oct (salidas: 13:05) · vuelta dom 18 oct (salidas: 11:00). Precio más bajo de cada día; la hora exacta de esa tarifa se ve al reservar.",
+   "url": "https://wizzair.com/es-es/booking/select-flight/BCN/TRN/2026-10-16/2026-10-18/1/0/0/null",
+   "imagen": null,
+   "precio": 36.68,
+   "precioTexto": "desde 36,68 € ida y vuelta",
+   "unidad": "i/v",
+   "precioAnterior": 39.98,
+   "descuento": null,
+   "noches": null,
+   "regimen": null,
+   "temas": [
+    "ciudad"
+   ],
+   "transporte": "avion",
+   "lugar": {
+    "nombre": "Turín",
+    "region": null,
+    "pais": "Italia",
+    "codigoPais": "IT",
+    "iata": "TRN",
+    "lat": 45.2025,
+    "lon": 7.649444444444444,
+    "provincia": null,
+    "comunidad": null
+   },
+   "cocheMin": null,
+   "cocheKm": null,
+   "cocheEstimado": false,
+   "vuelo": {
+    "origen": "BCN",
+    "destino": "TRN",
+    "ida": {
+     "salida": "2026-10-16T13:05:00",
+     "llegada": null,
+     "numero": null,
+     "precio": 18.34,
+     "escalas": 0
+    },
+    "vuelta": {
+     "salida": "2026-10-18T11:00:00",
+     "llegada": null,
+     "numero": null,
+     "precio": 18.34,
+     "escalas": 0
+    },
+    "consultaId": "BCN:2026-10-16:2026-10-18:normal",
+    "horarioIdeal": false,
+    "patron": "vie-dom",
+    "nuevaRuta": false,
+    "directo": true
+   },
+   "etiquetas": [
+    "Italia",
+    "vie-dom",
+    "Directo"
+   ],
+   "publicada": null,
+   "caduca": null,
+   "vistaPrimera": "2026-09-30T19:12:11.580Z",
+   "vistaUltima": "2026-09-30T19:12:11.580Z",
+   "bajada": null,
+   "minimoHistorico": false,
+   "puntuacion": 56,
+   "chollazo": false,
+   "chollazoMotivo": null,
+   "urlReserva": "https://wizzair.com/es-es/booking/select-flight/BCN/TRN/2026-10-16/2026-10-18/1/0/0/null",
+   "afiliado": null,
+   "patrocinada": null,
+   "enlaces": [
+    {
+     "etiqueta": "Comparar en Google Flights",
+     "url": "https://www.google.com/travel/flights?q=Vuelos%20de%20BCN%20a%20TRN%20el%202026-10-16%20vuelta%202026-10-18&hl=es",
+     "grupo": "comparar",
+     "afiliado": null
+    },
+    {
+     "etiqueta": "Comparar en Skyscanner",
+     "url": "https://www.skyscanner.es/transporte/vuelos/bcn/trn/261016/261018/?adultsv2=1",
+     "grupo": "comparar",
+     "afiliado": null
+    },
+    {
+     "etiqueta": "Comparar en KAYAK",
+     "url": "https://www.kayak.es/flights/BCN-TRN/2026-10-16/2026-10-18?sort=price_a",
+     "grupo": "comparar",
+     "afiliado": null
+    },
+    {
+     "etiqueta": "Hoteles en Booking",
+     "url": "https://www.booking.com/searchresults.es.html?ss=Tur%C3%ADn&checkin=2026-10-16&checkout=2026-10-18&group_adults=2&no_rooms=1&group_children=0",
+     "grupo": "alojamiento",
+     "afiliado": null
+    },
+    {
+     "etiqueta": "Alojamientos en Airbnb",
+     "url": "https://www.airbnb.es/s/Tur%C3%ADn/homes?checkin=2026-10-16&checkout=2026-10-18&adults=2",
+     "grupo": "alojamiento",
+     "afiliado": null
+    },
+    {
+     "etiqueta": "Actividades en Civitatis",
+     "grupo": "actividades",
+     "url": "https://www.civitatis.com/es/buscar/?q=Tur%C3%ADn",
+     "afiliado": null
+    },
+    {
+     "etiqueta": "Visitas en GetYourGuide",
+     "grupo": "actividades",
+     "url": "https://www.getyourguide.es/s/?q=Tur%C3%ADn&date_from=2026-10-16",
+     "afiliado": null
+    },
+    {
+     "etiqueta": "Free tours en GuruWalk",
+     "grupo": "actividades",
+     "url": "https://www.guruwalk.com/es/search?q=Tur%C3%ADn",
+     "afiliado": null
+    }
+   ],
+   "alojamiento": null,
+   "establecimiento": null,
+   "ninos": null,
+   "estrellas": null,
+   "historialPorNoche": false,
+   "valoracion": null,
+   "precioNoche": null,
+   "referencia": {
+    "mediana": 50.55,
+    "ahorroPct": 27,
+    "grupo": "vuelo:BCN-TRN:i/v",
+    "descripcion": "vuelos BCN–TRN, ida y vuelta",
+    "n": 10
+   },
+   "equivalentes": [],
+   "costeCoche": null,
+   "tiempo": null,
+   "eventos": [],
+   "fechas": {
+    "salida": "2026-10-16T13:05:00",
+    "vuelta": "2026-10-18T11:00:00",
+    "findeId": "2026-10-16",
+    "puenteId": null
+   }
+  },
+  {
+   "id": "wizzair:BCN-TRN:2026-11-06:2026-11-08",
+   "fuente": "wizzair",
+   "tipo": "vuelo",
+   "titulo": "Turín",
+   "descripcion": "BCN → TRN · ida vie 6 nov (salidas: 13:05) · vuelta dom 8 nov (salidas: 11:00). Precio más bajo de cada día; la hora exacta de esa tarifa se ve al reservar.",
+   "url": "https://wizzair.com/es-es/booking/select-flight/BCN/TRN/2026-11-06/2026-11-08/1/0/0/null",
+   "imagen": null,
+   "precio": 36.68,
+   "precioTexto": "desde 36,68 € ida y vuelta",
+   "unidad": "i/v",
+   "precioAnterior": 39.98,
+   "descuento": null,
+   "noches": null,
+   "regimen": null,
+   "temas": [
+    "ciudad"
+   ],
+   "transporte": "avion",
+   "lugar": {
+    "nombre": "Turín",
+    "region": null,
+    "pais": "Italia",
+    "codigoPais": "IT",
+    "iata": "TRN",
+    "lat": 45.2025,
+    "lon": 7.649444444444444,
+    "provincia": null,
+    "comunidad": null
+   },
+   "cocheMin": null,
+   "cocheKm": null,
+   "cocheEstimado": false,
+   "vuelo": {
+    "origen": "BCN",
+    "destino": "TRN",
+    "ida": {
+     "salida": "2026-11-06T13:05:00",
+     "llegada": null,
+     "numero": null,
+     "precio": 18.34,
+     "escalas": 0
+    },
+    "vuelta": {
+     "salida": "2026-11-08T11:00:00",
+     "llegada": null,
+     "numero": null,
+     "precio": 18.34,
+     "escalas": 0
+    },
+    "consultaId": "BCN:2026-11-06:2026-11-08:normal",
+    "horarioIdeal": false,
+    "patron": "vie-dom",
+    "nuevaRuta": false,
+    "directo": true
+   },
+   "etiquetas": [
+    "Italia",
+    "vie-dom",
+    "Directo"
+   ],
+   "publicada": null,
+   "caduca": null,
+   "vistaPrimera": "2026-09-30T19:12:11.580Z",
+   "vistaUltima": "2026-09-30T19:12:11.580Z",
+   "bajada": null,
+   "minimoHistorico": false,
+   "puntuacion": 56,
+   "chollazo": false,
+   "chollazoMotivo": null,
+   "urlReserva": "https://wizzair.com/es-es/booking/select-flight/BCN/TRN/2026-11-06/2026-11-08/1/0/0/null",
+   "afiliado": null,
+   "patrocinada": null,
+   "enlaces": [
+    {
+     "etiqueta": "Comparar en Google Flights",
+     "url": "https://www.google.com/travel/flights?q=Vuelos%20de%20BCN%20a%20TRN%20el%202026-11-06%20vuelta%202026-11-08&hl=es",
+     "grupo": "comparar",
+     "afiliado": null
+    },
+    {
+     "etiqueta": "Comparar en Skyscanner",
+     "url": "https://www.skyscanner.es/transporte/vuelos/bcn/trn/261106/261108/?adultsv2=1",
+     "grupo": "comparar",
+     "afiliado": null
+    },
+    {
+     "etiqueta": "Comparar en KAYAK",
+     "url": "https://www.kayak.es/flights/BCN-TRN/2026-11-06/2026-11-08?sort=price_a",
+     "grupo": "comparar",
+     "afiliado": null
+    },
+    {
+     "etiqueta": "Hoteles en Booking",
+     "url": "https://www.booking.com/searchresults.es.html?ss=Tur%C3%ADn&checkin=2026-11-06&checkout=2026-11-08&group_adults=2&no_rooms=1&group_children=0",
+     "grupo": "alojamiento",
+     "afiliado": null
+    },
+    {
+     "etiqueta": "Alojamientos en Airbnb",
+     "url": "https://www.airbnb.es/s/Tur%C3%ADn/homes?checkin=2026-11-06&checkout=2026-11-08&adults=2",
+     "grupo": "alojamiento",
+     "afiliado": null
+    },
+    {
+     "etiqueta": "Actividades en Civitatis",
+     "grupo": "actividades",
+     "url": "https://www.civitatis.com/es/buscar/?q=Tur%C3%ADn",
+     "afiliado": null
+    },
+    {
+     "etiqueta": "Visitas en GetYourGuide",
+     "grupo": "actividades",
+     "url": "https://www.getyourguide.es/s/?q=Tur%C3%ADn&date_from=2026-11-06",
+     "afiliado": null
+    },
+    {
+     "etiqueta": "Free tours en GuruWalk",
+     "grupo": "actividades",
+     "url": "https://www.guruwalk.com/es/search?q=Tur%C3%ADn",
+     "afiliado": null
+    }
+   ],
+   "alojamiento": null,
+   "establecimiento": null,
+   "ninos": null,
+   "estrellas": null,
+   "historialPorNoche": false,
+   "valoracion": null,
+   "precioNoche": null,
+   "referencia": {
+    "mediana": 50.55,
+    "ahorroPct": 27,
+    "grupo": "vuelo:BCN-TRN:i/v",
+    "descripcion": "vuelos BCN–TRN, ida y vuelta",
+    "n": 10
+   },
+   "equivalentes": [],
+   "costeCoche": null,
+   "tiempo": null,
+   "eventos": [],
+   "fechas": {
+    "salida": "2026-11-06T13:05:00",
+    "vuelta": "2026-11-08T11:00:00",
+    "findeId": "2026-11-06",
+    "puenteId": null
+   }
+  }
+ ],
+ "rutas": [
+  "BCN-PMO",
+  "BCN-TRN",
+  "BCN-FCO",
+  "BCN-CLJ",
+  "BCN-LTN",
+  "BCN-MXP",
+  "BCN-TIA",
+  "BCN-VCE",
+  "BCN-WAW",
+  "BCN-WMI",
+  "BCN-KRK",
+  "BCN-KTW",
+  "BCN-RMO",
+  "BCN-BEG",
+  "BCN-WRO",
+  "BCN-BBU",
+  "BCN-OTP",
+  "BCN-BUD",
+  "BCN-BTS",
+  "BCN-SOF",
+  "BCN-GDN",
+  "BCN-IAS",
+  "BCN-KUT"
+ ]
+}
