@@ -3,26 +3,8 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 
 const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130 Safari/537.36';
 const URLS = {
-  'wizz-robots': 'https://wizzair.com/robots.txt',
-  'wizz-be-robots': 'https://be.wizzair.com/robots.txt',
-  'wizz-build': 'https://wizzair.com/buildnumber',
-  'easyjet-robots': 'https://www.easyjet.com/robots.txt',
-  'easyjet-fares': 'https://www.easyjet.com/api/routepricing/v3/searchfares/GetAllFaresByDate?departureAirport=BCN&arrivalAirport=LGW&currency=EUR',
-  'vueling-robots': 'https://www.vueling.com/robots.txt',
-  'transavia-robots': 'https://www.transavia.com/robots.txt',
-  'norwegian-robots': 'https://www.norwegian.com/robots.txt',
-  'iberia-robots': 'https://www.iberia.com/robots.txt',
-  'airbaltic-robots': 'https://www.airbaltic.com/robots.txt',
-  'jet2-robots': 'https://www.jet2.com/robots.txt',
-  'jet2-api': 'https://www.jet2.com/api/search/flightsearchresults/cheapestprice?departureAirportIata=BCN',
-  'eurowings-robots': 'https://www.eurowings.com/robots.txt',
-  'binter-robots': 'https://www.bintercanarias.com/robots.txt',
-  'skyscanner-robots': 'https://www.skyscanner.es/robots.txt',
-  'google-robots': 'https://www.google.com/robots.txt',
-  'kayak-robots': 'https://www.kayak.es/robots.txt',
-  'momondo-robots': 'https://www.momondo.es/robots.txt',
-  'kiwi-robots': 'https://www.kiwi.com/robots.txt',
-  'kiwi-api-robots': 'https://api.skypicker.com/robots.txt',
+  'wizz-metadata': 'https://wizzair.com/static_fe/metadata.json',
+  'wizz-home': 'https://wizzair.com/es-es',
 };
 mkdirSync('sondeo', { recursive: true });
 const resumen = {};
@@ -36,8 +18,11 @@ for (const [nombre, url] of Object.entries(URLS)) {
 }
 // Wizz Air: timetable (POST) con la versión de la web
 try {
-  const build = (await (await fetch('https://wizzair.com/buildnumber', { headers: { 'User-Agent': UA } })).text()).trim();
-  const version = build.match(/\d+\.\d+\.\d+/)?.[0] ?? build;
+  const build = (await (await fetch('https://wizzair.com/static_fe/metadata.json', { headers: { 'User-Agent': UA } })).text()).trim();
+  const version = build.match(/be\.wizzair\.com\/([\d.]+)/)?.[1] ?? (await (await fetch('https://wizzair.com/es-es', { headers: { 'User-Agent': UA } })).text()).match(/be\.wizzair\.com\/([\d.]+)/)?.[1];
+  resumen.version = version;
+  const m = await fetch(`https://be.wizzair.com/${version}/Api/asset/map?languageCode=es-es`, { headers: { 'User-Agent': UA, Origin: 'https://wizzair.com', Referer: 'https://wizzair.com/' } });
+  const mt = await m.text(); resumen.wizzMapa = { estado: m.status, bytes: mt.length }; writeFileSync('sondeo/wizz-mapa.txt', mt.slice(0, 200000));
   resumen.wizzVersion = build.slice(0, 200);
   const cuerpo = { flightList: [{ departureStation: 'BCN', arrivalStation: 'BUD', from: '2026-10-15', to: '2026-10-19' }, { departureStation: 'BUD', arrivalStation: 'BCN', from: '2026-10-15', to: '2026-10-19' }], priceType: 'regular', adultCount: 1, childCount: 0, infantCount: 0 };
   const r = await fetch(`https://be.wizzair.com/${version}/Api/search/timetable`, { method: 'POST', headers: { 'User-Agent': UA, 'Content-Type': 'application/json', Origin: 'https://wizzair.com', Referer: 'https://wizzair.com/' }, body: JSON.stringify(cuerpo), signal: AbortSignal.timeout(20000) });
