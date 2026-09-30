@@ -172,6 +172,14 @@ describe('duplicados: la misma oferta publicada dos veces en la misma web', () =
     assert.ok(!b.etiquetas.includes('duplicada'));
   });
 
+  it('un reclamo que la web pone o quita («Noche adicional con descuento») no las distingue; se queda la más completa', () => {
+    const sinNombre = weekendesk('21836906', { etiquetas: ['Escapada barata', 'Noche adicional con descuento', 'Hotel 4*', 'Pensión completa'] });
+    const conNombre = weekendesk('8082400', { establecimiento: 'Hotel GHT Oasis Park & Spa', etiquetas: ['Escapada barata', 'Hotel 4*', 'Pensión completa'] });
+    marcarEquivalentes([sinNombre, conNombre]);
+    assert.ok(sinNombre.etiquetas.includes('duplicada'));
+    assert.ok(!conNombre.etiquetas.includes('duplicada'), 'la que dice el nombre del hotel se queda');
+  });
+
   it('una etiqueta, el precio o la descripción distintos son productos distintos', () => {
     const base = weekendesk('1');
     const otras = [

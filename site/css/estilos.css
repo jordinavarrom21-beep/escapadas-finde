@@ -1147,6 +1147,11 @@ main { padding-block: 22px 56px; min-height: 60vh; }
   box-shadow: var(--sombra-alta); text-align: center;
 }
 .aviso-flotante:empty { display: none; }
+.aviso-flotante--datos { display: flex; align-items: center; gap: 12px; text-align: left; }
+.aviso-flotante--datos[hidden] { display: none; }
+.aviso-flotante--datos .boton { flex: none; min-height: 36px; padding: 6px 14px; }
+/* Si también hay un aviso corto, el de datos nuevos sube para no taparlo. */
+.aviso-flotante--datos:not([hidden]) ~ .aviso-flotante:not(:empty) { bottom: calc(76px + var(--barra-movil)); }
 
 .pie {
   display: grid; gap: 10px; margin-top: 12px; padding-block: 0 40px;

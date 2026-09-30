@@ -57,16 +57,16 @@
     },
     "buscounchollo": {
       "activa": true,
-      "intervaloMin": 60
+      "intervaloMin": 30
     },
     "viajerospiratas": {
       "activa": true,
-      "intervaloMin": 30,
+      "intervaloMin": 20,
       "retencionDias": 5
     },
     "holidayguru": {
       "activa": true,
-      "intervaloMin": 60
+      "intervaloMin": 30
     },
     "nomolesten": {
       "activa": true,
@@ -74,21 +74,21 @@
     },
     "fly4free": {
       "activa": true,
-      "intervaloMin": 60,
+      "intervaloMin": 30,
       "retencionDias": 5
     },
     "chollometro": {
       "activa": true,
-      "intervaloMin": 30,
+      "intervaloMin": 15,
       "retencionDias": 5
     },
     "atrapalo": {
       "activa": true,
-      "intervaloMin": 720
+      "intervaloMin": 360
     },
     "weekendesk": {
       "activa": true,
-      "intervaloMin": 720
+      "intervaloMin": 360
     },
     "rusticae": {
       "activa": true,
@@ -121,7 +121,7 @@
     },
     "muchoviaje": {
       "activa": true,
-      "intervaloMin": 720
+      "intervaloMin": 360
     },
     "grandvalira": {
       "activa": true,
@@ -133,15 +133,15 @@
     },
     "ouigo": {
       "activa": true,
-      "intervaloMin": 240
+      "intervaloMin": 120
     },
     "flixbus": {
       "activa": true,
-      "intervaloMin": 180
+      "intervaloMin": 120
     },
     "buzon": {
       "activa": true,
-      "intervaloMin": 60
+      "intervaloMin": 15
     },
     "civitatis": {
       "activa": true,

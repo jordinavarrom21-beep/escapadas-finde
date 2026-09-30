@@ -30,6 +30,16 @@ describe('auditoría: el workflow no despliega un panel sin datos', () => {
     }
   });
 
+  it('revisión continua: lanza «Vigilar ofertas» a menudo, se relanza y nunca solapa dos escaneos', () => {
+    const relevo = readFileSync(new URL('../.github/workflows/relevo.yml', import.meta.url), 'utf8');
+    assert.match(relevo, /gh workflow run vigilar\.yml/);
+    assert.match(relevo, /gh workflow run relevo\.yml/, 'se pasa el relevo antes de acabar');
+    assert.match(relevo, /group: relevo\s+cancel-in-progress: true/, 'un solo relevo vivo');
+    assert.match(workflow, /group: vigilar\s+cancel-in-progress: false/, 'los escaneos van en cola, no se pisan');
+    const minutos = Number(relevo.match(/DURANTE_MIN: (\d+)/)[1]) + Number(relevo.match(/CADA_MIN: (\d+)/)[1]);
+    assert.ok(minutos < Number(relevo.match(/timeout-minutes: (\d+)/)[1]), 'termina (y pasa el relevo) antes del límite de tiempo');
+  });
+
   it('guardar los datos no falla si no hay carpeta data', () => {
     assert.match(workflow, /\[ -d data \] \|\| \{ echo 'No hay datos que guardar'; exit 0; \}/);
   });

@@ -1,0 +1,47 @@
+# Revisión continua: lanza «Vigilar ofertas» cada 15 minutos.
+#
+# GitHub no garantiza los crons (de las 48 revisiones diarias programadas lanza unas 6), así
+# que este workflow se queda despierto casi 6 horas lanzando una revisión cada 15 minutos y,
+# antes de terminar, se relanza a sí mismo. El cron de abajo solo lo rearranca si la cadena
+# se corta. Es gratis en un repositorio público.
+#
+# Sin duplicar ni pisar nada: «Vigilar ofertas» nunca corre dos veces a la vez (su grupo de
+# concurrencia las pone en cola) y cada web se consulta solo cuando le toca por su intervalo.
+name: Revisión continua
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '23 */2 * * *'
+
+permissions:
+  actions: write   # lanzar «Vigilar ofertas» y relanzarse
+
+# Solo un relevo vivo: el nuevo sustituye al anterior.
+concurrency:
+  group: relevo
+  cancel-in-progress: true
+
+jobs:
+  relevo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    env:
+      GH_TOKEN: ${{ github.token }}
+      CADA_MIN: 15
+      DURANTE_MIN: 320
+    steps:
+      - name: Lanzar una revisión cada 15 minutos
+        run: |
+          fin=$(( $(date +%s) + DURANTE_MIN * 60 ))
+          while [ "$(date +%s)" -lt "$fin" ]; do
+            # Si ya hay una revisión en marcha, esta espera en cola (no se solapan).
+            gh workflow run vigilar.yml --repo "$GITHUB_REPOSITORY" --ref main \
+              || echo "::warning::No se ha podido lanzar la revisión; se reintenta en ${CADA_MIN} min"
+            sleep $(( CADA_MIN * 60 ))
+          done
+
+      # Un workflow lanzado con el token del propio workflow sí arranca (workflow_dispatch es la excepción).
+      - name: Pasar el relevo
+        if: ${{ !cancelled() }}
+        run: gh workflow run relevo.yml --repo "$GITHUB_REPOSITORY" --ref main

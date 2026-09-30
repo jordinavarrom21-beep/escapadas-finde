@@ -31,8 +31,8 @@ const $ = (selector) => document.querySelector(selector);
 const esMovil = () => matchMedia('(max-width: 719px)').matches;
 const principal = $('#principal');
 const dialogo = $('#ficha');
-/** GitHub lanza una revisión cada ~4 h (LEEME, «Revisión puntual»): a las 6 h ya es raro. */
-const DATOS_ANTIGUOS_MS = 6 * 3_600_000;
+/** «Revisión continua» escanea cada 15 min: si pasan 2 h sin datos nuevos, algo falla. */
+const DATOS_ANTIGUOS_MS = 2 * 3_600_000;
 const AVISO_MS = 5000;
 const SALTO_SORPRESA = 3;
 const CAMPOS_QUE_SE_ESCRIBEN = ['number', 'search', 'text'];
@@ -112,7 +112,7 @@ function pintarReloj() {
   const antiguo = Date.now() - Date.parse(generado) > DATOS_ANTIGUOS_MS;
   const actualizado = $('#actualizado');
   // En la cabecera solo si los datos son viejos (la portada ya dice cuándo se revisó).
-  actualizado.innerHTML = `${icono('alerta')}Revisado <time datetime="${esc(generado)}" title="${esc(new Date(generado).toLocaleString('es-ES'))}. Cada web se consulta a su ritmo (de 30 min a 1 día): en cada oferta pone cuándo se comprobó.">${esc(haceCuanto(generado))}</time>`;
+  actualizado.innerHTML = `${icono('alerta')}Revisado <time datetime="${esc(generado)}" title="${esc(new Date(generado).toLocaleString('es-ES'))}. Cada web se consulta a su ritmo (de 15 min a 1 día): en cada oferta pone cuándo se comprobó.">${esc(haceCuanto(generado))}</time>`;
   actualizado.classList.toggle('antiguo', antiguo);
   actualizado.hidden = !antiguo;
 }
@@ -661,13 +661,14 @@ function alternarMiEstado(id, nuevo) {
 
 const ACCIONES = '[data-actualizar], [data-compartir-busqueda], [data-usar-viaje], [data-mi-estado], [data-abrir-filtros], [data-comparar], [data-vaciar-comparar], [data-mi-viaje], [data-cerrar-viaje], [data-ficha], [data-fav], [data-descartar], [data-mas], [data-sorpresa],'
   + ' [data-guardar-busqueda], [data-borrar-busqueda], [data-copiar-vigilado], [data-cerrar-ficha], [data-cerrar-novedades],'
-  + ' [data-olvidar-filtros], [data-cerrar-mas], [data-modo-lista], [data-abrir-busqueda]';
+  + ' [data-olvidar-filtros], [data-cerrar-mas], [data-modo-lista], [data-abrir-busqueda], [data-ver-datos-nuevos]';
 
 function manejarClic(evento) {
   const objetivo = evento.target.closest(ACCIONES);
   if (!objetivo) return;
   const d = objetivo.dataset;
   if ('actualizar' in d) location.reload();
+  else if ('verDatosNuevos' in d) aplicarDatosNuevos();
   else if (d.compartirBusqueda) compartirBusqueda(d.compartirBusqueda);
   else if ('usarViaje' in d) usarViajeCompartido();
   else if (d.miEstado) alternarMiEstado(d.oferta, d.miEstado);
@@ -790,21 +791,57 @@ let cargadoEn = Date.now();
  */
 async function refrescarSiHaceFalta() {
   if (document.visibilityState !== 'visible' || !estado) return;
-  if (fechaLocal(new Date()) === estado.hoy && Date.now() - cargadoEn < REFRESCO_MS) return;
+  if (fechaLocal(new Date()) === estado.hoy && Date.now() - cargadoEn < REFRESCO_MS) {
+    comprobarDatosNuevos();
+    return;
+  }
   try {
-    const [datos, historial, vigilados] = await Promise.all([
-      cargarJson('data/ofertas.json'),
-      cargarJson('data/historial.json', {}),
-      cargarJson('data/vigilados.json', { vigilados: [] }),
-    ]);
-    const { paginas, salto } = estado;
-    estado = { ...crearEstado(datos, historial, vigilados), paginas, salto };
-    cargadoEn = Date.now();
-    pintarCabecera();
-    render({ enfocar: false });
+    usarDatos(await cargarTodo());
   } catch (error) {
     console.warn('No se han podido renovar los datos al volver a la pestaña:', error);
   }
+}
+
+const cargarTodo = () => Promise.all([
+  cargarJson('data/ofertas.json'),
+  cargarJson('data/historial.json', {}),
+  cargarJson('data/vigilados.json', { vigilados: [] }),
+]);
+
+function usarDatos([datos, historial, vigilados]) {
+  const { paginas, salto } = estado;
+  estado = { ...crearEstado(datos, historial, vigilados), paginas, salto };
+  cargadoEn = Date.now();
+  datosNuevos = null;
+  $('#datos-nuevos').hidden = true;
+  pintarCabecera();
+  render({ enfocar: false });
+}
+
+/** Con la pestaña abierta se mira cada 10 min si hay un escaneo nuevo (llega uno cada 15). */
+const NOVEDADES_MS = 10 * 60_000;
+let datosNuevos = null;
+
+/**
+ * Si hay un escaneo más reciente, no se repinta por sorpresa (movería lo que estás mirando):
+ * sale «Hay ofertas nuevas» con un botón para verlas.
+ */
+async function comprobarDatosNuevos() {
+  if (document.visibilityState !== 'visible' || !estado) return;
+  try {
+    const todo = await cargarTodo();
+    if (todo[0].generado === estado.datos.generado || Date.parse(todo[0].generado) < Date.parse(estado.datos.generado)) return;
+    datosNuevos = todo;
+    const aviso = $('#datos-nuevos');
+    aviso.innerHTML = `<span>${icono('nuevo')} Hay ofertas nuevas (revisado ${esc(haceCuanto(todo[0].generado))})</span><button type="button" class="boton boton--primario" data-ver-datos-nuevos>Ver</button>`;
+    aviso.hidden = false;
+  } catch (error) {
+    console.warn('No se ha podido mirar si hay ofertas nuevas:', error);
+  }
+}
+
+function aplicarDatosNuevos() {
+  if (datosNuevos) usarDatos(datosNuevos);
 }
 
 async function iniciar() {
@@ -827,6 +864,7 @@ async function iniciar() {
   pintarNovedades();
   render({ enfocar: false });
   setInterval(pintarReloj, 30_000);
+  setInterval(comprobarDatosNuevos, NOVEDADES_MS);
   activarActualizaciones();
 }
 
@@ -864,7 +902,7 @@ function activarActualizaciones() {
   navigator.serviceWorker.register('sw.js')
     .then((registro) => {
       document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') registro.update().catch(() => {});
+        if (document.visibilityState === 'visible') registro?.update?.().catch(() => {});
       });
     })
     .catch((error) => console.warn('No se ha podido registrar el service worker:', error));
