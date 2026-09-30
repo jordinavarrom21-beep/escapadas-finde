@@ -35,10 +35,14 @@ const INTERFAZ = [
   'js/mapa.js',
   'js/nota.js',
   'js/plantillas.js',
+  'js/plantillas-ficha.js',
   'js/tema.js',
   'js/ubicacion.js',
   'js/viaje.js',
   'js/vistas.js',
+  'js/vistas-comun.js',
+  'js/vistas-info.js',
+  'js/vistas-portada.js',
 ];
 
 self.addEventListener('install', (evento) => {
