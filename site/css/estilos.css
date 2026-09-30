@@ -501,7 +501,10 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 .destacado__titulo { font-family: var(--fuente-titulos); font-size: 1.45rem; line-height: 1.15; letter-spacing: -0.015em; }
 .destacado__titulo .enlace-ficha { color: var(--banda-texto); }
 .destacado .precio strong { font-size: 2.6rem; color: var(--banda-texto); }
-.destacado .precio__unidad, .destacado .precio__desde, .destacado .precio__anterior, .destacado .precio__noche { color: var(--banda-suave); }
+.destacado .precio--publicado strong { font-size: 1.2rem; }
+.destacado .precio__unidad, .destacado .precio__desde, .destacado .precio__anterior, .destacado .precio__noche, .destacado .precio__etiqueta { color: var(--banda-suave); }
+.destacado__precio { display: grid; gap: 8px; }
+.destacado .coste-total__cifra strong { font-size: 2.3rem; }
 .destacado__ahorro { display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--chollo-claro); }
 .destacado__pie {
   margin-top: auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;
@@ -731,10 +734,17 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 .insignia--comparar { background: var(--superficie-2); color: var(--texto); }
 .insignia--comparar a { color: var(--enlace); }
 .insignia--comparar .ic { color: var(--acento); }
-.tarjeta__precio { min-height: 56px; }
+/* Precio: primero el coste comparable del viaje (.coste-total) y debajo, rotulado, el de la web. */
+.tarjeta__precio { display: grid; gap: 6px; align-content: start; min-height: 122px; }
 .tarjeta__precio .precio { margin: 0; }
-.tarjeta__coste { min-height: 62px; }
-.tarjeta__coste:empty { visibility: hidden; }
+.coste-total__cifra { margin: 0; flex-basis: 100%; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 8px; }
+.coste-total__etiqueta { font-size: 0.8rem; font-weight: 700; }
+.coste-total__cifra strong { font-family: var(--fuente-titulos); font-size: 1.55rem; font-weight: 800; letter-spacing: -0.02em; line-height: 1.05; color: var(--texto); }
+.coste-total__supuestos { flex-basis: 100%; font-size: 0.74rem; font-weight: 500; color: var(--texto-suave); }
+.precio--publicado { gap: 0 5px; }
+.precio.precio--publicado strong { font-size: 1.05rem; }
+.precio__etiqueta { font-size: 0.78rem; font-weight: 650; color: var(--texto-suave); }
+.precio__etiqueta::after { content: ":"; }
 .tarjeta .acciones { flex-wrap: nowrap; }
 .tarjeta .acciones .boton--primario { flex: 1; min-width: 0; justify-content: center; padding-inline: 12px; font-size: 0.9rem; }
 .tarjeta .acciones .boton--primario > .ic { display: none; }
