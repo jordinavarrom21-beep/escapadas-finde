@@ -1,0 +1,42 @@
+{
+ "robots-es": {
+  "estado": 200,
+  "tipo": "text/plain; charset=utf-8",
+  "bytes": 19466
+ },
+ "resumen-Tarragona": {
+  "estado": 200,
+  "tipo": "application/json; charset=utf-8; profile=\"https://www.mediawiki.org/wiki/Specs/Summary/1.5.0\"",
+  "bytes": 2458
+ },
+ "resumen-Arinsal": {
+  "estado": 200,
+  "tipo": "application/json; charset=utf-8; profile=\"https://www.mediawiki.org/wiki/Specs/Summary/1.5.0\"",
+  "bytes": 1884
+ },
+ "resumen-Besalú": {
+  "estado": 200,
+  "tipo": "application/json; charset=utf-8; profile=\"https://www.mediawiki.org/wiki/Specs/Summary/1.5.0\"",
+  "bytes": 2337
+ },
+ "resumen-Turín": {
+  "estado": 200,
+  "tipo": "application/json; charset=utf-8; profile=\"https://www.mediawiki.org/wiki/Specs/Summary/1.5.0\"",
+  "bytes": 2083
+ },
+ "resumen-Cadaqués": {
+  "estado": 200,
+  "tipo": "application/json; charset=utf-8; profile=\"https://www.mediawiki.org/wiki/Specs/Summary/1.5.0\"",
+  "bytes": 2087
+ },
+ "resumen-Vall_de_Boí": {
+  "estado": 200,
+  "tipo": "application/json; charset=utf-8; profile=\"https://www.mediawiki.org/wiki/Specs/Summary/1.5.0\"",
+  "bytes": 2254
+ },
+ "accion-varios": {
+  "estado": 200,
+  "tipo": "application/json; charset=utf-8",
+  "bytes": 1531
+ }
+}
