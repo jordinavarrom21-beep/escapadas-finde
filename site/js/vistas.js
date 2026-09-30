@@ -100,7 +100,7 @@ export function ctxTarjetas(e, extra = {}) {
     historial: e.historial, distancias: e.distanciasOrigen, desde: nombreSalida(e),
     // El coste de coche que calcula el escaneo es desde su origen: desde otra salida no vale.
     salidaPropia: Boolean(e.salida), ...datosViaje(e), ahora: e.ahora, comparar: e.comparar ?? null, misEstados: e.misEstados ?? null,
-    intervalos: intervalosDe(e), ...extra,
+    intervalos: intervalosDe(e), busqueda: e.busqueda ?? null, ...extra,
   };
 }
 

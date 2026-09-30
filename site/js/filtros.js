@@ -334,10 +334,16 @@ const enRango = (valor, min, max) => (min == null && max == null)
 
 const destinoExcluido = (o, destinos = []) => destinos.some((d) => d === o.lugar?.nombre || d === o.lugar?.region);
 
+/**
+ * ¿Vale para esas fechas? Las flexibles, si no han caducado antes. Las de fechas cerradas:
+ * con un rango («del 16 al 18»), la estancia tiene que caber dentro (una del 14 al 17 no es
+ * «del 16 al 18»); con un día, que lo incluya.
+ */
 function enRangoFechas(o, desde, hasta) {
   const salida = o.fechas?.salida?.slice(0, 10);
   if (!salida) return !desde || !o.caduca || fechaLocal(o.caduca) >= desde;
   const vuelta = (o.fechas.vuelta ?? o.fechas.salida).slice(0, 10);
+  if (desde && hasta && desde !== hasta) return salida >= desde && vuelta <= hasta;
   return (!desde || vuelta >= desde) && (!hasta || salida <= hasta);
 }
 
