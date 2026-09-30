@@ -1,0 +1,32 @@
+{
+ "robots-gateway": {
+  "estado": 200,
+  "tipo": "text/html; charset=UTF-8",
+  "bytes": 84575
+ },
+ "buscar-Tarragona": {
+  "estado": 200,
+  "tipo": "application/json",
+  "bytes": 712
+ },
+ "buscar-Arinsal": {
+  "estado": 200,
+  "tipo": "application/json",
+  "bytes": 685
+ },
+ "buscar-Besalú": {
+  "estado": 200,
+  "tipo": "application/json",
+  "bytes": 699
+ },
+ "buscar-Turín": {
+  "estado": 200,
+  "tipo": "application/json",
+  "bytes": 609
+ },
+ "robots-commons-upload": {
+  "estado": 200,
+  "tipo": "text/plain",
+  "bytes": 53
+ }
+}
