@@ -63,14 +63,22 @@ export function ponerDireccion(html, base, { pagina = 'index' } = {}) {
     .replace(/(<meta property="og:image" content="[^"]*">)/, `$1\n  <meta property="og:url" content="${base}">\n  <link rel="canonical" href="${base}">`);
 }
 
-/** .htaccess para Apache/LiteSpeed (Hostinger), con el dominio de `base` como el único válido. */
-export function htaccess(base) {
-  const { host } = new URL(base);
-  const sinWww = host.replace(/^www\./, '');
-  const conWww = host.startsWith('www.');
-  const hostEscapado = host.replace(/\./g, '\\.');
+/**
+ * .htaccess para Apache/LiteSpeed (Hostinger). Con `base`, ese dominio es el único válido
+ * (con o sin www, el que diga); sin ella, vale cualquier dominio y solo se fuerza HTTPS.
+ */
+export function htaccess(base = null) {
+  const host = base ? new URL(base).host : null;
+  const hostEscapado = host?.replace(/\./g, '\\.');
+  const destino = host ?? '%{HTTP_HOST}';
+  const unDominio = host
+    ? `  # Siempre ${host} (${host.startsWith('www.') ? `${host.slice(4)} → ${host}` : `www.${host} → ${host}`}).
+  RewriteCond %{HTTP_HOST} !^${hostEscapado}$ [NC]
+  RewriteRule ^ https://${host}%{REQUEST_URI} [R=301,L]
+`
+    : '';
   return `# Escapadas Finde · configuración para Apache / LiteSpeed (Hostinger)
-# Generado por scripts/preparar-web.js para ${base}
+# Generado por scripts/preparar-web.js${base ? ` para ${base}` : ' (vale para cualquier dominio)'}
 
 Options -Indexes
 DirectoryIndex index.html
@@ -82,14 +90,12 @@ AddType image/svg+xml .svg
 
 <IfModule mod_rewrite.c>
   RewriteEngine On
-  # Siempre HTTPS y siempre ${host} (${conWww ? `${sinWww} → ${host}` : `www.${sinWww} → ${host}`}).
+  # Siempre HTTPS.
   # Detrás de un CDN o proxy, HTTPS llega en X-Forwarded-Proto: se miran los dos (sin bucles).
   RewriteCond %{HTTPS} !=on
   RewriteCond %{HTTP:X-Forwarded-Proto} !=https
-  RewriteRule ^ https://${host}%{REQUEST_URI} [R=301,L]
-  RewriteCond %{HTTP_HOST} !^${hostEscapado}$ [NC]
-  RewriteRule ^ https://${host}%{REQUEST_URI} [R=301,L]
-  # Las copias de seguridad de datos nunca se sirven.
+  RewriteRule ^ https://${destino}%{REQUEST_URI} [R=301,L]
+${unDominio}  # Las copias de seguridad de datos nunca se sirven.
   RewriteRule \\.(bak|tmp)$ - [F,L]
 </IfModule>
 
@@ -140,7 +146,6 @@ export function prepararWeb({ dir = 'site', base = null, version = null, conHtac
     hecho.push(`dirección ${base}`);
   }
   if (conHtaccess) {
-    if (!base) throw new Error('El .htaccess necesita la dirección de la web (--base)');
     writeFileSync(path.join(dir, '.htaccess'), htaccess(base));
     hecho.push('.htaccess');
   }

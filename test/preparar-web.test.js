@@ -50,3 +50,11 @@ describe('preparar la web para publicar (GitHub Pages y Hostinger)', () => {
     assert.ok(hecho.includes('.htaccess'));
   });
 });
+
+describe('.htaccess sin dominio (zip para cualquier dominio)', () => {
+  it('fuerza HTTPS con el dominio con el que se entra y no fija ninguno', () => {
+    const texto = htaccess(null);
+    assert.match(texto, /RewriteRule \^ https:\/\/%\{HTTP_HOST\}%\{REQUEST_URI\} \[R=301,L\]/);
+    assert.doesNotMatch(texto, /RewriteCond %\{HTTP_HOST\}/);
+  });
+});

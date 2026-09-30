@@ -17,7 +17,8 @@
     "lint": "eslint .",
     "datos:publicados": "node scripts/datos-publicados.js",
     "test:navegador": "node pruebas-navegador/funcional.mjs",
-    "test:maquetacion": "node pruebas-navegador/maquetacion.mjs"
+    "test:maquetacion": "node pruebas-navegador/maquetacion.mjs",
+    "empaquetar": "node scripts/empaquetar.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.130.0",
