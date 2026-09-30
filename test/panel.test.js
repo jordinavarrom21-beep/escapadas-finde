@@ -474,7 +474,7 @@ describe('búsqueda, novedades y resúmenes', () => {
   });
 
   it('estado de las fuentes: las bloqueadas y desactivadas no cuentan como fallo y se muestra el motivo', () => {
-    assert.deepEqual(resumenFuentes(datos.fuentes), { activas: 9, ok: 8, conError: 1, inactivas: 2 });
+    assert.deepEqual(resumenFuentes(datos.fuentes), { activas: 9, ok: 8, conError: 1, conAviso: 0, inactivas: 2 });
     const html = vistaFuentes(estadoPanel());
     assert.match(html, /Bloqueada<\/span><\/td>\s*<td data-etiqueta="Detalle">Su robots\.txt prohíbe \/api/);
     assert.match(html, /HTTP 403 en www\.nomolesten\.com/);

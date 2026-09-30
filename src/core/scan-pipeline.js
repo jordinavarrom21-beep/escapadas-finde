@@ -35,6 +35,15 @@ import { ejecutarFuentes } from './source-runner.js';
 
 /** Una fuente se vuelve a consultar cuando ha pasado este porcentaje de su intervalo (los crons se retrasan). */
 const MARGEN_INTERVALO = 0.8;
+/**
+ * Una lectura que trae menos de esta parte de lo normal (con al menos `MINIMO_COMPARABLE`
+ * ofertas de referencia), o en la que la parte con precio cae a menos de la mitad, huele a
+ * que la web ha cambiado: se avisa y no se borra nada de golpe. Si dura `DIAS_NUEVA_NORMALIDAD`,
+ * se acepta como lo normal (la web tiene de verdad menos ofertas).
+ */
+const CAIDA_FUERTE = 0.3;
+const MINIMO_COMPARABLE = 10;
+const DIAS_NUEVA_NORMALIDAD = 7;
 const HORIZONTE_PUENTES_DIAS = 120;
 const DIA_MS = 24 * 60 * 60 * 1000;
 const CADUCIDAD_CACHE_MS = 200 * DIA_MS;
@@ -61,6 +70,32 @@ function tocaEjecutar(fuente, config, previo, ahora, opciones) {
   if (opciones.forzar || !previo.ultimoIntento) return true;
   const intervaloMs = (config.intervaloMin ?? 60) * 60_000;
   return ahora - Date.parse(previo.ultimoIntento) >= intervaloMs * MARGEN_INTERVALO;
+}
+
+/**
+ * ¿Se parece esta lectura a las anteriores? Compara con `previo.referencia` (lo normal de
+ * la fuente: ofertas y parte con precio). Si trae muchas menos o casi sin precio, devuelve
+ * un aviso y no deja borrar las guardadas de golpe; si no, la referencia pasa a ser esta.
+ * @returns {{aviso: string|null, reemplazar: boolean|Function, referencia: {total: number, conPrecio: number}}}
+ */
+export function revisarLectura(resultado, previo, ahora) {
+  const n = resultado.ofertas.length;
+  const conPrecio = n ? resultado.ofertas.filter((o) => typeof o.precio === 'number').length / n : 0;
+  const actual = { total: n, conPrecio: Math.round(conPrecio * 100) / 100 };
+  // Referencias guardadas antes de existir este campo: lo que se leyó la última vez.
+  const normal = previo.referencia ?? (previo.total ? { total: previo.total, conPrecio: null } : null);
+  const viejo = previo.desdeAviso && ahora - Date.parse(previo.desdeAviso) >= DIAS_NUEVA_NORMALIDAD * DIA_MS;
+  if (!normal || normal.total < MINIMO_COMPARABLE || viejo) return { aviso: null, reemplazar: resultado.reemplazar, referencia: actual };
+  const avisos = [];
+  const menos = n < normal.total * CAIDA_FUERTE;
+  if (menos) {
+    avisos.push(`Solo ${n} ofertas (lo normal son unas ${normal.total}): no se borran las demás de golpe; si de verdad ya no están, se retiran solas en unos días`);
+  }
+  if (normal.conPrecio >= 0.6 && n >= 5 && actual.conPrecio < normal.conPrecio / 2) {
+    avisos.push(`Solo el ${Math.round(actual.conPrecio * 100)} % trae precio (lo normal es el ${Math.round(normal.conPrecio * 100)} %): puede que la web haya cambiado cómo lo muestra`);
+  }
+  if (!avisos.length) return { aviso: null, reemplazar: resultado.reemplazar, referencia: actual };
+  return { aviso: `${avisos.join('. ')}. ¿Ha cambiado la web?`, reemplazar: menos ? false : resultado.reemplazar, referencia: normal };
 }
 
 async function ejecutarFuente(fuente, { estado, ajustes, env, ahora, opciones, crearCtx }) {
@@ -96,10 +131,13 @@ async function ejecutarFuente(fuente, { estado, ajustes, env, ahora, opciones, c
     if (!resultado.ofertas.length && resultado.reemplazar && (previo.total ?? 0) > 0) {
       throw new Error(`0 ofertas (la última vez ${previo.total}): no se borra lo guardado (¿ha cambiado la web?)`);
     }
-    const { nuevas, total } = fusionar(estado, fuente.id, resultado, ahora);
+    const revision = revisarLectura(resultado, previo, ahora);
+    const { nuevas, total } = fusionar(estado, fuente.id, { ...resultado, reemplazar: revision.reemplazar }, ahora);
     estado.fuentes[fuente.id] = {
       estado: 'ok', motivo: null, error: null, desdeError: null, falta: [],
       ultimoIntento: iso, ultimoOk: iso, nuevas, total, duracionMs: Math.round(performance.now() - inicio),
+      aviso: revision.aviso, desdeAviso: revision.aviso ? previo.desdeAviso ?? iso : null,
+      referencia: revision.referencia,
     };
   } catch (error) {
     const bloqueada = error instanceof ErrorRobots;
@@ -132,6 +170,7 @@ function estadoParaPanel(fuentes, estado, ajustes) {
       id: f.id, nombre: f.nombre, web: f.web, modo: f.modo,
       estado: s.estado ?? 'pendiente', motivo: s.motivo ?? null, error: s.error ?? null,
       desdeError: s.desdeError ?? null, ultimoOk: s.ultimoOk ?? null, ultimoIntento: s.ultimoIntento ?? null,
+      aviso: s.estado === 'ok' ? s.aviso ?? null : null, desdeAviso: s.estado === 'ok' ? s.desdeAviso ?? null : null,
       total: porFuente[f.id] ?? 0, leidas: s.total ?? 0, nuevas: s.nuevas ?? 0, falta: s.falta ?? [],
       intervaloMin: ajustes.fuentes?.[f.id]?.intervaloMin ?? null,
     };

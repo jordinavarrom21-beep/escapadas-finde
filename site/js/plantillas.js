@@ -16,6 +16,8 @@ import { escena, icono, iconoTema, iconoTiempo, tipoEscena } from './iconos.js';
 export const ESTADOS_FUENTE = {
   ok: { texto: 'Funciona', clase: 'ok' },
   error: { texto: 'Con errores', clase: 'error' },
+  // Funciona, pero lee mucho menos de lo normal o casi sin precios: puede que la web haya cambiado.
+  aviso: { texto: 'Revisar', clase: 'aviso' },
   desactivada: { texto: 'Desactivada', clase: 'inactiva' },
   bloqueada: { texto: 'Bloqueada', clase: 'inactiva' },
   pendiente: { texto: 'Pendiente', clase: 'pendiente' },

@@ -175,8 +175,18 @@ const interruptor = (nombre, etiqueta, activo) => `<label class="interruptor"><i
 const interruptorDefecto = (nombre, etiqueta, activo) => `<label class="interruptor"><input type="checkbox" name="${nombre}" value="1" data-defecto${marcado(activo)}> ${etiqueta}</label>`;
 const numero = (nombre, etiqueta, valor, extra = '') => `<label class="campo">${etiqueta} <input type="number" name="${nombre}" min="0" step="1" inputmode="numeric" value="${valor ?? ''}"${extra}></label>`;
 
+/** Horas fallando para contarlo en la portada: un fallo suelto se arregla solo en la siguiente revisión. */
+const HORAS_PROBLEMA = 12;
+
+/** Webs que llevan horas fallando o que leen mucho menos de lo normal (aviso). */
+export function webConProblemas(fuentes = [], ahora = new Date()) {
+  return fuentes.filter((f) => f.aviso
+    || (f.estado === 'error' && f.desdeError && ahora - Date.parse(f.desdeError) >= HORAS_PROBLEMA * 3_600_000));
+}
+
 function motivoFuente(f) {
   if (f.motivo) return f.motivo;
+  if (f.aviso) return f.aviso;
   if (f.falta?.length) return `falta configurar ${f.falta.join(', ')}`;
   return f.error ?? '';
 }
@@ -451,9 +461,13 @@ export function vistaFinde(e, params = {}) {
 
   const r = resumenFuentes(e.datos.fuentes);
   const revision = `${e.datos.ofertas.length.toLocaleString('es-ES')} ofertas de ${contar(r.ok, 'web')} · revisado ${haceCuanto(e.datos.generado, e.ahora)}`;
+  const problemas = webConProblemas(e.datos.fuentes, e.ahora);
+  const avisoProblemas = problemas.length
+    ? `<a class="portada__problemas" href="#/fuentes" title="${esc(problemas.map((f) => f.nombre).join(', '))}">${icono('alerta')}${contar(problemas.length, 'web', 'webs')} con problemas</a>`
+    : '';
   return `<section class="portada">
   <div class="portada__texto">
-    <p class="portada__ceja"><span class="pastilla">${icono('calendario')}<span>${esc(etiquetaDia(actual.viernes))} – ${esc(etiquetaDia(actual.domingo))}<span id="cuenta-atras" class="pastilla__extra"></span></span></span><span id="aviso-puente" class="pastilla pastilla--puente" hidden></span><span class="portada__revision"><span class="punto" aria-hidden="true"></span>${esc(revision)}</span></p>
+    <p class="portada__ceja"><span class="pastilla">${icono('calendario')}<span>${esc(etiquetaDia(actual.viernes))} – ${esc(etiquetaDia(actual.domingo))}<span id="cuenta-atras" class="pastilla__extra"></span></span></span><span id="aviso-puente" class="pastilla pastilla--puente" hidden></span><span class="portada__revision"><span class="punto" aria-hidden="true"></span>${esc(revision)}</span>${avisoProblemas}</p>
     <h1 class="titulo-vista" tabindex="-1">¿Dónde nos escapamos <em>este finde</em>?</h1>
     ${buscadorFinde(e)}
   </div>
@@ -1026,7 +1040,7 @@ export function vistaFuentes(e) {
     const detalle = motivoFuente(f);
     return `<tr>
   <th scope="row">${esc(f.nombre)}<span class="suave tabla__modo">${esc(f.modo ?? '')}</span></th>
-  <td data-etiqueta="Estado">${insigniaEstado(f.estado)}</td>
+  <td data-etiqueta="Estado">${insigniaEstado(f.aviso ? 'aviso' : f.estado)}</td>
   <td data-etiqueta="Detalle"${detalle ? '' : ' class="tabla__vacia"'}>${detalle ? esc(detalle) : '<span class="suave">—</span>'}</td>
   <td data-etiqueta="Actualizada">${f.ultimoOk ? `<time datetime="${esc(f.ultimoOk)}" title="${esc(new Date(f.ultimoOk).toLocaleString('es-ES'))}">${esc(haceCuanto(f.ultimoOk, e.ahora))}</time>` : '<span class="suave">Nunca</span>'}</td>
   <td data-etiqueta="Ofertas" class="num">${(f.total ?? 0).toLocaleString('es-ES')}</td>
@@ -1034,7 +1048,7 @@ export function vistaFuentes(e) {
 </tr>`;
   });
   return `<h1 class="titulo-vista" tabindex="-1">Fuentes</h1>
-<p class="seccion__intro">${r.ok} de ${contar(r.activas, 'fuente activa', 'fuentes activas')} funcionan${r.conError ? ` y ${r.conError} con errores` : ''}. ${r.inactivas ? `${contar(r.inactivas, 'fuente')} ${r.inactivas === 1 ? 'está desactivada o bloqueada' : 'están desactivadas o bloqueadas'} a propósito.` : ''} Datos generados ${esc(haceCuanto(e.datos.generado, e.ahora))}.</p>
+<p class="seccion__intro">${r.ok} de ${contar(r.activas, 'fuente activa', 'fuentes activas')} funcionan${r.conError ? ` y ${r.conError} con errores` : ''}${r.conAviso ? ` (${r.conAviso} para revisar: leen mucho menos de lo normal)` : ''}. ${r.inactivas ? `${contar(r.inactivas, 'fuente')} ${r.inactivas === 1 ? 'está desactivada o bloqueada' : 'están desactivadas o bloqueadas'} a propósito.` : ''} Datos generados ${esc(haceCuanto(e.datos.generado, e.ahora))}.</p>
 <div class="tabla-envoltorio"><table class="tabla-fuentes">
   <caption class="sr">Estado de cada fuente de ofertas</caption>
   <thead><tr><th scope="col">Fuente</th><th scope="col">Estado</th><th scope="col">Detalle</th><th scope="col">Actualizada</th><th scope="col" class="num">Ofertas</th><th scope="col">Web</th></tr></thead>

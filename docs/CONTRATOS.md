@@ -251,7 +251,10 @@ export default {
 {
   version: 1,
   ofertas: { [id]: Oferta },
-  fuentes: { [id]: { ultimoIntento, ultimoOk, error, desdeError, total, duracionMs } },
+  fuentes: { [id]: { ultimoIntento, ultimoOk, error, desdeError, total, duracionMs, aviso, desdeAviso, referencia } },
+  // aviso: la última lectura trae menos del 30 % de lo normal (referencia.total, con ≥ 10) o la
+  // parte con precio cae a menos de la mitad (referencia.conPrecio ≥ 0,6). La fuente sigue «ok»,
+  // no se borra nada de golpe y la referencia no baja; si dura 7 días, pasa a ser lo normal.
   emails: {
     inicializado: false,
     resumenEnviado: null,            // 'YYYY-MM-DD' del viernes del último resumen

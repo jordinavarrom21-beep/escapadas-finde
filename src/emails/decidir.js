@@ -131,9 +131,11 @@ export async function procesarEmails({
     });
   }
 
+  // Caídas (dan error) o que leen mucho menos de lo normal (aviso), las dos durante horas.
+  const desde = (f) => (f.estado === 'error' ? f.desdeError : f.aviso ? f.desdeAviso : null);
   const caidas = fuentes.filter((f) =>
-    f.estado === 'error' && f.desdeError &&
-    ahora - Date.parse(f.desdeError) >= config.fuenteCaidaHoras * 3_600_000 &&
+    desde(f) &&
+    ahora - Date.parse(desde(f)) >= config.fuenteCaidaHoras * 3_600_000 &&
     !(emails.fuentesCaidas[f.id] && ahora - Date.parse(emails.fuentesCaidas[f.id]) < DIA_MS));
   if (caidas.length) {
     await intentar('fuentes', alertaFuentes({ fuentes: caidas, panelUrl, ahora }), () => {

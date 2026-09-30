@@ -184,6 +184,21 @@ describe('emails', () => {
     await procesarEmails(args);
     assert.deepEqual(enviados, ['⚠️ A no funciona']);
   });
+
+  test('también avisa de la web que lee mucho menos de lo normal durante horas', async () => {
+    const estado = estadoInicial();
+    estado.emails.inicializado = true;
+    const enviados = [];
+    const jueves = new Date('2026-09-17T10:00:00Z');
+    const haceHoras = (horas) => new Date(jueves.getTime() - horas * HORA).toISOString();
+    const fuentes = [
+      { id: 'd', nombre: 'D', estado: 'ok', aviso: 'Solo 3 ofertas (lo normal son unas 40)', desdeAviso: haceHoras(30) },
+      { id: 'e', nombre: 'E', estado: 'ok', aviso: 'Solo 3 ofertas', desdeAviso: haceHoras(1) },
+    ];
+    await procesarEmails({ ...base, ofertas: [], estado, fuentes, enviar: async (m) => enviados.push(m), ahora: jueves });
+    assert.equal(enviados.length, 1);
+    assert.match(enviados[0].html ?? enviados[0].texto ?? '', /D: lee menos de lo normal desde hace 30 h \(Solo 3 ofertas/);
+  });
 });
 
 describe('escanear', () => {
