@@ -155,3 +155,14 @@ export const guardarTema = (tema) => escribir(local, CLAVE_TEMA, tema);
 
 /** «lista» o «tarjetas»: cómo se ven los resultados (tema.js lo aplica antes de pintar). */
 export const guardarModoLista = (modo) => escribir(local, CLAVE_MODO_LISTA, modo);
+
+// Modo propietario: las herramientas de quien administra la web (avisos por email en
+// config/vigilados.json de GitHub). Se activa una vez con «?propietario=1» y se recuerda aquí.
+const CLAVE_PROPIETARIO = 'escapadas:propietario';
+export const esPropietarioGuardado = () => leer(local, CLAVE_PROPIETARIO) === '1';
+export const guardarPropietario = (si) => escribir(local, CLAVE_PROPIETARIO, si ? '1' : '0');
+
+// La bienvenida de la primera visita: una vez cerrada, no vuelve a salir.
+const CLAVE_BIENVENIDA = 'escapadas:bienvenida';
+export const bienvenidaVista = () => leer(local, CLAVE_BIENVENIDA) === '1';
+export const marcarBienvenidaVista = () => escribir(local, CLAVE_BIENVENIDA, '1');

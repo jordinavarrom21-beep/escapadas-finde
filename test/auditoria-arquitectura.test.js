@@ -89,7 +89,7 @@ describe('auditoría: preferencias de los ajustes', () => {
     const normal = oferta({ titulo: 'Casa', precio: 60, unidad: 'pp/noche', temas: ['rural'] });
     puntuar([andorra, parque, spa, normal], ajustes, { ahora: AHORA });
     assert.deepEqual([andorra.puntuacion, andorra.chollazo, parque.puntuacion, parque.chollazo], [0, false, 0, false]);
-    assert.equal(spa.puntuacion - normal.puntuacion, 10);
+    assert.ok(Math.abs(spa.puntuacion - normal.puntuacion - 10) <= 1, 'lo favorito suma 10 (±1 por el redondeo)');
     assert.ok(esEvitada(oferta({ lugar: { nombre: 'Canillo', comunidad: null, pais: 'andorra' } }), ajustes.preferencias));
   });
 

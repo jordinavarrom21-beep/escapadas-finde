@@ -18,7 +18,7 @@ import {
 } from './filtros.js';
 import { NOCHES, VIAJEROS, aeropuertosCercanos } from './viaje.js';
 import {
-  certeza, costeDe, textoAlojamiento, textoCaducidad, textoFechas, textoLugar,
+  QUE_MIDE_LA_NOTA, certeza, costeDe, textoAlojamiento, textoCaducidad, textoFechas, textoLugar,
   ESTADOS_FUENTE, estadoVacio, filaOferta, insigniaEstado, rejilla, tarjeta, tarjetaConMotivo, tarjetaDestacada, textoAyudaUbicacion,
 } from './plantillas.js';
 import { icono, iconoTema } from './iconos.js';
@@ -74,7 +74,7 @@ export function formularioViaje(e) {
         <ul id="salida-sugerencias" class="combo__lista" role="listbox" aria-label="Sugerencias" hidden></ul>
         <input type="hidden" name="lugar" value="${esc(s?.nombre ?? '')}"><input type="hidden" name="lat" value="${s?.lat ?? ''}"><input type="hidden" name="lon" value="${s?.lon ?? ''}">
       </div>
-      <button type="button" class="boton boton--suave" data-mi-ubicacion>${icono('ubicacion')}Usar mi ubicación</button>
+      <button type="button" class="boton boton--suave boton-ubicacion" data-mi-ubicacion title="Usar mi ubicación" aria-label="Usar mi ubicación">${icono('ubicacion')}<span class="boton-ubicacion__texto">Mi ubicación</span></button>
     </div>
     <p class="ayuda" id="salida-ayuda" role="status">${s
     ? `Desde ${esc(s.nombre)} las distancias y la gasolina son estimaciones (línea recta × 1,3). Déjalo vacío para volver a ${esc(e.datos.origen.nombre)}.`
@@ -157,8 +157,10 @@ const PESTANAS = {
   fechas: ['Fechas', [['calendario', 'Calendario', 'calendario'], ['puentes', 'Puentes', 'puentes']]],
   mis: ['Mis cosas', [['mis', 'Guardado', 'corazon'], ['comparar', 'Comparar lado a lado', 'comparar', 'Comparar'], ['vigilados', 'Avisos por email', 'vigilados', 'Por email']]],
 };
-export function pestanas(apartado, activa) {
-  const [nombre, lista] = PESTANAS[apartado];
+export function pestanas(apartado, activa, e = null) {
+  const [nombre, todas] = PESTANAS[apartado];
+  // «Avisos por email» es de quien administra la web (se configuran en GitHub): solo en modo propietario.
+  const lista = todas.filter(([vista]) => vista !== 'vigilados' || e?.propietario || activa === 'vigilados');
   // En el móvil, el nombre corto (si lo hay) para que quepan todas sin deslizar.
   const texto = (largo, corto) => (corto ? `<span class="solo-ancho">${largo}</span><span class="solo-estrecho">${corto}</span>` : `<span>${largo}</span>`);
   return `<nav class="pestanas" aria-label="${esc(nombre)}">${lista.map(([vista, largo, ic, corto]) => `<a class="pestana" href="#/${vista}" data-vista="${vista}"${corto ? ` aria-label="${esc(largo)}"` : ''}${vista === activa ? ' aria-current="page"' : ''}>${icono(ic)}${texto(largo, corto)}</a>`).join('')}</nav>`;
@@ -264,7 +266,7 @@ function bloqueBusquedas(e, vista) {
     <button type="button" class="boton boton--primario" data-guardar-busqueda="${esc(vista)}">${icono('guardar')}Guardar y avisarme</button>
     <button type="button" class="boton boton--suave" data-compartir-busqueda="${esc(vista)}">${icono('enlace')}Compartir esta búsqueda</button>
   </div>
-  <p class="ayuda">Se guarda en este navegador: en <a href="#/mis">Mis cosas</a> verás cuántas ofertas nuevas la cumplen cada vez que entres. ¿La quieres por email? <button type="button" class="enlace-boton" data-copiar-vigilado="${esc(vista)}">Copiar para los avisos por email</button> y pégala en <code>config/vigilados.json</code>.</p>
+  <p class="ayuda">Se guarda en este navegador: en <a href="#/mis">Mis cosas</a> verás cuántas ofertas nuevas la cumplen cada vez que entres.${e.propietario ? ` ¿La quieres por email? <button type="button" class="enlace-boton" data-copiar-vigilado="${esc(vista)}">Copiar para los avisos por email</button> y pégala en <code>config/vigilados.json</code>.` : ''}</p>
   ${chips ? `<div class="chips__lista">${chips}</div>` : ''}
 </details>`;
 }
@@ -434,6 +436,17 @@ export function paramsBuscadorFinde({ cuando = '', pres = '', como = '', temas =
   };
 }
 
+/** La primera vez: qué es esto y cómo se usa, en tres pasos (se cierra y no vuelve). */
+function bienvenida(e) {
+  if (e.bienvenidaVista) return '';
+  // Las mismas webs que cuenta la línea de revisión de encima («… ofertas de 20 webs»).
+  const webs = resumenFuentes(e.datos.fuentes).ok;
+  return `<aside class="bienvenida" aria-label="Bienvenida">
+  <p><strong>Ofertas de escapadas de ${webs} webs de viajes, juntas y revisadas cada 15 minutos.</strong> Elige cuándo, filtra lo que te apetece y reserva en la web de la oferta con «Ver en…».</p>
+  <div class="acciones"><button type="button" class="boton boton--primario boton--mini" data-cerrar-bienvenida>Entendido</button><a class="boton boton--suave boton--mini" href="#/ayuda">Cómo funciona</a></div>
+</aside>`;
+}
+
 /**
  * «De un vistazo»: lo que hay este finde en cuatro cifras que llevan a la lista (escapadas y
  * desde cuánto, chollazos, con niños gratis o con descuento y planes gratis).
@@ -493,6 +506,7 @@ export function vistaFinde(e, params = {}) {
   <div class="portada__texto">
     <p class="portada__ceja"><span class="pastilla">${icono('calendario')}<span>${esc(etiquetaDia(actual.viernes))} – ${esc(etiquetaDia(actual.domingo))}<span id="cuenta-atras" class="pastilla__extra"></span></span></span><span id="aviso-puente" class="pastilla pastilla--puente" hidden></span><span class="portada__revision"><span class="punto" aria-hidden="true"></span>${esc(revision)}</span>${avisoProblemas}</p>
     <h1 class="titulo-vista" tabindex="-1">¿Dónde nos escapamos <em>este finde</em>?</h1>
+    ${bienvenida(e)}
     ${vistazoPortada(e, escapadas)}
     ${buscadorFinde(e)}
   </div>
@@ -639,7 +653,7 @@ function campoUbicacion(e, f) {
       <ul id="lugar-sugerencias" class="combo__lista" role="listbox" aria-label="Sugerencias" hidden></ul>
       <input type="hidden" name="lugar" value="${esc(p?.nombre ?? '')}"><input type="hidden" name="lat" value="${p?.lat ?? ''}"><input type="hidden" name="lon" value="${p?.lon ?? ''}">
     </div>
-    <button type="button" class="boton boton--suave" data-mi-ubicacion>${icono('ubicacion')}Usar mi ubicación</button>
+    <button type="button" class="boton boton--suave boton-ubicacion" data-mi-ubicacion title="Usar mi ubicación" aria-label="Usar mi ubicación">${icono('ubicacion')}<span class="boton-ubicacion__texto">Mi ubicación</span></button>
   </div>
   <div class="filtros__fila">
     <label class="campo">Tiempo en coche <select name="h">${opciones(horas, f.horas, 'Sin límite de tiempo')}</select></label>
@@ -1055,7 +1069,7 @@ export function vistaVigilados(e) {
   const enlace = url
     ? `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">config/vigilados.json en GitHub</a>`
     : '<code>config/vigilados.json</code> en tu repositorio de GitHub';
-  return `${pestanas('mis', 'vigilados')}<h1 class="titulo-vista" tabindex="-1">Avisos por email</h1>
+  return `${pestanas('mis', 'vigilados', e)}<h1 class="titulo-vista" tabindex="-1">Avisos por email</h1>
 ${estadoAvisos(e)}
 ${criterios.join('') || estadoVacio('Aún no vigilas nada', 'Añade criterios como se explica abajo.')}
 <section class="ayuda-caja">
@@ -1073,6 +1087,47 @@ ${criterios.join('') || estadoVacio('Aún no vigilas nada', 'Añade criterios co
 }
 
 // ── Fuentes ──────────────────────────────────────────────────────────────────
+
+/**
+ * «Cómo funciona»: qué es la web, de dónde salen las ofertas, qué significa cada número y
+ * qué se guarda de ti. Para cualquier visitante, sin tecnicismos.
+ */
+export function vistaAyuda(e) {
+  const webs = (e.datos.fuentes ?? []).filter((f) => f.estado === 'ok').map((f) => f.nombre);
+  const pregunta = (titulo, cuerpo) => `<details class="ayuda-pregunta"><summary>${titulo}</summary><div>${cuerpo}</div></details>`;
+  const nota = QUE_MIDE_LA_NOTA.replace(/^Lo bueno que es como chollo: /, 'Cuenta ').replace(/\.$/, '');
+  return `<h1 class="titulo-vista" tabindex="-1">Cómo funciona</h1>
+<div class="ayuda-pagina">
+<section class="seccion">
+  <p class="ayuda-intro">Escapadas Finde busca por ti <strong>escapadas de fin de semana, hoteles, casas rurales, planes y chollos de vuelos</strong> en ${contar(webs.length, 'web', 'webs')} de viajes y te los enseña juntos, con lo que cuesta el viaje completo desde tu casa. Se revisa cada 15 minutos.</p>
+  <ol class="ayuda-pasos">
+    <li><strong>Elige cuándo</strong>: este finde, un puente o tus fechas.</li>
+    <li><strong>Filtra lo que te apetece</strong>: spa, playa, con niños, sin coche, cerca de casa…</li>
+    <li><strong>Reserva en la web de la oferta</strong> con el botón «Ver en…». Aquí no se vende nada: el precio y las condiciones los confirma esa web.</li>
+  </ol>
+  <p><a class="boton boton--primario" href="#/escapadas?cuando=finde">Ver las escapadas de este finde${icono('flecha')}</a></p>
+</section>
+<section class="seccion">
+  <h2 class="subtitulo">Preguntas frecuentes</h2>
+  ${pregunta('¿De dónde salen las ofertas?', `<p>De webs de viajes públicas: ${esc(enumerar(webs))}. Solo se leen las páginas que esas webs permiten leer. Si una oferta lleva días sin aparecer en su web, se avisa con «Puede haber terminado».</p><p><a href="#/fuentes">Estado de cada web</a></p>`)}
+  ${pregunta('¿Qué es la «Nota» de cada oferta?', `<p>Una nota de 0 a 100 de lo buena que es como chollo. ${esc(nota)}. Un <strong>Chollazo</strong> está muy por debajo de lo normal para ofertas parecidas.</p>`)}
+  ${pregunta('¿Qué significan las estrellas y las opiniones?', '<p>«★ 8,2 Muy bien · 266 opiniones» es la valoración de otros clientes en la web de la oferta, de 0 a 10. Las estrellas (4★) son la categoría del hotel.</p>')}
+  ${pregunta('¿Por qué hay precios «por persona», «por noche» o «en total»?', '<p>Cada web publica el precio a su manera. Por eso cada oferta dice a qué corresponde y, cuando se puede, se pasa a <strong>por persona y noche</strong> para compararlas, y se calcula <strong>el viaje completo</strong> para tus viajeros, con la gasolina estimada si vas en coche.</p>')}
+  ${pregunta('¿Las fechas son exactas?', '<p>Muchas ofertas son de <strong>fechas flexibles</strong>: valen cualquier día hasta que caducan, según disponibilidad. Las de <strong>fechas cerradas</strong> dicen el día exacto. Si buscas unas fechas, los buscadores (y algunas webs) se abren ya con ellas.</p>')}
+  ${pregunta('¿Me avisa cuando salga algo que me interese?', '<p>Sí: monta tu búsqueda y pulsa «Guardar y avisarme». Cada vez que entres, <a href="#/mis">Mis cosas</a> te dirá cuántas ofertas nuevas la cumplen.</p>')}
+</section>
+<section class="seccion" id="privacidad">
+  <h2 class="subtitulo">Privacidad</h2>
+  <ul class="ayuda-lista">
+    <li><strong>Sin cuentas, sin cookies, sin publicidad y sin seguimiento.</strong></li>
+    <li>Tus favoritos, búsquedas guardadas, ciudad de salida y preferencias se guardan <strong>solo en este navegador</strong>. No se envían a ningún sitio; se borran borrando los datos del sitio en tu navegador.</li>
+    <li>«Mi ubicación» solo se usa si lo pulsas, para medir distancias en tu dispositivo.</li>
+    <li>Al buscar un pueblo o ciudad, lo que escribes se consulta en <a href="https://photon.komoot.io" target="_blank" rel="noopener noreferrer">Photon</a>; el mapa carga sus imágenes de <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>.</li>
+    <li>Al pulsar «Ver en…» vas a la web de la oferta, con su propia política de privacidad.</li>
+  </ul>
+</section>
+</div>`;
+}
 
 export function vistaFuentes(e) {
   const r = resumenFuentes(e.datos.fuentes);
@@ -1131,7 +1186,7 @@ export const idsComparar = (e, params = {}) => (params.ids ? params.ids.split(',
 
 export function vistaComparar(e, params = {}) {
   const ofertas = idsComparar(e, params).map((id) => e.porId.get(id)).filter(Boolean);
-  const titulo = `${pestanas('mis', 'comparar')}<h1 class="titulo-vista" tabindex="-1">Comparar lado a lado</h1>`;
+  const titulo = `${pestanas('mis', 'comparar', e)}<h1 class="titulo-vista" tabindex="-1">Comparar lado a lado</h1>`;
   if (!ofertas.length) {
     return `${titulo}${estadoVacio('No has elegido nada para comparar', 'Pulsa el botón de comparar (dos columnas) en hasta tres ofertas (escapadas, vuelos o planes) y vuelve aquí.', '<a class="boton boton--primario" href="#/escapadas">Ir a Explorar</a>')}`;
   }
@@ -1246,7 +1301,7 @@ export function vistaMis(e) {
   const noDisponibles = marcadas('no-disponible');
   const comparar = [...(e.comparar ?? [])].filter((id) => e.porId.has(id)).length;
   const email = e.datos.avisos?.email;
-  return `${pestanas('mis', 'mis')}<h1 class="titulo-vista" tabindex="-1">Mis cosas</h1>
+  return `${pestanas('mis', 'mis', e)}<h1 class="titulo-vista" tabindex="-1">Mis cosas</h1>
 <p class="seccion__intro">Tus búsquedas guardadas, favoritos y marcas. Todo se guarda solo en este navegador.</p>
 <div class="carruseles">
 ${seccion(conIcono('nuevo', 'Búsquedas guardadas y avisos'), bloqueAvisos(e))}
@@ -1258,7 +1313,7 @@ ${seccion(conIcono('comparar', 'Comparar lado a lado'), comparar
     ? `<p>${contar(comparar, 'oferta elegida', 'ofertas elegidas')} para comparar. <a class="boton boton--suave boton--mini" href="#/comparar">Ver la comparación${icono('flecha')}</a></p>`
     : '<p class="suave">Pulsa el botón de comparar (dos columnas) en hasta tres ofertas para verlas lado a lado.</p>')}
 ${reservadas.length || noDisponibles.length ? seccion(conIcono('check', 'Marcadas por ti'), `${reservadas.length ? `<h3 class="subtitulo">Reservadas</h3><ul class="filas">${reservadas.map(filaOferta).join('')}</ul>` : ''}${noDisponibles.length ? `<h3 class="subtitulo">Ya no disponibles <span class="suave">(no salen en las listas)</span></h3><ul class="filas">${noDisponibles.map(filaOferta).join('')}</ul>` : ''}`) : ''}
-${seccion(conIcono('vigilados', 'Avisos por email'), `<p>${email === true ? 'Activos: te llega un email cuando una oferta cumple uno de tus criterios y baja de precio.' : 'Para recibirlos por email hay que configurar el correo y los criterios en GitHub.'} <a class="boton boton--suave boton--mini" href="#/vigilados">Ver los avisos por email${icono('flecha')}</a></p>`)}`;
+${e.propietario ? seccion(conIcono('vigilados', 'Avisos por email'), `<p>${email === true ? 'Activos: te llega un email cuando una oferta cumple uno de tus criterios y baja de precio.' : 'Para recibirlos por email hay que configurar el correo y los criterios en GitHub.'} <a class="boton boton--suave boton--mini" href="#/vigilados">Ver los avisos por email${icono('flecha')}</a></p>`) : ''}`;
 }
 
 export const VISTAS_HTML = {
@@ -1271,6 +1326,7 @@ export const VISTAS_HTML = {
   puentes: { html: vistaPuentes },
   vigilados: { html: vistaVigilados },
   fuentes: { html: vistaFuentes },
+  ayuda: { html: vistaAyuda },
   buscar: { html: vistaBuscar, resultados: resultadosBuscar },
   comparar: { html: vistaComparar },
   mis: { html: vistaMis },

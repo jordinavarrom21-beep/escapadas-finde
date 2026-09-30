@@ -142,6 +142,8 @@ function ofertaDe(datos, condicion, etiquetasPagina) {
     imagen: datos.imagen ? new URL(datos.imagen, WEB).href : null,
     precio: null,
     precioTexto: condicion,
+    // «Hasta −15 %»: el descuento máximo que anuncia (cuenta para el filtro y la nota del chollo).
+    descuento: Number(condicion?.match(/−(\d+)\s?%/)?.[1]) || null,
     lugar: lugarDe(datos),
     etiquetas: [...etiquetasPagina, soloAdultos ? 'Solo adultos' : null].filter(Boolean),
   });
@@ -157,6 +159,7 @@ function unir(ofertas) {
       continue;
     }
     previa.etiquetas = [...new Set([...previa.etiquetas, ...oferta.etiquetas])];
+    if (oferta.descuento > (previa.descuento ?? 0)) previa.descuento = oferta.descuento;
     if (oferta.precioTexto && !previa.precioTexto.includes(oferta.precioTexto)) {
       previa.precioTexto = [previa.precioTexto, oferta.precioTexto].filter(Boolean).join(' · ');
     }

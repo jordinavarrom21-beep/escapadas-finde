@@ -8,5 +8,6 @@ site/escapadas/
 site/vuelos/
 site/actividades/
 site/sitemap.xml
+site/robots.txt
 *.log
 .env

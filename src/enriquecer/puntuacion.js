@@ -12,6 +12,7 @@ const PESO_COMODIDAD = 5;      // horario ideal o poco rato en coche
 const PESO_FECHAS = 5;         // cae en un puente o en el finde que viene
 const TOPE_SIN_PRECIO = 50;
 const PESO_FAVORITO = 10;       // tiene uno de ajustes.preferencias.temasFavoritos
+const PESO_VALORACION = 10;     // lo que opinan los clientes (nota y cuántas opiniones)
 
 const HORA_MS = 60 * 60 * 1000;
 
@@ -54,8 +55,11 @@ function puntosPorPrecio(ofertas) {
   for (const lista of grupos.values()) {
     lista.sort((a, b) => a.valor - b.valor);
     lista.forEach(({ oferta, valor }) => {
-      // Empates: se usa la primera posición del valor para no penalizar a nadie.
-      const posicion = lista.findIndex((x) => x.valor === valor);
+      // Empates: la posición media del empate. Antes era la primera, y 26 free tours gratis
+      // salían todos con la nota máxima de precio (y todos con la misma nota).
+      const primera = lista.findIndex((x) => x.valor === valor);
+      const ultima = lista.findLastIndex((x) => x.valor === valor);
+      const posicion = (primera + ultima) / 2;
       puntos.set(oferta, lista.length === 1 ? PESO_PRECIO / 2 : PESO_PRECIO * (1 - posicion / (lista.length - 1)));
     });
   }
@@ -88,6 +92,18 @@ function puntosSenales(oferta) {
   if (temperatura >= 300) puntos += PESO_SENALES;
   else if (temperatura >= 100) puntos += PESO_SENALES / 2;
   return Math.min(PESO_SENALES, puntos);
+}
+
+/**
+ * Las opiniones: de un 6 (nada) a un 9,5 o más (todo), y con más peso cuantas más opiniones
+ * la respaldan (un 10 con 1 opinión vale poco; un 9 con 200, casi todo).
+ */
+export function puntosValoracion(oferta) {
+  const { nota, n } = oferta.valoracion ?? {};
+  if (!(nota >= 0)) return 0;
+  const calidad = Math.max(0, Math.min(1, (nota - 6) / 3.5));
+  const confianza = n > 0 ? Math.min(1, Math.log10(n + 1) / 2) : 0.5;
+  return PESO_VALORACION * calidad * confianza;
 }
 
 function puntosComodidad(oferta) {
@@ -132,7 +148,7 @@ export function puntuar(ofertas, ajustes, { ahora = new Date(), findeActual = nu
   const preferencias = ajustes.preferencias ?? {};
   for (const oferta of ofertas) {
     const resto = puntosBajada(oferta) + puntosDescuento(oferta) + puntosNovedad(oferta, ahora) +
-      puntosSenales(oferta) + puntosComodidad(oferta) + puntosFechas(oferta, findeActual);
+      puntosSenales(oferta) + puntosComodidad(oferta) + puntosFechas(oferta, findeActual) + puntosValoracion(oferta);
     const total = precio.has(oferta) ? precio.get(oferta) + resto : Math.min(TOPE_SIN_PRECIO, resto);
     // Preferencias: lo que se quiere evitar va al fondo y nunca avisa como chollazo; los
     // temas favoritos suben un poco.
@@ -163,7 +179,7 @@ export function motivoChollazo(oferta, ajustes) {
     return `${importe(Math.round(porNoche * 100) / 100)} € por persona y noche${reparto}: el límite es ${importe(umbrales.escapadaNocheMax)} €`;
   }
   if (oferta.puntuacion >= umbrales.puntuacionMin) {
-    return `Puntuación ${oferta.puntuacion} de 100 (desde ${umbrales.puntuacionMin}): precio frente a ofertas parecidas, bajada, descuento, novedad y comodidad`;
+    return `Puntuación ${oferta.puntuacion} de 100 (desde ${umbrales.puntuacionMin}): precio frente a ofertas parecidas, bajada, descuento, opiniones, novedad y comodidad`;
   }
   return null;
 }

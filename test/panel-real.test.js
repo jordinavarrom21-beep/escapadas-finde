@@ -101,6 +101,7 @@ const PARAMS = {
   vigilados: [{}],
   fuentes: [{}],
   mis: [{}],
+  ayuda: [{}, { seccion: 'privacidad' }],
   buscar: [{ q: 'spa' }, { q: 'roma' }, { q: 'girona' }, { q: 'barato este finde' }, { q: '' }],
   // Una de cada: vuelo, alojamiento y actividad (con total, sin total y gratis), y un id que ya no existe.
   comparar: [{}, { ids: [primero((o) => o.tipo === 'vuelo').id, primero((o) => o.tipo === 'hotel').id, primero((o) => o.tipo === 'actividad').id].join(',') },

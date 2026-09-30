@@ -166,7 +166,7 @@ function equivalentes(o, ctx) {
           ? `Mismo precio en ${web}${resto}`
           : `<strong>La más barata de ${c.filas.length} webs</strong>, igual que en ${web}`;
   }
-  return `<p class="dato-extra dato-extra--comparar">${conIcono('balanza', texto)}</p>`;
+  return `<span class="insignia insignia--comparar" title="${esc(texto.replace(/<[^>]+>/g, ''))}">${conIcono('balanza', texto)}</span>`;
 }
 
 /** Tren, bus, avión o ferry: la oferta ya dice cómo se llega y el coche no es el plan. */
@@ -268,7 +268,7 @@ function textoValoracion(o, ctx) {
 }
 
 /** Qué mide la nota del chollo (sale al pasar por encima y en la ficha). */
-export const QUE_MIDE_LA_NOTA = 'Lo bueno que es como chollo: sobre todo el precio frente a ofertas parecidas; también las bajadas, el descuento, si es nueva, si cae en finde o puente y lo cómodo que es llegar.';
+export const QUE_MIDE_LA_NOTA = 'Lo bueno que es como chollo: sobre todo el precio frente a ofertas parecidas; también las opiniones de otros clientes, las bajadas, el descuento, si es nueva, si cae en finde o puente y lo cómodo que es llegar.';
 
 /** «Chollazo», «Muy buena», «Buena» o «Normal» según la nota (0–100). */
 export const nivelNota = (o) => (o.chollazo ? 'Chollazo' : o.puntuacion >= 60 ? 'Muy buena' : o.puntuacion >= 40 ? 'Buena' : 'Normal');
@@ -276,7 +276,7 @@ export const nivelNota = (o) => (o.chollazo ? 'Chollazo' : o.puntuacion >= 60 ? 
 function puntuacion(o) {
   const nivel = o.chollazo ? 'alta' : o.puntuacion >= 60 ? 'media' : 'baja';
   const texto = `Nota del chollo: ${o.puntuacion} de 100 (${nivelNota(o).toLowerCase()}). ${QUE_MIDE_LA_NOTA}`;
-  return `<span class="puntuacion puntuacion--${nivel}" title="${esc(texto)}"><span aria-hidden="true">${o.puntuacion}</span><span class="sr">${esc(texto)}</span></span>`;
+  return `<span class="puntuacion puntuacion--${nivel}" title="${esc(texto)}"><span aria-hidden="true"><span class="puntuacion__etiqueta">Nota</span> ${o.puntuacion}</span><span class="sr">${esc(texto)}</span></span>`;
 }
 
 function botonFavorito(o, ctx) {
@@ -312,12 +312,11 @@ const atributosClic = (o, afiliado) => ` data-clic="${esc(o.fuente)}" data-clic-
 function enlaceOferta(o, texto = 'Ver oferta', ctx = {}) {
   const url = urlSegura(urlPropia(o, ctx));
   const pagado = Boolean(o.afiliado || o.patrocinada);
-  return url ? `<a class="boton boton--primario" href="${esc(url)}" target="_blank" rel="${relEnlace(pagado)}"${atributosClic(o, o.afiliado)}>${texto}${icono('externo')}<span class="sr"> (se abre en otra pestaña${o.afiliado ? '; enlace de afiliado' : ''})</span></a>` : '';
+  return url ? `<a class="boton boton--primario" href="${esc(url)}" target="_blank" rel="${relEnlace(pagado)}"${atributosClic(o, o.afiliado)}><span class="boton__texto">${texto}</span>${icono('externo')}<span class="sr"> (se abre en otra pestaña${o.afiliado ? '; enlace de afiliado' : ''})</span></a>` : '';
 }
 
 /** «Enlace de afiliado» en la tarjeta; la explicación completa, en la ficha. */
 const TEXTO_AFILIADO = 'Si reservas por este enlace, la web puede pagarnos una comisión. No cambia tu precio ni el orden de las ofertas.';
-const avisoAfiliado = (o) => (o.afiliado ? `<p class="dato-extra aviso-afiliado" title="${esc(TEXTO_AFILIADO)}">${conIcono('enlace', 'Enlace de afiliado')}</p>` : '');
 
 /** Lo que añade la web al «Gratis» («con propina voluntaria»), sin repetir la palabra. */
 function matiz(precioTexto = '') {
@@ -523,36 +522,51 @@ function insigniasTarjeta(o, ctx) {
   return [...fijas.filter(Boolean), mejor].filter(Boolean).join('');
 }
 
-/** «Escapada · BuscoUnChollo · comprobada hace 22 min» o el aviso de que puede haber terminado. */
-function origenTarjeta(o, ctx) {
-  const f = frescura(o, ctx);
-  const partes = [ETIQUETAS_TIPO[o.tipo] ?? o.tipo, ctx.fuentes.get(o.fuente) ?? o.fuente].map(esc).join(' · ');
-  if (f?.desactualizada) return `<p class="tarjeta__origen">${partes}</p>${textoComprobada(o, ctx)}`;
-  return `<p class="tarjeta__origen">${partes}${f ? ` · <span title="${esc(f.cuando)}">comprobada ${esc(f.texto)}</span>` : ''}</p>`;
-}
-
 /** Tarjeta de escapada, hotel, paquete o chollo de vuelo sin fechas. */
 export function tarjetaOferta(o, ctx) {
+  const web = ctx.fuentes?.get(o.fuente) ?? o.fuente;
+  // Siempre los mismos huecos y del mismo alto (ver estilos): en una fila, el título, las
+  // opiniones, los datos, las etiquetas y el precio de todas las tarjetas quedan alineados.
   return `<article class="tarjeta" style="--color-tema:${colorTema(o)}">
   ${cabeceraFoto(o, ctx)}
   <div class="tarjeta__cuerpo">
     <div class="tarjeta__cabeza">
       <span class="tarjeta__lugar">${textoLugar(o) || esc(ETIQUETAS_TIPO[o.tipo] ?? o.tipo)}</span>
-      ${valoracion(o)}${puntuacion(o)}
+      ${puntuacion(o)}
       ${botonDescartar(o)}
     </div>
     <h3 class="tarjeta__titulo"><button type="button" class="enlace-ficha" data-ficha="${esc(o.id)}">${esc(o.titulo)}</button></h3>
+    ${opinionesTarjeta(o, web)}
     <ul class="tarjeta__datos">${datosTarjeta(o, ctx)}</ul>
-    <div class="insignias">${insigniasTarjeta(o, ctx)}</div>
-    ${equivalentes(o, ctx)}
+    <div class="insignias insignias--tarjeta">${equivalentes(o, ctx)}${insigniasTarjeta(o, ctx)}${avisoTarjeta(o, ctx)}</div>
     <div class="tarjeta__pie">
-      ${precio(o)}
-      ${lineaCoste(o, ctx)}
-      <div class="acciones">${botonComparar(o, ctx)}${enlaceOferta(o, undefined, ctx)}</div>
+      <div class="tarjeta__precio">${precio(o)}</div>
+      <div class="tarjeta__coste">${lineaCoste(o, ctx)}</div>
+      <div class="acciones">${botonComparar(o, ctx)}${enlaceOferta(o, `Ver en ${esc(web)}`, ctx)}</div>
     </div>
-    ${origenTarjeta(o, ctx)}${avisoAfiliado(o)}
   </div>
 </article>`;
+}
+
+/** «★ 8,2 Muy bien · 266 opiniones»: lo que opinan otros clientes, a la vista (vacío si no hay). */
+function opinionesTarjeta(o, web) {
+  const v = o.valoracion;
+  if (!(v?.nota >= 0)) return '<p class="tarjeta__opiniones tarjeta__opiniones--sin" aria-hidden="true"></p>';
+  const cuantas = v.n ? ` · ${contar(v.n, 'opinión', 'opiniones')}` : '';
+  return `<p class="tarjeta__opiniones" title="Valoración de los clientes en ${esc(web)}">${icono('estrella')}<strong>${nota(v.nota)}</strong> ${adjetivoNota(v.nota)}${cuantas}</p>`;
+}
+
+/**
+ * Solo lo que importa: si puede haber terminado (sin comprobar en días) y si el enlace es de
+ * afiliado. «Comprobada hace 2 h» y la web ya no ocupan la tarjeta (la web va en el botón).
+ */
+function avisoTarjeta(o, ctx) {
+  const f = frescura(o, ctx);
+  const web = esc(ctx.fuentes?.get(o.fuente) ?? o.fuente);
+  return [
+    f?.desactualizada && `<span class="insignia insignia--alerta comprobada--antigua" title="Sin comprobar en ${web} desde ${esc(f.texto)}: puede haber cambiado o terminado. Visto por última vez el ${esc(f.cuando)}">${icono('alerta')}Puede haber terminado</span>`,
+    o.afiliado && `<span class="insignia aviso-afiliado" title="${esc(TEXTO_AFILIADO)}">${icono('enlace')}Enlace de afiliado</span>`,
+  ].filter(Boolean).join('');
 }
 
 /**

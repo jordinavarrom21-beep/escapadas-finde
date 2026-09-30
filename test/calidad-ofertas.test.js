@@ -108,7 +108,7 @@ describe('calidad: la fecha del viaje no se confunde con la caducidad de la prom
     assert.match(tarjeta(o, { ...ctxPara([o]), ahora: new Date('2026-09-30T10:00:00Z') }), /Acaba hoy/);
     const ficha = contenidoFicha(o, ctxPara([o]));
     const conPrecio = { ...o, precio: 90, unidad: 'pp' };
-    assert.match(contenidoFicha(conPrecio, ctxPara([conPrecio])), /<div class="ficha__reserva"><p class="ficha__reserva-precio"><span class="suave">desde<\/span> <strong>90\s€<\/strong> <span class="suave">por persona<\/span><\/p><a [^>]*>Ver oferta/, 'precio y botón siempre a mano en el móvil');
+    assert.match(contenidoFicha(conPrecio, ctxPara([conPrecio])), /<div class="ficha__reserva"><p class="ficha__reserva-precio"><span class="suave">desde<\/span> <strong>90\s€<\/strong> <span class="suave">por persona<\/span><\/p><a [^>]*><span class="boton__texto">Ver oferta/, 'precio y botón siempre a mano en el móvil');
     assert.match(ficha, /<dt>Fechas de viaje<\/dt><dd>Flexibles: la web no publica fechas concretas/);
     assert.match(ficha, /<dt>Reserva<\/dt><dd>Promoción hasta el mié 30 sep/);
   });
@@ -130,18 +130,19 @@ describe('calidad: cada oferta dice cuándo se comprobó', () => {
   const ahora = new Date('2026-09-29T10:00:00Z');
   const ctx = (ofertas) => ctxPara(ofertas, { ahora, intervalos: new Map([['prueba', 720]]), fuentes: new Map([['prueba', 'Weekendesk']]) });
 
-  it('una vista hace poco dice en qué web y hace cuánto', () => {
+  it('una vista hace poco: la tarjeta solo dice a qué web vas; «comprobada hace…», en la ficha', () => {
     const o = oferta({ vistaUltima: '2026-09-29T08:00:00Z' });
     const html = tarjeta(o, ctx([o]));
-    assert.match(html, /Weekendesk · <span title="[^"]*">comprobada hace 2 h/);
-    assert.ok(!html.includes('Sin comprobar'));
+    assert.match(html, /<span class="boton__texto">Ver en Weekendesk<\/span>/);
+    assert.ok(!/comprobada hace|Sin comprobar|Puede haber terminado/.test(html), 'sin letra pequeña en la tarjeta');
+    assert.match(contenidoFicha(o, ctx([o])), /Comprobada en Weekendesk hace 2 h/);
   });
 
   it('si hace más de 3 intervalos de su fuente (y al menos un día) que no se ve, avisa', () => {
     const reciente = oferta({ vistaUltima: '2026-09-28T09:00:00Z' }); // 25 h, pero la fuente va cada 12 h: 36 h de margen
     assert.ok(!tarjeta(reciente, ctx([reciente])).includes('Sin comprobar'));
     const vieja = oferta({ vistaUltima: '2026-09-27T09:00:00Z' }); // 49 h
-    assert.match(tarjeta(vieja, ctx([vieja])), /comprobada--antigua[^]*?Sin comprobar en Weekendesk desde hace 2 días: puede haber cambiado o terminado/);
+    assert.match(tarjeta(vieja, ctx([vieja])), /comprobada--antigua" title="Sin comprobar en Weekendesk desde hace 2 días: puede haber cambiado o terminado[^"]*">[^]*?Puede haber terminado/);
     assert.match(contenidoFicha(vieja, ctx([vieja])), /Sin comprobar en Weekendesk/);
   });
 

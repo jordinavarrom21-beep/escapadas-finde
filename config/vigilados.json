@@ -16,16 +16,16 @@
       "nombre": "Oporto en avión",
       "texto": "oporto",
       "tipo": "vuelo",
-      "aeropuerto": "BCN",
-      "precioMax": 60
+      "precioMax": 60,
+      "salidas": ["BCN"]
     },
     {
       "nombre": "Italia en avión desde BCN",
       "tipo": "vuelo",
       "pais": "Italia",
-      "aeropuerto": "BCN",
       "precioMax": 70,
-      "soloMinimoHistorico": true
+      "soloMinimoHistorico": true,
+      "salidas": ["BCN"]
     },
     {
       "nombre": "Spa con media pensión cerca de casa",
@@ -34,7 +34,8 @@
       "valoracionMin": 8,
       "noches": { "min": 1, "max": 2 },
       "cocheMaxMin": 120,
-      "precioNocheMax": 70
+      "precioNocheMax": 70,
+      "sinCruceros": true
     },
     {
       "nombre": "Casa rural para el puente",
@@ -42,7 +43,8 @@
       "puente": true,
       "noches": { "min": 2, "max": 3 },
       "cerca": { "lat": 41.3874, "lon": 2.1686, "radioKm": 250 },
-      "precioMax": 200
+      "precioMax": 200,
+      "sinCruceros": true
     }
   ]
 }

@@ -211,8 +211,9 @@ descripciones de los proveedores. Las combinaciones de filtros siguen en `#/…`
 indexan. Los enlaces antiguos (`#/finde`, `#/escapadas?…`) siguen funcionando igual.
 
 Para que Google las encuentre: en [Search Console](https://search.google.com/search-console)
-añade `https://<tu-usuario>.github.io/escapadas-finde/` y envía `sitemap.xml`. Un `robots.txt`
-dentro de `escapadas-finde/` no serviría: los buscadores solo leen el de la raíz del dominio.
+añade `https://<tu-usuario>.github.io/escapadas-finde/` y envía `sitemap.xml`. Cada escaneo
+escribe también un `robots.txt` (fuera `data/`, con el sitemap), pero los buscadores solo leen
+el de la raíz del dominio: sirve con un dominio propio (ver «Publicar la web»).
 
 ## Afiliación y patrocinios (`config/afiliacion.json`)
 
@@ -234,6 +235,36 @@ con un proveedor (Civitatis, Booking, GetYourGuide…):
   GoatCounter), añade su dominio a `connect-src` en `site/index.html`. Se envían proveedor,
   tipo de enlace, tipo de oferta y vista, nunca datos personales. **Un clic no es una venta**:
   las reservas y comisiones solo las confirma el panel de cada proveedor.
+
+## Publicar la web
+
+Ya está publicada: cada escaneo despliega `site/` en **GitHub Pages**
+(`https://<tu-usuario>.github.io/escapadas-finde/`), con HTTPS y sin coste. Lo que lleva
+para cualquier visitante:
+
+- **Primera visita**: una bienvenida de una línea (qué es y cómo se usa) que se cierra con
+  «Entendido»; **Cómo funciona** (`#/ayuda`), enlazada desde el pie, con preguntas frecuentes
+  y la **privacidad** (sin cuentas, cookies ni seguimiento; lo guardado vive en su navegador).
+- **Al compartir el enlace** (WhatsApp, redes): título, descripción e imagen `site/og.png`.
+  El despliegue pone la dirección absoluta que exigen las redes.
+- **Enlaces rotos**: `site/404.html`, con un botón a la portada.
+- **Modo propietario**: lo que solo sirve a quien administra la web (copiar búsquedas para
+  los avisos por email de `config/vigilados.json`, la pestaña «Avisos por email») no se enseña
+  a los visitantes. Para verlo en tu navegador entra una vez con
+  `https://<tu-usuario>.github.io/escapadas-finde/?propietario=1` (se recuerda; `=0` lo quita).
+  En `localhost` sale siempre. No protege nada: solo ordena la interfaz.
+
+**Dominio propio** (p. ej. `escapadasfinde.es`): cómpralo en cualquier registrador, añade en su
+DNS un `CNAME` `www` → `<tu-usuario>.github.io` (o los registros `A` de GitHub para el dominio
+raíz), y en GitHub → Settings → Pages → *Custom domain* escríbelo y marca *Enforce HTTPS*. Pon
+también `"panelUrl": "https://www.escapadasfinde.es/"` en `config/ajustes.json` para que el
+sitemap, los enlaces de los emails y el `robots.txt` usen esa dirección.
+
+**Otro host** (Netlify, Cloudflare Pages, un servidor propio): la web es `site/` tal cual
+(estática, sin servidor), pero los datos los genera el escaneo de GitHub Actions. Lo más
+sencillo es dejar Pages y apuntar el dominio; si prefieres otro host, que publique la carpeta
+`site/` que sube el paso «upload-pages-artifact» o copia `site/` tras `npm run escanear`.
+Sirve `data/*.json` sin caché larga (el panel ya los pide con `no-cache`).
 
 ## Revisión continua (cada 15 minutos)
 
