@@ -418,6 +418,17 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 
 .portada { display: grid; gap: 22px; }
 .portada__texto { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+/* «De un vistazo»: cuatro cifras que llevan a la lista. */
+.vistazo { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+.vistazo__cifra {
+  display: flex; align-items: flex-start; gap: 8px; height: 100%; padding: 10px 12px; border-radius: var(--radio-medio);
+  background: var(--superficie); border: 1px solid var(--borde); color: var(--texto); text-decoration: none; font-size: 0.88rem; line-height: 1.25;
+}
+.vistazo__cifra:hover { border-color: var(--acento); }
+.vistazo__cifra > .ic { flex: none; margin-top: 2px; color: var(--acento); }
+.vistazo__cifra strong { font-size: 1.15rem; }
+.vistazo__extra { display: block; font-size: 0.78rem; color: var(--texto-suave); }
+@media (max-width: 719px) { .vistazo { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .portada__destacado:empty { display: none; }
 .portada__ceja { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; font-size: 0.9rem; color: var(--texto-suave); }
 .portada__ceja .pastilla { font-size: 0.86rem; }
@@ -660,6 +671,8 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 .tarjeta__datos { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 5px 12px; font-size: 0.85rem; color: var(--texto-suave); }
 .tarjeta__datos li { display: inline-flex; align-items: center; gap: 5px; min-width: 0; }
 .tarjeta__datos .ic { width: 15px; height: 15px; }
+/* «Acaba mañana»: se ve de un vistazo. */
+.tarjeta__datos .dato--urgente { color: var(--peligro); font-weight: 700; }
 .coche { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
 .valoracion { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; font-weight: 800; color: var(--texto); font-size: 0.85rem; }
 .valoracion .ic { width: 15px; height: 15px; color: var(--chollo); fill: currentColor; }
@@ -994,6 +1007,16 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 .ficha__media > .escena, .ficha__imagen { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .ficha__precio { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
 .ficha__precio .precio strong { font-size: 2.6rem; }
+/* Precio y «Ver oferta» siempre a mano en el móvil (con dos columnas ya están a la vista). */
+.ficha__reserva {
+  position: sticky; bottom: -22px; z-index: 2; margin: 0 -18px -22px; padding: 10px 18px calc(12px + env(safe-area-inset-bottom));
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  background: var(--superficie); border-top: 1px solid var(--borde); box-shadow: 0 -8px 24px rgb(0 0 0 / 12%);
+}
+.ficha__reserva-precio { margin: 0; min-width: 0; line-height: 1.2; font-size: 0.85rem; }
+.ficha__reserva-precio strong { font-size: 1.35rem; margin-right: 2px; }
+.ficha__reserva .boton { flex: none; }
+@media (min-width: 900px) { .ficha__reserva { display: none; } }
 .ficha__descripcion { white-space: pre-line; }
 .ficha__coche { display: flex; align-items: flex-start; gap: 8px; padding: 12px 14px; border-radius: var(--radio-medio); background: var(--superficie); border: 1px solid var(--borde); }
 .ficha__coche > .ic { margin-top: 0.15em; color: var(--acento); }
@@ -1211,6 +1234,9 @@ main { padding-block: 22px 56px; min-height: 60vh; }
   .seccion { margin-top: 36px; }
   .seccion--puente { margin-inline: calc(-1 * var(--espacio)); border-radius: 0; padding: 26px var(--espacio); }
   .tarjeta:hover, .billete:hover, .finde-celda:hover { transform: none; }
+  .ficha__reserva { margin: 0 -14px -22px; padding-inline: 14px; }
+  /* Foto más baja: se ven el título y el precio sin tanto desplazamiento. */
+  .tarjeta .tarjeta__media { aspect-ratio: 2 / 1; }
 }
 
 /* Móviles estrechos (320 px). */

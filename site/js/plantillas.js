@@ -362,6 +362,20 @@ function precio(o) {
     o.descuento ? ` <span class="precio__descuento">−${o.descuento} %</span>` : ''}${noche}</p>`;
 }
 
+/**
+ * Hasta cuándo vale, en corto: «Acaba mañana», «Acaba en 3 días» (urgente) o «Hasta el
+ * jue 1 oct». Nada si tiene fechas cerradas o la fecha es supuesta (ver textoCaducidad).
+ */
+export function caducidadCorta(o, ctx = {}) {
+  if (!textoCaducidad(o)) return null;
+  const dia = fechaLocal(o.caduca);
+  const quedan = diasEntre(fechaLocal(ctx.ahora ?? new Date()), dia);
+  if (quedan <= 0) return { texto: 'Acaba hoy', urgente: true };
+  if (quedan === 1) return { texto: 'Acaba mañana', urgente: true };
+  if (quedan <= 3) return { texto: `Acaba en ${quedan} días`, urgente: true };
+  return { texto: `Hasta el ${etiquetaDia(dia)}`, urgente: false };
+}
+
 /** Fechas del viaje: las concretas o «Fechas flexibles». La caducidad de la promoción va aparte. */
 export function textoFechas(o) {
   const { salida, vuelta } = o.fechas ?? {};
@@ -451,10 +465,14 @@ function datosTarjeta(o, ctx = {}) {
   ].filter(Boolean).join(' · ');
   const llegar = salidas.length ? dato('despegue', `Sale de ${enumerar(salidas)}`)
     : conTransporteIncluido(o) ? dato(o.transporte, `En ${(ETIQUETAS_TRANSPORTE[o.transporte] ?? '').toLowerCase()}`) : '';
+  const caduca = caducidadCorta(o, ctx);
   return [
-    dato('calendario', busquedaPara(o, ctx) ? `Fechas flexibles: puede valer para el ${busquedaPara(o, ctx).etiqueta}` : textoFechas(o)),
-    // Aparte: «hasta el 30» junto a «Fechas flexibles» se leería como el último día del viaje.
-    dato('arena', textoCaducidad(o)),
+    // Casi todas son de fechas flexibles: en la tarjeta solo se dicen las fechas cerradas (la
+    // ficha explica las flexibles), o que puede valer para las que buscas.
+    o.fechas?.salida ? dato('calendario', textoFechas(o))
+      : busquedaPara(o, ctx) ? dato('calendario', `Puede valer para el ${busquedaPara(o, ctx).etiqueta}`) : '',
+    // Aparte: «hasta el 30» junto a las fechas se leería como el último día del viaje.
+    caduca ? `<li class="${caduca.urgente ? 'dato--urgente' : ''}">${icono('arena')}<span>${esc(caduca.texto)}</span></li>` : '',
     dato(o.noches || o.alojamiento || o.estrellas ? 'noches' : 'reloj', incluye),
     llegar,
   ].join('');
@@ -499,7 +517,6 @@ export function tarjetaOferta(o, ctx) {
   ${cabeceraFoto(o, ctx)}
   <div class="tarjeta__cuerpo">
     <div class="tarjeta__cabeza">
-      <span class="tarjeta__temas">${temasIconos(o, ctx, 3)}</span>
       <span class="tarjeta__lugar">${textoLugar(o) || esc(ETIQUETAS_TIPO[o.tipo] ?? o.tipo)}</span>
       ${valoracion(o)}${puntuacion(o)}
       ${botonDescartar(o)}
@@ -582,13 +599,16 @@ export const costeDe = (o, ctx) => costeViaje(o, {
 const desgloseCorto = (c) => c.partes.map((p) => `${p.concepto} ${p.estimado ? '≈ ' : ''}${euros(Math.round(p.eur))}${p.estimado ? ' (estimado)' : ''}`).join(' + ');
 
 /**
- * «≈ 269 € en total para 4 personas · 67 €/persona»; sin total, la gasolina que calculó el
+ * «≈ 269 € el viaje para 4 personas»; sin total, la gasolina que calculó el
  * escaneo (solo desde su origen), y si tampoco, nada.
  */
 function lineaCoste(o, ctx) {
   const c = costeDe(o, ctx);
   if (c.total == null) return envolverDato(textoCosteCoche(o, ctx));
-  return `<p class="dato-extra coste-total" title="${esc(`${desgloseCorto(c)}. Supone: ${c.supuestos.join('; ')}.`)}">${conIcono('cartera', esc(resumenCoste(c)))}</p>`;
+  // En la tarjeta, una línea: el total del viaje (el reparto por persona, en el título y en la ficha).
+  const corto = `${c.estimado ? '≈ ' : ''}${euros(Math.round(c.total))} el viaje para ${contar(c.viajeros, 'persona')}`;
+  const titulo = `${resumenCoste(c)}. ${desgloseCorto(c)}. Supone: ${c.supuestos.join('; ')}.`;
+  return `<p class="dato-extra coste-total" title="${esc(titulo)}">${conIcono('cartera', esc(corto))}</p>`;
 }
 
 /** «Coste del viaje» en la ficha: cada parte, qué es estimado, lo supuesto y lo que falta. */
@@ -958,5 +978,19 @@ export function contenidoFicha(o, ctx) {
   </section>
   ${ctx.misEstados ? botonesMiEstado(o, ctx) : ''}
 </aside>
+${barraReserva(o)}
 </div>`;
+}
+
+/**
+ * En el móvil el precio y el botón quedan al final de la ficha: esta barra los deja siempre a
+ * mano, abajo (solo se ve con una columna; ver estilos).
+ */
+function barraReserva(o) {
+  const boton = enlaceOferta(o);
+  if (!boton) return '';
+  const cifra = typeof o.precio !== 'number' ? ''
+    : o.precio === 0 ? '<strong>Gratis</strong>'
+      : `${esPrecioDesde(o) ? '<span class="suave">desde</span> ' : ''}<strong>${euros(o.precio)}</strong>${ETIQUETAS_UNIDAD[o.unidad] ? ` <span class="suave">${ETIQUETAS_UNIDAD[o.unidad]}</span>` : ''}`;
+  return `<div class="ficha__reserva"><p class="ficha__reserva-precio">${cifra}</p>${boton}</div>`;
 }
