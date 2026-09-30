@@ -4,6 +4,7 @@
  */
 
 import { abrirFicha, liberarFicha } from './ficha.js';
+import { fechasDeBusqueda } from './fechas-enlaces.js';
 import { diasEntre, estadoFinde, fechaLocal, findesProximos, proximoPuente } from './fechas.js';
 import {
   POR_PAGINA, actividadesCerca, traducirFormulario, buscarTexto, crearHash, criterioVigilado, filtrosVigentes, leerFiltrosActividades,
@@ -267,8 +268,19 @@ function enlacesConMemoria() {
   }
 }
 
+/**
+ * Las fechas que se buscan (finde, puente, día o rango): con ellas los enlaces de las
+ * ofertas de fechas flexibles abren esos días. Solo en las vistas que filtran por fecha.
+ */
+function anotarBusqueda(vista, params) {
+  estado.busqueda = ['escapadas', 'actividades', 'mapa', 'buscar'].includes(vista)
+    ? fechasDeBusqueda(params, { finde: estado.findes[0], puente: estado.puente, findes: estado.findes, puentes: estado.datos.puentes, noches: estado.viaje?.noches })
+    : null;
+}
+
 function render({ enfocar = true } = {}) {
   const { vista, params } = rutaActual();
+  anotarBusqueda(vista, params);
   const cambiaVista = vista !== vistaActual;
   if (cambiaVista) estado.paginas.clear();
   if (dialogo.open) dialogo.close();
@@ -304,6 +316,7 @@ function render({ enfocar = true } = {}) {
 }
 
 function actualizarResultados(vista, params) {
+  anotarBusqueda(vista, params);
   if (vista === 'mapa') prepararMapa(params);
   else $('#resultados').innerHTML = VISTAS_HTML[vista].resultados(estado, params);
   anunciar($('#resultados [data-resumen]')?.dataset.resumen);

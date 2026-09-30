@@ -25,6 +25,7 @@ const INTERFAZ = [
   'js/cdn.js',
   'js/coste.js',
   'js/fechas.js',
+  'js/fechas-enlaces.js',
   'js/ficha.js',
   'js/filtros.js',
   'js/formato.js',
