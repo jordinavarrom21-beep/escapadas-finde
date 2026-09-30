@@ -1,0 +1,38 @@
+{
+ "best-m0": {
+  "estado": 400,
+  "tipo": "application/problem+json",
+  "bytes": 263,
+  "inicio": "{\"type\":\"https://tools.ietf.org/html/rfc7231#section-6.5.1\",\"title\":\"General.Validation\",\"status\":400,\"detail\":\"One or more validation errors occurred\",\"errors\":[{\"code\":\"GreaterThanValidator\",\"descri"
+ },
+ "best-m1-16": {
+  "estado": 200,
+  "tipo": "application/json; charset=utf-8",
+  "bytes": 825,
+  "inicio": "{\"bestPrices\":{\"value\":[{\"originCode\":\"BCN\",\"destinationCode\":\"LIS\",\"isDirect\":true,\"departureDate\":\"2026-11-15T06:15:00\",\"integerPartPrice\":19,\"decimalPartPrice\":0},{\"originCode\":\"BCN\",\"destinationCo"
+ },
+ "best-m1-01": {
+  "estado": 200,
+  "tipo": "application/json; charset=utf-8",
+  "bytes": 825,
+  "inicio": "{\"bestPrices\":{\"value\":[{\"originCode\":\"BCN\",\"destinationCode\":\"LIS\",\"isDirect\":true,\"departureDate\":\"2026-11-15T06:15:00\",\"integerPartPrice\":19,\"decimalPartPrice\":0},{\"originCode\":\"BCN\",\"destinationCo"
+ },
+ "best-fin": {
+  "estado": 200,
+  "tipo": "application/json; charset=utf-8",
+  "bytes": 825,
+  "inicio": "{\"bestPrices\":{\"value\":[{\"originCode\":\"BCN\",\"destinationCode\":\"LIS\",\"isDirect\":true,\"departureDate\":\"2026-11-15T06:15:00\",\"integerPartPrice\":19,\"decimalPartPrice\":0},{\"originCode\":\"BCN\",\"destinationCo"
+ },
+ "best-vuelta": {
+  "estado": 200,
+  "tipo": "application/json; charset=utf-8",
+  "bytes": 257,
+  "inicio": "{\"bestPrices\":{\"value\":[{\"originCode\":\"LIS\",\"destinationCode\":\"BCN\",\"isDirect\":true,\"departureDate\":\"2026-11-23T21:05:00\",\"integerPartPrice\":22,\"decimalPartPrice\":0}],\"isSuccess\":true,\"isFailure\":fals"
+ },
+ "robots-apiw-2": {
+  "estado": 501,
+  "tipo": "text/plain; charset=utf-8",
+  "bytes": 0,
+  "inicio": ""
+ }
+}
