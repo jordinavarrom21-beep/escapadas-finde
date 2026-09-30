@@ -1,0 +1,66 @@
+[
+ {
+  "name_translations": {
+   "en": "Ciampino-G. B. Pastine International Airport"
+  },
+  "city_code": "ROM",
+  "country_code": "IT",
+  "time_zone": "Europe/Rome",
+  "code": "CIA",
+  "iata_type": "airport",
+  "name": "Ciampino",
+  "coordinates": {
+   "lat": 41.799065,
+   "lon": 12.590987
+  },
+  "flightable": true
+ },
+ {
+  "name_translations": {
+   "en": "Porto Airport"
+  },
+  "city_code": "OPO",
+  "country_code": "PT",
+  "time_zone": "Europe/Lisbon",
+  "code": "OPO",
+  "iata_type": "airport",
+  "name": "Porto",
+  "coordinates": {
+   "lat": 41.237774,
+   "lon": -8.670272
+  },
+  "flightable": true
+ },
+ {
+  "name_translations": {
+   "en": "Barcelona-El Prat Airport"
+  },
+  "city_code": "BCN",
+  "country_code": "ES",
+  "time_zone": "Europe/Madrid",
+  "code": "BCN",
+  "iata_type": "airport",
+  "name": "Barcelona",
+  "coordinates": {
+   "lat": 41.30303,
+   "lon": 2.07593
+  },
+  "flightable": true
+ },
+ {
+  "name_translations": {
+   "en": "Leonardo da Vinci-Fiumicino Airport"
+  },
+  "city_code": "ROM",
+  "country_code": "IT",
+  "time_zone": "Europe/Rome",
+  "code": "FCO",
+  "iata_type": "airport",
+  "name": "Fiumicino",
+  "coordinates": {
+   "lat": 41.794594,
+   "lon": 12.250346
+  },
+  "flightable": true
+ }
+]

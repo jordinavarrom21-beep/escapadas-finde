@@ -671,10 +671,13 @@ export function minigrafica(serie) {
   return `<svg class="minigrafica" viewBox="0 0 96 28" width="96" height="28" role="img" aria-label="Historial de ${serie.length} días: de ${euros(primero)} a ${euros(ultimo)}"><polyline points="${puntos}" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
 }
 
+/** «vie 16 oct · 19:05 → 20:50 · Directo»: la llegada si se sabe; si no, la duración. */
 function tramo(nombre, t, conNumero = false) {
   if (!t) return '';
   const numero = conNumero && t.numero ? ` <span class="suave">(${esc(t.numero)})</span>` : '';
-  return `<div><dt>${nombre}</dt><dd>${esc(etiquetaDia(t.salida))} · <strong>${esc(horaDe(t.salida))}</strong> → ${esc(horaDe(t.llegada))}${numero}</dd></div>`;
+  const llegada = t.llegada ? ` → ${esc(horaDe(t.llegada))}` : t.duracionMin ? ` · ${esc(duracion(t.duracionMin))}` : '';
+  const escalas = t.escalas == null ? '' : ` · <span class="suave">${t.escalas === 0 ? 'Directo' : t.escalas === 1 ? '1 escala' : `${t.escalas} escalas`}</span>`;
+  return `<div><dt>${nombre}</dt><dd>${esc(etiquetaDia(t.salida))} · <strong>${esc(horaDe(t.salida))}</strong>${llegada}${escalas}${numero}</dd></div>`;
 }
 
 /** Tarjeta tipo billete de un vuelo con fechas. */
