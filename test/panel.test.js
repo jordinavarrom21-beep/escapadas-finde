@@ -15,7 +15,7 @@ import { cuentaAtras, euros } from '../site/js/formato.js';
 import { parsearPhoton, urlPhoton } from '../site/js/geo.js';
 import { contenidoFicha, tarjeta } from '../site/js/plantillas.js';
 import {
-  avisosDeBusquedas, contenidoSorpresa, contextoBusqueda, ocultas, resultadosBuscar, resultadosDeBusqueda, resultadosVuelos, totalNovedadesGuardadas, vistaMis, vistaVuelos, vistaActividades, vistaCalendario, vistaEscapadas, vistaFinde,
+  avisosDeBusquedas, contenidoSorpresa, contextoBusqueda, ocultas, resultadosBuscar, resultadosEscapadas, resultadosDeBusqueda, resultadosVuelos, totalNovedadesGuardadas, vistaMis, vistaVuelos, vistaActividades, vistaCalendario, vistaEscapadas, vistaFinde,
   vistaFuentes, vistaPuentes,
 } from '../site/js/vistas.js';
 import { crearServidor, rutaArchivo } from '../scripts/servir.js';
@@ -197,6 +197,16 @@ describe('escapadas', () => {
     const f = leerFiltrosEscapadas({ max: '25', h: '1' });
     const vuelos = vuelosParaMapa(ofertas, f, ctxBusqueda);
     assert.ok(vuelos.length > 0 && vuelos.every((o) => o.tipo === 'vuelo' && o.precio <= 25));
+  });
+});
+
+describe('orden a un toque', () => {
+  it('encima de los resultados, con el activo marcado y sin perder los filtros', () => {
+    const html = resultadosEscapadas(estadoPanel(), { cuando: 'finde', orden: 'noche' });
+    const nav = html.match(/<nav class="orden-rapido[^]*?<\/nav>/)?.[0] ?? '';
+    assert.match(nav, /class="chip chip--elegido" aria-current="true" href="#\/escapadas\?cuando=finde&orden=noche">Más baratas por noche/);
+    assert.match(nav, /href="#\/escapadas\?cuando=finde&orden=comodo">Más cerca/);
+    assert.match(nav, /href="#\/escapadas\?cuando=finde">Recomendadas/, 'la recomendada es la de siempre: sin «orden»');
   });
 });
 
