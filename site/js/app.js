@@ -55,11 +55,30 @@ let temporizadorFiltros = null;
 let temporizadorAviso = null;
 let origenFicha = null;
 
+/**
+ * Origen de los datos. En un hosting propio, `<meta name="escapadas-datos">` (lo pone
+ * scripts/preparar-web.js con --datos) apunta a la web de GitHub Pages, que se renueva en
+ * cada escaneo: así el hosting siempre enseña las ofertas del momento sin subir nada. Si
+ * esa web no responde, se usa la copia que lleva el propio hosting.
+ */
+const DATOS_REMOTOS = document.querySelector('meta[name="escapadas-datos"]')?.content || null;
+
+async function pedirJson(url) {
+  const respuesta = await fetch(url, { cache: 'no-cache' });
+  if (!respuesta.ok) throw new Error(`HTTP ${respuesta.status} en ${url}`);
+  return respuesta.json();
+}
+
 async function cargarJson(ruta, porDefecto) {
   try {
-    const respuesta = await fetch(ruta, { cache: 'no-cache' });
-    if (!respuesta.ok) throw new Error(`HTTP ${respuesta.status} en ${ruta}`);
-    return await respuesta.json();
+    if (DATOS_REMOTOS && ruta.startsWith('data/')) {
+      try {
+        return await pedirJson(new URL(ruta, DATOS_REMOTOS).href);
+      } catch (error) {
+        console.warn(`Sin datos de ${DATOS_REMOTOS}, se usa la copia local:`, error);
+      }
+    }
+    return await pedirJson(ruta);
   } catch (error) {
     if (porDefecto === undefined) throw error;
     return porDefecto;

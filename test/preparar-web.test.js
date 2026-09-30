@@ -58,3 +58,14 @@ describe('.htaccess sin dominio (zip para cualquier dominio)', () => {
     assert.doesNotMatch(texto, /RewriteCond %\{HTTP_HOST\}/);
   });
 });
+
+describe('datos remotos (hosting propio que lee las ofertas de GitHub Pages)', () => {
+  it('pone la etiqueta y abre esa conexión en la CSP, sin duplicar', async () => {
+    const { ponerDatosRemotos } = await import('../scripts/preparar-web.js');
+    const html = readFileSync(new URL('index.html', SITE), 'utf8');
+    const una = ponerDatosRemotos(html, 'https://usuario.github.io/escapadas-finde/');
+    assert.equal(ponerDatosRemotos(una, 'https://usuario.github.io/escapadas-finde/'), una);
+    assert.match(una, /<meta name="escapadas-datos" content="https:\/\/usuario\.github\.io\/escapadas-finde\/">/);
+    assert.match(una, /connect-src 'self' https:\/\/usuario\.github\.io https:\/\/photon\.komoot\.io/);
+  });
+});

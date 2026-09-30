@@ -64,6 +64,18 @@ export function ponerDireccion(html, base, { pagina = 'index' } = {}) {
 }
 
 /**
+ * Datos remotos: la web lee las ofertas de `datos` (la de GitHub Pages, que se renueva cada
+ * escaneo) en vez de su copia. Pone la etiqueta que lee app.js y abre esa conexión en la CSP.
+ * Se puede repetir sin duplicar nada.
+ */
+export function ponerDatosRemotos(html, datos) {
+  const { origin } = new URL(datos);
+  const sinEtiqueta = html.replace(/\s*<meta name="escapadas-datos" content="[^"]*">/, '');
+  const conEtiqueta = sinEtiqueta.replace(/(<meta http-equiv="Content-Security-Policy"[^>]*>)/, `$1\n  <meta name="escapadas-datos" content="${datos}">`);
+  return conEtiqueta.replace(/connect-src 'self'([^;"]*)/, (todo, resto) => (resto.includes(origin) ? todo : `connect-src 'self' ${origin}${resto}`));
+}
+
+/**
  * .htaccess para Apache/LiteSpeed (Hostinger). Con `base`, ese dominio es el único válido
  * (con o sin www, el que diga); sin ella, vale cualquier dominio y solo se fuerza HTTPS.
  */
@@ -130,7 +142,7 @@ ${unDominio}  # Las copias de seguridad de datos nunca se sirven.
 }
 
 /** Aplica todo a `dir`. Devuelve lo que ha hecho, para el registro. */
-export function prepararWeb({ dir = 'site', base = null, version = null, conHtaccess = false } = {}) {
+export function prepararWeb({ dir = 'site', base = null, version = null, conHtaccess = false, datos = null } = {}) {
   const hecho = [];
   const quitadas = quitarCopias(dir);
   if (quitadas.length) hecho.push(`quitadas ${quitadas.length} copias de datos`);
@@ -144,6 +156,11 @@ export function prepararWeb({ dir = 'site', base = null, version = null, conHtac
     const error404 = path.join(dir, '404.html');
     if (existsSync(error404)) writeFileSync(error404, ponerDireccion(readFileSync(error404, 'utf8'), base, { pagina: '404' }));
     hecho.push(`dirección ${base}`);
+  }
+  if (datos) {
+    const indice = path.join(dir, 'index.html');
+    writeFileSync(indice, ponerDatosRemotos(readFileSync(indice, 'utf8'), datos));
+    hecho.push(`datos de ${datos}`);
   }
   if (conHtaccess) {
     writeFileSync(path.join(dir, '.htaccess'), htaccess(base));
