@@ -38,3 +38,14 @@ describe('fotos de destino de Wikimedia', () => {
     assert.equal(vuelo.imagen, null);
   });
 });
+
+describe('fotos: bloqueo', () => {
+  it('un 403 para enseguida y lo dice una vez', async () => {
+    const { ErrorHttp } = await import('../src/util/http.js');
+    const { ctx, peticiones, logs } = crearCtx({ respuestas: (url) => { if (url.endsWith('robots.txt')) return ''; throw new ErrorHttp(403, url); } });
+    const ofertas = ['Turín', 'Roma', 'Oporto'].map((nombre) => oferta({ tipo: 'vuelo', imagen: null, lugar: { nombre } }));
+    await anadirFotos(ofertas, ctx);
+    assert.equal(peticiones.filter((u) => u.includes('search/page')).length, 1);
+    assert.equal(logs.filter((l) => l.includes('Sin fotos')).length, 1);
+  });
+});

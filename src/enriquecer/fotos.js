@@ -74,6 +74,11 @@ export async function anadirFotos(ofertas, ctx) {
         foto = fotoDeBusqueda(json, lugar.nombre);
         ctx.cache.guardar(k, foto, ahora);
       } catch (error) {
+        // Bloqueado o limitado (403/429): no se insiste más en este escaneo.
+        if (error.estado === 403 || error.estado === 429) {
+          ctx.log(`Sin fotos de Wikimedia en este escaneo: ${error.message}`);
+          break;
+        }
         ctx.log(`Foto de ${lugar.nombre}: ${error.message}`);
         continue;
       }
