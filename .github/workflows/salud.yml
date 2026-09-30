@@ -1,0 +1,49 @@
+# Cada lunes mira qué fuentes llevan más de un día fallando y lo cuenta en un issue
+# («Fuentes con problemas»): lo abre o lo actualiza si hay alguna y lo cierra cuando todas
+# vuelven a ir bien. Así no hace falta entrar a mirar el estado de las webs.
+name: Salud de las fuentes
+
+on:
+  schedule:
+    - cron: '13 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  salud:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 24
+
+      - name: Estado de la rama «datos»
+        run: git fetch --depth=1 origin datos && git checkout FETCH_HEAD -- data/estado.json
+
+      - id: informe
+        run: node scripts/salud-fuentes.js data/estado.json --horas 24 > informe.md
+
+      - name: Abrir, actualizar o cerrar el issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HAY: ${{ steps.informe.outputs.hay }}
+        run: |
+          titulo="Fuentes con problemas"
+          numero=$(gh issue list --state open --search "\"$titulo\" in:title" --json number,title --jq ".[] | select(.title == \"$titulo\") | .number" | head -n1)
+          if [ "$HAY" = "true" ]; then
+            if [ -n "$numero" ]; then
+              gh issue edit "$numero" --body-file informe.md
+            else
+              gh issue create --title "$titulo" --body-file informe.md
+            fi
+          elif [ -n "$numero" ]; then
+            gh issue close "$numero" --comment "Todas las fuentes vuelven a ir bien. 🎉"
+          fi
