@@ -6,10 +6,15 @@
 import { readFileSync } from 'node:fs';
 import { distanciaKm } from './enriquecer/geo.js';
 import { normalizarTexto } from './util/xml.js';
-import { ALOJAMIENTOS, REGIMENES, TEMAS, TIPOS } from './modelo.js';
+import { ALOJAMIENTOS, REGIMENES, TEMAS, TIPOS, TRANSPORTES } from './modelo.js';
 import { fechaLocal } from './util/fechas.js';
-// El mismo cálculo del coste del viaje que el panel (sin DOM: se puede usar desde Node).
+// El mismo cálculo del coste del viaje y las mismas reglas de búsqueda que el panel (sin
+// DOM: se pueden usar desde Node). Así un aviso por email coincide con lo que ves en el panel.
 import { costeViaje } from '../site/js/coste.js';
+import { proximoPuente } from '../site/js/fechas.js';
+import {
+  NINOS, SIN_COCHE, coincideTexto, cumpleNinos, disponibleEn, enRangoFechas, esPromocion, periodoFinde, periodoPuente, saleDeMisAeropuertos,
+} from '../site/js/filtros.js';
 
 const IDS_TEMAS = TEMAS.map((t) => t.id);
 
@@ -19,12 +24,13 @@ const CAMPOS = new Set([
   'alojamiento', 'regimenMinimo', 'valoracionMin', 'descuentoMin', 'precioMax', 'precioNocheMax',
   'noches', 'cocheMaxMin', 'cerca', 'pais', 'region', 'puente', 'finde', 'soloChollazos',
   'soloMinimoHistorico', 'desde', 'hasta', 'presupuestoMax', 'presupuestoPor', 'viajeros', 'coincidencias',
+  'ninos', 'sinCoche', 'transporte', 'estrellasMin', 'kmMax', 'sinCruceros', 'salidas',
 ]);
 const CAMPOS_TEXTO = ['ofertaId', 'texto', 'fuente', 'aeropuerto', 'pais', 'region', 'finde'];
-const CAMPOS_NUMERO = ['precioMax', 'precioNocheMax', 'cocheMaxMin', 'valoracionMin', 'descuentoMin', 'presupuestoMax', 'viajeros'];
+const CAMPOS_NUMERO = ['precioMax', 'precioNocheMax', 'cocheMaxMin', 'valoracionMin', 'descuentoMin', 'presupuestoMax', 'viajeros', 'estrellasMin', 'kmMax'];
 const esDia = (valor) => typeof valor === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(valor);
-const CAMPOS_BOOLEANO = ['activo', 'puente', 'soloChollazos', 'soloMinimoHistorico'];
-const CAMPOS_CATALOGO = { tipo: TIPOS, tema: IDS_TEMAS, alojamiento: ALOJAMIENTOS, regimenMinimo: REGIMENES };
+const CAMPOS_BOOLEANO = ['activo', 'puente', 'soloChollazos', 'soloMinimoHistorico', 'sinCoche', 'sinCruceros'];
+const CAMPOS_CATALOGO = { tipo: TIPOS, tema: IDS_TEMAS, alojamiento: ALOJAMIENTOS, regimenMinimo: REGIMENES, ninos: NINOS, transporte: TRANSPORTES };
 
 /**
  * Lee los criterios y avisa por `log` de los que tengan algo raro. Un vigilado mal
@@ -60,12 +66,6 @@ export function cargarVigilados(ruta, log = console.warn) {
 
 const tieneCoordenadas = (lugar) => typeof lugar?.lat === 'number' && typeof lugar?.lon === 'number';
 const contiene = (donde, buscado) => normalizarTexto(donde ?? '').includes(normalizarTexto(buscado));
-const escaparRegex = (texto) => texto.replace(/[.*+?^${}()|[\]\\]/g, (caracter) => `\\${caracter}`);
-/** Palabras completas: «reus» no es «Santes Creus» ni «sort» un «resort». */
-const contienePalabras = (donde, buscado) => {
-  const aguja = normalizarTexto(String(buscado)).trim();
-  return new RegExp(`(^|[^a-z0-9])${escaparRegex(aguja)}($|[^a-z0-9])`).test(normalizarTexto(donde ?? ''));
-};
 const cumpleRegimen = (regimen, minimo) => regimen != null && REGIMENES.indexOf(regimen) >= REGIMENES.indexOf(minimo);
 
 /** Nombre del país (sin tildes) → código ISO, para las webs que no dan el código. */
@@ -97,14 +97,48 @@ function cumpleNoches(noches, criterio) {
 }
 
 /**
- * Fechas «desde»/«hasta» (AAAA-MM-DD): con fechas, el viaje las solapa; sin fechas
- * (flexible), la promoción no ha caducado antes de «desde».
+ * Lo que necesitan los criterios de fechas relativas («este finde», «el puente») y de
+ * distancia: los findes y puentes del escaneo y su origen.
+ * @returns {{findes: object[], puentes: object[], origen: object|null, hoy: string}}
  */
-function cumpleFechas(oferta, { desde, hasta }) {
-  const salida = oferta.fechas.salida?.slice(0, 10);
-  if (!salida) return !desde || !oferta.caduca || fechaLocal(new Date(oferta.caduca)) >= desde;
-  const vuelta = (oferta.fechas.vuelta ?? oferta.fechas.salida).slice(0, 10);
-  return (!desde || vuelta >= desde) && (!hasta || salida <= hasta);
+export function contextoVigilados({ findes = [], puentes = [], origen = null, ahora = new Date() } = {}) {
+  const hoy = fechaLocal(ahora);
+  // Como crearEstado en el panel: los findes que no han acabado y el próximo puente primero.
+  const proximo = proximoPuente(puentes, hoy);
+  return {
+    findes: findes.filter((f) => f.domingo >= hoy),
+    puentes: proximo ? [proximo, ...puentes.filter((p) => p !== proximo && p.hasta >= hoy)] : [],
+    origen,
+    hoy,
+  };
+}
+
+/**
+ * «finde»: 'proximo' (el próximo finde, como «Este finde» del panel) o el id de un finde o
+ * de un puente. Las de fechas flexibles valen si no caducan antes (igual que el panel); sin
+ * la lista de findes y puentes, solo las que caen en ese finde o puente.
+ */
+function cumpleFinde(oferta, finde, ctx) {
+  const id = finde === 'proximo' ? ctx.findes?.[0]?.id : String(finde).replace(/^puente-/, '');
+  if (!id) return false;
+  const periodo = periodoFinde(ctx.findes?.find((f) => f.id === id)) ?? periodoPuente(ctx.puentes?.find((p) => p.id === id));
+  if (periodo) return disponibleEn(oferta, periodo);
+  return [oferta.fechas.findeId, oferta.fechas.puenteId].includes(id);
+}
+
+/**
+ * «puente»: se puede disfrutar en el próximo puente, como «Puente» en el panel (con fechas,
+ * que caiga en él; flexible, que no caduque antes). Sin la lista de puentes, que caiga en uno.
+ */
+function cumplePuente(oferta, ctx) {
+  const proximo = periodoPuente(ctx.puentes?.[0]);
+  return proximo ? disponibleEn(oferta, proximo) : Boolean(oferta.fechas.puenteId);
+}
+
+/** Km por carretera desde el origen del escaneo (o en línea recta si no se sabe). */
+function kmDesdeOrigen(oferta, ctx) {
+  if (typeof oferta.cocheKm === 'number') return oferta.cocheKm;
+  return ctx.origen && tieneCoordenadas(oferta.lugar) && tieneCoordenadas(ctx.origen) ? distanciaKm(ctx.origen, oferta.lugar) : null;
 }
 
 /**
@@ -131,8 +165,14 @@ function cumplePresupuesto(oferta, c) {
  * @param {Criterio} c
  * @returns {boolean} si la oferta cumple todas las condiciones del criterio
  */
-export function coincide(oferta, c) {
+export function coincide(oferta, c, ctx = {}) {
   if (c.activo === false) return false;
+  // Las copias repetidas de otra oferta no avisan dos veces (el panel también las oculta).
+  if (!c.ofertaId && (oferta.etiquetas ?? []).includes('duplicada')) return false;
+  if (c.sinCruceros && oferta.tipo === 'crucero') return false;
+  // Una promoción («muchos destinos por menos de 15 €») no es un billete: el panel las pone aparte.
+  if (!c.ofertaId && esPromocion(oferta)) return false;
+  if (Array.isArray(c.salidas) && c.salidas.length && !saleDeMisAeropuertos(oferta, c.salidas, ctx.origen)) return false;
   if (c.ofertaId && oferta.id !== c.ofertaId) return false;
   if (c.tipo && oferta.tipo !== c.tipo) return false;
   if (c.tema && !oferta.temas.includes(c.tema)) return false;
@@ -152,15 +192,25 @@ export function coincide(oferta, c) {
   if (c.pais && !cumplePais(oferta.lugar, c.pais)) return false;
   // La región puede ser la que dice la web, la provincia o la comunidad («Girona» o «Cataluña»).
   if (c.region && ![oferta.lugar?.region, oferta.lugar?.provincia, oferta.lugar?.comunidad].some((zona) => contiene(zona, c.region))) return false;
-  if (c.puente && !oferta.fechas.puenteId) return false;
+  if (c.puente && !cumplePuente(oferta, ctx)) return false;
   // Los ids de finde y de puente son su fecha; se acepta el «puente-…» que documentaba el leeme.
-  if (c.finde && ![oferta.fechas.findeId, oferta.fechas.puenteId].includes(String(c.finde).replace(/^puente-/, ''))) return false;
+  if (c.finde && !cumpleFinde(oferta, c.finde, ctx)) return false;
+  if (c.ninos && !cumpleNinos(oferta, c.ninos)) return false;
+  if (c.sinCoche && !SIN_COCHE.includes(oferta.transporte)) return false;
+  if (c.transporte && oferta.transporte !== c.transporte) return false;
+  if (c.estrellasMin != null && !((oferta.estrellas ?? 0) >= c.estrellasMin)) return false;
+  if (c.kmMax != null) {
+    // Sin distancia conocida no se puede decir que esté cerca (ojo: en JS, null <= 100).
+    const km = kmDesdeOrigen(oferta, ctx);
+    if (km == null || km > c.kmMax) return false;
+  }
   if (c.soloChollazos && !oferta.chollazo) return false;
   if (c.soloMinimoHistorico && !oferta.minimoHistorico) return false;
-  if ((c.desde || c.hasta) && !cumpleFechas(oferta, c)) return false;
+  if ((c.desde || c.hasta) && !enRangoFechas(oferta, c.desde, c.hasta)) return false;
   if (c.presupuestoMax != null && !cumplePresupuesto(oferta, c)) return false;
   if (c.cerca && !(tieneCoordenadas(oferta.lugar) && distanciaKm(c.cerca, oferta.lugar) <= c.cerca.radioKm)) return false;
-  if (c.texto && !contienePalabras([oferta.titulo, oferta.lugar?.nombre, oferta.lugar?.iata, oferta.vuelo?.destino].join(' '), c.texto)) return false;
+  // La misma búsqueda de texto que el panel («costa brava», «playa -crucero»).
+  if (c.texto && !coincideTexto(oferta, c.texto)) return false;
   return true;
 }
 
@@ -197,6 +247,7 @@ export function validarVigilado(c) {
   for (const [campo, validos] of Object.entries(CAMPOS_CATALOGO)) {
     if (c[campo] != null && !validos.includes(c[campo])) problemas.push(`«${campo}» debe ser uno de: ${validos.join(', ')}`);
   }
+  if (c.salidas != null && !(Array.isArray(c.salidas) && c.salidas.every((a) => typeof a === 'string' && /^[a-z]{3}$/i.test(a)))) problemas.push('«salidas» es una lista de códigos IATA, como ["BCN", "GRO"]');
   if (c.temas != null) {
     if (!Array.isArray(c.temas)) problemas.push('«temas» debe ser una lista, p. ej. ["spa", "rural"]');
     else {
@@ -212,7 +263,8 @@ export function validarVigilado(c) {
   else if (c.cerca && (c.cerca.radioKm <= 0 || Math.abs(c.cerca.lat) > 90 || Math.abs(c.cerca.lon) > 180)) problemas.push('«cerca»: radioKm debe ser mayor que 0 y lat/lon estar en rango');
   if (typeof c.aeropuerto === 'string' && !/^[a-z]{3}$/i.test(c.aeropuerto)) problemas.push('«aeropuerto» es un código IATA de 3 letras, como «BCN»');
   if (typeof c.aeropuerto === 'string') problemas.push('aviso: «aeropuerto» solo descarta vuelos cuyo origen se conoce, y hoy casi ninguna web lo publica');
-  if (typeof c.finde === 'string' && !/^(puente-)?\d{4}-\d{2}-\d{2}$/.test(c.finde)) problemas.push('«finde» es la fecha de un finde o de un puente, como «2026-12-05»');
+  if (typeof c.finde === 'string' && c.finde !== 'proximo' && !/^(puente-)?\d{4}-\d{2}-\d{2}$/.test(c.finde)) problemas.push('«finde» es «proximo» o la fecha de un finde o de un puente, como «2026-12-05»');
+  if (c.estrellasMin > 5) problemas.push('«estrellasMin» va de 1 a 5');
   for (const campo of ['desde', 'hasta']) {
     if (c[campo] != null && !esDia(c[campo])) problemas.push(`«${campo}» es una fecha como «2026-10-01»`);
   }
@@ -234,9 +286,9 @@ export const mejorOferta = (ofertas) => [...ofertas]
  * cualquiera que quiera pintar su estado sin repetir el filtrado.
  * @returns {{criterio: Criterio, ofertas: Oferta[], total: number, mejor: Oferta|null, precioMin: number|null}[]}
  */
-export function resumenVigilados(ofertas, vigilados = []) {
+export function resumenVigilados(ofertas, vigilados = [], ctx = {}) {
   return vigiladosActivos(vigilados).map((criterio) => {
-    const coincidencias = ofertas.filter((oferta) => coincide(oferta, criterio));
+    const coincidencias = ofertas.filter((oferta) => coincide(oferta, criterio, ctx));
     const precios = coincidencias.map((o) => o.precio).filter((precio) => precio != null);
     return {
       criterio,
@@ -253,7 +305,7 @@ export function resumenVigilados(ofertas, vigilados = []) {
  * @property {string} nombre
  * @property {boolean} [activo] por defecto true; con false se pausa (ni compara ni avisa)
  * @property {string} [ofertaId] vigilar una oferta concreta por su id
- * @property {string} [texto] en título, lugar, código IATA y destino del vuelo
+ * @property {string} [texto] como el buscador del panel: todas las palabras (sin «-palabra») en título, descripción, lugar, etiquetas…
  * @property {string} [tipo] vuelo | escapada | hotel | paquete
  * @property {string} [tema] un tema obligatorio
  * @property {string[]} [temas] basta con que tenga uno de ellos
@@ -270,8 +322,15 @@ export function resumenVigilados(ofertas, vigilados = []) {
  * @property {{lat: number, lon: number, radioKm: number}} [cerca]
  * @property {string} [pais] nombre o código del país
  * @property {string} [region]
- * @property {boolean} [puente] solo ofertas que caen en un puente
- * @property {string} [finde] id de un finde o de un puente concreto
+ * @property {boolean} [puente] ofertas para el próximo puente (con fechas, que caen en él; flexibles, sin caducar antes)
+ * @property {string} [finde] 'proximo' (el próximo finde) o el id de un finde o de un puente concreto
+ * @property {'apto'|'ventaja'|'gratis'} [ninos] para ir con niños, niños gratis o con descuento, o solo niños gratis
+ * @property {boolean} [sinCoche] se llega sin coche (avión, tren, bus o ferry)
+ * @property {string} [transporte] avion | coche | tren | bus | ferry
+ * @property {number} [estrellasMin] categoría mínima (1–5)
+ * @property {number} [kmMax] km como mucho desde el origen del escaneo
+ * @property {boolean} [sinCruceros] sin cruceros (como el panel por defecto)
+ * @property {string[]} [salidas] vuelos que pueden salir de estos aeropuertos (IATA), como «Desde mis aeropuertos»
  * @property {boolean} [soloChollazos]
  * @property {boolean} [soloMinimoHistorico]
  * @property {string} [desde] AAAA-MM-DD: viajes que acaban ese día o después (flexibles: sin caducar antes)

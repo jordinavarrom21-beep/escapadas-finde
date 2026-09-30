@@ -451,13 +451,15 @@ describe('ayudas para elegir', () => {
     });
     assert.deepEqual(criterioVigilado('Spa cerca de Girona', f, { vista: 'escapadas' }), {
       nombre: 'Spa cerca de Girona',
-      texto: 'spa',
+      // Tal cual (con «-crucero»): el aviso busca igual que el panel.
+      texto: 'spa -crucero',
       tipo: 'hotel',
       temas: ['spa', 'rural'],
       precioMax: 90,
       // Desde Girona, un radio de ~2 h alrededor de Girona; no «2 h desde Barcelona» (el origen del escaneo).
       cerca: { lat: 41.9794, lon: 2.8214, radioKm: 123 },
       puente: true,
+      sinCruceros: true,
     });
     assert.deepEqual(criterioVigilado('', leerFiltrosVuelos({ aero: 'BCN', max: '60' }), { vista: 'vuelos' }),
       { nombre: 'Mi búsqueda', tipo: 'vuelo', aeropuerto: 'BCN', precioMax: 60 });

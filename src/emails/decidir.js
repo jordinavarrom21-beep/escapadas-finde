@@ -3,7 +3,7 @@
  * para no repetir avisos: resumen del viernes, chollazos, vigilados y fuentes caídas.
  */
 import { esChollazo } from '../enriquecer/puntuacion.js';
-import { coincide, vigiladosActivos } from '../vigilados.js';
+import { coincide, contextoVigilados, vigiladosActivos } from '../vigilados.js';
 import { fechaLocal, horaLocal } from '../util/fechas.js';
 import { alertaChollazos, alertaFuentes, alertaVigilados, resumenSemanal } from './plantillas.js';
 
@@ -14,9 +14,9 @@ const MAX_AVISOS_POR_VIGILADO_DIA = 1;
 /** Una bajada así de gorda salta ese tope: es justo lo que esperas que te cuente. */
 const BAJADA_FUERTE_PCT = 15;
 
-function coincidenciasVigiladas(ofertas, vigilados, ultimoAvisado) {
+function coincidenciasVigiladas(ofertas, vigilados, ultimoAvisado, ctx) {
   return vigiladosActivos(vigilados).flatMap((criterio) => ofertas
-    .filter((oferta) => oferta.precio != null && coincide(oferta, criterio))
+    .filter((oferta) => oferta.precio != null && coincide(oferta, criterio, ctx))
     .map((oferta) => {
       const clave = `${criterio.nombre}|${oferta.id}`;
       return { criterio, oferta, clave, anterior: ultimoAvisado[clave] ?? null };
@@ -96,7 +96,8 @@ export async function procesarEmails({
   };
 
   const chollazos = config.chollazos.activo ? ofertas.filter((o) => esChollazo(o, ajustes)) : [];
-  const coincidencias = config.vigilados.activo ? coincidenciasVigiladas(ofertas, vigilados, emails.vigilados) : [];
+  const contexto = contextoVigilados({ findes, puentes, origen: ajustes.origen, ahora });
+  const coincidencias = config.vigilados.activo ? coincidenciasVigiladas(ofertas, vigilados, emails.vigilados, contexto) : [];
 
   if (!emails.inicializado) {
     // Primera ejecución con emails: se toma nota de lo que ya existía, sin avisar de ello.

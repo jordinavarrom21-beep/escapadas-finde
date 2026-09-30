@@ -88,7 +88,7 @@ describe('vigilados: fechas y presupuesto del viaje completo', async () => {
     const criterio = criterioVigilado('Spa en octubre', f, { salida: { nombre: 'Girona', lat: 41.9794, lon: 2.8214 }, viajeros: 2 });
     assert.deepEqual(criterio, {
       nombre: 'Spa en octubre', tema: 'spa', cerca: { lat: 41.9794, lon: 2.8214, radioKm: 123 },
-      desde: '2026-10-01', hasta: '2026-10-31', presupuestoMax: 180, viajeros: 2,
+      desde: '2026-10-01', hasta: '2026-10-31', presupuestoMax: 180, viajeros: 2, sinCruceros: true,
     });
     assert.deepEqual(validarVigilado(criterio), []);
   });

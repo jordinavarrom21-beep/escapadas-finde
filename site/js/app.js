@@ -24,7 +24,7 @@ import { icono } from './iconos.js';
 import { activarUbicacion } from './ubicacion.js';
 import {
   VISTAS_HTML, contarSecundarios, totalNovedadesGuardadas, paramsBuscadorFinde, contenidoSorpresa, contextoBusqueda, ctxTarjetas, datosMapa, formularioViaje, nombreSalida,
-  resultadosMapa, textoViaje,
+  misAeropuertos, resultadosMapa, textoViaje,
 } from './vistas.js';
 
 const $ = (selector) => document.querySelector(selector);
@@ -465,7 +465,9 @@ async function copiarVigilado(vista, boton) {
   const { params } = leerRuta(location.hash);
   const leer = { vuelos: leerFiltrosVuelos, actividades: leerFiltrosActividades }[vista] ?? leerFiltrosEscapadas;
   const filtros = leer(params);
-  const json = JSON.stringify(criterioVigilado(nombreEscrito(), filtros, { vista, salida: estado.salida, viajeros: estado.viaje.viajeros }), null, 2);
+  const json = JSON.stringify(criterioVigilado(nombreEscrito(), filtros, {
+    vista, salida: estado.salida, viajeros: estado.viaje.viajeros, aeropuertos: misAeropuertos(estado),
+  }), null, 2);
   const copiado = await copiarTexto(json);
   const caja = boton.closest('details')?.querySelector('.vigilado-json')
     ?? Object.assign(document.createElement('pre'), { className: 'vigilado-json' });

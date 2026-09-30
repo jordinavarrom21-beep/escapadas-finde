@@ -17,7 +17,7 @@ const formatoHora = new Intl.DateTimeFormat('en-GB', {
 
 /** Día local de Madrid como 'YYYY-MM-DD'. */
 export function fechaLocal(fecha = new Date()) {
-  return formatoFecha.format(fecha);
+  return formatoFecha.format(new Date(fecha));
 }
 
 /** Hora local de Madrid: { hora, minuto, diaSemana (0 = domingo) }. */
