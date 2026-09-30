@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="tr" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="description" content="Sayfa Bulunamadı TR">
+    <meta name="robots" content="noindex,nofollow,noarchive">
+    <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet">
+    <meta name="msnbot" content="noindex, nofollow, noarchive">
+    <meta name="author" content="Pegasus">
+
+    <link rel="icon" type="image/webp" sizes="16x16"
+        href="https://www.flypgs.com/assets/img/favicons/pegasus-airlines-favicon-16x16.webp">
+
+    <title>Sayfa Bulunamadı TR | Pegasus Hava Yolları</title>
+    <link rel="stylesheet" href="https://www.flypgs.com/assets/css/error/404.min.css">
+    <link rel="stylesheet" href="https://www.flypgs.com/assets/css/shared/shared.min.css">
+    <style>
+        .txt-center {
+            text-align: center;
+        }
+        a {
+            color: blue;
+        }
+    </style>
+</head>
+
+<body>
+
+    <section class="not-found-page js-not-found-page">
+        <div class="container not-found-page__container">
+            <div class="not-found-page__title">
+                Aradığınız sayfaya ulaşılamadı.
+            </div>
+            <img class="not-found-page__img" src="https://www.flypgs.com/assets/img/error/not-found-page-image.svg"
+                alt="404 Not Found" width="350" height="215">
+            <div class="not-found-page__akamai__zone txt-center">
+                <div id="ak_ip" hidden>57.154.6.33</div>
+                <div id="ak_id">
+                    <b>Sayfaya erişemiyorsunuz.</b> <br>
+                    Lütfen internet bağlantınızı kontrol ederek güvenli bir ağa bağlanmayı deneyin. Güvenli ağda sorunun
+                    devam etmesi halinde aşağıda size özel oluşturduğumuz "Referans No"yu <a
+                        href="mailto:info@flypgs.com" title="info@flypgs.com">info@flypgs.com</a> adresine e-posta
+                    olarak iletin. <br>
+                    <small>
+                        Referans No:
+                        <i>
+                            <b>0.a5f50f17.1790796035.103e89ab</b>
+                        </i>
+                    </small> <br> <br>
+                    <b>You cannot access the page.</b> <br>
+                    Please check your internet connection and try connecting to a secure network. If the issue persists
+                    on a secure network, please send the "Reference No." below to <a href="mailto:info@flypgs.com"
+                        title="info@flypgs.com">info@flypgs.com</a> via email.
+                    <small> <br>
+                        Reference No:
+                        <i>
+                            <b>0.a5f50f17.1790796035.103e89ab</b>
+                        </i>
+                    </small>
+                </div>
+            </div>
+        </div>
+    </section>
+</body>
+</html>

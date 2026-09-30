@@ -1,0 +1,46 @@
+Sitemap: https://www.vueling.com/mapsite
+Sitemap: https://www.vueling.com/en/sitemap.xml
+Sitemap: https://www.vueling.com/es/sitemap.xml
+Sitemap: https://www.vueling.com/pt/sitemap.xml
+Sitemap: https://www.vueling.com/de/sitemap.xml
+Sitemap: https://www.vueling.com/nl/sitemap.xml
+Sitemap: https://www.vueling.com/fr/sitemap.xml
+Sitemap: https://www.vueling.com/it/sitemap.xml
+Sitemap: https://www.vueling.com/ca/sitemap.xml
+Sitemap: https://www.vueling.com/gl/sitemap.xml
+Sitemap: https://www.vueling.com/eu/sitemap.xml
+
+User-agent: *
+# LLM bots
+User-agent: bingbot
+User-agent: BingPreview
+User-agent: MicrosoftPreview
+User-agent: Google-NotebookLM
+User-agent: Google-Extended
+User-agent: GPTBot
+User-agent: OAI-SearchBot
+User-agent: ChatGPT-User
+User-agent: ClaudeBot
+User-agent: Claude-SearchBot
+User-agent: PerplexityBot
+User-agent: Perplexity-User
+User-agent: CCBot
+Allow: /
+Disallow: /*?mode=
+Disallow: /*?sid=
+Disallow: /*?language=
+Disallow: /*?keyword=
+Disallow: /*?nomob=
+Disallow: /*?id=
+Disallow: /*?cadw=
+Disallow: /*?city=
+Disallow: /*?idioma=
+Disallow: /*?ip=
+Disallow: /*?originCalendar=
+Disallow: /*?destinationCalendar=
+
+User-agent: AhrefsBot
+disallow: /
+
+User-agent: msnbot
+Crawl-delay: 300

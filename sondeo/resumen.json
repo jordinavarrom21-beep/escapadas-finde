@@ -1,0 +1,119 @@
+{
+ "vueling-robots": {
+  "estado": 200,
+  "tipo": "text/plain",
+  "bytes": 1209,
+  "inicio": "Sitemap: https://www.vueling.com/mapsite Sitemap: https://www.vueling.com/en/sitemap.xml Sitemap: https://www.vueling.com/es/sitemap.xml Sitemap: https://www.vu"
+ },
+ "vueling-apiwww-robots": {
+  "error": "fetch failed"
+ },
+ "vueling-precios-apiwww": {
+  "error": "fetch failed"
+ },
+ "vueling-precios-www": {
+  "estado": 404,
+  "tipo": "text/html; charset=utf-8",
+  "bytes": 34610,
+  "inicio": " <!DOCTYPE html> <html lang=\"es\" culture=\"es-ES\" currency=\"EUR\"> <head> <meta charset=\"utf-8\" /> <base href=\"/\"> <meta name=\"viewport\" content=\"wi"
+ },
+ "vueling-home": {
+  "estado": 200,
+  "tipo": "text/html; charset=utf-8",
+  "bytes": 295146,
+  "inicio": " <!DOCTYPE html> <html lang=\"es\" culture=\"es-ES\" currency=\"USD\"> <head> <meta charset=\"utf-8\" /> <base href=\"/\"> <meta name=\"viewport\" content=\"wi"
+ },
+ "norwegian-calendario": {
+  "estado": 403,
+  "tipo": "text/html; charset=UTF-8",
+  "bytes": 20586,
+  "inicio": "<!doctype html> <html class=\"no-js\" lang=\"\"> <head> <meta charset=\"utf-8\"> <title>Are you human? | Norwegian</title> <meta name=\"description\""
+ },
+ "pegasus-robots": {
+  "estado": 200,
+  "tipo": "text/plain",
+  "bytes": 186,
+  "inicio": "User-Agent: * Disallow: / Allow: /payment User-Agent: AdsBot-Google Allow: / User-Agent: AdsBot-Google-Mobile Allow: / User-agent: Yandex Allow: / User"
+ },
+ "pegasus-robots2": {
+  "estado": 200,
+  "tipo": "text/plain",
+  "bytes": 2361,
+  "inicio": "User-agent: * Allow: / Disallow: /*.pdf$ Disallow: */generalrule/pdf Disallow: /*.docx$ Disallow: */Search/Detail/ Disallow: /arama/ Disallow: */TravelPl"
+ },
+ "pegasus-barata": {
+  "estado": 403,
+  "tipo": "text/html",
+  "bytes": 2919,
+  "inicio": "<!DOCTYPE html> <html lang=\"tr\" dir=\"ltr\"> <head> <meta charset=\"UTF-8\"> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, user-scal"
+ },
+ "level-robots": {
+  "estado": 200,
+  "tipo": "text/plain; charset=utf-8",
+  "bytes": 697,
+  "inicio": "Sitemap: https://www.flylevel.com/sitemap User-agent: Googlebot Allow: / User-agent: Googlebot-Image Allow: / User-agent: Googlebot-Video Allow: / User-agent"
+ },
+ "level-calendario": {
+  "estado": 403,
+  "tipo": "text/html",
+  "bytes": 416,
+  "inicio": "<HTML><HEAD> <TITLE>Access Denied</TITLE> </HEAD><BODY> <H1>Access Denied</H1> You don't have permission to access \"http&#58;&#47;&#47;www&#46;flylevel&#46;co"
+ },
+ "easyjet-rutas": {
+  "estado": 403,
+  "tipo": "text/html",
+  "bytes": 426,
+  "inicio": "<HTML><HEAD> <TITLE>Access Denied</TITLE> </HEAD><BODY> <H1>Access Denied</H1> You don't have permission to access \"http&#58;&#47;&#47;www&#46;easyjet&#46;com"
+ },
+ "easyjet-diarios": {
+  "estado": 403,
+  "tipo": "text/html",
+  "bytes": 439,
+  "inicio": "<HTML><HEAD> <TITLE>Access Denied</TITLE> </HEAD><BODY> <H1>Access Denied</H1> You don't have permission to access \"http&#58;&#47;&#47;www&#46;easyjet&#46;com"
+ },
+ "jet2-robots": {
+  "error": "The operation was aborted due to timeout"
+ },
+ "transavia-home": {
+  "estado": 403,
+  "tipo": "text/html; charset=UTF-8",
+  "bytes": 5484,
+  "inicio": "<!DOCTYPE html> <!--[if lt IE 7]> <html class=\"no-js ie6 oldie\" lang=\"en-US\"> <![endif]--> <!--[if IE 7]> <html class=\"no-js ie7 oldie\" lang=\"en-US\"> <![endi"
+ },
+ "eurowings-api": {
+  "estado": 403,
+  "tipo": "text/html; charset=UTF-8",
+  "bytes": 6167,
+  "inicio": "<!DOCTYPE html><html lang=\"en-US\"><head><title>Just a moment...</title><meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\"><meta http-equiv=\"X-UA"
+ },
+ "airbaltic-api": {
+  "estado": 200,
+  "tipo": "application/json",
+  "bytes": 50,
+  "inicio": "{\"success\":false,\"error\":\"Invalid endDate passed\"}"
+ },
+ "smartwings-robots": {
+  "estado": 200,
+  "tipo": "text/plain",
+  "bytes": 619,
+  "inicio": "User-agent: * Allow: /*.js* Allow: /*.css* Allow: /*.png* Allow: /*.jpg* Allow: /*.gif* Disallow: /administrator/ Disallow: /api/ Disallow: /bin/ # 4SEO-opt Di"
+ },
+ "tap-robots": {
+  "estado": 200,
+  "tipo": "text/plain;charset=UTF-8",
+  "bytes": 648,
+  "inicio": "User-agent: * # Disallow My Account Pages Disallow: */minha-conta Disallow: */my-account Disallow: */mon-compte Disallow: */mein-konto Disallow: */mi-cuenta #"
+ },
+ "aegean-robots": {
+  "estado": 403,
+  "tipo": "text/html",
+  "bytes": 382,
+  "inicio": "<HTML><HEAD> <TITLE>Access Denied</TITLE> </HEAD><BODY> <H1>Access Denied</H1> You don't have permission to access \"http&#58;&#47;&#47;en&#46;aegeanair&#46;co"
+ },
+ "volotea-api-robots": {
+  "estado": 200,
+  "tipo": "text/plain",
+  "bytes": 104,
+  "inicio": "User-agent: * Disallow: / User-agent: Twitterbot Disallow: User-agent: Googlebot Disallow: "
+ }
+}

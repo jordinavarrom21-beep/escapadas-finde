@@ -1,0 +1,33 @@
+User-agent: *
+
+# Disallow My Account Pages
+Disallow: */minha-conta
+Disallow: */my-account
+Disallow: */mon-compte
+Disallow: */mein-konto
+Disallow: */mi-cuenta
+
+# Disallow Search Pages
+Disallow: */pesquisar
+Disallow: */search
+Disallow: */recherche
+Disallow: */forschung
+Disallow: */buscar
+Disallow: */ricerca
+Disallow: */szukaj
+
+# Disallow Other
+Disallow: */content/dam/tap
+Disallow: */_next/data
+Disallow: */cdn-cgi
+Disallow: */api
+Disallow: */posts/api
+Disallow: */rb_bf91513tbq
+Disallow: */application
+
+# Disallow Darksite
+Disallow: /*/dark-website/*
+
+Sitemap: https://www.flytap.com/sitemap.xml
+Sitemap: https://www.flytap.com/sitemap_index.xml
+

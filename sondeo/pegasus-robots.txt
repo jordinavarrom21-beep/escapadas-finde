@@ -1,0 +1,11 @@
+User-Agent: *
+Disallow: /
+Allow: /payment
+User-Agent: AdsBot-Google
+Allow: /
+User-Agent: AdsBot-Google-Mobile
+Allow: /
+User-agent: Yandex
+Allow: /
+User-agent: Bingbot
+Allow: / 
