@@ -276,6 +276,14 @@ bloquean la lectura con protección anti-bot, y Yelloh! Village, Capfun, Homair,
 Eurocamp no publican sus ofertas en el HTML o su robots.txt no lo permite: entran si
 suscribes su newsletter al Gmail del buzón (ya están en la lista de comercios conocidos).
 
+**Más escapadas, esquí y chollos**: **Muchoviaje** (hoteles de sus secciones «Fin de semana»,
+«Última hora», «Especial familias» y PortAventura, con estrellas y precio medio por noche),
+**Grandvalira** (packs de hotel + forfait con fechas y actividades de esquí; en temporada) y
+los feeds de las **categorías de viajes de Chollómetro** (viajes y ocio, hoteles, escapada,
+billetes de avión y todo incluido), además de sus feeds generales. Sondeadas y descartadas:
+Logitravel, Baleària y Baqueira bloquean la lectura (403 / anti-bot); Destinia, ALSA y Trasmed
+cargan las ofertas con JavaScript; Toprural y Hoteles con Encanto no responden.
+
 **Ofertas para ir con niños**: se detectan en todas las fuentes (título, descripción, precio
 y etiquetas) y llevan una insignia en la tarjeta: «1 niño gratis», «Niños −60 %» o «Tarifa
 para niños». En Explorar, «¿Vas con niños?» filtra los planes para ir con niños, los que

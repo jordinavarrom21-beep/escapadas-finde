@@ -1,6 +1,6 @@
 /**
  * Ofertas de viajes de la comunidad Chollometro a partir de sus feeds RSS
- * («subiendo» y «nuevos»). De cada feed solo se quedan los chollos de viajes:
+ * («subiendo», «nuevos» y los de sus categorías de viajes). De cada feed solo se quedan los chollos de viajes:
  * los de la categoría de viajes o los que lo dejan claro en el título.
  */
 import { crearOferta } from '../modelo.js';
@@ -11,7 +11,10 @@ import { extraerLugar, limpiarTitulo } from './viajerospiratas.js';
 const ID = 'chollometro';
 const WEB = 'https://www.chollometro.com';
 // /rss/hot redirige (301) a /rss/subiendo: se pide directamente el destino.
-const URLS_FEEDS = [`${WEB}/rss/subiendo`, `${WEB}/rss/nuevos`];
+// Los feeds generales traen de todo (de viajes, unos pocos); los de las categorías de viajes,
+// 30 chollos cada uno. El de esquí no: casi todo es material deportivo.
+export const CATEGORIAS_VIAJES = ['viajes-y-ocio', 'hoteles', 'escapada', 'billetes-de-avion', 'viajes-todo-incluido'];
+const URLS_FEEDS = [`${WEB}/rss/subiendo`, `${WEB}/rss/nuevos`, ...CATEGORIAS_VIAJES.map((c) => `${WEB}/rss/categorias/${c}`)];
 const PAUSA_MS = 2000;
 
 const CATEGORIA_VIAJES = /\b(?:viajes?|vuelos?|hoteles?|vacaciones|escapadas?)\b/;
@@ -37,7 +40,7 @@ const VIAJE = palabras([...FUERTES, ...DEBILES]);
 const AVE = /\bAVE\b/;
 
 // Productos que mencionan viajes sin serlo («Maleta de cabina Ryanair», «Dron con 30 min de vuelo»).
-const PRODUCTO = /\b(?:maletas?|mochilas?|trolley|neceser(?:es)?|bolsas? de viaje|(?:kit|set|tamano) de viaje|almohadas?|cojin(?:es)?|adaptador(?:es)?|candados?|basculas?|organizador(?:es)?|dron(?:es)?|lego|playmobil|juguetes?|cuadernos?)\b/i;
+const PRODUCTO = /\b(?:maletas?|mochilas?|trolley|neceser(?:es)?|bolsas?(?: de)? viaje|samsonite|american tourister|cabin ?(?:max|zero)|(?:kit|set|tamano) de viaje|almohadas?|cojin(?:es)?|adaptador(?:es)?|candados?|basculas?|organizador(?:es)?|dron(?:es)?|lego|playmobil|juguetes?|cuadernos?)\b/i;
 
 const TIPOS = [
   ['paquete', /\b(?:vuelos?|avion)\s*(?:\+|y|con)\s*hotel|\bhotel\s*(?:\+|y|con)\s*vuelos?\b|\bpaquetes?\b|\bcruceros?\b|\bviajes? organizados?\b/i],
