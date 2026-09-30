@@ -346,6 +346,7 @@ export function contenidoFicha(o, ctx) {
     <h3 id="ficha-historial-titulo">${icono('bajada')}Historial de precios${o.historialPorNoche ? ' <span class="suave">(por noche)</span>' : ''}</h3>
     ${serie.length >= 2
     ? `<div class="ficha__grafica"><canvas id="ficha-grafica" role="img" aria-label="Evolución del precio en ${serie.length} días"></canvas></div>
+       <p class="leyenda-grafica" aria-hidden="true"><span class="leyenda-grafica__linea"></span>Precio <span class="leyenda-grafica__punto"></span>El más bajo <span class="leyenda-grafica__discontinua"></span>Típico (mediana)</p>
        <p class="suave">Mínimo ${euros(Math.min(...serie.map(([, p]) => p)))} · máximo ${euros(Math.max(...serie.map(([, p]) => p)))}${sufijoSerie(o)} · desde el ${esc(etiquetaDia(serie[0][0]))}${o.historialPorNoche ? '. Por noche porque las fechas y las noches que da la web cambian de un día a otro' : ''}</p>`
     : '<p class="suave">Aún no hay historial suficiente (hacen falta al menos dos días).</p>'}
   </section>

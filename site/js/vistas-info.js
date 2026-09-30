@@ -19,17 +19,21 @@ export function vistaCalendario(e) {
   const findes = findesProximos(12, e.ahora);
   // Sin ninguna fuente de vuelos con fecha, cada finde lleva a sus escapadas y no dice «sin vuelos» doce veces.
   const hayVuelos = e.datos.ofertas.some(tieneVuelo);
-  const celdas = resumenCalendario(e.datos.ofertas, findes, e.datos.puentes).map(({ finde, puente, vuelo, vuelos, escapadas }, i) => {
+  const resumen = resumenCalendario(e.datos.ofertas, findes, e.datos.puentes);
+  // Mapa de calor: con vuelos, más intenso cuanto más barato el mejor vuelo del finde; sin
+  // ellos, cuantas más escapadas. El número va siempre escrito (el color solo ayuda a ver).
+  const niveles = nivelesCalendario(resumen, hayVuelos);
+  const celdas = resumen.map(({ finde, puente, vuelo, vuelos, escapadas }, i) => {
     const cuando = i === 0 ? 'Este finde' : i === 1 ? 'El siguiente' : `En ${i} semanas`;
     const textoVuelo = !hayVuelos ? '' : vuelo
-      ? `${icono('vuelos')}<span>desde <strong>${euros(vuelo.precio)}</strong> · ${esc(vuelo.lugar?.nombre ?? '')}</span>`
+      ? `${icono('vuelos')}<span>desde <strong>${euros(vuelo.precio)}</strong> · ${esc(vuelo.lugar?.nombre ?? '')}${vuelos > 1 ? ` <span class="suave">· ${contar(vuelos, 'vuelo')}</span>` : ''}</span>`
       : `${icono('vuelos')}<span class="suave">Sin vuelos con fecha</span>`;
     const destino = hayVuelos ? crearHash('vuelos', { finde: finde.id }) : crearHash('escapadas', { cuando: finde.id });
-    return `<li><a class="finde-celda${puente ? ' finde-celda--puente' : ''}" href="${destino}">
+    return `<li><a class="finde-celda${puente ? ' finde-celda--puente' : ''}${niveles[i] ? ` finde-celda--nivel-${niveles[i]}` : ''}" href="${destino}">
   <span class="finde-celda__cuando">${cuando}</span>
   <span class="finde-celda__fecha">${esc(finde.etiqueta)}</span>
   ${puente ? `<span class="insignia insignia--puente">${icono('puentes')}${esc(puente.nombre)}</span>` : ''}
-  ${textoVuelo ? `<span class="finde-celda__dato">${textoVuelo}${vuelos > 1 ? ` <span class="suave">(${vuelos})</span>` : ''}</span>` : ''}
+  ${textoVuelo ? `<span class="finde-celda__dato">${textoVuelo}</span>` : ''}
   <span class="finde-celda__dato">${icono('escapadas')}${contar(escapadas, 'escapada')}</span>
 </a></li>`;
   });
@@ -37,7 +41,30 @@ export function vistaCalendario(e) {
 <p class="seccion__intro">${hayVuelos
     ? 'Los próximos 12 findes con el vuelo más barato y las escapadas disponibles (con fecha o flexibles). Los puentes van resaltados. Pulsa uno para ver sus vuelos.'
     : 'Los próximos 12 findes con las escapadas disponibles (con fecha o flexibles). Los puentes van resaltados. Pulsa uno para ver sus escapadas.'}</p>
+${leyendaCalendario(hayVuelos)}
 <ol class="calendario">${celdas.join('')}</ol>`;
+}
+
+/**
+ * Nivel 1–4 de cada finde para el mapa de calor (4 = el mejor: el vuelo más barato o más
+ * escapadas), por cuartiles de los findes que tienen dato; 0 si no tiene.
+ */
+export function nivelesCalendario(resumen, hayVuelos) {
+  const valor = (r) => (hayVuelos ? r.vuelo?.precio ?? null : r.escapadas || null);
+  const valores = resumen.map(valor).filter((v) => v != null).sort((a, b) => a - b);
+  if (valores.length < 2) return resumen.map(() => 0);
+  return resumen.map((r) => {
+    const v = valor(r);
+    if (v == null) return 0;
+    const posicion = valores.filter((x) => x < v).length / (valores.length - 1);
+    const cuartil = Math.min(3, Math.floor(posicion * 4));
+    return hayVuelos ? 4 - cuartil : cuartil + 1;
+  });
+}
+
+function leyendaCalendario(hayVuelos) {
+  const [menos, mas] = hayVuelos ? ['Vuelo más caro', 'Más barato'] : ['Menos escapadas', 'Más'];
+  return `<p class="leyenda-calor" aria-hidden="true"><span>${menos}</span>${[1, 2, 3, 4].map((n) => `<i class="leyenda-calor__paso finde-celda--nivel-${n}"></i>`).join('')}<span>${mas}</span></p>`;
 }
 
 // ── Puentes ──────────────────────────────────────────────────────────────────

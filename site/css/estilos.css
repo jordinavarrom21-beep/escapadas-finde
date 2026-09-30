@@ -1439,3 +1439,20 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 .opiniones__enlaces { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 0.88rem; }
 .opiniones__enlaces a { display: inline-flex; align-items: center; gap: 4px; color: var(--enlace); font-weight: 650; min-height: 32px; }
 .opiniones__enlaces .ic { width: 14px; height: 14px; }
+
+/* Leyenda del historial de precios: línea del precio, punto del más bajo y el típico discontinuo. */
+.leyenda-grafica { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin: 0; font-size: 0.8rem; color: var(--texto-suave); }
+.leyenda-grafica > span { display: inline-block; margin-right: -6px; }
+.leyenda-grafica__linea { width: 16px; height: 2px; background: var(--acento); }
+.leyenda-grafica__punto { width: 10px; height: 10px; border-radius: 50%; background: var(--chollo); box-shadow: 0 0 0 2px var(--superficie); }
+.leyenda-grafica__discontinua { width: 16px; height: 0; border-top: 2px dashed var(--texto-suave); }
+
+/* Calendario como mapa de calor: un solo tono, más intenso cuanto mejor es el finde. */
+.finde-celda--nivel-1:not(.finde-celda--puente), .leyenda-calor__paso.finde-celda--nivel-1 { background: color-mix(in oklab, var(--acento) 7%, var(--superficie)); }
+.finde-celda--nivel-2:not(.finde-celda--puente), .leyenda-calor__paso.finde-celda--nivel-2 { background: color-mix(in oklab, var(--acento) 15%, var(--superficie)); }
+.finde-celda--nivel-3:not(.finde-celda--puente), .leyenda-calor__paso.finde-celda--nivel-3 { background: color-mix(in oklab, var(--acento) 25%, var(--superficie)); }
+.finde-celda--nivel-4:not(.finde-celda--puente), .leyenda-calor__paso.finde-celda--nivel-4 { background: color-mix(in oklab, var(--acento) 36%, var(--superficie)); }
+.leyenda-calor { display: flex; align-items: center; gap: 4px; margin: 0 0 12px; font-size: 0.8rem; color: var(--texto-suave); }
+.leyenda-calor span:first-child { margin-right: 4px; }
+.leyenda-calor span:last-child { margin-left: 4px; }
+.leyenda-calor__paso { display: inline-block; width: 22px; height: 12px; border-radius: 3px; border: 1px solid var(--borde); }

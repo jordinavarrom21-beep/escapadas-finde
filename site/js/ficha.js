@@ -10,6 +10,13 @@ import { contenidoFicha } from './plantillas.js';
 
 let grafica = null;
 
+/** Mediana: el «precio típico» de la oferta, sin que un día raro lo mueva. */
+export function mediana(valores) {
+  const orden = [...valores].sort((a, b) => a - b);
+  const medio = Math.floor(orden.length / 2);
+  return orden.length % 2 ? orden[medio] : (orden[medio - 1] + orden[medio]) / 2;
+}
+
 const colorCss = (nombre) => getComputedStyle(document.documentElement).getPropertyValue(nombre).trim();
 
 async function dibujarGrafica(lienzo, serie) {
@@ -24,18 +31,41 @@ async function dibujarGrafica(lienzo, serie) {
   }
   if (!lienzo.isConnected) return;
   grafica?.destroy();
-  const [acento, suave, borde] = ['--acento', '--texto-suave', '--borde'].map(colorCss);
+  const [acento, suave, borde, chollo, superficie] = ['--acento', '--texto-suave', '--borde', '--chollo', '--superficie'].map(colorCss);
+  const precios = serie.map(([, precio]) => precio);
+  const minimo = Math.min(...precios);
+  const tipico = mediana(precios);
+  // El día más barato, marcado (punto grande con anillo del color del fondo); el resto, pequeños.
+  const radios = precios.map((p, i) => (p === minimo && precios.indexOf(p) === i ? 6 : i === precios.length - 1 ? 4 : 2.5));
   grafica = new window.Chart(lienzo, {
     type: 'line',
     data: {
       labels: serie.map(([dia]) => etiquetaDia(dia)),
-      datasets: [{ data: serie.map(([, precio]) => precio), borderColor: acento, backgroundColor: acento, pointRadius: 3, tension: 0.25 }],
+      datasets: [
+        {
+          label: 'Precio', data: precios, borderColor: acento, backgroundColor: precios.map((p) => (p === minimo ? chollo : acento)),
+          borderWidth: 2, pointRadius: radios, pointHoverRadius: 7, pointBorderColor: superficie, pointBorderWidth: 2, tension: 0.25,
+        },
+        {
+          label: 'Precio típico', data: precios.map(() => tipico), borderColor: suave, borderDash: [5, 4], borderWidth: 1.5,
+          pointRadius: 0, pointHoverRadius: 0, fill: false,
+        },
+      ],
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
       animation: false,
-      plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => euros(c.parsed.y) } } },
+      // Al pasar por encima (o tocar), el día entero: su precio y el típico.
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (c) => (c.datasetIndex === 1 ? `Típico: ${euros(c.parsed.y)}` : `${euros(c.parsed.y)}${c.parsed.y === minimo ? ' · el más bajo' : ''}`),
+          },
+        },
+      },
       scales: {
         x: { ticks: { color: suave, maxRotation: 0, autoSkip: true }, grid: { display: false } },
         y: { ticks: { color: suave, callback: (valor) => euros(valor) }, grid: { color: borde } },
