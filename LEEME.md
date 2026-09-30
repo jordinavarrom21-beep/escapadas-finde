@@ -101,30 +101,6 @@ proveedores cuyo usuario no es una dirección, como SendGrid o SES) y se usarán
 siempre juntas: si falta una, los emails se desactivan y el registro del escaneo dice cuál
 falta, en lugar de mezclar el usuario de una cuenta con la contraseña de otra.
 
-## Vuelos con fecha y hora (Aviasales vía Travelpayouts)
-
-Para cada uno de los próximos findes (viernes → domingo) y puentes, desde tus aeropuertos
-(`vuelos.aeropuertos`), la fuente `travelpayouts` trae los billetes de ida y vuelta más baratos
-**a cualquier destino**, con horarios, escalas y duración, y los pinta como billetes en
-**Vuelos** (con «Horario ideal», «Directo» y el finde o puente). Solo los que no pasan de
-`vuelos.precioMax`. Son **precios de búsquedas recientes** de Aviasales, no en directo: la
-oferta lo dice y el botón abre la búsqueda en Aviasales con el precio de ese momento.
-
-(Amadeus Self-Service cerró el 17/07/2026: ya no admite altas.)
-
-1. Date de alta gratis en [Travelpayouts](https://www.travelpayouts.com) y únete al programa
-   de **Aviasales**.
-2. En tu perfil → **API token**, copia el token. **No lo pegues en ningún chat.**
-3. En GitHub → Settings → Secrets and variables → Actions → **New repository secret**:
-   `TRAVELPAYOUTS_TOKEN` con ese token. Opcional: `TRAVELPAYOUTS_MARKER` con tu **marker**
-   (id de afiliado, en el mismo perfil): los enlaces llevan tu marca y si alguien reserva,
-   la comisión es tuya.
-4. Lanza una revisión (Actions → Vigilar ofertas → Run workflow). Sin el token, la fuente sale
-   en «Estado de las webs» como «Falta configurar: TRAVELPAYOUTS_TOKEN» y no hace nada.
-
-Se consulta cada 3 h (`fuentes.travelpayouts.intervaloMin`): unas 30–40 peticiones, muy por
-debajo del límite de la API. Un token mal puesto (401) para la lectura y lo dice en el registro.
-
 ## Buzón de newsletters
 
 Con esos mismos secretos, cada ejecución lee los emails de los últimos 3 días del Gmail
@@ -389,7 +365,7 @@ permite, la fuente queda «bloqueada» y no se toca. Además se espacian las pet
 nunca se intenta saltar un captcha ni una protección anti-bot.
 
 Por eso **Ryanair está desactivada**: su robots.txt prohíbe `/api`. Los vuelos con fecha
-llegan por vías legítimas (la API de Travelpayouts, las alertas por email). Trivago y
+llegarán por vías legítimas (Travelpayouts, SerpApi o las alertas por email). Trivago y
 Booking solo aparecen como enlaces con destino y fechas ya puestos, porque no permiten leer
 sus resultados.
 

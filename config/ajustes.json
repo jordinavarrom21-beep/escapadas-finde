@@ -127,10 +127,6 @@
       "activa": true,
       "intervaloMin": 1440
     },
-    "travelpayouts": {
-      "activa": true,
-      "intervaloMin": 180
-    },
     "volotea": {
       "activa": true,
       "intervaloMin": 360

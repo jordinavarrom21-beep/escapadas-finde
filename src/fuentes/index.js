@@ -23,7 +23,6 @@ import renfe from './renfe.js';
 import rusticae from './rusticae.js';
 import sandaya from './sandaya.js';
 import ryanair from './ryanair.js';
-import travelpayouts from './travelpayouts.js';
 import tuscasasrurales from './tuscasasrurales.js';
 import viajerospiratas from './viajerospiratas.js';
 import volotea from './volotea.js';
@@ -39,7 +38,7 @@ export const FUENTES = [
   // Actividades y experiencias
   civitatis, guruwalk,
   // Transporte
-  travelpayouts, volotea, ouigo, flixbus, ferryhopper, renfe, ryanair,
+  volotea, ouigo, flixbus, ferryhopper, renfe, ryanair,
   // Comunidades y alertas
   chollometro, fly4free, buzon,
 ];
