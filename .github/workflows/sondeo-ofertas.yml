@@ -19,8 +19,8 @@ jobs:
       - name: Guardar en la rama sondeo-ofertas
         run: |
           git config user.name "sondeo" && git config user.email "sondeo@users.noreply.github.com"
-          git checkout --orphan sondeo-ofertas
+          git checkout --orphan sondeo-ofertas-2
           git rm -rq --cached .
           git add sondeo
           git commit -qm "Sondeo de ofertas"
-          git push -f origin sondeo-ofertas
+          git push -f origin sondeo-ofertas-2
