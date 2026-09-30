@@ -254,17 +254,64 @@ para cualquier visitante:
   `https://<tu-usuario>.github.io/escapadas-finde/?propietario=1` (se recuerda; `=0` lo quita).
   En `localhost` sale siempre. No protege nada: solo ordena la interfaz.
 
-**Dominio propio** (p. ej. `escapadasfinde.es`): cómpralo en cualquier registrador, añade en su
-DNS un `CNAME` `www` → `<tu-usuario>.github.io` (o los registros `A` de GitHub para el dominio
-raíz), y en GitHub → Settings → Pages → *Custom domain* escríbelo y marca *Enforce HTTPS*. Pon
-también `"panelUrl": "https://www.escapadasfinde.es/"` en `config/ajustes.json` para que el
-sitemap, los enlaces de los emails y el `robots.txt` usen esa dirección.
+## Tu dominio (Hostinger u otro)
 
-**Otro host** (Netlify, Cloudflare Pages, un servidor propio): la web es `site/` tal cual
-(estática, sin servidor), pero los datos los genera el escaneo de GitHub Actions. Lo más
-sencillo es dejar Pages y apuntar el dominio; si prefieres otro host, que publique la carpeta
-`site/` que sube el paso «upload-pages-artifact» o copia `site/` tras `npm run escanear`.
-Sirve `data/*.json` sin caché larga (el panel ya los pide con `no-cache`).
+Hay dos formas. La **A** es la recomendada: gratis, sin subir nada y con las ofertas al día
+cada 15 minutos. La **B** es para quien tiene además un plan de *hosting* y quiere la web allí.
+
+En las dos, pon tu dominio en GitHub → *Settings* → *Secrets and variables* → *Actions* →
+pestaña **Variables** → *New repository variable*: `PANEL_URL` = `https://tudominio.es/`.
+Así los emails, el sitemap, el `robots.txt` y la vista previa al compartir usan tu dominio.
+
+### A · El dominio apunta a GitHub Pages (recomendado)
+
+1. **GitHub** → *Settings* → *Pages* → *Custom domain*: escribe `tudominio.es` → *Save*.
+2. **Hostinger** (hPanel) → *Dominios* → tu dominio → *DNS / Nameservers* → *Registros DNS*:
+   - Borra los registros `A` y `AAAA` de `@` que ya haya (los de la página de aparcamiento).
+   - Añade cuatro registros `A` con nombre `@`: `185.199.108.153`, `185.199.109.153`,
+     `185.199.110.153` y `185.199.111.153`.
+   - Opcional (IPv6): cuatro `AAAA` con nombre `@`: `2606:50c0:8000::153`, `2606:50c0:8001::153`,
+     `2606:50c0:8002::153` y `2606:50c0:8003::153`.
+   - Cambia (o crea) el `CNAME` con nombre `www` para que apunte a `jordinavarrom21-beep.github.io`.
+3. Espera a que se propague (de minutos a unas horas). Vuelve a *Settings* → *Pages*: cuando
+   salga «DNS check successful», marca **Enforce HTTPS**.
+4. Recomendado: *Settings* de tu cuenta de GitHub → *Pages* → *Add a domain* para **verificar**
+   el dominio (evita que otra cuenta lo use en GitHub Pages).
+
+Nada más: cada escaneo publica en tu dominio. No hace falta el zip.
+
+### B · La web en el hosting de Hostinger
+
+Cada escaneo deja la web lista para tu hosting en la rama **`web-hosting`** de GitHub (con su
+`.htaccess`), y esa web lee las ofertas de la de GitHub Pages: siempre enseña las del momento.
+Hostinger la despliega sola con cada cambio:
+
+1. hPanel → *Sitios web* → *Administrar* → *Avanzado* → **Git**: conecta tu cuenta de GitHub
+   (una vez).
+2. En esa misma pantalla, *Despliegue automático*: repositorio `jordinavarrom21-beep/escapadas-finde`,
+   rama **`web-hosting`**, carpeta vacía (la raíz de `public_html`). Guarda: la despliega en el
+   momento y, desde entonces, con cada escaneo.
+3. hPanel → *Seguridad* → *SSL*: el certificado gratuito tiene que estar activo (el `.htaccess`
+   manda todo a `https://`).
+4. Cuando tengas dominio: apúntalo a la web del hosting en hPanel y crea en GitHub las variables
+   **`HOSTING_URL`** y `PANEL_URL`, las dos = `https://tudominio.es/` (canónica, sitemap, enlaces
+   de los emails y un solo dominio, con o sin `www`).
+
+**Sin Git (a mano)**: *Actions* → **Empaquetar para tu hosting** → *Run workflow* deja un zip en
+la rama `web-zip`… o en tu PC `npm run datos:publicados && npm run empaquetar -- --dominio
+tudominio.es` (→ `dist/escapadas-finde-web.zip`). Súbelo a `public_html` con el *Administrador de
+archivos*, *Extraer*, y listo. Las ofertas se actualizan igual (las lee de GitHub Pages); las
+páginas para buscadores son las del zip.
+
+**Por FTP** (si prefieres que GitHub suba la web a tu hosting): secretos `FTP_SERVIDOR`,
+`FTP_USUARIO` y `FTP_CONTRASENA` y variable `FTP_ACTIVO` = `true` (opcionales `FTP_CARPETA`,
+por defecto `public_html`, y `FTP_VERIFICAR_TLS` = `yes`). Borra en el hosting lo que ya no esté,
+salvo `.well-known`. No pegues nunca contraseñas en un chat: solo en GitHub.
+
+El `.htaccess` (lo genera `scripts/preparar-web.js`) sirve la página 404, comprime, pone
+cabeceras de seguridad, no guarda en caché los datos (cambian cada 15 min) y nunca sirve las
+copias `.bak`. En cualquier otro host estático (Netlify, Cloudflare Pages…) sube la misma
+carpeta `dist/escapadas-finde-web/`; allí el `.htaccess` no hace nada.
 
 ## Revisión continua (cada 15 minutos)
 
@@ -291,7 +338,29 @@ npm test                 # todos los tests (sin red)
 npm run escanear         # escaneo real; --forzar ignora los intervalos, --solo=<fuente>, --sin-emails
 npm run panel            # sirve el panel en http://localhost:8080 (tras escanear)
 npm run email:prueba     # sin SMTP guarda los emails en data/emails-prueba/ para verlos
+npm run lint             # ESLint: errores reales (variables sin usar, sin declarar…)
+npm run datos:publicados # baja a site/data/ los datos de la web publicada (sin escanear)
+npm run test:navegador   # prueba todas las acciones de la web en Chromium (necesita site/data/)
+npm run test:maquetacion # desbordes, textos cortados y botones pequeños en 7 anchos (TEMAS=light,dark)
+npm run empaquetar -- --dominio tudominio.es   # zip para tu hosting (ver «Tu dominio»)
 ```
+
+Cada PR pasa por el workflow **Comprobar** (`comprobar.yml`): ESLint, los tests y las dos pruebas
+del navegador con los datos publicados. Si algo falla, no se fusiona.
+
+## Fotos, resúmenes y salud de las fuentes
+
+- **Fotos de destino** (gratis): las ofertas sin foto (casi todos los vuelos) llevan la del
+  artículo de Wikipedia del lugar, por la API pública de Wikimedia, con el crédito enlazado a su
+  página en Commons (autor y licencia). Una consulta por lugar, guardada 30 días.
+- **Resumen de una frase** (opcional, de pago): con el secreto `ANTHROPIC_API_KEY`, Claude
+  escribe qué incluye de verdad cada oferta (solo con datos del texto de la web) y la ficha lo
+  enseña como «En una frase». Modelo y límite en `config/ajustes.json` → `resumenes`
+  (`maxPorEscaneo`: cuántos nuevos por escaneo). Cada resumen se guarda y solo se rehace si
+  cambia el texto de la oferta. Sin el secreto, no hace nada.
+- **Salud de las fuentes**: cada lunes el workflow `salud.yml` abre o actualiza el issue
+  «Fuentes con problemas» con las webs que llevan más de un día fallando y qué hacer; lo cierra
+  solo cuando todas vuelven a ir bien.
 
 ## Qué webs entran y cuáles no
 

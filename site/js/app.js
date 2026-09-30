@@ -55,11 +55,30 @@ let temporizadorFiltros = null;
 let temporizadorAviso = null;
 let origenFicha = null;
 
+/**
+ * Origen de los datos. En un hosting propio, `<meta name="escapadas-datos">` (lo pone
+ * scripts/preparar-web.js con --datos) apunta a la web de GitHub Pages, que se renueva en
+ * cada escaneo: así el hosting siempre enseña las ofertas del momento sin subir nada. Si
+ * esa web no responde, se usa la copia que lleva el propio hosting.
+ */
+const DATOS_REMOTOS = document.querySelector('meta[name="escapadas-datos"]')?.content || null;
+
+async function pedirJson(url) {
+  const respuesta = await fetch(url, { cache: 'no-cache' });
+  if (!respuesta.ok) throw new Error(`HTTP ${respuesta.status} en ${url}`);
+  return respuesta.json();
+}
+
 async function cargarJson(ruta, porDefecto) {
   try {
-    const respuesta = await fetch(ruta, { cache: 'no-cache' });
-    if (!respuesta.ok) throw new Error(`HTTP ${respuesta.status} en ${ruta}`);
-    return await respuesta.json();
+    if (DATOS_REMOTOS && ruta.startsWith('data/')) {
+      try {
+        return await pedirJson(new URL(ruta, DATOS_REMOTOS).href);
+      } catch (error) {
+        console.warn(`Sin datos de ${DATOS_REMOTOS}, se usa la copia local:`, error);
+      }
+    }
+    return await pedirJson(ruta);
   } catch (error) {
     if (porDefecto === undefined) throw error;
     return porDefecto;
@@ -531,6 +550,24 @@ function pintarBarraComparar() {
   barra.innerHTML = acciones.join('');
 }
 
+/**
+ * La barra flotante se aparta al bajar por la lista (para no tapar los botones de las
+ * tarjetas) y vuelve al subir, al pararse un momento o cerca del principio.
+ */
+function vigilarDesplazamiento() {
+  let ultimo = window.scrollY;
+  let parada = null;
+  const mostrar = () => $('#barra-comparar')?.classList.remove('barra-comparar--oculta');
+  window.addEventListener('scroll', () => {
+    const y = window.scrollY;
+    const barra = $('#barra-comparar');
+    if (barra && !barra.hidden) barra.classList.toggle('barra-comparar--oculta', y > ultimo && y > 200);
+    ultimo = y;
+    clearTimeout(parada);
+    parada = setTimeout(mostrar, 900);
+  }, { passive: true });
+}
+
 /** «Filtros» de la barra: despliega los filtros y lleva a ellos. */
 function abrirFiltros() {
   const plegable = principal.querySelector('[data-plegable-movil], .filtros-plegables');
@@ -589,9 +626,26 @@ function alternarDescartada(id) {
   anunciar('Oferta descartada. Para volver a verla, desmarca «Ocultar las descartadas y las no disponibles» en los filtros.');
 }
 
-function mostrarFicha(id, disparador) {
+/**
+ * Lo que solo usa la ficha (enlaces y eventos) va en data/detalles.json: se baja al abrir
+ * la primera ficha, una vez por escaneo, y se añade a las ofertas. Sin él, la ficha sale
+ * igual, solo que sin esos bloques.
+ */
+let detalles = null;
+function cargarDetalles() {
+  if (!detalles) {
+    const datos = estado.datos;
+    detalles = cargarJson('data/detalles.json', {}).then((porId) => {
+      for (const o of datos.ofertas) if (porId[o.id]) Object.assign(o, porId[o.id]);
+    }).catch((error) => console.warn('No se han podido cargar los detalles de las fichas:', error));
+  }
+  return detalles;
+}
+
+async function mostrarFicha(id, disparador) {
   const oferta = estado.porId.get(id);
   if (!oferta) return;
+  await cargarDetalles();
   const { vista, params } = leerRuta(location.hash);
   const { punto } = ['escapadas', 'mapa'].includes(vista) ? leerFiltrosEscapadas(params) : {};
   const distancias = punto ? medirDistancias([oferta], punto, estado.datos.origen) : estado.distanciasOrigen;
@@ -757,6 +811,7 @@ function conectarEventos() {
   });
   // «#principal» (el enlace de saltar al contenido) no es una ruta: no se cambia de vista.
   window.addEventListener('hashchange', () => { if (!location.hash || location.hash.startsWith('#/')) render(); });
+  vigilarDesplazamiento();
   $('.saltar')?.addEventListener('click', (evento) => {
     evento.preventDefault();
     principal.focus();
@@ -833,6 +888,7 @@ const cargarTodo = () => Promise.all([
 
 function usarDatos([datos, historial, vigilados]) {
   const { paginas, salto } = estado;
+  detalles = null;
   estado = { ...crearEstado(datos, historial, vigilados), paginas, salto };
   cargadoEn = Date.now();
   datosNuevos = null;
@@ -852,6 +908,9 @@ let datosNuevos = null;
 async function comprobarDatosNuevos() {
   if (document.visibilityState !== 'visible' || !estado) return;
   try {
+    // Primero la fecha del último escaneo (unos bytes); todo lo demás, solo si es nuevo.
+    const version = await cargarJson('data/version.json', null).catch(() => null);
+    if (version?.generado && Date.parse(version.generado) <= Date.parse(estado.datos.generado)) return;
     const todo = await cargarTodo();
     if (todo[0].generado === estado.datos.generado || Date.parse(todo[0].generado) < Date.parse(estado.datos.generado)) return;
     datosNuevos = todo;

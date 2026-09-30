@@ -23,6 +23,8 @@ import { calcularReferencia } from '../enriquecer/referencia.js';
 import { marcarEquivalentes } from '../enriquecer/duplicados.js';
 import { anadirTiempo } from '../enriquecer/tiempo.js';
 import { anadirEventos } from '../enriquecer/eventos.js';
+import { anadirFotos } from '../enriquecer/fotos.js';
+import { anadirResumenes } from '../enriquecer/resumenes.js';
 import { precioPorPersonaNoche, puntuar } from '../enriquecer/puntuacion.js';
 import { claveSerie, compactar, registrarPrecios, seriesPara } from '../historial.js';
 import { coincide, contextoVigilados } from '../vigilados.js';
@@ -54,12 +56,14 @@ const CADUCIDAD_POR_PREFIJO = { 'tiempo:': DIA_MS, 'eventos:': 2 * DIA_MS };
 export const MODULOS = {
   obtenerFestivos, calcularPuentes, asignarFechas, clasificarVueloSinFecha, aplicarClasificacion, aplicarAlojamiento, aplicarZona,
   geolocalizar, calcularCoche, calcularCosteCoche, calcularReferencia, marcarEquivalentes,
-  revisarPrecios, anadirTiempo, anadirEventos, enlacesPara, registrarPrecios, compactar, seriesPara, puntuar,
+  revisarPrecios, anadirTiempo, anadirEventos, anadirFotos, anadirResumenes, enlacesPara, registrarPrecios, compactar, seriesPara, puntuar,
   procesarEmails, crearTransporte, enviarEmail,
 };
 
 /** URL del panel: la de los ajustes o la de GitHub Pages del repo. */
 export function urlPanel(ajustes, env) {
+  // Tu dominio: la variable PANEL_URL del repositorio manda sobre ajustes.panelUrl.
+  if (env.PANEL_URL) return env.PANEL_URL.replace(/\/?$/, '/');
   if (ajustes.panelUrl) return ajustes.panelUrl;
   const [propietario, repo] = env.GITHUB_REPOSITORY?.split('/') ?? [];
   return propietario && repo ? `https://${propietario}.github.io/${repo}/` : null;
@@ -341,6 +345,8 @@ export async function escanear({
   m.marcarEquivalentes(ofertas);
   await m.anadirTiempo(ofertas, { ...crearCtx('tiempo'), findes, puentes });
   await m.anadirEventos(ofertas, { ...crearCtx('eventos'), findes, puentes });
+  await m.anadirFotos(ofertas, crearCtx('fotos'));
+  await m.anadirResumenes(ofertas, crearCtx('resumenes'));
   for (const oferta of ofertas) oferta.enlaces = m.enlacesPara(oferta, { origen: ajustes.origen, ahora });
   // Después de los enlaces (también se marcan) y sin tocar la puntuación ni el orden.
   const afiliados = proveedoresActivos(afiliacion, conPrefijo('afiliacion'));

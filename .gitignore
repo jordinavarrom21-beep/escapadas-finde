@@ -11,3 +11,6 @@ site/sitemap.xml
 site/robots.txt
 *.log
 .env
+capturas/
+dist/
+entrega/

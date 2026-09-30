@@ -72,7 +72,7 @@ describe('app instalable: service worker', () => {
 
   it('lleva la marca de versión que el workflow sustituye por el commit', () => {
     assert.equal(SW.match(/'escapadas-interfaz-dev'/g)?.length, 1);
-    assert.match(readFileSync(new URL('../.github/workflows/vigilar.yml', import.meta.url), 'utf8'), /s\/escapadas-interfaz-dev\//);
+    assert.match(readFileSync(new URL('../.github/workflows/vigilar.yml', import.meta.url), 'utf8'), /node scripts\/preparar-web\.js [^\n]*--version "\$\{GITHUB_SHA::12\}"/);
   });
 
   it('no se traga los errores en silencio', () => {

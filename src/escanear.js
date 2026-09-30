@@ -16,6 +16,7 @@ import { cargarVigilados } from './vigilados.js';
 import { cargarAfiliacion } from './afiliacion.js';
 import { MODULOS, escanear, urlPanel } from './core/scan-pipeline.js';
 import { FUENTES } from './fuentes/index.js';
+import { separarDatosPanel } from './panel-datos.js';
 
 // Se reexportan para quien importaba el núcleo desde aquí.
 export { MODULOS, escanear, urlPanel };
@@ -30,6 +31,8 @@ const RUTAS = {
   historial: 'data/historial.json',
   panelOfertas: 'site/data/ofertas.json',
   panelHistorial: 'site/data/historial.json',
+  panelDetalles: 'site/data/detalles.json',
+  panelVersion: 'site/data/version.json',
   panelVigilados: 'site/data/vigilados.json',
 };
 
@@ -161,7 +164,11 @@ async function principal() {
   guardarJson(ruta('estado'), resultado.estado);
   guardarJson(ruta('cache'), resultado.cache.exportar());
   guardarJson(ruta('historial'), resultado.historial);
-  guardarJson(ruta('panelOfertas'), resultado.salida.ofertas);
+  // El panel carga primero lo ligero; lo de la ficha, al abrir la primera (panel-datos.js).
+  const panel = separarDatosPanel(resultado.salida.ofertas);
+  guardarJson(ruta('panelOfertas'), panel.ofertas);
+  guardarJson(ruta('panelDetalles'), panel.detalles);
+  guardarJson(ruta('panelVersion'), panel.version);
   guardarJson(ruta('panelHistorial'), resultado.salida.historial);
   guardarJson(ruta('panelVigilados'), resultado.salida.vigilados);
   escribirPaginas(resultado.salida.ofertas, urlPanel(ajustes, process.env));

@@ -75,7 +75,7 @@ const slugDe = (ruta) => ruta.split('/').filter(Boolean).pop().replace(/[^a-z0-9
  * @param {string} titulo
  */
 export function ventaja(titulo) {
-  const texto = titulo.replace(/ /g, ' ');
+  const texto = titulo.replace(/\u00A0/g, ' ');
   const euros = Number(texto.match(/(\d{1,4})\s?€/)?.[1]);
   const descuento = Number(texto.match(/-\s?(\d{1,2})\s?%/)?.[1]);
   if (euros > 0) {

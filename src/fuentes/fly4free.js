@@ -49,6 +49,9 @@ const IDA_Y_VUELTA = /\b(?:round[\s-]?trip|return)\b/i;
 const ANTES_PRECIO = /\b(?:from|for)\s+(?:(?:just|only)\s+)?$/i;
 const TRAS_PRECIO = /^\s*(?:p\.\s?p\.|return|round[\s-]?trip|one[\s-]way)/i;
 
+// Se quitan uno a uno los puntos de código de los emojis (también el ZWJ y el selector
+// de variante), así que da igual que una secuencia compuesta caiga partida en la clase.
+// eslint-disable-next-line no-misleading-character-class
 const EMOJIS = /[\p{Extended_Pictographic}\p{Regional_Indicator}\u{1F3FB}-\u{1F3FF}\u{FE0F}\u{200D}\u{20E3}]/gu;
 const PALABRA_LUGAR = String.raw`\p{Lu}[\p{L}\p{M}'’.-]*`;
 const LUGAR = (preposicion) => new RegExp(

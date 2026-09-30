@@ -49,6 +49,11 @@
     "precioLitro": 1.55,
     "carburante": "gasolina95"
   },
+  "resumenes": {
+    "activo": true,
+    "modelo": "claude-opus-5-5",
+    "maxPorEscaneo": 40
+  },
   "fuentes": {
     "wizzair": {
       "activa": true,

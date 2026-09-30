@@ -1,0 +1,51 @@
+# Comprueba cada cambio antes de fusionarlo: estilo de código (ESLint), tests y la web de
+# verdad en un navegador (todas las acciones y la maquetación en 7 anchos, claro y oscuro)
+# con los datos que se están publicando ahora.
+name: Comprobar
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: comprobar-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  comprobar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci --ignore-scripts
+      - run: npm run lint
+      - run: npm test
+
+      - name: Instalar Chromium para las pruebas
+        run: npx playwright install --with-deps chromium
+
+      - name: Datos de la web publicada
+        env:
+          PANEL_URL: ${{ vars.PANEL_URL }}
+        run: npm run datos:publicados
+
+      - name: Probar la web en el navegador
+        run: npm run test:navegador
+
+      - name: Maquetación en 7 anchos (claro y oscuro)
+        env:
+          TEMAS: light,dark
+        run: npm run test:maquetacion
+
