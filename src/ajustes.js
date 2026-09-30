@@ -170,7 +170,7 @@ export function cargarAjustes(ruta) {
   try {
     ajustes = cargarJson(ruta);
   } catch (error) {
-    throw new Error(`No se puede leer la configuración ${ruta}: ${error.message}`);
+    throw new Error(`No se puede leer la configuración ${ruta}: ${error.message}`, { cause: error });
   }
   const problemas = validarAjustes(ajustes);
   if (problemas.length) throw new Error(`Configuración no válida en ${ruta}:\n  - ${problemas.join('\n  - ')}`);

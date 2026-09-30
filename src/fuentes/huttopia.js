@@ -159,7 +159,7 @@ async function pedir(ctx, url) {
   try {
     return await ctx.http.texto(url, { reintentos: 0 });
   } catch (error) {
-    if (esBloqueo(error)) throw new Error(`Huttopia ha bloqueado o limitado la petición (HTTP ${error.estado})`);
+    if (esBloqueo(error)) throw new Error(`Huttopia ha bloqueado o limitado la petición (HTTP ${error.estado})`, { cause: error });
     throw error;
   }
 }

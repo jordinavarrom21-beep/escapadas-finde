@@ -129,7 +129,7 @@ async function obtener(ctx) {
     html = await ctx.http.texto(PAGINA);
   } catch (error) {
     if (error.estado === 403 || error.estado === 429) {
-      throw new Error(`Campings.net ha bloqueado o limitado la petición (HTTP ${error.estado})`);
+      throw new Error(`Campings.net ha bloqueado o limitado la petición (HTTP ${error.estado})`, { cause: error });
     }
     throw error;
   }
