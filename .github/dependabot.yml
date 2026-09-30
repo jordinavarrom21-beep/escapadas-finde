@@ -1,0 +1,24 @@
+# Dependabot abre una PR cuando sale una versión nueva (o un arreglo de seguridad) de las
+# dependencias de npm o de las acciones de los workflows. Las acciones van fijadas por SHA
+# (una etiqueta se puede mover): así no se quedan atrás. Cada PR pasa por «Comprobar» y se
+# fusiona a mano; nada se actualiza solo.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      # Las de desarrollo (ESLint, Playwright…) en una sola PR: no llegan a la web publicada.
+      desarrollo:
+        dependency-type: development
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      acciones:
+        patterns: ['*']

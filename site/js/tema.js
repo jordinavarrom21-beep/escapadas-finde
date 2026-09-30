@@ -3,6 +3,9 @@
  * Es un script clásico y síncrono en el <head> (no un módulo): los módulos se ejecutan
  * después de pintar. Va en archivo aparte porque la CSP no permite scripts en línea.
  */
+// Con JavaScript, la portada para buscadores (.portada-estatica) no llega a verse: el panel
+// la sustituye al pintar y así no salta de un contenido a otro.
+document.documentElement.classList.add('js');
 try {
   const tema = localStorage.getItem('escapadas:tema');
   if (tema === 'claro' || tema === 'oscuro') document.documentElement.dataset.theme = tema === 'claro' ? 'light' : 'dark';

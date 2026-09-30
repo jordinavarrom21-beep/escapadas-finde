@@ -1252,6 +1252,16 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 .lista-guia { display: grid; gap: 12px; padding-left: 1.4em; }
 .fila-guia { padding: 14px 16px; border: 1px solid var(--borde); border-radius: var(--radio-medio); background: var(--superficie); }
 .fila-guia h3 { font-size: 1.05rem; margin-bottom: 4px; }
+.migas ol { display: flex; flex-wrap: wrap; gap: 4px 0; list-style: none; margin: 0; padding: 0; font-size: 0.88rem; color: var(--texto-suave); }
+.migas li:not(:last-child)::after { content: "›"; margin: 0 8px; }
+.guias { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 18px 24px; margin-bottom: 18px; }
+.guias h2 { font-size: 1rem; margin-bottom: 6px; }
+.guias ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.guias li { font-size: 0.92rem; }
+.guias li[aria-current] { font-weight: 750; }
+/* La portada para buscadores (index.html sin JavaScript): con JavaScript, el panel la sustituye. */
+.portada-estatica { display: grid; gap: 14px; max-width: 900px; padding-block: 12px; }
+.js .portada-estatica { display: none; }
 
 .vigilado-json { margin-top: 10px; max-height: 260px; }
 .chip--excluido { border-color: var(--peligro); }

@@ -31,6 +31,8 @@ const $ = (selector) => document.querySelector(selector);
 const esMovil = () => matchMedia('(max-width: 719px)').matches;
 const principal = $('#principal');
 const dialogo = $('#ficha');
+/** El título de index.html (con lo que se busca: «Escapadas de fin de semana desde…»): la portada lo conserva. */
+const TITULO_PORTADA = document.title;
 /** «Revisión continua» escanea cada 15 min: si pasan 2 h sin datos nuevos, algo falla. */
 const DATOS_ANTIGUOS_MS = 2 * 3_600_000;
 const AVISO_MS = 5000;
@@ -324,7 +326,7 @@ function render({ enfocar = true } = {}) {
   // El aviso «con los filtros de la última vez» solo vale para la entrada desde el menú.
   estado.filtrosRecordados = false;
   enlacesConMemoria();
-  document.title = `${TITULOS[vista]} · Escapadas Finde`;
+  document.title = vista === 'finde' ? TITULO_PORTADA : `${TITULOS[vista]} · Escapadas Finde`;
   document.querySelectorAll('.navegacion a').forEach((a) => {
     if (a.dataset.vista === APARTADO[vista]) a.setAttribute('aria-current', 'page');
     else a.removeAttribute('aria-current');

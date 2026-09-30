@@ -4,7 +4,7 @@ import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import { htaccess, leerArgumentos, normalizarBase, ponerDireccion, prepararWeb } from '../scripts/preparar-web.js';
+import { htaccess, leerArgumentos, normalizarBase, ponerDireccion, ponerPortada, prepararWeb } from '../scripts/preparar-web.js';
 
 const SITE = new URL('../site/', import.meta.url);
 
@@ -34,6 +34,22 @@ describe('preparar la web para publicar (GitHub Pages y Hostinger)', () => {
     assert.match(texto, /RewriteRule \\\.\(bak\|tmp\)\$ - \[F,L\]/);
     assert.match(texto, /X-Content-Type-Options "nosniff"/);
     assert.match(texto, /sw\\\.js\|\\\.json/);
+    assert.match(texto, /<FilesMatch "\(\\\.json\|\^LEEME-HOSTINGER\\\.txt\)\$">\n {4}Header set X-Robots-Tag "noindex"/, 'los datos en bruto no salen en los buscadores');
+  });
+
+  it('portada para buscadores y JSON-LD de la web en el <head>; se puede repetir sin duplicar', () => {
+    const html = readFileSync(new URL('index.html', SITE), 'utf8');
+    const bloque = '<div class="portada-estatica">\n<h1>Hola</h1>\n</div>';
+    const una = ponerPortada(html, bloque, 'https://midominio.es/');
+    assert.equal(ponerPortada(una, bloque, 'https://midominio.es/'), una);
+    assert.equal((una.match(/class="portada-estatica"/g) ?? []).length, 1);
+    const [cabeza, cuerpo] = una.split('</head>');
+    assert.match(cabeza, /<script type="application\/ld\+json">\{"@context":"https:\/\/schema\.org","@graph":\[\{"@type":"WebSite","@id":"https:\/\/midominio\.es\/#web"/);
+    assert.match(cuerpo, /<main id="principal"[^>]*>[^]*<div class="portada-estatica">[^]*<p class="cargando"/);
+    // Sin dirección (zip para cualquier dominio): el bloque sí, el JSON-LD no.
+    const sinBase = ponerPortada(una, bloque, null);
+    assert.doesNotMatch(sinBase, /application\/ld\+json/);
+    assert.match(sinBase, /class="portada-estatica"/);
   });
 
   it('en una copia de la web: quita las copias de datos, versiona la caché y escribe el .htaccess', () => {
@@ -67,6 +83,7 @@ describe('datos remotos (hosting propio que lee las ofertas de GitHub Pages)', (
     assert.equal(ponerDatosRemotos(una, 'https://usuario.github.io/escapadas-finde/'), una);
     assert.match(una, /<meta name="escapadas-datos" content="https:\/\/usuario\.github\.io\/escapadas-finde\/">/);
     assert.match(una, /connect-src 'self' https:\/\/usuario\.github\.io https:\/\/photon\.komoot\.io/);
+    assert.equal((una.match(/<link rel="preconnect" href="https:\/\/usuario\.github\.io" crossorigin data-datos>/g) ?? []).length, 1, 'la conexión a los datos se abre antes');
   });
 });
 

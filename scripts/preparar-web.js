@@ -4,6 +4,8 @@
  *  - pone la versión en la caché del service worker (cada despliegue, interfaz nueva entera);
  *  - con la dirección de la web: la imagen y la URL absolutas para la vista previa al
  *    compartir, la URL canónica y el enlace de inicio de la página 404;
+ *  - con los datos en data/: la portada para buscadores en index.html (qué es la web, lo
+ *    mejor de ahora y las guías) y, con la dirección, sus datos estructurados (JSON-LD);
  *  - con --htaccess: el .htaccess para Apache/LiteSpeed (Hostinger): HTTPS, dominio
  *    único, 404, compresión, cabeceras de seguridad y caché.
  *
@@ -12,6 +14,8 @@
 import { existsSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import { estructuradosPortada, generarPaginas } from '../src/paginas.js';
 
 /** «--base=x» o «--base x» → {base: 'x'}; «--htaccess» → {htaccess: true}. */
 export function leerArgumentos(argv) {
@@ -79,9 +83,26 @@ export function ponerDireccion(html, base, { pagina = 'index' } = {}) {
  */
 export function ponerDatosRemotos(html, datos) {
   const { origin } = new URL(datos);
-  const sinEtiqueta = html.replace(/\s*<meta name="escapadas-datos" content="[^"]*">/, '');
-  const conEtiqueta = sinEtiqueta.replace(/(<meta http-equiv="Content-Security-Policy"[^>]*>)/, `$1\n  <meta name="escapadas-datos" content="${datos}">`);
+  const sinEtiqueta = html
+    .replace(/\s*<meta name="escapadas-datos" content="[^"]*">/, '')
+    .replace(/\s*<link rel="preconnect" href="[^"]*" crossorigin data-datos>/, '');
+  // «preconnect»: la conexión a esa web se abre mientras se baja el resto, no al pedir los datos.
+  const conEtiqueta = sinEtiqueta.replace(/(<meta http-equiv="Content-Security-Policy"[^>]*>)/, `$1\n  <meta name="escapadas-datos" content="${datos}">\n  <link rel="preconnect" href="${origin}" crossorigin data-datos>`);
   return conEtiqueta.replace(/connect-src 'self'([^;"]*)/, (todo, resto) => (resto.includes(origin) ? todo : `connect-src 'self' ${origin}${resto}`));
+}
+
+/** Cambia lo que hay entre «<!-- marca: … -->» y «<!-- /marca -->» (se puede repetir). */
+function entreMarcas(html, marca, contenido) {
+  const patron = new RegExp(`(<!-- ${marca}[:\\s][^]*?-->)[^]*?(\\s*<!-- /${marca} -->)`);
+  return html.replace(patron, (todo, abre, cierra) => `${abre}\n${contenido}${cierra}`);
+}
+
+/**
+ * La portada para quien no ejecuta el panel (bloque de src/paginas.js) y, con la dirección,
+ * los datos estructurados de la web en el <head>. Se puede repetir sin duplicar nada.
+ */
+export function ponerPortada(html, bloque, base = null) {
+  return entreMarcas(entreMarcas(html, 'portada-estatica', bloque), 'datos-estructurados', base ? `  ${estructuradosPortada(base)}` : '');
 }
 
 /**
@@ -126,7 +147,16 @@ ${unDominio}  # Las copias de seguridad de datos y la carpeta .git (despliegue d
   Header always set Referrer-Policy "strict-origin-when-cross-origin"
   Header always set X-Frame-Options "SAMEORIGIN"
   Header always set Permissions-Policy "geolocation=(self), camera=(), microphone=(), payment=()"
-  Header always set Strict-Transport-Security "max-age=31536000" env=HTTPS
+  # Siempre (no solo con env=HTTPS): detrás del CDN de Hostinger la petición puede llegar al
+  # servidor sin HTTPS y la cabecera no salía nunca. Por HTTP el navegador la ignora, así que
+  # enviarla siempre no tiene riesgo.
+  Header always set Strict-Transport-Security "max-age=31536000"
+
+  # Los datos en bruto y las instrucciones se pueden leer (el panel los necesita para
+  # pintarse, también cuando lo pinta un buscador), pero no salen en los resultados.
+  <FilesMatch "(\\.json|^LEEME-HOSTINGER\\.txt)$">
+    Header set X-Robots-Tag "noindex"
+  </FilesMatch>
 
   # La página, el service worker y los datos se comprueban siempre (cambian cada 15 min).
   <FilesMatch "(\\.html|sw\\.js|\\.json|\\.xml|\\.txt|\\.webmanifest)$">
@@ -171,6 +201,14 @@ export function prepararWeb({ dir = 'site', base = null, version = null, conHtac
     const indice = path.join(dir, 'index.html');
     writeFileSync(indice, ponerDatosRemotos(readFileSync(indice, 'utf8'), datos));
     hecho.push(`datos de ${datos}`);
+  }
+  const rutaOfertas = path.join(dir, 'data', 'ofertas.json');
+  const datosPanel = existsSync(rutaOfertas) ? JSON.parse(readFileSync(rutaOfertas, 'utf8')) : null;
+  if (datosPanel?.origen && Array.isArray(datosPanel.ofertas)) {
+    const { portada } = generarPaginas(datosPanel, { base });
+    const indice = path.join(dir, 'index.html');
+    writeFileSync(indice, ponerPortada(readFileSync(indice, 'utf8'), portada, base));
+    hecho.push('portada para buscadores');
   }
   if (conHtaccess) {
     writeFileSync(path.join(dir, '.htaccess'), htaccess(base));
