@@ -133,8 +133,21 @@ jobs:
           sed -i "s/escapadas-interfaz-dev/${version}/" site/sw.js
           grep -q "'${version}'" site/sw.js
 
-      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6
+      - id: pages
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6
         if: ${{ !cancelled() && steps.escaneo.conclusion != 'skipped' && hashFiles('site/data/ofertas.json') != '' }}
+
+      # Las redes y WhatsApp solo enseñan la vista previa con la URL absoluta de la imagen, y
+      # la página 404 se sirve en cualquier ruta: las dos necesitan la dirección de la web.
+      - name: Direcciones absolutas (vista previa al compartir y página 404)
+        if: ${{ !cancelled() && steps.escaneo.conclusion != 'skipped' && hashFiles('site/data/ofertas.json') != '' }}
+        env:
+          BASE: ${{ steps.pages.outputs.base_url }}
+        run: |
+          base="${BASE%/}/"
+          sed -i "s#<meta property=\"og:image\" content=\"og.png\">#<meta property=\"og:image\" content=\"${base}og.png\">\n  <meta property=\"og:url\" content=\"${base}\">#" site/index.html
+          sed -i "s#href=\"./\" data-inicio#href=\"${base}\" data-inicio#" site/404.html
+          grep -q "content=\"${base}og.png\"" site/index.html
 
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5
         if: ${{ !cancelled() && steps.escaneo.conclusion != 'skipped' && hashFiles('site/data/ofertas.json') != '' }}

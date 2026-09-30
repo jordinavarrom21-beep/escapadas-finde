@@ -97,6 +97,7 @@ function escribirPaginas(datos, base) {
   const sitio = path.join(RAIZ, 'site');
   for (const carpeta of CARPETAS) rmSync(path.join(sitio, carpeta), { recursive: true, force: true });
   rmSync(path.join(sitio, 'sitemap.xml'), { force: true });
+  rmSync(path.join(sitio, 'robots.txt'), { force: true });
   const { archivos } = generarPaginas(datos, { base });
   for (const { ruta, contenido } of archivos) {
     const destino = path.join(sitio, ruta);

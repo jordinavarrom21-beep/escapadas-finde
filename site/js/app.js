@@ -15,7 +15,7 @@ import { contar, cuentaAtras, escaparHtml as esc, haceCuanto, urlSegura } from '
 import {
   MAX_COMPARAR, borrarBusqueda, cargarBusquedas, marcarBusquedaVista, cargarComparar, cargarDescartadas, cargarMisEstados, guardarComparar, guardarMisEstados, cargarFavoritos, cargarFiltros, cargarSalida, cargarViaje,
   guardarBusqueda, guardarDescartadas, guardarFavoritos, guardarFiltros, guardarModoLista, guardarSalida, guardarTema, guardarViaje,
-  tomarVisitaAnterior,
+  tomarVisitaAnterior, bienvenidaVista, esPropietarioGuardado, guardarPropietario, marcarBienvenidaVista,
 } from './local.js';
 import { salidaEfectiva, validarSalida, validarViaje } from './viaje.js';
 import { destruirMapa, pintarMapa } from './mapa.js';
@@ -41,7 +41,7 @@ const VISTAS_CON_MEMORIA = ['escapadas', 'actividades', 'vuelos'];
 const TITULOS = {
   finde: 'Este finde', vuelos: 'Vuelos', escapadas: 'Escapadas', actividades: 'Planes', mapa: 'Mapa',
   calendario: 'Calendario', puentes: 'Puentes', vigilados: 'Avisos por email', fuentes: 'Estado de las webs', buscar: 'Buscar',
-  comparar: 'Comparar lado a lado', mis: 'Mis cosas',
+  comparar: 'Comparar lado a lado', mis: 'Mis cosas', ayuda: 'Cómo funciona',
 };
 /** Qué apartado del menú se marca en cada vista (Inicio, Explorar, Fechas o Mis cosas). */
 const APARTADO = {
@@ -64,6 +64,18 @@ async function cargarJson(ruta, porDefecto) {
     if (porDefecto === undefined) throw error;
     return porDefecto;
   }
+}
+
+/**
+ * ¿Es quien administra la web? Entrando una vez con «?propietario=1» (o «#/mis?propietario=1»)
+ * se recuerda en este navegador («=0» lo quita); en local, siempre. Solo enseña herramientas
+ * de configuración (avisos por email en GitHub): no da acceso a nada.
+ */
+function detectarPropietario() {
+  const enHash = new URLSearchParams(location.hash.split('?')[1] ?? '').get('propietario');
+  const valor = new URLSearchParams(location.search).get('propietario') ?? enHash;
+  if (valor === '1' || valor === '0') guardarPropietario(valor === '1');
+  return esPropietarioGuardado() || ['localhost', '127.0.0.1'].includes(location.hostname);
 }
 
 function crearEstado(datos, historial, vigilados) {
@@ -93,6 +105,8 @@ function crearEstado(datos, historial, vigilados) {
     fuentes: new Map((datos.fuentes ?? []).map((f) => [f.id, f.nombre])),
     porId: new Map(datos.ofertas.map((o) => [o.id, o])),
     salida,
+    propietario: detectarPropietario(),
+    bienvenidaVista: bienvenidaVista(),
     viaje: validarViaje(cargarViaje(), datos.viajeros),
     // Desde tu salida: desde el origen del escaneo, con los tiempos reales; si no, estimados.
     distanciasOrigen: medirDistancias(datos.ofertas, salida, datos.origen),
@@ -313,6 +327,8 @@ function render({ enfocar = true } = {}) {
     window.scrollTo(0, 0);
     principal.querySelector('.titulo-vista')?.focus({ preventScroll: true });
   }
+  // «#/ayuda?seccion=privacidad»: directo a esa sección.
+  if (params.seccion) principal.querySelector(`#${CSS.escape(params.seccion)}`)?.scrollIntoView();
 }
 
 function actualizarResultados(vista, params) {
@@ -663,7 +679,7 @@ function alternarMiEstado(id, nuevo) {
 
 const ACCIONES = '[data-actualizar], [data-compartir-busqueda], [data-usar-viaje], [data-mi-estado], [data-abrir-filtros], [data-comparar], [data-vaciar-comparar], [data-mi-viaje], [data-cerrar-viaje], [data-ficha], [data-fav], [data-descartar], [data-mas], [data-sorpresa],'
   + ' [data-guardar-busqueda], [data-borrar-busqueda], [data-copiar-vigilado], [data-cerrar-ficha], [data-cerrar-novedades],'
-  + ' [data-olvidar-filtros], [data-cerrar-mas], [data-modo-lista], [data-abrir-busqueda], [data-ver-datos-nuevos]';
+  + ' [data-olvidar-filtros], [data-cerrar-mas], [data-modo-lista], [data-abrir-busqueda], [data-ver-datos-nuevos], [data-cerrar-bienvenida]';
 
 function manejarClic(evento) {
   const objetivo = evento.target.closest(ACCIONES);
@@ -671,6 +687,11 @@ function manejarClic(evento) {
   const d = objetivo.dataset;
   if ('actualizar' in d) location.reload();
   else if ('verDatosNuevos' in d) aplicarDatosNuevos();
+  else if ('cerrarBienvenida' in d) {
+    marcarBienvenidaVista();
+    estado.bienvenidaVista = true;
+    objetivo.closest('.bienvenida')?.remove();
+  }
   else if (d.compartirBusqueda) compartirBusqueda(d.compartirBusqueda);
   else if ('usarViaje' in d) usarViajeCompartido();
   else if (d.miEstado) alternarMiEstado(d.oferta, d.miEstado);

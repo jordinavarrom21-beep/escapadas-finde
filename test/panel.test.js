@@ -368,7 +368,7 @@ describe('actividades', () => {
     assert.match(html, /4 planes · 4 gratis/);
     assert.match(html, /<strong class="precio__gratis">Gratis<\/strong> <span class="precio__unidad">propina voluntaria/);
     assert.match(html, /<li><svg[^]*?<\/svg><span>2 h 30 min<\/span><\/li>/);
-    assert.match(html, /Actividad · GuruWalk/);
+    assert.match(html, /Ver en GuruWalk/);
     assert.match(vistaActividades(estadoPanel(), { temas: 'gastronomia', nota: '9.9' }), /Ninguna actividad cumple estos filtros/);
   });
 
@@ -544,7 +544,7 @@ describe('fechas, formato, geocodificación y plantillas', () => {
     const besalu = tarjeta(casaBesalu, ctxTarjeta);
     assert.match(besalu, /Un 35 % por debajo de lo normal/);
     assert.match(besalu, /Casa rural<\/span><\/li>/);
-    assert.match(besalu, /class="valoracion" title="Valoración 8 sobre 10/);
+    assert.match(besalu, /class="tarjeta__opiniones"[^>]*>[^]*?<strong>8<\/strong> Muy bien/, 'las opiniones, a la vista');
     assert.match(besalu, /≈ \d+\s€ de gasolina ida y vuelta · estimado, un coche para 2 personas/);
     // Fechas flexibles: los eventos son los del próximo finde, así que van a la ficha y avisando.
     assert.ok(!besalu.includes('Mercat medieval de Besalú'));
@@ -668,7 +668,9 @@ describe('vistas nuevas', () => {
     }
     assert.match(html, /<option value="casa-rural" selected/);
     assert.match(html, /name="nodest" value="Sitges" checked> <svg[^]*?<\/svg>Sitges/);
-    assert.match(html, /data-copiar-vigilado="escapadas"/);
+    // «Copiar para los avisos por email» (config/vigilados.json) es solo para quien administra la web.
+    assert.doesNotMatch(html, /data-copiar-vigilado|config\/vigilados\.json/);
+    assert.match(vistaEscapadas({ ...e, propietario: true }, { aloj: 'casa-rural' }), /data-copiar-vigilado="escapadas"/);
     assert.match(html, /data-guardar-busqueda="escapadas"/);
     assert.match(html, /Spa barato/);
   });

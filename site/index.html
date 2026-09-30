@@ -8,7 +8,18 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' https: data:; connect-src 'self' https://photon.komoot.io; object-src 'none'; base-uri 'self'; form-action 'self'">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Escapadas Finde</title>
-  <meta name="description" content="Vuelos y escapadas de fin de semana desde Barcelona, revisados varias veces al día.">
+  <meta name="description" content="Escapadas de fin de semana, casas rurales, planes y chollos de vuelos de más de 20 webs de viajes, juntos y revisados cada 15 minutos, con el coste del viaje completo.">
+  <!-- Vista previa al compartir el enlace (WhatsApp, redes). El despliegue pone la URL
+       absoluta de og.png (las redes no aceptan rutas relativas). -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Escapadas Finde">
+  <meta property="og:title" content="Escapadas Finde: chollos de escapadas para este finde">
+  <meta property="og:description" content="Escapadas, casas rurales, planes y chollos de vuelos de más de 20 webs de viajes, juntos y revisados cada 15 minutos.">
+  <meta property="og:image" content="og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:locale" content="es_ES">
+  <meta name="twitter:card" content="summary_large_image">
   <meta name="theme-color" content="#f4efe6" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#0f1514" media="(prefers-color-scheme: dark)">
   <link rel="manifest" href="manifest.webmanifest">
@@ -68,10 +79,11 @@
 
   <footer class="pie contenedor">
     <p class="pie__marca"><img src="icono.svg" alt="" width="28" height="28"> Escapadas Finde</p>
-    <p>Ofertas de webs de terceros. Cada web se consulta a su ritmo (de 30 minutos a un día, según la web y cuando GitHub
-      lanza la revisión) y cada oferta dice cuándo se comprobó; confirma siempre precio y condiciones en la web original.
+    <p>Reunimos ofertas publicadas por webs de viajes y las revisamos cada 15 minutos. No vendemos nada: el precio y
+      las condiciones los confirma siempre la web de la oferta al reservar.</p>
+    <p><a href="#/ayuda">Cómo funciona</a> · <a href="#/ayuda?seccion=privacidad">Privacidad</a> · Sin cookies ni seguimiento ·
       Mapa © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> ·
-      Búsqueda de lugares con <a href="https://photon.komoot.io" target="_blank" rel="noopener noreferrer">Photon</a>.</p>
+      Lugares con <a href="https://photon.komoot.io" target="_blank" rel="noopener noreferrer">Photon</a></p>
     <p><a id="estado-fuentes" class="estado-fuentes" href="#/fuentes"><span class="punto" aria-hidden="true"></span><span class="estado-fuentes__texto">Estado de las webs</span></a></p>
     <p id="aviso-comercial"></p>
     <p>Guías: <a href="escapadas/">escapadas</a> · <a href="escapadas/menos-de-100-euros/">por menos de 100 €</a> ·

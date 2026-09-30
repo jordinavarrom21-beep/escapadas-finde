@@ -302,6 +302,8 @@ pre code { background: none; padding: 0; }
   border-radius: 999px; font-size: 0.74rem; font-weight: 800; background: var(--superficie-2); color: var(--texto-suave);
   font-variant-numeric: tabular-nums;
 }
+.puntuacion__etiqueta { font-weight: 700; opacity: 0.85; }
+.tarjeta__cabeza .puntuacion { padding: 0 9px; }
 .puntuacion--alta { background: var(--chollo-suave); color: var(--chollo-fuerte); }
 .puntuacion--media { background: var(--acento-suave); color: var(--acento-suave-texto); }
 
@@ -605,8 +607,13 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 }
 
 .ubicacion { border: 0; margin: 0; padding: 0; min-width: 0; display: grid; gap: 10px; }
-.ubicacion__fila { display: flex; flex-wrap: wrap; gap: 8px; }
-.combo { position: relative; flex: 1 1 220px; min-width: 0; }
+.ubicacion__fila { display: flex; flex-wrap: nowrap; align-items: stretch; gap: 8px; }
+/* El campo ocupa el ancho y «Mi ubicación» va siempre a su derecha, pegado a él. */
+.combo { position: relative; flex: 1 1 0; min-width: 0; }
+.boton-ubicacion { flex: none; padding-inline: 14px; white-space: nowrap; }
+/* Donde no cabe el texto (panel de filtros estrecho), solo el icono. */
+@container (max-width: 289px) { .boton-ubicacion__texto { display: none; } .boton-ubicacion { padding-inline: 12px; } }
+.ubicacion { container-type: inline-size; }
 .combo input[type="text"] { width: 100%; }
 .combo__lista {
   position: absolute; z-index: 30; left: 0; right: 0; top: calc(100% + 4px); margin: 0; padding: 4px; list-style: none;
@@ -686,8 +693,37 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 }
 .tarjeta__pie .coste-total { margin: 0; }
 .tarjeta__acciones { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.tarjeta__origen { font-size: 0.78rem; color: var(--texto-suave); line-height: 1.35; min-width: 0; }
-.tarjeta__cabeza .valoracion { font-size: 0.8rem; }
+/*
+ * Tarjeta con huecos fijos: título (2 líneas), opiniones (1), datos (2), etiquetas (1),
+ * precio y coste. Así, en una fila, todas miden lo mismo y cada cosa está a la misma altura.
+ */
+.tarjeta .tarjeta__titulo { display: block; height: calc(2 * 1.3em); }
+/* El título es un botón: el recorte a 2 líneas va en él (en el h3 no se aplicaba). */
+.tarjeta .tarjeta__titulo .enlace-ficha { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
+.tarjeta__opiniones {
+  margin: 0; height: 20px; display: flex; align-items: center; gap: 5px; min-width: 0;
+  font-size: 0.86rem; color: var(--texto-suave); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.tarjeta__opiniones strong { color: var(--texto); font-weight: 800; }
+.tarjeta__opiniones .ic { flex: none; width: 15px; height: 15px; color: var(--chollo); fill: currentColor; }
+.tarjeta .tarjeta__datos { height: 45px; overflow: hidden; align-content: flex-start; }
+.tarjeta .tarjeta__datos li { max-width: 100%; white-space: nowrap; }
+.tarjeta .tarjeta__datos li > span { overflow: hidden; text-overflow: ellipsis; }
+.insignias--tarjeta, .insignias--tarjeta:empty { display: flex; flex-wrap: nowrap; height: 26px; overflow: hidden; }
+.insignias--tarjeta > * { flex: 0 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.insignias--tarjeta > .insignia { display: inline-flex; }
+.insignias--tarjeta > .insignia > span { overflow: hidden; text-overflow: ellipsis; }
+.insignia--comparar { background: var(--superficie-2); color: var(--texto); }
+.insignia--comparar a { color: var(--enlace); }
+.insignia--comparar .ic { color: var(--acento); }
+.tarjeta__precio { min-height: 56px; }
+.tarjeta__precio .precio { margin: 0; }
+.tarjeta__coste { min-height: 30px; }
+.tarjeta__coste:empty { visibility: hidden; }
+.tarjeta .acciones { flex-wrap: nowrap; }
+.tarjeta .acciones .boton--primario { flex: 1; min-width: 0; justify-content: center; padding-inline: 12px; font-size: 0.9rem; }
+.tarjeta .acciones .boton--primario > .ic { display: none; }
+.boton__texto { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .acciones { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 
 .precio { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 7px; }
@@ -781,7 +817,6 @@ main { padding-block: 22px 56px; min-height: 60vh; }
   .explorar__filtros .campo { min-width: 0; width: 100%; }
   .explorar__filtros .chips__lista { flex-wrap: wrap; overflow: visible; }
   .explorar__filtros .chips--desplazables, .explorar__filtros .chips--desplazables .chips__lista { mask-image: none; -webkit-mask-image: none; padding-right: 0; }
-  .explorar__filtros .ubicacion__fila { flex-direction: column; align-items: stretch; }
   .explorar__filtros .campo-precio { grid-template-columns: minmax(0, 1fr); }
   .explorar__filtros .chip { flex: 0 1 auto; max-width: 100%; white-space: normal; }
   .explorar__filtros .ayuda { font-size: 0.78rem; }
@@ -812,6 +847,12 @@ main { padding-block: 22px 56px; min-height: 60vh; }
   grid-column: 2; grid-row: 1 / span 8; margin: 0; padding: 0 0 0 20px; border-top: 0; border-left: 1px solid var(--borde); align-self: stretch;
 }
 .modo-lista #resultados .tarjeta__pie .acciones { margin-top: auto; }
+/* En lista cada fila es independiente: sin los huecos fijos de la rejilla. */
+.modo-lista #resultados .tarjeta .tarjeta__titulo { height: auto; }
+.modo-lista #resultados .tarjeta .tarjeta__datos, .modo-lista #resultados .insignias--tarjeta { height: auto; max-height: 45px; }
+.modo-lista #resultados .insignias--tarjeta:empty, .modo-lista #resultados .tarjeta__opiniones--sin, .modo-lista #resultados .tarjeta__coste:empty { display: none; }
+.modo-lista #resultados .tarjeta__precio, .modo-lista #resultados .tarjeta__coste { min-height: 0; }
+.modo-lista #resultados .tarjeta__pie .acciones { flex: 0 1 auto; min-width: 0; max-width: 100%; }
 @media (max-width: 719px) {
   .modo-lista #resultados .tarjeta { grid-template-columns: 112px minmax(0, 1fr); }
   .modo-lista #resultados .tarjeta__media { min-height: 0; }
@@ -1313,3 +1354,27 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 @media (max-width: 719px) {
   .puente .seccion__cabeza h2 { font-size: 1.25rem; }
 }
+
+/* ── Bienvenida (primera visita) y «Cómo funciona» ───────────────────────── */
+
+.bienvenida {
+  display: grid; gap: 10px; padding: 14px 16px; border-radius: var(--radio); background: var(--acento-suave);
+  color: var(--acento-suave-texto); border: 1px solid color-mix(in srgb, var(--acento) 25%, transparent);
+}
+.bienvenida p { margin: 0; line-height: 1.45; }
+.bienvenida strong { color: var(--texto); }
+.ayuda-pagina { max-width: 760px; }
+.ayuda-intro { font-size: 1.08rem; line-height: 1.55; }
+.ayuda-pasos { display: grid; gap: 10px; padding-left: 1.3em; line-height: 1.5; }
+.ayuda-pasos li::marker { font-weight: 800; color: var(--acento); }
+.ayuda-pregunta { border-bottom: 1px solid var(--borde); padding: 12px 0; }
+.ayuda-pregunta summary { cursor: pointer; font-weight: 750; list-style-position: outside; min-height: 44px; display: flex; align-items: center; gap: 8px; }
+.ayuda-pregunta summary::before { content: "+"; flex: none; width: 1em; font-weight: 800; color: var(--acento); }
+.ayuda-pregunta[open] summary::before { content: "−"; }
+.ayuda-pregunta summary::-webkit-details-marker { display: none; }
+.ayuda-pregunta summary { list-style: none; }
+.ayuda-pregunta > div { padding-top: 8px; color: var(--texto-suave); line-height: 1.55; }
+.ayuda-pregunta > div p { margin: 0 0 8px; }
+.ayuda-lista { display: grid; gap: 8px; padding-left: 1.2em; line-height: 1.5; color: var(--texto-suave); }
+.ayuda-lista strong { color: var(--texto); }
+#privacidad { scroll-margin-top: 90px; }

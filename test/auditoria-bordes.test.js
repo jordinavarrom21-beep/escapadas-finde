@@ -157,10 +157,22 @@ describe('auditoría: puntuación en sus casos límite', () => {
     });
     puntuar([x, y, z, sola, sinPrecio], AJUSTES, { ahora: AHORA });
     assert.equal(x.puntuacion, y.puntuacion, 'el mismo precio, los mismos puntos');
-    assert.equal(x.puntuacion, 45, 'los dos empatados cogen la primera posición');
+    assert.equal(x.puntuacion, 34, 'los dos empatados cogen la posición media del empate (33,75), no la primera');
     assert.equal(z.puntuacion, 0);
     assert.equal(sola.puntuacion, 23, 'sola en su grupo: la mitad del peso del precio (22,5)');
     assert.equal(sinPrecio.puntuacion, 50, 'con todas las señales, sin precio se queda en 50');
+  });
+
+  test('las opiniones suben la nota: más cuanto mejor la nota y cuantas más opiniones', () => {
+    const base = { tipo: 'actividad', precio: 0, unidad: 'pp' };
+    const [sin, floja, buena, buenaPocas, excelente] = [null, { nota: 6, n: 500 }, { nota: 9, n: 300 }, { nota: 9, n: 1 }, { nota: 9.8, n: 1200 }]
+      .map((valoracion) => oferta({ ...base, valoracion }));
+    puntuar([sin, floja, buena, buenaPocas, excelente], AJUSTES, { ahora: AHORA });
+    const notas = [sin, floja, buena, buenaPocas, excelente].map((o) => o.puntuacion);
+    assert.equal(new Set(notas).size > 1, true, 'gratis todos, pero no la misma nota');
+    assert.equal(floja.puntuacion, sin.puntuacion, 'un 6 no suma');
+    assert.ok(excelente.puntuacion > buena.puntuacion && buena.puntuacion > buenaPocas.puntuacion && buenaPocas.puntuacion > sin.puntuacion);
+    assert.ok(excelente.puntuacion - sin.puntuacion <= 10, 'como mucho 10 puntos');
   });
 
   test('novedad de 24 a 72 h, coche entre 2 y 3 h y el finde que viene', () => {
@@ -170,10 +182,12 @@ describe('auditoría: puntuación en sus casos límite', () => {
     const [esteFinde, otroFinde] = ['2026-09-18', '2026-09-25'].map((findeId) => oferta({ ...base, fechas: { findeId } }));
     const todas = [reciente, deAyer, vieja, cerca, medio, lejos, esteFinde, otroFinde];
     puntuar(todas, AJUSTES, { ahora: AHORA, findeActual: '2026-09-18' });
-    // Todas cuestan lo mismo: 22,5 de precio (empate en la primera posición = 45) más lo suyo.
+    // Todas cuestan lo mismo: empate en la posición media = 22,5 de precio, más lo suyo
+    // (22,5 se redondea a 23: la diferencia con 25 es 2).
     const precio = vieja.puntuacion;
+    assert.equal(precio, 23);
     assert.deepEqual([reciente, deAyer].map((o) => o.puntuacion - precio), [10, 5]);
-    assert.deepEqual([cerca, medio, lejos].map((o) => o.puntuacion - precio), [5, 3, 0]);
+    assert.deepEqual([cerca, medio, lejos].map((o) => o.puntuacion - precio), [5, 2, 0]);
     assert.deepEqual([esteFinde, otroFinde].map((o) => o.puntuacion - precio), [5, 0]);
   });
 });
