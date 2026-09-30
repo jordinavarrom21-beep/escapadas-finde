@@ -344,7 +344,17 @@ function calculoPorNoche(o) {
   return `Cálculo: ${reparto || `${euros(o.precio)} ${ETIQUETAS_UNIDAD[o.unidad] ?? ''}${o.noches ? `, ${contar(o.noches, 'noche')}` : ''}`.trim()}`;
 }
 
-export function precio(o) {
+/**
+ * El precio que publica la web. Con `etiqueta` («Precio publicado») va rotulado y en pequeño:
+ * es lo que sale cuando arriba ya está el coste del viaje, para que nadie tome uno por otro.
+ */
+export function precio(o, { etiqueta = null } = {}) {
+  const rotulo = etiqueta ? `<span class="precio__etiqueta">${esc(etiqueta)}</span>` : '';
+  const clase = etiqueta ? 'precio precio--publicado' : 'precio';
+  return rotulo ? precioBase(o).replace('<p class="precio">', `<p class="${clase}">${rotulo}`) : precioBase(o);
+}
+
+function precioBase(o) {
   if (typeof o.precio !== 'number') return `<p class="precio"><strong class="precio__consultar">${esc(o.precioTexto || 'Consultar precio')}</strong></p>`;
   if (o.precio === 0) return `<p class="precio"><strong class="precio__gratis">Gratis</strong>${matiz(o.precioTexto)}</p>`;
   // Sin unidad en el modelo, lo que dice la web («por persona y trayecto», «en total para 2»)
@@ -541,8 +551,7 @@ export function tarjetaOferta(o, ctx) {
     <ul class="tarjeta__datos">${datosTarjeta(o, ctx)}</ul>
     <div class="insignias insignias--tarjeta">${equivalentes(o, ctx)}${insigniasTarjeta(o, ctx)}${avisoTarjeta(o, ctx)}</div>
     <div class="tarjeta__pie">
-      <div class="tarjeta__precio">${precio(o)}</div>
-      <div class="tarjeta__coste">${lineaCoste(o, ctx)}</div>
+      <div class="tarjeta__precio">${bloquePrecio(o, ctx)}</div>
       <div class="acciones">${botonComparar(o, ctx)}${enlaceOferta(o, `Ver en ${esc(web)}`, ctx)}</div>
     </div>
   </div>
@@ -597,15 +606,13 @@ function avisoTarjeta(o, ctx) {
  * baja de lo normal y el viaje completo.
  */
 export function tarjetaDestacada(o, ctx, etiqueta = 'Chollazo destacado') {
-  const c = costeDe(o, ctx);
   const r = o.referencia;
   const minimo = textoMinimo(o, ctx);
   const ahorro = [r?.ahorroPct > 0 && `Un ${r.ahorroPct} % por debajo de lo normal`, minimo?.texto].filter(Boolean).join(' · ');
   const coche = textoCoche(ctx.distancias?.get(o.id), ctx.desde, o);
   const pastillas = [coche && `<span class="pastilla-foto">${coche}</span>`, tiempoFoto(o, ctx)].filter(Boolean).join('');
-  const total = c.total != null
-    ? `Viaje para ${esc(contar(c.viajeros, 'persona'))}: <strong>${c.estimado ? '≈ ' : ''}${esc(euros(Math.round(c.total)))}</strong>`
-    : esc(`${ETIQUETAS_TIPO[o.tipo] ?? o.tipo} · ${ctx.fuentes.get(o.fuente) ?? o.fuente}`);
+  // El coste del viaje ya va arriba (bloquePrecio): aquí, qué es y dónde se reserva.
+  const pie = esc(`${ETIQUETAS_TIPO[o.tipo] ?? o.tipo} · ${ctx.fuentes.get(o.fuente) ?? o.fuente}`);
   return `<article class="destacado" style="--color-tema:${colorTema(o)}">
   <div class="tarjeta__media">${mediaOferta(o)}
     <div class="tarjeta__sellos"><span class="sello sello--chollazo"${o.chollazoMotivo ? ` title="${esc(o.chollazoMotivo)}"` : ''}>${icono('fuego')}${esc(etiqueta)}</span></div>
@@ -615,9 +622,9 @@ export function tarjetaDestacada(o, ctx, etiqueta = 'Chollazo destacado') {
   <div class="destacado__cuerpo">
     <p class="destacado__lugar">${textoLugar(o) || esc(ctx.fuentes.get(o.fuente) ?? o.fuente)}</p>
     <h2 class="destacado__titulo"><button type="button" class="enlace-ficha" data-ficha="${esc(o.id)}">${esc(o.titulo)}</button></h2>
-    ${precio(o)}
+    <div class="destacado__precio">${bloquePrecio(o, ctx)}</div>
     ${ahorro ? `<p class="destacado__ahorro">${icono('bajada')}<span>${esc(ahorro)}</span></p>` : ''}
-    <div class="destacado__pie"><span>${total}</span>${enlaceOferta(o, undefined, ctx)}</div>
+    <div class="destacado__pie"><span>${pie}</span>${enlaceOferta(o, undefined, ctx)}</div>
   </div>
 </article>`;
 }
@@ -659,16 +666,46 @@ const desgloseCorto = (c) => c.partes.map((p) => `${p.concepto} ${p.estimado ? '
  * «≈ 269 € el viaje para 4 personas»; sin total, la gasolina que calculó el
  * escaneo (solo desde su origen), y si tampoco, nada.
  */
+/**
+ * Lo que se ha supuesto, en corto, para la tarjeta: «Desde Barcelona, en coche · 2 noches».
+ * Las noches solo si las pone tu viaje (la oferta no las fija).
+ */
+function supuestosCortos(o, c, ctx) {
+  const enCoche = c.partes.some((p) => p.concepto.startsWith('Gasolina'));
+  const desde = ctx.desde ? `Desde ${ctx.desde}${enCoche ? ', en coche' : ''}` : enCoche ? 'En coche' : '';
+  const noches = !o.noches && c.noches ? contar(c.noches, 'noche') : '';
+  return [desde, noches].filter(Boolean).join(' · ');
+}
+
+/**
+ * El coste comparable, primero y en grande: «Viaje estimado para 2 personas ≈ 164 €», de
+ * dónde sale (oferta + gasolina) y lo que se supone. Sin total, la gasolina que calculó el
+ * escaneo (solo desde su origen) y, si tampoco, nada.
+ */
 function lineaCoste(o, ctx) {
   const c = costeDe(o, ctx);
   if (c.total == null) return envolverDato(textoCosteCoche(o, ctx));
-  const corto = `${c.estimado ? '≈ ' : ''}${euros(Math.round(c.total))} el viaje para ${contar(c.viajeros, 'persona')}`;
-  const titulo = `${resumenCoste(c)}. ${desgloseCorto(c)}. Supone: ${c.supuestos.join('; ')}.`;
+  const titulo = `${resumenCoste(c)}. ${desgloseCorto(c)}. La oferta la cobra la web que la publica; el resto es una estimación. Supone: ${c.supuestos.join('; ')}.`;
   // Con más de una parte (la oferta y la gasolina), de dónde sale el total, a la vista.
   const partes = c.partes.length > 1
     ? `${barraCoste(c)}<span class="coste__leyenda">${c.partes.map((p, i) => `<span><i class="coste__muestra coste__muestra--${claseParte(p, i)}" aria-hidden="true"></i>${p.estimado ? '≈ ' : ''}${euros(Math.round(p.eur))} ${esc(nombreCorto(p))}</span>`).join('<span aria-hidden="true">+</span>')}</span>`
     : '';
-  return `<div class="dato-extra coste-total" title="${esc(titulo)}">${conIcono('cartera', esc(corto))}${partes}</div>`;
+  const supuestos = supuestosCortos(o, c, ctx);
+  return `<div class="dato-extra coste-total" title="${esc(titulo)}">
+    <p class="coste-total__cifra"><span class="coste-total__etiqueta">${c.estimado ? 'Viaje estimado' : 'Viaje'} para ${esc(contar(c.viajeros, 'persona'))}</span> <strong>${c.estimado ? '≈ ' : ''}${esc(euros(Math.round(c.total)))}</strong></p>
+    ${partes}${supuestos ? `<span class="coste-total__supuestos">${esc(supuestos)}</span>` : ''}
+  </div>`;
+}
+
+/**
+ * Pie de precio de las tarjetas y del destacado: con total, el coste del viaje arriba y el
+ * precio de la web debajo y rotulado; sin total, el precio de la web (y la gasolina si se sabe).
+ */
+export function bloquePrecio(o, ctx) {
+  const conTotal = costeDe(o, ctx).total != null;
+  return conTotal
+    ? `${lineaCoste(o, ctx)}${precio(o, { etiqueta: 'Precio publicado' })}`
+    : `${precio(o, { etiqueta: typeof o.precio === 'number' && o.precio > 0 ? 'Precio publicado' : null })}${lineaCoste(o, ctx)}`;
 }
 
 /** Nombre corto de cada parte del coste para la leyenda de la tarjeta. */
