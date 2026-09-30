@@ -1,0 +1,10 @@
+{"cities":[
+ {"iata":"BCN","mac":null,"longitude":2.078333,"latitude":41.296944,"shortName":"Barcelona","countryName":"España","countryCode":"ES","connections":[
+  {"iata":"BUD","isDirectFlight":true,"isConnected":false},
+  {"iata":"BGY","isDirectFlight":true,"isConnected":false},
+  {"iata":"MIL","isDirectFlight":true,"isConnected":false},
+  {"iata":"TIA","isDirectFlight":false,"isConnected":true}]},
+ {"iata":"BUD","mac":null,"longitude":19.261111,"latitude":47.436944,"shortName":"Budapest","countryName":"Hungría","countryCode":"HU","connections":[]},
+ {"iata":"BGY","mac":"MIL","longitude":9.698889,"latitude":45.668889,"shortName":"Milán Bérgamo","countryName":"Italia","countryCode":"IT","connections":[]},
+ {"iata":"TIA","mac":null,"longitude":19.720833,"latitude":41.415,"shortName":"Tirana","countryName":"Albania","countryCode":"AL","connections":[]}
+]}

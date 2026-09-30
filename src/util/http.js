@@ -176,9 +176,15 @@ function avisarReintento(log, { etiqueta, error, intento, reintentos, esperaMs }
 
 // ---------------------------------------------------------------- peticiones
 
-const pedir = (url, { cabeceras, timeoutMs }) =>
+// Con `cuerpo` es un POST de JSON (hay APIs de búsqueda que solo aceptan así la consulta).
+const pedir = (url, { cabeceras, timeoutMs, cuerpo }) =>
   fetch(url, {
-    headers: { 'User-Agent': USER_AGENT, 'Accept-Language': 'es-ES,es;q=0.9', ...cabeceras },
+    ...(cuerpo === undefined ? {} : { method: 'POST', body: JSON.stringify(cuerpo) }),
+    headers: {
+      'User-Agent': USER_AGENT, 'Accept-Language': 'es-ES,es;q=0.9',
+      ...(cuerpo === undefined ? {} : { 'Content-Type': 'application/json' }),
+      ...cabeceras,
+    },
     signal: AbortSignal.timeout(timeoutMs),
     redirect: 'follow',
   });
@@ -203,21 +209,22 @@ function comoErrorPropio(causa, url, contexto) {
  * @param {string} url
  * @param {{cabeceras?: Record<string,string>, timeoutMs?: number, reintentos?: number,
  *          etiqueta?: string|null, log?: ((mensaje: string) => void)|null,
- *          dormir?: (ms: number) => Promise<void>}} [opciones]
+ *          dormir?: (ms: number) => Promise<void>, cuerpo?: unknown}} [opciones]
  *   `etiqueta` identifica a quien pide (la fuente) en los avisos de `log`;
+ *   `cuerpo` convierte la petición en un POST con ese JSON;
  *   `dormir` solo se sustituye en los tests.
  */
 export async function obtenerTexto(url, opciones = {}) {
   const {
     cabeceras = {}, timeoutMs = 20_000, reintentos = 2,
-    etiqueta = null, log = null, dormir = esperar,
+    etiqueta = null, log = null, dormir = esperar, cuerpo,
   } = opciones;
   const dominio = dominioDe(url);
 
   for (let intento = 0; ; intento++) {
     const inicio = Date.now();
     try {
-      const respuesta = await pedir(url, { cabeceras, timeoutMs });
+      const respuesta = await pedir(url, { cabeceras, timeoutMs, cuerpo });
       if (!respuesta.ok) {
         throw errorDeRespuesta(respuesta, url, { intento, duracionMs: Date.now() - inicio });
       }

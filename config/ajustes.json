@@ -50,6 +50,10 @@
     "carburante": "gasolina95"
   },
   "fuentes": {
+    "wizzair": {
+      "activa": true,
+      "intervaloMin": 180
+    },
     "ryanair": {
       "activa": false,
       "motivo": "Su robots.txt prohíbe /api (comprobado el 18/09/2026)",

@@ -1,26 +1,30 @@
-# TEMPORAL: sondeo de la APIs de vuelos gratis. Se borra al terminar.
+# TEMPORAL: prueba real de la fuente de Wizz Air. Se borra al terminar.
 name: Sondeo ofertas (temporal)
 on:
   push:
     branches: [claude/cool-mendel-5qf0bs]
-    paths: ['.github/workflows/sondeo-ofertas.yml', 'scripts/sondeo-ofertas.mjs']
+    paths: ['.github/workflows/sondeo-ofertas.yml', 'src/fuentes/wizzair.js']
 permissions:
   contents: write
 jobs:
   sondeo:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 24
-      - run: node scripts/sondeo-ofertas.mjs
+      - run: npm ci
+      - run: git fetch -q origin datos && git checkout -q origin/datos -- data && git reset -q data
+      - run: node src/escanear.js --solo=wizzair --forzar --sin-emails 2>&1 | tee escaneo.log || true
       - name: Guardar en la rama sondeo-vuelos
         run: |
+          mkdir -p sondeo && cp escaneo.log sondeo/
+          node -e 'const o=require("./data/ofertas.json");const l=(o.ofertas??o).filter(x=>x.fuente==="wizzair");require("fs").writeFileSync("sondeo/wizz.json",JSON.stringify({n:l.length,muestra:l.slice(0,5),rutas:[...new Set(l.map(x=>x.vuelo.origen+"-"+x.vuelo.destino))]},null,1))' || true
           git config user.name "sondeo" && git config user.email "sondeo@users.noreply.github.com"
-          git checkout --orphan sondeo-vuelos
+          git checkout --orphan sondeo-vuelos-2
           git rm -rq --cached .
-          git add sondeo
-          git commit -qm "Sondeo de vuelos"
-          git push -f origin sondeo-vuelos
+          git add -f sondeo
+          git commit -qm "Prueba de Wizz Air"
+          git push -f origin sondeo-vuelos-2
