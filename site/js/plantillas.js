@@ -275,7 +275,7 @@ function puntuacion(o, ctx = {}) {
   const nivel = o.chollazo ? 'alta' : o.puntuacion >= 60 ? 'media' : 'baja';
   const motivo = motivoPrincipal(o, ctx.ahora);
   const texto = `Valor de la oferta: ${o.puntuacion} de 100 (${nivelNota(o).toLowerCase()}). ${motivo ? `${motivo}.` : QUE_MIDE_LA_NOTA}`;
-  return `<span class="puntuacion puntuacion--${nivel}" title="${esc(texto)}"><span aria-hidden="true"><span class="puntuacion__etiqueta">Valor</span> ${o.puntuacion}<span class="puntuacion__max">/100</span></span><span class="sr">${esc(texto)}</span></span>`;
+  return `<span class="puntuacion puntuacion--${nivel}" title="${esc(texto)}"><span aria-hidden="true"><span class="puntuacion__etiqueta">Valor</span> ${o.puntuacion}</span><span class="sr">${esc(texto)}</span></span>`;
 }
 
 export function botonFavorito(o, ctx) {

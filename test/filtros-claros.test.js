@@ -79,7 +79,7 @@ describe('filtros claros: atajos', () => {
       const aplicado = f.temas.length || f.horas || f.sinCoche || f.chollazo || f.soloCerradas || f.ninos || f.alojamiento || f.cuando || params.orden !== undefined;
       assert.ok(aplicado, atajo.texto);
     }
-    const spa = leerFiltrosEscapadas(ATAJOS_ESCAPADAS.find((a) => a.texto.includes('Spa')).params);
+    const spa = leerFiltrosEscapadas(ATAJOS_ESCAPADAS.find((a) => a.texto === 'Spa a menos de 2 h').params);
     assert.deepEqual([spa.temas, spa.horas], [['spa'], 2]);
   });
 

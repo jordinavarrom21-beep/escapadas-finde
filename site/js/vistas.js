@@ -9,7 +9,7 @@ import {
   ETIQUETAS_REGIMEN, ETIQUETAS_TIPO, ETIQUETAS_TRANSPORTE,
 } from './formato.js';
 import {
-  ALOJAMIENTOS, ATAJOS_ESCAPADAS, ORDENES_ACTIVIDADES, SIN_COCHE, ORDENES_ESCAPADAS, REGIMENES_ORDEN,
+  ALOJAMIENTOS, ATAJOS_ESCAPADAS, ATAJOS_A_LA_VISTA, ORDENES_ACTIVIDADES, SIN_COCHE, ORDENES_ESCAPADAS, REGIMENES_ORDEN,
   buscarActividades, buscarEscapadas, buscarTexto, chollosDeVuelos, conFaltas, promocionesDeVuelos, crearHash, destinosDe,
   destinosDeVuelo, esActividad, esEscapada, filtrarVuelos, filtrosActivos, leerFiltrosActividades, zonasDe,
   leerFiltrosComunes, leerFiltrosEscapadas, leerFiltrosVuelos, radioBusquedaKm, viajeDeParams, tieneVuelo,
@@ -228,8 +228,11 @@ export const contarSecundarios = (params = {}) => FILTROS_SECUNDARIOS
 
 /** Atajos de un clic: enlaces con su hash. */
 function atajosEscapadas(vista) {
-  const enlaces = ATAJOS_ESCAPADAS.map((a) => `<a class="chip chip--atajo" href="${esc(crearHash(vista, a.params))}">${icono(a.icono)}${esc(a.texto)}</a>`).join('');
-  return `<nav class="atajos" aria-label="Atajos de búsqueda"><div class="chips__lista chips--desplazables-lista">${enlaces}</div></nav>`;
+  const enlace = (a) => `<a class="chip chip--atajo" href="${esc(crearHash(vista, a.params))}">${icono(a.icono)}${esc(a.texto)}</a>`;
+  const [vistos, mas] = [ATAJOS_ESCAPADAS.slice(0, ATAJOS_A_LA_VISTA), ATAJOS_ESCAPADAS.slice(ATAJOS_A_LA_VISTA)];
+  // En varias filas y sin deslizar de lado: en una sola fila no se notaba que había más.
+  return `<nav class="atajos" aria-label="Atajos de búsqueda"><div class="chips__lista">${vistos.map(enlace).join('')}
+  ${mas.length ? `<details class="atajos__mas"><summary class="chip chip--atajo chip--mas">${icono('nuevo')}Más ideas (${mas.length})</summary><div class="chips__lista">${mas.map(enlace).join('')}</div></details>` : ''}</div></nav>`;
 }
 
 /** Icono de cada filtro puesto (por su clave; las temáticas, el de la suya). */

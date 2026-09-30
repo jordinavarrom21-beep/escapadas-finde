@@ -585,7 +585,12 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 
 /* Atajos de un clic y «lo que tienes puesto». */
 .atajos { margin-bottom: 14px; }
-.atajos .chips__lista { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 6px; scrollbar-width: thin; }
+.atajos .chips__lista { flex-wrap: wrap; }
+.atajos__mas { display: contents; }
+.atajos__mas > summary { list-style: none; cursor: pointer; }
+.atajos__mas > summary::-webkit-details-marker { display: none; }
+.atajos__mas[open] > summary { background: var(--superficie-2); }
+.atajos__mas > .chips__lista { flex-basis: 100%; }
 .chip--atajo { color: var(--texto) !important; text-decoration: none; }
 .chip--atajo .ic { color: var(--acento); }
 .chip--atajo:hover { border-color: var(--texto); }
@@ -847,10 +852,8 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 .explorar__resultados { min-width: 0; }
 @media (min-width: 1100px) {
   .explorar { grid-template-columns: 340px minmax(0, 1fr); }
-  .explorar__filtros {
-    position: sticky; top: 84px; max-height: calc(100vh - 100px); overflow-y: auto; overscroll-behavior: contain;
-    border-radius: var(--radio); scrollbar-width: thin;
-  }
+  /* Sin scroll propio: con dos zonas que se desplazan no se sabía cuál se movía con la rueda. */
+  .explorar__filtros { border-radius: var(--radio); }
   .explorar__filtros .filtros { margin-bottom: 0; padding: 16px; gap: 14px; }
   .explorar__filtros .filtros__fila { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; align-items: stretch; }
   .explorar__filtros .campo { min-width: 0; width: 100%; }
@@ -1322,11 +1325,12 @@ main { padding-block: 22px 56px; min-height: 60vh; }
   .marca img { width: 32px; height: 32px; }
   .cabecera__acciones .boton-icono { width: 40px; height: 40px; }
 
-  /* Salida, cuenta atrás, puente y revisión: una fila que se desliza, no cuatro. */
+  /* Salida, novedades y revisión: en filas si no caben (deslizándose de lado, el aviso de
+     «Revisado hace…» quedaba cortado fuera de la pantalla). */
   .cabecera-info { flex-direction: column; flex-wrap: nowrap; align-items: stretch; gap: 8px; padding-top: 10px; }
-  .cabecera__info { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; gap: 6px; }
-  .cabecera__info::-webkit-scrollbar { display: none; }
-  .cabecera__info > * { flex: none; white-space: nowrap; }
+  .cabecera__info { flex-wrap: wrap; gap: 6px; }
+  .cabecera__info > * { flex: none; white-space: nowrap; max-width: 100%; }
+  .atajos .chip { min-height: 40px; padding-block: 6px; font-size: 0.88rem; }
   .cabecera__info .pastilla { font-size: 0.8rem; min-height: 40px; }
   .buscador { flex: none; width: 100%; max-width: none; margin: 0; }
   #boton-viaje { order: -1; }
