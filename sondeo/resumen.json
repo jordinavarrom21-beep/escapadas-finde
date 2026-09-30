@@ -1,0 +1,22 @@
+{
+ "wizz-metadata": {
+  "estado": 404,
+  "tipo": "application/json",
+  "bytes": 156
+ },
+ "wizz-home": {
+  "estado": 200,
+  "tipo": "text/html;charset=utf-8",
+  "bytes": 2003442
+ },
+ "version": "29.18.0",
+ "wizzMapa": {
+  "estado": 200,
+  "bytes": 684478
+ },
+ "wizzVersion": "{\n  \"error\": true,\n  \"url\": \"https://ssr-weu.wizzair.com/static_fe/metadata.json\",\n  \"statusCode\": 404,\n  \"statusMessage\": \"Server Error\",\n  \"message\": \"\"\n}",
+ "wizzTimetable": {
+  "estado": 200,
+  "bytes": 4089
+ }
+}
