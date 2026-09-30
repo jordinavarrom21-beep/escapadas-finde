@@ -998,7 +998,6 @@ main { padding-block: 22px 56px; min-height: 60vh; }
   background: var(--superficie); border: 1px solid var(--borde); border-radius: var(--radio);
   color: var(--texto) !important; text-decoration: none; transition: transform 0.18s, box-shadow 0.18s;
 }
-.finde-celda:hover { transform: translateY(-2px); box-shadow: var(--sombra-alta); }
 .finde-celda--puente { background: var(--banda); border-color: var(--banda); color: var(--banda-texto) !important; }
 .finde-celda--puente .finde-celda__cuando, .finde-celda--puente .suave { color: var(--banda-suave); }
 .finde-celda--puente .insignia--puente { background: var(--chollo); color: var(--chollo-texto); }
@@ -1006,6 +1005,9 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 .finde-celda__fecha { font-family: var(--fuente-titulos); font-size: 1.4rem; font-weight: 800; letter-spacing: -0.02em; }
 .finde-celda__dato { display: flex; align-items: center; gap: 6px; font-size: 0.87rem; overflow-wrap: anywhere; }
 .finde-celda .insignia { align-self: flex-start; }
+.finde-celda__acciones { margin-top: auto; display: flex; flex-wrap: wrap; gap: 6px; }
+.finde-celda__accion { flex: 1 1 auto; justify-content: center; }
+.finde-celda--puente .finde-celda__accion { background: color-mix(in srgb, var(--banda-texto) 12%, transparent); color: var(--banda-texto) !important; border-color: transparent; }
 
 /* ── Vigilados y fuentes ──────────────────────────────────────────────────── */
 

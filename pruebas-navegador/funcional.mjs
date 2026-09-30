@@ -197,7 +197,7 @@ await p.waitForTimeout(400);
 const gratis = await p.locator('#resultados .precio__gratis').count();
 ok(gratis === await p.locator('#resultados .tarjeta').count(), `actividades: «Solo gratis» solo deja las gratis (${gratis})`);
 await ir(p, 'calendario');
-await p.locator('.finde-celda').nth(2).click();
+await p.locator('.finde-celda').nth(2).locator('a[href^="#/escapadas"]').click();
 await p.waitForTimeout(300);
 const destinoCelda = await p.evaluate(() => location.hash);
 ok(destinoCelda.startsWith('#/escapadas?cuando=') || (conVuelosConFecha && destinoCelda.startsWith('#/vuelos?finde=')), `calendario: una celda lleva a sus planes (${destinoCelda})`);

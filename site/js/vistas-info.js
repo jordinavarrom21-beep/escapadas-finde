@@ -25,22 +25,24 @@ export function vistaCalendario(e) {
   const niveles = nivelesCalendario(resumen, hayVuelos);
   const celdas = resumen.map(({ finde, puente, vuelo, vuelos, escapadas }, i) => {
     const cuando = i === 0 ? 'Este finde' : i === 1 ? 'El siguiente' : `En ${i} semanas`;
-    const textoVuelo = !hayVuelos ? '' : vuelo
-      ? `${icono('vuelos')}<span>desde <strong>${euros(vuelo.precio)}</strong> · ${esc(vuelo.lugar?.nombre ?? '')}${vuelos > 1 ? ` <span class="suave">· ${contar(vuelos, 'vuelo')}</span>` : ''}</span>`
-      : `${icono('vuelos')}<span class="suave">Sin vuelos con fecha</span>`;
-    const destino = hayVuelos ? crearHash('vuelos', { finde: finde.id }) : crearHash('escapadas', { cuando: finde.id });
-    return `<li><a class="finde-celda${puente ? ' finde-celda--puente' : ''}${niveles[i] ? ` finde-celda--nivel-${niveles[i]}` : ''}" href="${destino}">
+    // Cada finde, dos caminos claros: sus escapadas y (si hay vuelos con fecha) sus vuelos.
+    // Antes la celda entera llevaba a uno solo aunque enseñara los datos de los dos.
+    const verEscapadas = `<a class="boton boton--suave boton--mini finde-celda__accion" href="${crearHash('escapadas', { cuando: finde.id })}">${icono('escapadas')}Ver ${contar(escapadas, 'escapada')}</a>`;
+    const verVuelos = !hayVuelos ? ''
+      : vuelo
+        ? `<a class="boton boton--suave boton--mini finde-celda__accion" href="${crearHash('vuelos', { finde: finde.id })}">${icono('vuelos')}Ver ${contar(vuelos, 'vuelo')} · desde ${euros(vuelo.precio)}</a>`
+        : `<span class="finde-celda__dato suave">${icono('vuelos')}Sin vuelos con fecha</span>`;
+    return `<li><div class="finde-celda${puente ? ' finde-celda--puente' : ''}${niveles[i] ? ` finde-celda--nivel-${niveles[i]}` : ''}">
   <span class="finde-celda__cuando">${cuando}</span>
   <span class="finde-celda__fecha">${esc(finde.etiqueta)}</span>
   ${puente ? `<span class="insignia insignia--puente">${icono('puentes')}${esc(puente.nombre)}</span>` : ''}
-  ${textoVuelo ? `<span class="finde-celda__dato">${textoVuelo}</span>` : ''}
-  <span class="finde-celda__dato">${icono('escapadas')}${contar(escapadas, 'escapada')}</span>
-</a></li>`;
+  <span class="finde-celda__acciones">${verEscapadas}${verVuelos}</span>
+</div></li>`;
   });
   return `${pestanas('fechas', 'calendario')}<h1 class="titulo-vista" tabindex="-1">Calendario</h1>
 <p class="seccion__intro">${hayVuelos
-    ? 'Los próximos 12 findes con el vuelo más barato y las escapadas disponibles (con fecha o flexibles). Los puentes van resaltados. Pulsa uno para ver sus vuelos.'
-    : 'Los próximos 12 findes con las escapadas disponibles (con fecha o flexibles). Los puentes van resaltados. Pulsa uno para ver sus escapadas.'}</p>
+    ? 'Los próximos 12 findes con sus escapadas disponibles (con fecha o flexibles) y el vuelo más barato. Los puentes van resaltados. En cada uno eliges qué ver: escapadas o vuelos.'
+    : 'Los próximos 12 findes con las escapadas disponibles (con fecha o flexibles). Los puentes van resaltados.'}</p>
 ${leyendaCalendario(hayVuelos)}
 <ol class="calendario">${celdas.join('')}</ol>`;
 }
