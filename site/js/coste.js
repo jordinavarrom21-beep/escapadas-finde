@@ -52,6 +52,8 @@ function parteCoche(o, distancia, coche, supuestos) {
   return {
     concepto: 'Gasolina (ida y vuelta)', eur: l * coche.precioLitro, estimado: true,
     detalle: `${Math.round(2 * km)} km · ${litros(l)} l`,
+    // La cuenta entera, para quien quiera comprobarla.
+    calculo: `${Math.round(2 * km)} km × ${litros(coche.consumoL100km)} l/100 km = ${litros(l)} l × ${euros(coche.precioLitro)}/l`,
   };
 }
 

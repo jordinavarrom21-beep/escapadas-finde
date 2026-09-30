@@ -43,6 +43,10 @@ function comparable(oferta) {
   return porNoche == null ? { grupo: `otros:${oferta.tipo}:${oferta.unidad ?? '-'}`, valor: oferta.precio } : { grupo: 'noche', valor: porNoche };
 }
 
+/**
+ * Puntos de precio de cada oferta y cuántas de su grupo son más caras (para que el panel
+ * pueda decir «más barata que el 85 % de las parecidas»).
+ */
 function puntosPorPrecio(ofertas) {
   const grupos = new Map();
   for (const oferta of ofertas) {
@@ -52,7 +56,8 @@ function puntosPorPrecio(ofertas) {
     grupos.get(c.grupo).push({ oferta, valor: c.valor });
   }
   const puntos = new Map();
-  for (const lista of grupos.values()) {
+  const comparacion = new Map();
+  for (const [grupo, lista] of grupos) {
     lista.sort((a, b) => a.valor - b.valor);
     lista.forEach(({ oferta, valor }) => {
       // Empates: la posición media del empate. Antes era la primera, y 26 free tours gratis
@@ -61,9 +66,10 @@ function puntosPorPrecio(ofertas) {
       const ultima = lista.findLastIndex((x) => x.valor === valor);
       const posicion = (primera + ultima) / 2;
       puntos.set(oferta, lista.length === 1 ? PESO_PRECIO / 2 : PESO_PRECIO * (1 - posicion / (lista.length - 1)));
+      comparacion.set(oferta, { grupo: grupo.startsWith('otros:') ? 'otros' : grupo, parecidas: lista.length - 1, masCaras: lista.length - 1 - ultima });
     });
   }
-  return puntos;
+  return { puntos, comparacion };
 }
 
 function puntosBajada(oferta) {
@@ -143,18 +149,38 @@ const esFavorita = (oferta, preferencias = {}) => {
   return favoritos.length > 0 && oferta.temas.some((tema) => favoritos.includes(normal(tema)));
 };
 
+/** Máximo de cada parte de la nota: el panel dibuja cada motivo sobre su máximo. */
+export const MAXIMOS_NOTA = {
+  precio: PESO_PRECIO, bajada: PESO_BAJADA, descuento: PESO_DESCUENTO, opiniones: PESO_VALORACION,
+  novedad: PESO_NOVEDAD, senales: PESO_SENALES, comodidad: PESO_COMODIDAD, fechas: PESO_FECHAS, favorito: PESO_FAVORITO,
+};
+
+const unDecimal = (n) => Math.round(n * 10) / 10;
+
 export function puntuar(ofertas, ajustes, { ahora = new Date(), findeActual = null } = {}) {
-  const precio = puntosPorPrecio(ofertas);
+  const { puntos: precio, comparacion } = puntosPorPrecio(ofertas);
   const preferencias = ajustes.preferencias ?? {};
   for (const oferta of ofertas) {
-    const resto = puntosBajada(oferta) + puntosDescuento(oferta) + puntosNovedad(oferta, ahora) +
-      puntosSenales(oferta) + puntosComodidad(oferta) + puntosFechas(oferta, findeActual) + puntosValoracion(oferta);
+    const partes = {
+      bajada: puntosBajada(oferta), descuento: puntosDescuento(oferta), opiniones: puntosValoracion(oferta),
+      novedad: puntosNovedad(oferta, ahora), senales: puntosSenales(oferta), comodidad: puntosComodidad(oferta),
+      fechas: puntosFechas(oferta, findeActual),
+    };
+    const resto = Object.values(partes).reduce((suma, p) => suma + p, 0);
     const total = precio.has(oferta) ? precio.get(oferta) + resto : Math.min(TOPE_SIN_PRECIO, resto);
     // Preferencias: lo que se quiere evitar va al fondo y nunca avisa como chollazo; los
     // temas favoritos suben un poco.
     const evitada = esEvitada(oferta, preferencias);
     const extra = !evitada && esFavorita(oferta, preferencias) ? PESO_FAVORITO : 0;
     oferta.puntuacion = evitada ? 0 : Math.round(Math.max(0, Math.min(100, total + extra)));
+    // De qué sale la nota: puntos de cada parte (sin las que dan 0) y, si hay con qué
+    // compararla, cuántas ofertas parecidas son más caras. Sin precio, el resto tiene tope.
+    oferta.notaDetalle = evitada ? { evitada: true } : {
+      partes: Object.fromEntries(Object.entries({ precio: precio.get(oferta) ?? 0, ...partes, favorito: extra })
+        .filter(([, p]) => p > 0.05).map(([clave, p]) => [clave, unDecimal(p)])),
+      comparacion: comparacion.get(oferta) ?? null,
+      topeSinPrecio: !precio.has(oferta) && resto > TOPE_SIN_PRECIO ? TOPE_SIN_PRECIO : null,
+    };
     oferta.chollazoMotivo = evitada ? null : motivoChollazo(oferta, ajustes);
     oferta.chollazo = oferta.chollazoMotivo != null;
   }

@@ -63,6 +63,7 @@ un `try/catch`, registran el error con `ctx.log` y descartan solo esa oferta.
 | `vistaPrimera`, `vistaUltima` | `almacen.js` | ISO UTC |
 | `bajada`, `minimoHistorico` | `historial.js` | € que ha bajado respecto al máximo de los últimos 7 días; `true` si es el precio más bajo registrado, alguna vez estuvo más alto y hay historial suficiente (≥ 3 días con precio y el primero de hace ≥ 7 días) |
 | `puntuacion`, `chollazo`, `chollazoMotivo` | `puntuacion.js` | 0–100, si merece alerta (`esChollazo`; el panel usa este campo) y por qué, en una frase comprobable (`motivoChollazo`: error de tarifa, vuelo i/v o precio por persona y noche por debajo del límite, o la puntuación) |
+| `notaDetalle` | `puntuacion.js` | De qué sale la nota: `partes` (puntos de precio, bajada, descuento, opiniones, novedad, señales, comodidad, fechas y favorito; solo las que suman), `comparacion` (`{grupo, parecidas, masCaras}`: con cuántas ofertas se compara el precio y cuántas son más caras) y `topeSinPrecio`; `{evitada: true}` si las preferencias la mandan al fondo |
 | `enlaces` | `enlaces.js` | `[{etiqueta, url}]`: reservar, comparar, hotel, ruta… |
 | `alojamiento` | fuente o `temas.js` | `hotel` \| `casa-rural` \| `camping` \| `apartamento` \| `parador` \| `balneario` \| `hostal` \| `null` |
 | `valoracion` | fuente | `{nota: 0–10, n: nº de opiniones}` o `null` |

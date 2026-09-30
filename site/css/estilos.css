@@ -706,6 +706,16 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 }
 .tarjeta__opiniones strong { color: var(--texto); font-weight: 800; }
 .tarjeta__opiniones .ic { flex: none; width: 15px; height: 15px; color: var(--chollo); fill: currentColor; }
+.tarjeta__opiniones--sin { color: var(--texto-suave); font-weight: 500; }
+.tarjeta__opiniones--sin .ic { color: var(--borde-fuerte); }
+.tarjeta__opiniones-texto { overflow: hidden; text-overflow: ellipsis; }
+.aviso-suave { color: var(--aviso); font-weight: 650; }
+/* «Por qué 66: …»: el motivo principal de la nota, en una línea. */
+.tarjeta__motivo {
+  margin: 0; height: 20px; font-size: 0.84rem; color: var(--texto-suave);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.tarjeta__motivo-nota { color: var(--texto); font-weight: 750; }
 .tarjeta .tarjeta__datos { height: 45px; overflow: hidden; align-content: flex-start; }
 .tarjeta .tarjeta__datos li { max-width: 100%; white-space: nowrap; }
 .tarjeta .tarjeta__datos li > span { overflow: hidden; text-overflow: ellipsis; }
@@ -718,7 +728,7 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 .insignia--comparar .ic { color: var(--acento); }
 .tarjeta__precio { min-height: 56px; }
 .tarjeta__precio .precio { margin: 0; }
-.tarjeta__coste { min-height: 30px; }
+.tarjeta__coste { min-height: 62px; }
 .tarjeta__coste:empty { visibility: hidden; }
 .tarjeta .acciones { flex-wrap: nowrap; }
 .tarjeta .acciones .boton--primario { flex: 1; min-width: 0; justify-content: center; padding-inline: 12px; font-size: 0.9rem; }
@@ -748,6 +758,19 @@ main { padding-block: 22px 56px; min-height: 60vh; }
   align-items: center; padding: 7px 10px; border-radius: 12px; background: var(--acento-suave);
   color: var(--acento-suave-texto); font-weight: 750; font-size: 0.84rem;
 }
+/* Coste en la tarjeta: el total y, debajo, de qué sale (barra y leyenda). */
+.coste-total { flex-wrap: wrap; row-gap: 5px; }
+.coste-total > .coste__barra, .coste-total > .coste__leyenda { flex-basis: 100%; }
+.coste__barra { display: flex; gap: 2px; height: 8px; min-width: 0; }
+.coste__segmento { flex: 1 1 0; min-width: 4px; border-radius: 4px; background: var(--coste-oferta); }
+.coste__segmento--estimado {
+  background: repeating-linear-gradient(135deg, var(--coste-estimado) 0 4px, color-mix(in oklab, var(--coste-estimado) 70%, var(--superficie)) 4px 7px);
+}
+.coste__leyenda { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; font-weight: 600; font-size: 0.78rem; color: var(--texto); }
+.coste__leyenda > span { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.coste__muestra { display: inline-block; flex: none; width: 10px; height: 10px; border-radius: 3px; background: var(--coste-oferta); margin-right: 6px; vertical-align: -1px; }
+.coste__leyenda .coste__muestra { margin-right: 0; }
+.coste__muestra--estimado { background: repeating-linear-gradient(135deg, var(--coste-estimado) 0 3px, color-mix(in oklab, var(--coste-estimado) 65%, var(--superficie)) 3px 5px); }
 .coste-coche { display: inline-flex; gap: 6px; align-items: flex-start; }
 .aviso-afiliado { font-size: 0.8rem; color: var(--texto-suave); }
 
@@ -1103,12 +1126,19 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 .eventos { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 0.88rem; }
 .eventos li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; padding: 8px 12px; border-radius: 12px; background: var(--superficie); border: 1px solid var(--borde); }
 
-.coste { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-.coste th, .coste td { text-align: left; padding: 7px 4px; border-bottom: 1px solid var(--borde); vertical-align: top; }
-.coste th { font-weight: 650; }
-.coste .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
-.coste__total th, .coste__total td { font-weight: 800; border-bottom: 0; padding-top: 10px; }
-.coste__total .num { font-family: var(--fuente-titulos); font-size: 1.3rem; }
+.ficha__coste > .coste__barra { height: 12px; }
+.ficha__coste > .coste__barra .coste__segmento { border-radius: 4px; }
+.coste { list-style: none; margin: 0; padding: 0; display: grid; font-size: 0.9rem; }
+.coste__parte {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; align-items: baseline;
+  padding: 9px 0; border-bottom: 1px solid var(--borde);
+}
+.coste__concepto { font-weight: 650; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 0; }
+.coste__concepto .etiqueta-estimado { margin-left: 6px; }
+.coste__importe { text-align: right; white-space: nowrap; font-weight: 750; font-variant-numeric: tabular-nums; }
+.coste__calculo { grid-column: 1 / -1; color: var(--texto-suave); font-size: 0.84rem; padding-left: 16px; }
+.coste__grande { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; }
+.coste__grande strong { font-family: var(--fuente-titulos); font-size: 1.7rem; font-weight: 800; }
 .coste__falta { color: var(--aviso); }
 .etiqueta-estimado { font-size: 0.72rem; font-weight: 650; padding: 1px 7px; border-radius: 999px; background: var(--aviso-suave); color: var(--aviso); }
 
@@ -1297,8 +1327,6 @@ main { padding-block: 22px 56px; min-height: 60vh; }
   .marca { font-size: 1rem; }
   /* La ficha en 320 px: el total del coste del viaje («≈ 139,43 €») cabe en su columna. */
   .ficha__lateral { padding: 16px 14px; }
-  .coste .num { white-space: normal; }
-  .coste__total .num { font-size: 1.12rem; }
 }
 
 /* ── Pantallas medianas y grandes ─────────────────────────────────────────── */
@@ -1378,3 +1406,30 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 .ayuda-lista { display: grid; gap: 8px; padding-left: 1.2em; line-height: 1.5; color: var(--texto-suave); }
 .ayuda-lista strong { color: var(--texto); }
 #privacidad { scroll-margin-top: 90px; }
+
+/* Colores del coste (validados para daltonismo en claro y oscuro): la oferta y lo estimado. */
+:root { --coste-oferta: #00897b; --coste-estimado: #c8611a; --medidor: #00897b; }
+:root[data-theme="dark"] { --coste-oferta: #1f9e8e; --coste-estimado: #d9733a; --medidor: #1f9e8e; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --coste-oferta: #1f9e8e; --coste-estimado: #d9733a; --medidor: #1f9e8e; }
+}
+
+/* «Por qué tiene un N»: cada motivo con su barra sobre el máximo. */
+.ficha__nota, .ficha__opiniones { display: grid; gap: 10px; }
+.motivos { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.motivo { display: grid; grid-template-columns: minmax(0, 1fr) 96px 34px; align-items: center; gap: 10px; font-size: 0.9rem; }
+.motivo__barra, .opiniones__barra { display: block; height: 8px; border-radius: 4px; background: var(--superficie-3); overflow: hidden; }
+.motivo__barra > span, .opiniones__barra > span { display: block; height: 100%; border-radius: 4px; background: var(--medidor); }
+.motivo__puntos { text-align: right; font-weight: 750; font-variant-numeric: tabular-nums; }
+@media (max-width: 420px) {
+  .motivo { grid-template-columns: minmax(0, 1fr) 34px; }
+  .motivo__barra { grid-column: 1 / -1; grid-row: 2; }
+}
+.ficha__nota .suave, .ficha__opiniones p { margin: 0; font-size: 0.86rem; }
+.opiniones__nota { display: flex; align-items: baseline; gap: 4px; }
+.opiniones__nota strong { font-family: var(--fuente-titulos); font-size: 2rem; font-weight: 800; line-height: 1; }
+.opiniones__adjetivo { margin-left: 8px; font-weight: 750; }
+.opiniones__barra { max-width: 260px; }
+.opiniones__enlaces { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 0.88rem; }
+.opiniones__enlaces a { display: inline-flex; align-items: center; gap: 4px; color: var(--enlace); font-weight: 650; min-height: 32px; }
+.opiniones__enlaces .ic { width: 14px; height: 14px; }

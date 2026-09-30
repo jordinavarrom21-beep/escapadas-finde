@@ -33,6 +33,7 @@ const INTERFAZ = [
   'js/iconos.js',
   'js/local.js',
   'js/mapa.js',
+  'js/nota.js',
   'js/plantillas.js',
   'js/tema.js',
   'js/ubicacion.js',

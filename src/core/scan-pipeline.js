@@ -361,7 +361,12 @@ export async function escanear({
       afiliacion: { proveedores: afiliados.map((p) => p.id), medicion: afiliacion.medicion?.url || null },
       // Si los vigilados avisan de verdad por email (sin decir a qué dirección).
       avisos: { email: !opciones.sinEmails && configuracionEnvio(env).estado === 'lista' },
-      coche: { consumoL100km: ajustes.coche.consumoL100km, precioLitro: precioLitro ?? ajustes.coche.precioLitro, carburante: ajustes.coche.carburante },
+      // `precioMedio`: el litro es la media de hoy en las gasolineras de la provincia de salida
+      // (Ministerio); si no se pudo consultar, es el precio fijo de los ajustes.
+      coche: {
+        consumoL100km: ajustes.coche.consumoL100km, precioLitro: precioLitro ?? ajustes.coche.precioLitro, carburante: ajustes.coche.carburante,
+        precioMedio: precioLitro != null && precioLitro !== ajustes.coche.precioLitro ? { provincia: ajustes.origen.nombre } : null,
+      },
       temas: TEMAS, findes, puentes, fuentes: estadoFuentes, ofertas,
     },
     historial: m.seriesPara(historial, ofertas.map((o) => [o.id, claveSerie(o)])),

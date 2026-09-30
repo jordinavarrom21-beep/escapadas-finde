@@ -13,6 +13,7 @@ import {
 import { SIN_COCHE, duracionActividad, esDuplicada, esNovedad, precioDeSerie, salidasDe, sinComprobar, sufijoSerie, tieneVuelo } from './filtros.js';
 import { escena, icono, iconoTema, iconoTiempo, tipoEscena } from './iconos.js';
 import { conFechas, ofertaConFechas } from './fechas-enlaces.js';
+import { motivoPrincipal, motivosNota } from './nota.js';
 
 export const ESTADOS_FUENTE = {
   ok: { texto: 'Funciona', clase: 'ok' },
@@ -258,24 +259,16 @@ export function adjetivoNota(valor) {
   return valor >= 9 ? 'Excelente' : valor >= 8 ? 'Muy bien' : valor >= 7 ? 'Bien' : valor >= 6 ? 'Aceptable' : 'Flojo';
 }
 
-/** «8,8 / 10 · Muy bien · 5 opiniones en Weekendesk». */
-function textoValoracion(o, ctx) {
-  const v = o.valoracion;
-  if (!(v?.nota >= 0)) return null;
-  const web = ctx.fuentes?.get(o.fuente) ?? o.fuente;
-  const opiniones = v.n ? `${contar(v.n, 'opinión', 'opiniones')} en ${web}` : `según ${web}`;
-  return `${nota(v.nota)} / 10 · ${adjetivoNota(v.nota)} · ${opiniones}`;
-}
-
 /** Qué mide la nota del chollo (sale al pasar por encima y en la ficha). */
 export const QUE_MIDE_LA_NOTA = 'Lo bueno que es como chollo: sobre todo el precio frente a ofertas parecidas; también las opiniones de otros clientes, las bajadas, el descuento, si es nueva, si cae en finde o puente y lo cómodo que es llegar.';
 
 /** «Chollazo», «Muy buena», «Buena» o «Normal» según la nota (0–100). */
 export const nivelNota = (o) => (o.chollazo ? 'Chollazo' : o.puntuacion >= 60 ? 'Muy buena' : o.puntuacion >= 40 ? 'Buena' : 'Normal');
 
-function puntuacion(o) {
+function puntuacion(o, ctx = {}) {
   const nivel = o.chollazo ? 'alta' : o.puntuacion >= 60 ? 'media' : 'baja';
-  const texto = `Nota del chollo: ${o.puntuacion} de 100 (${nivelNota(o).toLowerCase()}). ${QUE_MIDE_LA_NOTA}`;
+  const motivo = motivoPrincipal(o, ctx.ahora);
+  const texto = `Nota del chollo: ${o.puntuacion} de 100 (${nivelNota(o).toLowerCase()}). ${motivo ? `${motivo}.` : QUE_MIDE_LA_NOTA}`;
   return `<span class="puntuacion puntuacion--${nivel}" title="${esc(texto)}"><span aria-hidden="true"><span class="puntuacion__etiqueta">Nota</span> ${o.puntuacion}</span><span class="sr">${esc(texto)}</span></span>`;
 }
 
@@ -352,7 +345,7 @@ function precio(o) {
   // explica más que nada; si tampoco lo dice, se avisa.
   const unidad = ETIQUETAS_UNIDAD[o.unidad]
     ?? (/\b(?:por|total|ida|trayecto)\b/i.test(o.precioTexto ?? '') ? esc(o.precioTexto) : SIN_UNIDAD);
-  const noche = o.precioNoche != null && o.unidad !== 'pp/noche'
+  const noche = o.precioNoche != null && o.unidad !== 'pp/noche' && Math.round(o.precioNoche) !== Math.round(o.precio)
     ? ` <span class="precio__noche" title="${esc(calculoPorNoche(o))}">≈ ${euros(Math.round(o.precioNoche))} por persona y noche</span>`
     : '';
   const desde = esPrecioDesde(o) ? '<span class="precio__desde" title="Precio mínimo publicado: depende de las fechas y la disponibilidad">desde </span>' : '';
@@ -532,11 +525,12 @@ export function tarjetaOferta(o, ctx) {
   <div class="tarjeta__cuerpo">
     <div class="tarjeta__cabeza">
       <span class="tarjeta__lugar">${textoLugar(o) || esc(ETIQUETAS_TIPO[o.tipo] ?? o.tipo)}</span>
-      ${puntuacion(o)}
+      ${puntuacion(o, ctx)}
       ${botonDescartar(o)}
     </div>
     <h3 class="tarjeta__titulo"><button type="button" class="enlace-ficha" data-ficha="${esc(o.id)}">${esc(o.titulo)}</button></h3>
     ${opinionesTarjeta(o, web)}
+    ${motivoTarjeta(o, ctx)}
     <ul class="tarjeta__datos">${datosTarjeta(o, ctx)}</ul>
     <div class="insignias insignias--tarjeta">${equivalentes(o, ctx)}${insigniasTarjeta(o, ctx)}${avisoTarjeta(o, ctx)}</div>
     <div class="tarjeta__pie">
@@ -548,12 +542,34 @@ export function tarjetaOferta(o, ctx) {
 </article>`;
 }
 
-/** «★ 8,2 Muy bien · 266 opiniones»: lo que opinan otros clientes, a la vista (vacío si no hay). */
+/** Cuánto fiarse de una nota según cuántas opiniones la respaldan. */
+export function fiabilidadOpiniones(n) {
+  if (!n) return { corta: 'sin nº de opiniones', larga: 'La web no dice cuántas opiniones hay detrás de la nota: tómala con cautela.' };
+  if (n < 10) return { corta: 'pocas opiniones', larga: `Solo ${contar(n, 'opinión', 'opiniones')}: una nota con tan pocas cambia mucho con la siguiente. Tómala con cautela.` };
+  if (n < 50) return { corta: null, larga: `${contar(n, 'opinión', 'opiniones')}: una nota bastante fiable.` };
+  return { corta: null, larga: `${contar(n, 'opinión', 'opiniones')}: una nota muy fiable.` };
+}
+
+/**
+ * «★ 8,2 Muy bien · 266 opiniones en Holidu»: lo que opinan otros clientes, a la vista.
+ * Sin nota, se dice que la web no publica opiniones (para no confundirlo con «malas»).
+ */
 function opinionesTarjeta(o, web) {
   const v = o.valoracion;
-  if (!(v?.nota >= 0)) return '<p class="tarjeta__opiniones tarjeta__opiniones--sin" aria-hidden="true"></p>';
+  if (!(v?.nota >= 0)) {
+    return o.tipo === 'vuelo' ? '<p class="tarjeta__opiniones tarjeta__opiniones--sin" aria-hidden="true"></p>'
+      : `<p class="tarjeta__opiniones tarjeta__opiniones--sin">${icono('estrella')}<span>${esc(web)} no publica opiniones</span></p>`;
+  }
+  const f = fiabilidadOpiniones(v.n);
   const cuantas = v.n ? ` · ${contar(v.n, 'opinión', 'opiniones')}` : '';
-  return `<p class="tarjeta__opiniones" title="Valoración de los clientes en ${esc(web)}">${icono('estrella')}<strong>${nota(v.nota)}</strong> ${adjetivoNota(v.nota)}${cuantas}</p>`;
+  return `<p class="tarjeta__opiniones" title="Valoración de los clientes en ${esc(web)}. ${esc(f.larga)}">${icono('estrella')}<strong>${nota(v.nota)}</strong><span class="tarjeta__opiniones-texto">${adjetivoNota(v.nota)}${cuantas}${f.corta ? ` · <span class="aviso-suave">${f.corta}</span>` : ''}</span></p>`;
+}
+
+/** «Por qué 66: más barata que 180 de 206 escapadas parecidas · ha bajado 12 €». */
+function motivoTarjeta(o, ctx) {
+  const motivo = motivoPrincipal(o, ctx.ahora);
+  if (!motivo) return '<p class="tarjeta__motivo" aria-hidden="true"></p>';
+  return `<p class="tarjeta__motivo" title="${esc(`Por qué tiene un ${o.puntuacion}: ${motivo}`)}"><span class="tarjeta__motivo-nota">Por qué ${o.puntuacion}:</span> ${esc(motivo.replace(/^./, (l) => l.toLowerCase()))}</p>`;
 }
 
 /**
@@ -639,27 +655,98 @@ const desgloseCorto = (c) => c.partes.map((p) => `${p.concepto} ${p.estimado ? '
 function lineaCoste(o, ctx) {
   const c = costeDe(o, ctx);
   if (c.total == null) return envolverDato(textoCosteCoche(o, ctx));
-  // En la tarjeta, una línea: el total del viaje (el reparto por persona, en el título y en la ficha).
   const corto = `${c.estimado ? '≈ ' : ''}${euros(Math.round(c.total))} el viaje para ${contar(c.viajeros, 'persona')}`;
   const titulo = `${resumenCoste(c)}. ${desgloseCorto(c)}. Supone: ${c.supuestos.join('; ')}.`;
-  return `<p class="dato-extra coste-total" title="${esc(titulo)}">${conIcono('cartera', esc(corto))}</p>`;
+  // Con más de una parte (la oferta y la gasolina), de dónde sale el total, a la vista.
+  const partes = c.partes.length > 1
+    ? `${barraCoste(c)}<span class="coste__leyenda">${c.partes.map((p, i) => `<span><i class="coste__muestra coste__muestra--${claseParte(p, i)}" aria-hidden="true"></i>${p.estimado ? '≈ ' : ''}${euros(Math.round(p.eur))} ${esc(nombreCorto(p))}</span>`).join('<span aria-hidden="true">+</span>')}</span>`
+    : '';
+  return `<div class="dato-extra coste-total" title="${esc(titulo)}">${conIcono('cartera', esc(corto))}${partes}</div>`;
+}
+
+/** Nombre corto de cada parte del coste para la leyenda de la tarjeta. */
+const nombreCorto = (p) => (p.concepto.startsWith('Gasolina') ? 'gasolina' : p.concepto.startsWith('Billetes de vuelta') ? 'vuelta' : p.concepto.startsWith('Billetes') ? 'billetes' : 'oferta');
+/** Color de cada parte: la oferta (lo que publica la web) y lo estimado (gasolina, la vuelta). */
+const claseParte = (p) => (p.estimado ? 'estimado' : 'oferta');
+
+/** Barra apilada del coste: cada parte a su proporción del total. */
+function barraCoste(c) {
+  const total = c.partes.reduce((suma, p) => suma + p.eur, 0) || 1;
+  return `<span class="coste__barra" aria-hidden="true">${c.partes.map((p, i) => `<span class="coste__segmento coste__segmento--${claseParte(p, i)}" style="flex-grow:${Math.max(p.eur / total, 0.04).toFixed(3)}"></span>`).join('')}</span>`;
 }
 
 /** «Coste del viaje» en la ficha: cada parte, qué es estimado, lo supuesto y lo que falta. */
 function costeFicha(o, ctx) {
   const c = costeDe(o, ctx);
   if (!c.partes.length && !c.falta.length) return '';
-  const filas = c.partes.map((p) => `<tr><th scope="row">${esc(p.concepto)}${p.estimado ? ' <span class="etiqueta-estimado">estimado</span>' : ''}</th><td>${esc(p.detalle)}</td><td class="num">${p.estimado ? '≈ ' : ''}${euros(p.eur)}</td></tr>`).join('');
-  const total = c.total != null
-    ? `<tr class="coste__total"><th scope="row">Total${c.estimado ? ' (con estimaciones)' : ''}</th><td>${contar(c.viajeros, 'persona')}${c.noches ? ` · ${contar(c.noches, 'noche')}` : ''}${c.viajeros > 1 ? ` · ${euros(Math.round(c.porPersona))} por persona` : ''}</td><td class="num">${c.estimado ? '≈ ' : ''}${euros(c.total)}</td></tr>`
-    : '';
+  // Cada parte: qué es y cuánto en una línea; debajo, la cuenta con la que sale.
+  const filas = c.partes.map((p, i) => `<li class="coste__parte"><span class="coste__concepto"><i class="coste__muestra coste__muestra--${claseParte(p, i)}" aria-hidden="true"></i>${esc(p.concepto)}${p.estimado ? ' <span class="etiqueta-estimado">estimado</span>' : ''}</span><span class="coste__importe">${p.estimado ? '≈ ' : ''}${euros(p.eur)}</span><span class="coste__calculo">${esc(p.calculo ?? p.detalle)}</span></li>`).join('');
   const falta = c.falta.length ? `<p class="coste__falta">Para dar un total falta saber ${esc(enumerar(c.falta))}.</p>` : '';
   const supuestos = c.supuestos.length ? `<p class="suave">Supone: ${esc(c.supuestos.join('; '))}. Desde ${esc(ctx.desde ?? '')}.</p>` : '';
+  const gasolina = c.partes.some((p) => p.concepto.startsWith('Gasolina')) ? `<p class="suave">${esc(textoPrecioLitro(ctx.coche))}</p>` : '';
+  const detalle = [contar(c.viajeros, 'persona'), c.noches && contar(c.noches, 'noche'), c.viajeros > 1 && `${euros(Math.round(c.porPersona))} por persona`].filter(Boolean).join(' · ');
+  const grande = c.total != null
+    ? `<p class="coste__grande"><strong>${c.estimado ? '≈ ' : ''}${euros(Math.round(c.total))}</strong><span class="suave">${esc(detalle)}${c.estimado ? ' · con estimaciones' : ''}</span></p>${c.partes.length > 1 ? barraCoste(c) : ''}`
+    : '';
   return `<section class="ficha__coste" aria-labelledby="ficha-coste-titulo">
   <h3 id="ficha-coste-titulo">${icono('cartera')}Coste del viaje</h3>
-  ${filas || total ? `<table class="coste"><tbody>${filas}${total}</tbody></table>` : ''}
+  ${grande}
+  ${filas ? `<ul class="coste">${filas}</ul>` : ''}${gasolina}
   ${falta}${supuestos}
   <p><button type="button" class="boton boton--suave boton--mini" data-mi-viaje>Cambiar salida, viajeros o noches</button></p>
+</section>`;
+}
+
+/** Con su artículo, contraído con «de»: «de la gasolina 95», «del diésel». */
+const DE_CARBURANTE = { gasolina95: 'de la gasolina 95', gasolina98: 'de la gasolina 98', gasoleo: 'del diésel', gasoleoPremium: 'del diésel premium', glp: 'del autogás (GLP)' };
+
+/** De dónde sale el precio del litro con el que se calcula la gasolina. */
+export function textoPrecioLitro(coche) {
+  if (!coche?.precioLitro) return '';
+  const de = DE_CARBURANTE[coche.carburante] ?? 'del carburante';
+  return coche.precioMedio?.provincia
+    ? `${euros(coche.precioLitro)}/l es el precio medio de hoy ${de} en las gasolineras de ${coche.precioMedio.provincia} (datos del Ministerio).`
+    : `${euros(coche.precioLitro)}/l es un precio de referencia ${de}: hoy no se ha podido consultar la media de las gasolineras.`;
+}
+
+/** «Por qué tiene un 66»: cada motivo con su barra sobre lo máximo que puede dar. */
+function notaFicha(o, ctx) {
+  const motivos = motivosNota(o, ctx.ahora);
+  if (!motivos.length) return '';
+  const filas = motivos.map((m) => `<li class="motivo"><span class="motivo__texto">${esc(m.texto)}</span><span class="motivo__barra" aria-hidden="true"><span style="width:${Math.round((Math.min(m.puntos, m.maximo) / m.maximo) * 100)}%"></span></span><span class="motivo__puntos">${m.puntos > 0 ? `+${Math.round(m.puntos)}` : '0'}<span class="sr"> de ${m.maximo} puntos</span></span></li>`).join('');
+  const tope = o.notaDetalle?.topeSinPrecio ? ' Sin precio con el que compararla, la nota se queda en 50 como mucho.' : '';
+  return `<section class="ficha__nota" aria-labelledby="ficha-nota-titulo">
+  <h3 id="ficha-nota-titulo">${icono('fuego')}Por qué tiene un ${o.puntuacion} de 100</h3>
+  <ul class="motivos">${filas}</ul>
+  <p class="suave">Cada barra es lo que suma ese motivo sobre lo máximo que puede dar. Lo que más pesa es el precio frente a ofertas parecidas (hasta 45 puntos).${tope}</p>
+</section>`;
+}
+
+/**
+ * Opiniones en la ficha: la nota en grande con su barra, cuánto fiarse según cuántas hay y
+ * dónde leerlas. Los vuelos no tienen (son de una aerolínea, no de un sitio).
+ */
+function opinionesFicha(o, ctx) {
+  if (o.tipo === 'vuelo') return '';
+  const v = o.valoracion;
+  const web = ctx.fuentes?.get(o.fuente) ?? o.fuente;
+  const sitio = o.establecimiento ?? (o.tipo === 'actividad' ? o.titulo : null);
+  const lugar = o.lugar?.nombre ?? '';
+  const buscar = sitio ? [
+    ['Leer opiniones en Google', `https://www.google.com/search?q=${encodeURIComponent(`${sitio} ${lugar} opiniones`.trim())}`],
+    ['Buscar en Tripadvisor', `https://www.tripadvisor.es/Search?q=${encodeURIComponent(`${sitio} ${lugar}`.trim())}`],
+  ] : [];
+  const enlaces = [v?.nota >= 0 && [`Ver opiniones en ${web}`, urlSegura(o.url)], ...buscar].filter((e) => e && e[1])
+    .map(([texto, url]) => `<li><a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(texto)}${icono('externo')}</a></li>`).join('');
+  const cuerpo = v?.nota >= 0
+    ? `<div class="opiniones__nota"><strong>${nota(v.nota)}</strong><span class="suave">/10</span><span class="opiniones__adjetivo">${adjetivoNota(v.nota)}</span></div>
+  <span class="opiniones__barra" role="img" aria-label="${esc(`${nota(v.nota)} sobre 10`)}"><span style="width:${Math.round(Math.min(10, v.nota) * 10)}%"></span></span>
+  <p>${v.n ? `${esc(contar(v.n, 'opinión', 'opiniones'))} de clientes en ${esc(web)}.` : `Según ${esc(web)}.`} ${esc(fiabilidadOpiniones(v.n).larga)}</p>`
+    : `<p>${esc(web)} no publica opiniones de esta oferta.${buscar.length ? ' Puedes leer lo que dicen otros viajeros aquí:' : ''}</p>`;
+  return `<section class="ficha__opiniones" aria-labelledby="ficha-opiniones-titulo">
+  <h3 id="ficha-opiniones-titulo">${icono('estrella')}Opiniones de otros clientes</h3>
+  ${cuerpo}
+  ${enlaces ? `<ul class="opiniones__enlaces">${enlaces}</ul>` : ''}
 </section>`;
 }
 
@@ -698,7 +785,7 @@ export function tarjetaVuelo(o, ctx) {
       <dl class="billete__tramos">${tramo('Ida', v.ida)}${tramo('Vuelta', v.vuelta)}</dl>
     </div>
     <div class="billete__talon">
-      ${puntuacion(o)}
+      ${puntuacion(o, ctx)}
       ${precio(o)}
       ${desglose}
       ${minigrafica(ctx.historial?.[o.id])}
@@ -799,7 +886,6 @@ function datosFicha(o, ctx) {
       ['Duración', minutos && duracion(minutos)],
       ['Noches', o.noches && contar(o.noches, 'noche')],
       ['Alojamiento', alojamiento],
-      ['Valoración', textoValoracion(o, ctx)],
       ['Régimen', ETIQUETAS_REGIMEN[o.regimen]],
       ['Transporte incluido', transporteIncluido(o)],
       ['Niños', o.ninos && (o.ninos.detalle ? `${o.ninos.detalle}. Confírmalo en la web antes de reservar: suele haber plazas limitadas o condiciones` : 'Plan para ir con niños')],
@@ -812,7 +898,8 @@ function datosFicha(o, ctx) {
       ['Por qué es chollazo', o.chollazo && o.chollazoMotivo],
       ['Bajada', textoBajada(o)],
       ['Mínimo', textoMinimo(o, ctx)?.detalle],
-      ['Nota del chollo', `${o.puntuacion} / 100 · ${nivelNota(o)}. ${QUE_MIDE_LA_NOTA}`],
+      // Sin desglose (datos antiguos), la nota con lo que mide; con él, va en «Por qué tiene un N».
+      ['Nota del chollo', !motivosNota(o).length && `${o.puntuacion} / 100 · ${nivelNota(o)}. ${QUE_MIDE_LA_NOTA}`],
     ]],
     ['Seguimiento', [
       ['Publicada', o.publicada && etiquetaDia(o.publicada)],
@@ -989,6 +1076,8 @@ export function contenidoFicha(o, ctx) {
   <div class="insignias">${insignias(o, ctx)}</div>
   ${vueloFicha(o.vuelo)}
   ${descripcionFicha(o)}
+  ${notaFicha(o, ctx)}
+  ${opinionesFicha(o, ctx)}
   ${cocheFicha(o, ctx)}
   ${tiempo(o, ctx)}
   ${eventosDe(o, ctx).length ? `<section class="ficha__eventos"><h3>${icono('puentes')}${busquedaPara(o, ctx) ? `Qué hay por la zona esos días (${esc(busquedaPara(o, ctx).etiqueta)})` : conFechasDeViaje(o) ? 'Qué hay esos días por la zona' : 'Qué hay el próximo finde por la zona (si vas entonces)'}</h3>${eventos(o, { conEnlace: true }, ctx)}</section>` : ''}

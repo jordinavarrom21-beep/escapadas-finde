@@ -71,7 +71,8 @@ describe('coste total en el panel', async () => {
     assert.match(tarjeta(primera, ctx), /class="dato-extra coste-total" title="[^"]*\d+\s€\/persona[^]*?(≈ )?\d+\s€ el viaje para 3 personas/);
     const ficha = contenidoFicha(primera, ctx);
     assert.match(ficha, /<\/svg>Coste del viaje<\/h3>/);
-    assert.match(ficha, /<tr class="coste__total"><th scope="row">Total/);
+    assert.match(ficha, /class="coste__grande"><strong>(≈ )?[\d.]+\s€<\/strong><span class="suave">3 personas/);
+    assert.match(ficha, /class="coste__parte"[^]*coste__calculo/, 'cada parte con su cuenta debajo');
     assert.match(ficha, /data-mi-viaje/);
   });
 
