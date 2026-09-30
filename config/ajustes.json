@@ -50,6 +50,10 @@
     "carburante": "gasolina95"
   },
   "fuentes": {
+    "wizzair": {
+      "activa": true,
+      "intervaloMin": 180
+    },
     "ryanair": {
       "activa": false,
       "motivo": "Su robots.txt prohíbe /api (comprobado el 18/09/2026)",
@@ -126,10 +130,6 @@
     "grandvalira": {
       "activa": true,
       "intervaloMin": 1440
-    },
-    "travelpayouts": {
-      "activa": true,
-      "intervaloMin": 180
     },
     "volotea": {
       "activa": true,
