@@ -147,7 +147,10 @@ ${unDominio}  # Las copias de seguridad de datos y la carpeta .git (despliegue d
   Header always set Referrer-Policy "strict-origin-when-cross-origin"
   Header always set X-Frame-Options "SAMEORIGIN"
   Header always set Permissions-Policy "geolocation=(self), camera=(), microphone=(), payment=()"
-  Header always set Strict-Transport-Security "max-age=31536000" env=HTTPS
+  # Siempre (no solo con env=HTTPS): detrás del CDN de Hostinger la petición puede llegar al
+  # servidor sin HTTPS y la cabecera no salía nunca. Por HTTP el navegador la ignora, así que
+  # enviarla siempre no tiene riesgo.
+  Header always set Strict-Transport-Security "max-age=31536000"
 
   # Los datos en bruto y las instrucciones se pueden leer (el panel los necesita para
   # pintarse, también cuando lo pinta un buscador), pero no salen en los resultados.

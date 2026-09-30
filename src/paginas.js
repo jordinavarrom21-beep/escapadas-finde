@@ -11,7 +11,7 @@
  * ahora y todas las guías.
  */
 import { costeDesdeOrigen } from './vigilados.js';
-import { escaparHtml as esc, euros, normalizar } from '../site/js/formato.js';
+import { escaparHtml as esc, euros, normalizar, urlSegura } from '../site/js/formato.js';
 import { etiquetaDia, fechaLocal } from './util/fechas.js';
 
 /** Menos de esto es una página casi vacía: no se publica (ni entra en el sitemap). */
@@ -197,13 +197,14 @@ function filaOferta(o, nombres) {
     : o.cocheMin != null ? `${Math.floor(o.cocheMin / 60) ? `${Math.floor(o.cocheMin / 60)} h ` : ''}${o.cocheMin % 60} min en coche` : '';
   const salidas = saleDe(o);
   const precio = o.precio === 0 ? 'Gratis' : `${o.fechas.salida ? '' : 'desde '}${euros(o.precio)} ${UNIDADES[o.unidad] ?? ''}`.trim();
-  const url = o.urlReserva ?? o.url;
+  // Solo http(s): un «javascript:» de una web de ofertas no llega nunca a un enlace (como en el panel).
+  const url = urlSegura(o.urlReserva) ?? urlSegura(o.url);
   const rel = o.afiliado || o.patrocinada ? 'sponsored nofollow noopener' : 'nofollow noopener';
   return `<li class="fila-guia">
   <h3>${esc(o.titulo)}</h3>
   <p>${[lugar && `📍 ${esc(lugar)}`, esc(fechas), llegar && esc(llegar), salidas.length && `Sale de ${esc(salidas.join(', '))}`, o.valoracion?.nota >= 0 && `⭐ ${esc(String(o.valoracion.nota).replace('.', ','))}`].filter(Boolean).join(' · ')}</p>
   <p><strong>${esc(precio)}</strong>${c.total != null ? ` · viaje completo ${c.estimado ? '≈ ' : ''}${esc(euros(Math.round(c.total)))} para ${VIAJEROS} (${esc(euros(Math.round(c.porPersona)))} por persona)` : ''}</p>
-  <p class="suave">Publicada en ${esc(nombres.get(o.fuente) ?? o.fuente)}${o.vistaUltima ? ` · comprobada el ${esc(etiquetaDia(o.vistaUltima))}` : ''}${o.patrocinada ? ' · Patrocinado' : ''} · <a href="${esc(url)}" rel="${rel}" target="_blank">Ver la oferta</a></p>
+  <p class="suave">Publicada en ${esc(nombres.get(o.fuente) ?? o.fuente)}${o.vistaUltima ? ` · comprobada el ${esc(etiquetaDia(o.vistaUltima))}` : ''}${o.patrocinada ? ' · Patrocinado' : ''}${url ? ` · <a href="${esc(url)}" rel="${rel}" target="_blank">Ver la oferta</a>` : ''}</p>
 </li>`;
 }
 

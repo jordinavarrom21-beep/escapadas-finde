@@ -87,9 +87,12 @@ describe('páginas para buscadores', () => {
     for (const ruta of rutas.filter((r) => r !== 'escapadas/spa')) assert.ok(html.includes(`href="../../${ruta}/"`), ruta);
     assert.ok(!html.includes('href="../../escapadas/spa/"'));
     // Un «<» en un título no puede cerrar el JSON-LD.
-    const conMarcas = generarPaginas({ ...datos, ofertas: datos.ofertas.map((o) => ({ ...o, titulo: `${o.titulo} </script><b>` })) }, { base: BASE });
+    // Ni un «javascript:» de una web de ofertas llega a un enlace.
+    const conMarcas = generarPaginas({ ...datos, ofertas: datos.ofertas.map((o) => ({ ...o, titulo: `${o.titulo} </script><b>`, urlReserva: 'javascript:alert(1)' })) }, { base: BASE });
     const spa = conMarcas.archivos.find((a) => a.ruta === 'escapadas/spa/index.html').contenido;
     assert.ok(!spa.includes('</script><b>'));
+    assert.ok(!/href="javascript:/i.test(spa));
+    assert.match(spa, /<a href="https:\/\/[^"]+" rel="(sponsored )?nofollow noopener" target="_blank">Ver la oferta<\/a>/, 'se usa la URL de la oferta');
   });
 
   it('bloque de la portada sin JavaScript: qué es la web, lo mejor de ahora y todas las guías', () => {
