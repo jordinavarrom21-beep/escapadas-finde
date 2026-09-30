@@ -10,7 +10,7 @@ Funciona gratis en GitHub Actions, así que **no hace falta tener el PC encendid
 ## Cómo funciona
 
 ```
-GitHub Actions (cron cada 30 min, pero GitHub lanza los que puede: ver «Revisión puntual»)
+GitHub Actions: «Revisión continua» lanza un escaneo cada 15 min (ver «Revisión continua»)
   └─ npm run escanear
        ├─ fuentes      Buscounchollo, Viajeros Piratas, Holidayguru, Nomolesten,
        │               Chollometro, Fly4free… (comprobando antes su robots.txt)
@@ -235,20 +235,22 @@ con un proveedor (Civitatis, Booking, GetYourGuide…):
   tipo de enlace, tipo de oferta y vista, nunca datos personales. **Un clic no es una venta**:
   las reservas y comisiones solo las confirma el panel de cada proveedor.
 
-## Revisión puntual cada 30 minutos (opcional)
+## Revisión continua (cada 15 minutos)
 
 GitHub no garantiza los crons: en la práctica lanza unas 6 de las 48 revisiones diarias
-(una cada ~4 h), y ponerlo más a menudo no cambia nada. Para una revisión puntual, que la
-lance un servicio externo gratuito (unos 5 minutos de configurar):
+(una cada ~4 h). Por eso el workflow **Revisión continua** (`relevo.yml`) se queda despierto
+casi 6 horas lanzando «Vigilar ofertas» cada 15 minutos y, antes de terminar, se relanza a
+sí mismo; un cron cada 2 h lo rearranca si la cadena se corta. En un repositorio público es
+gratis.
 
-1. En GitHub → Settings → Developer settings → **Fine-grained tokens** → Generate new token:
-   solo el repositorio `escapadas-finde`, permiso **Actions: Read and write**, y nada más.
-2. En [cron-job.org](https://cron-job.org) (gratis), crea un trabajo cada 30 minutos:
-   - URL: `https://api.github.com/repos/<tu-usuario>/escapadas-finde/actions/workflows/vigilar.yml/dispatches`
-   - Método **POST**, cuerpo `{"ref":"main"}`
-   - Cabeceras: `Authorization: Bearer <el token>`, `Accept: application/vnd.github+json`
-3. Si una ejecución coincide con otra, GitHub la pone en cola (nunca van dos a la vez) y
-   cada web sigue consultándose solo cuando le toca según su intervalo.
+- **Sin solapes ni duplicados**: nunca corren dos escaneos a la vez (van en cola), cada web
+  se consulta solo cuando le toca por su `intervaloMin` (Chollómetro cada 15 min, Viajeros
+  Piratas cada 20, BuscoUnChollo, Holidayguru y Fly4free cada 30…) y las ofertas repetidas
+  se marcan y se ocultan.
+- **Sin perder ofertas**: una oferta solo se retira si caduca, si su fecha ya pasó o si su web
+  lleva al menos 2 días sin publicarla; una lectura fallida o incompleta no borra nada.
+- **Arrancarla a mano**: Actions → Revisión continua → Run workflow. **Pararla**: Actions →
+  Revisión continua → «…» → Disable workflow.
 
 ## Comandos (en tu PC)
 

@@ -5,8 +5,8 @@ name: Vigilar ofertas
 on:
   schedule:
     # GitHub no garantiza los crons: de las 48 ejecuciones diarias lanza unas 6 (una cada
-    # ~4 h), y subirlo a cada 10 min no cambió nada. Para revisar de verdad cada 30 min,
-    # un servicio externo lanza workflow_dispatch (LEEME, «Revisión puntual»).
+    # ~4 h). La revisión cada 15 min la lanza «Revisión continua» (relevo.yml); este cron
+    # queda de respaldo.
     - cron: '7,37 * * * *'
   workflow_dispatch:
     inputs:

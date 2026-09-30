@@ -146,19 +146,28 @@ function agrupar(ofertas) {
  * oferta publicada dos veces con distinto id (Weekendesk lo hace). Basta con que cambie
  * una etiqueta («Cena gastronómica») o la descripción para que sean productos distintos.
  */
+/**
+ * Reclamos que la web pone o quita sin que cambie el producto («Noche adicional con
+ * descuento», «Escapada barata», «Nuevo»): no distinguen dos ofertas.
+ */
+const RECLAMO = /\b(?:descuento|barat[ao]s?|ofertas?|promo(?:cion)?|nuev[ao]s?|novedad(?:es)?|popular|exclusiv[ao]|ultim[ao]s?\s+plazas|mas vendid[ao]|top)\b/;
+
 function huella(oferta) {
   return JSON.stringify([
     oferta.fuente, normalizarTexto(oferta.titulo).trim(), oferta.precio, oferta.unidad, oferta.noches,
     normalizarTexto(oferta.lugar?.nombre ?? ''), oferta.regimen, normalizarTexto(oferta.descripcion ?? '').trim(),
     oferta.fechas?.salida ?? null, oferta.fechas?.vuelta ?? null,
-    [...oferta.etiquetas].filter((e) => e !== ETIQUETA_DUPLICADA).sort(),
+    [...oferta.etiquetas].filter((e) => e !== ETIQUETA_DUPLICADA && !RECLAMO.test(normalizarTexto(e))).sort(),
   ]);
 }
 
-/** Las copias idénticas de la misma web: la primera se queda, las demás se marcan «duplicada». */
+/** Cuántos datos útiles trae: de dos copias se queda la más completa. */
+const datos = (o) => ['establecimiento', 'estrellas', 'valoracion', 'imagen', 'regimen', 'alojamiento'].filter((k) => o[k] != null).length;
+
+/** Las copias idénticas de la misma web: se queda la más completa, las demás se marcan «duplicada». */
 function marcarCopias(ofertas) {
   const vistas = new Set();
-  for (const oferta of [...ofertas].sort((a, b) => (a.id < b.id ? -1 : 1))) {
+  for (const oferta of [...ofertas].sort((a, b) => datos(b) - datos(a) || (a.id < b.id ? -1 : 1))) {
     const clave = huella(oferta);
     if (vistas.has(clave)) oferta.etiquetas.push(ETIQUETA_DUPLICADA);
     else vistas.add(clave);

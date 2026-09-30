@@ -54,7 +54,7 @@ describe('app instalable: service worker', () => {
     assert.match(app, /const habiaVersion = Boolean\(navigator\.serviceWorker\.controller\)/);
     assert.match(app, /if \(!habiaVersion \|\| recargando\) return;/);
     assert.match(app, /data-actualizar/);
-    assert.match(app, /registro\.update\(\)/, 'al volver a la app se busca versión nueva');
+    assert.match(app, /registro\?\.update\?\.\(\)/, 'al volver a la app se busca versión nueva');
   });
 
   it('todo lo que precarga existe (si falta uno, la instalación entera falla)', () => {
