@@ -1,0 +1,44 @@
+{
+ "vueling-main": {
+  "estado": 200,
+  "tipo": "application/x-javascript",
+  "bytes": 24708,
+  "inicio": "import{H as ue,n as A}from\"./chunk-QHPL7777.js\";import{E as S,Hb as M,Kb as N,O as v,Ua as D,_a as $,d as u,e as oe,g as p,id as F,na as C,nd as z,o as E,sa as "
+ },
+ "vueling-destino": {
+  "estado": 404,
+  "tipo": "text/html; charset=utf-8",
+  "bytes": 34610,
+  "inicio": " <!DOCTYPE html> <html lang=\"es\" culture=\"es-ES\" currency=\"EUR\"> <head> <meta charset=\"utf-8\" /> <base href=\"/\"> <meta name=\"viewport\" content=\"wi"
+ },
+ "airbaltic-robots": {
+  "estado": 200,
+  "tipo": "text/plain",
+  "bytes": 7900,
+  "inicio": "User-agent: * Disallow: /*?language=* User-agent: AdsBot-Google Allow: / User-agent: AdsBot-Google-Mobile Allow: / Sitemap: https://www.airbaltic.com/sitemap"
+ },
+ "airbaltic-api": {
+  "estado": 200,
+  "tipo": "application/json",
+  "bytes": 2304,
+  "inicio": "{\"success\":true,\"data\":[{\"price\":307.99,\"updatedPrice\":null,\"date\":\"2026-10-01\",\"isDirect\":true},{\"price\":333.99,\"updatedPrice\":null,\"date\":\"2026-10-02\",\"isDire"
+ },
+ "airbaltic-api2": {
+  "estado": 200,
+  "tipo": "application/json",
+  "bytes": 46,
+  "inicio": "{\"success\":false,\"error\":\"Invalid flightMode\"}"
+ },
+ "airtrfx-robots": {
+  "estado": 404,
+  "tipo": null,
+  "bytes": 0,
+  "inicio": ""
+ },
+ "airtrfx-front-robots": {
+  "estado": 404,
+  "tipo": "application/xml",
+  "bytes": 301,
+  "inicio": "<?xml version=\"1.0\" encoding=\"UTF-8\"?> <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>robots.txt</Key><RequestId>CMWK3V0J"
+ }
+}
