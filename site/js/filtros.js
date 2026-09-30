@@ -302,11 +302,21 @@ export function analizarConsulta(consulta = '') {
   };
 }
 
-/** Todas las palabras aparecen en título, lugar, etc. y ninguna de las excluidas con «-». */
+const escaparRegex = (texto) => texto.replace(/[.*+?^${}()|[\]\\]/g, (c) => `\\${c}`);
+/**
+ * La palabra al principio de una palabra del texto: «barcel» encuentra «Barcelona», pero
+ * «reus» no es «Santes Creus» ni «sort» un «resort».
+ */
+const tienePalabra = (texto, palabra) => new RegExp(`(^|[^a-z0-9])${escaparRegex(palabra)}`).test(texto);
+
+/**
+ * Todas las palabras aparecen (al principio de una palabra) en título, lugar, etc. y
+ * ninguna de las excluidas con «-». La usan el panel y los avisos por email (src/vigilados.js).
+ */
 export function coincideTexto(oferta, consulta = '') {
   const { incluye, excluye } = analizarConsulta(consulta);
   const texto = textoDe(oferta);
-  return incluye.every((palabra) => texto.includes(palabra)) && !excluye.some((palabra) => texto.includes(palabra));
+  return incluye.every((palabra) => tienePalabra(texto, palabra)) && !excluye.some((palabra) => tienePalabra(texto, palabra));
 }
 
 /** Valores distintos y ordenados de `campo(oferta)`. */
@@ -339,7 +349,7 @@ const destinoExcluido = (o, destinos = []) => destinos.some((d) => d === o.lugar
  * con un rango («del 16 al 18»), la estancia tiene que caber dentro (una del 14 al 17 no es
  * «del 16 al 18»); con un día, que lo incluya.
  */
-function enRangoFechas(o, desde, hasta) {
+export function enRangoFechas(o, desde, hasta) {
   const salida = o.fechas?.salida?.slice(0, 10);
   if (!salida) return !desde || !o.caduca || fechaLocal(o.caduca) >= desde;
   const vuelta = (o.fechas.vuelta ?? o.fechas.salida).slice(0, 10);
@@ -852,26 +862,35 @@ export const marcaVigilado = (criterio) => `json:${encodeURIComponent(JSON.strin
  * lleve dentro la marca de `marcaVigilado`. Solo incluye lo que entiende
  * src/vigilados.js; el resto de filtros se pierde.
  */
-export function criterioVigilado(nombre, f, { vista = 'escapadas', salida = null, viajeros = null } = {}) {
+export function criterioVigilado(nombre, f, { vista = 'escapadas', salida = null, viajeros = null, aeropuertos = [] } = {}) {
   if (vista.startsWith('json:')) return JSON.parse(decodeURIComponent(vista.slice('json:'.length)));
   const criterio = {
     nombre: nombre.trim() || 'Mi búsqueda',
-    texto: analizarConsulta(f.q ?? '').incluye.join(' ') || undefined,
+    // Tal cual se busca en el panel (también «-palabra»): src/vigilados.js usa coincideTexto.
+    texto: f.q?.trim() || undefined,
     tipo: ({ vuelos: 'vuelo', actividades: 'actividad' }[vista] ?? f.tipo) || undefined,
     tema: f.temas?.length === 1 ? f.temas[0] : undefined,
     temas: f.temas?.length > 1 ? f.temas : undefined,
     fuente: f.fuente || undefined,
     aeropuerto: f.aero || undefined,
+    // «Desde mis aeropuertos»: los de tu salida, comparados igual que en el panel.
+    salidas: vista === 'vuelos' && f.mios && aeropuertos.length ? [...aeropuertos] : undefined,
     alojamiento: f.alojamiento || undefined,
     regimenMinimo: f.regimen || undefined,
     valoracionMin: f.nota ?? undefined,
     descuentoMin: f.dto ?? undefined,
-    precioMax: f.max ?? undefined,
     precioNocheMax: f.nocheMax ?? undefined,
-    noches: f.noches ?? undefined,
+    // «3» en el panel es «3 o más»; «Escapada clásica», 2 noches.
+    noches: f.noches === 3 ? { min: 3 } : f.noches ?? (f.clasica ? NOCHES_CLASICAS : undefined),
     // El tiempo en coche del escaneo es desde su origen: desde otro punto (el de los filtros
     // o tu salida) se vigila un radio equivalente alrededor de ese punto.
     cocheMaxMin: f.horas && !(f.punto ?? salida) ? f.horas * 60 : undefined,
+    kmMax: f.km && !f.horas && !(f.punto ?? salida) ? f.km : undefined,
+    ninos: f.ninos || undefined,
+    sinCoche: f.sinCoche || undefined,
+    transporte: f.transporte || undefined,
+    estrellasMin: f.estrellas ?? undefined,
+    sinCruceros: vista === 'escapadas' && f.sinCruceros ? true : undefined,
     cerca: (f.punto ?? (f.horas || f.km ? salida : null))
       ? { lat: Number((f.punto ?? salida).lat.toFixed(4)), lon: Number((f.punto ?? salida).lon.toFixed(4)), radioKm: Math.round(radioBusquedaKm(f) ?? 100) }
       : undefined,
@@ -885,9 +904,10 @@ export function criterioVigilado(nombre, f, { vista = 'escapadas', salida = null
     // «cuando» es 'finde', 'puente' o el id de un finde o de un puente concretos (su
     // fecha: '2026-10-10'); src/vigilados.js acepta los dos ids en `finde`.
     puente: f.cuando === 'puente' || undefined,
-    finde: (vista === 'vuelos' ? f.finde : !['', 'finde', 'puente'].includes(f.cuando ?? '') && f.cuando) || undefined,
+    finde: (vista === 'vuelos' ? f.finde : f.cuando === 'finde' ? 'proximo' : !['', 'puente'].includes(f.cuando ?? '') && f.cuando) || undefined,
     soloChollazos: f.chollazo || undefined,
     soloMinimoHistorico: f.historico || undefined,
+    precioMax: (vista === 'actividades' && f.gratis ? 0 : f.max) ?? undefined,
   };
   return Object.fromEntries(Object.entries(criterio).filter(([, valor]) => valor !== undefined));
 }

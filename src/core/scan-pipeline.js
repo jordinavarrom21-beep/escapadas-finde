@@ -25,7 +25,7 @@ import { anadirTiempo } from '../enriquecer/tiempo.js';
 import { anadirEventos } from '../enriquecer/eventos.js';
 import { precioPorPersonaNoche, puntuar } from '../enriquecer/puntuacion.js';
 import { claveSerie, compactar, registrarPrecios, seriesPara } from '../historial.js';
-import { coincide } from '../vigilados.js';
+import { coincide, contextoVigilados } from '../vigilados.js';
 import { procesarEmails } from '../emails/decidir.js';
 import { configuracionEnvio, crearTransporte, enviarEmail } from '../emails/enviar.js';
 import { clienteHttp, crearClienteHttp, metricasHttp, reiniciarMetricas } from '../util/http.js';
@@ -352,6 +352,7 @@ export async function escanear({
 
   const estadoFuentes = estadoParaPanel(fuentes, estado, ajustes);
   const panelUrl = urlPanel(ajustes, env);
+  const contextoAvisos = contextoVigilados({ findes, puentes, origen: ajustes.origen, ahora });
   const salida = {
     ofertas: {
       generado: ahora.toISOString(), origen: ajustes.origen, aeropuertos: ajustes.vuelos.aeropuertos, viajeros: ajustes.viajeros ?? 2,
@@ -364,7 +365,7 @@ export async function escanear({
       temas: TEMAS, findes, puentes, fuentes: estadoFuentes, ofertas,
     },
     historial: m.seriesPara(historial, ofertas.map((o) => [o.id, claveSerie(o)])),
-    vigilados: { vigilados: vigilados.map((c) => ({ ...c, coincidencias: ofertas.filter((o) => coincide(o, c)).map((o) => o.id) })) },
+    vigilados: { vigilados: vigilados.map((c) => ({ ...c, coincidencias: ofertas.filter((o) => coincide(o, c, contextoAvisos)).map((o) => o.id) })) },
   };
 
   let emails = { enviados: [], errores: [] };

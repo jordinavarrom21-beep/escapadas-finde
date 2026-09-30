@@ -56,11 +56,12 @@ describe('auditoría: descartadas', () => {
 });
 
 describe('auditoría: «Copiar como vigilado» con un puente o un finde concretos', () => {
-  it('los ids reales son fechas y se copian como «finde» (vigilados.js acepta los dos)', () => {
+  it('los ids reales son fechas y se copian como «finde»; «este finde», como «proximo»', () => {
     assert.deepEqual(criterioVigilado('x', leerFiltrosEscapadas({ cuando: '2026-10-10' })).finde, '2026-10-10');
     assert.equal(criterioVigilado('x', leerFiltrosEscapadas({ cuando: 'puente' })).puente, true);
+    // «Este finde» se mueve cada semana: se guarda como «el próximo», no con una fecha.
     const finde = criterioVigilado('x', leerFiltrosEscapadas({ cuando: 'finde' }));
-    assert.equal(finde.finde, undefined);
+    assert.equal(finde.finde, 'proximo');
     assert.equal(finde.puente, undefined);
   });
 });

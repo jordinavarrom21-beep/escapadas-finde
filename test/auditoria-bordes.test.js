@@ -121,7 +121,7 @@ describe('auditoría: un escaneo con los enriquecedores de verdad', () => {
     assert.equal(mala.referencia, null);
     assert.equal(porId.get('a:0').referencia.n, 6, 'revisarPrecios va antes: el precio de 2 € no entra en la mediana');
     assert.ok(porId.get('b:uno').etiquetas.includes('duplicada'), 'marcarEquivalentes está enganchado');
-    assert.equal(salida.vigilados.vigilados[0].coincidencias.length, 7);
+    assert.equal(salida.vigilados.vigilados[0].coincidencias.length, 6, 'la copia duplicada (b:uno) no avisa dos veces');
     assert.equal(historial['viejo:1'], undefined, 'compactar está enganchado');
     assert.deepEqual(Object.keys(cache.exportar()).filter((k) => k.startsWith('tiempo:x')), [], 'la caché se poda');
     assert.deepEqual(anios, [2026, 2027], 'a 120 días vista hacen falta los festivos del año que viene');

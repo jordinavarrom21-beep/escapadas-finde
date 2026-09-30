@@ -5,7 +5,7 @@
 import { TEMAS } from '../modelo.js';
 import { esChollazo } from '../enriquecer/puntuacion.js';
 import { vaEnCoche } from '../enriquecer/geo.js';
-import { resumenVigilados } from '../vigilados.js';
+import { contextoVigilados, resumenVigilados } from '../vigilados.js';
 import { etiquetaDia } from '../util/fechas.js';
 
 const C = {
@@ -132,8 +132,8 @@ const porPrecio = (a, b) => (a.precio ?? Infinity) - (b.precio ?? Infinity);
  * Sección «⭐ Tus vigilados»: por cada criterio activo, cuántas ofertas cumple y
  * la mejor de todas con su precio. Sin vigilados, no sale la sección.
  */
-function seccionVigilados(ofertas, vigilados) {
-  const resumen = resumenVigilados(ofertas, vigilados);
+function seccionVigilados(ofertas, vigilados, ctx) {
+  const resumen = resumenVigilados(ofertas, vigilados, ctx);
   if (!resumen.length) return [];
   const conCoincidencias = resumen.filter((r) => r.total);
   const sinCoincidencias = resumen.filter((r) => !r.total).map((r) => r.criterio.nombre);
@@ -167,7 +167,7 @@ export function resumenSemanal({ ofertas, findes, puentes, ajustes, vigilados = 
   const chollazos = mejores(ofertas.filter((o) =>
     esChollazo(o, ajustes) && o.vistaPrimera && ahora - Date.parse(o.vistaPrimera) <= SEMANA_MS));
   const secciones = [
-    ...seccionVigilados(ofertas, vigilados),
+    ...seccionVigilados(ofertas, vigilados, contextoVigilados({ findes, puentes, origen: ajustes.origen, ahora })),
     { titulo: vuelosConFecha.length ? '✈️ Vuelos para este finde y el siguiente' : '✈️ Chollos de vuelos', ofertas: vuelos, vacio: 'Hoy no hay vuelos destacados.' },
     ...(puente ? [{
       titulo: `🗓️ Puente de ${puente.nombre} · ${puente.etiqueta}`,
