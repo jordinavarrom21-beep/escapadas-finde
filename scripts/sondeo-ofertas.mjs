@@ -1,30 +1,23 @@
-// TEMPORAL: sondeo de APIs de aerolíneas gratis y sin registro. Se borra al terminar.
+// TEMPORAL: sondeo de la API de precios de Vueling (qué llama su web). Se borra al terminar.
 import { mkdirSync, writeFileSync } from 'node:fs';
 
 const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130 Safari/537.36';
-const PRUEBAS = {
-  'vueling-main': ['https://static.vueling.com/corporativeCMS/WebComponents/home/browser/main.js?v=639263922216329412'],
-  'vueling-destino': ['https://www.vueling.com/es/destinos/vuelos-barcelona-lisboa'],
-  'airbaltic-robots': ['https://www.airbaltic.com/robots.txt'],
-  'airbaltic-api': ['https://www.airbaltic.com/api/fsf/outbound?origin=BCN&destin=RIX&tripType=return&numAdt=1&numChd=0&numInf=0&flightMode=return&departureDate=2026-10-16&returnDate=2026-10-18&startDate=2026-10-01&endDate=2026-10-31'],
-  'airbaltic-api2': ['https://www.airbaltic.com/api/fsf/outbound?origin=BCN&destin=RIX&tripType=return&numAdt=1&numChd=0&numInf=0&departureDate=2026-10-16&returnDate=2026-10-18&startDate=2026-10-16&endDate=2026-10-18'],
-  'airtrfx-robots': ['https://openair-california.airtrfx.com/robots.txt'],
-  'airtrfx-front-robots': ['https://em-frontend-assets.airtrfx.com/robots.txt'],
-};
+const BASE = 'https://static.vueling.com/corporativeCMS/WebComponents/home/browser/';
+const pedir = async (url) => (await fetch(url, { headers: { 'User-Agent': UA } })).text();
 mkdirSync('sondeo', { recursive: true });
-const resumen = {};
-for (const [nombre, [url, cuerpo]] of Object.entries(PRUEBAS)) {
-  try {
-    const r = await fetch(url, {
-      method: cuerpo ? 'POST' : 'GET',
-      body: cuerpo ? JSON.stringify(cuerpo) : undefined,
-      headers: { 'User-Agent': UA, Accept: 'application/json, text/plain, */*', 'Accept-Language': 'es-ES,es;q=0.9', ...(cuerpo ? { 'Content-Type': 'application/json' } : {}) },
-      signal: AbortSignal.timeout(25000),
-    });
-    const texto = await r.text();
-    resumen[nombre] = { estado: r.status, tipo: r.headers.get('content-type'), bytes: texto.length, inicio: texto.slice(0, 160).replace(/\s+/g, ' ') };
-    writeFileSync(`sondeo/${nombre}.txt`, texto.slice(0, 5000000));
-  } catch (e) { resumen[nombre] = { error: e.message }; }
+const vistos = new Set();
+const pendientes = ['main.js'];
+const hallazgos = new Set();
+while (pendientes.length && vistos.size < 150) {
+  const archivo = pendientes.shift();
+  if (vistos.has(archivo)) continue;
+  vistos.add(archivo);
+  let js = '';
+  try { js = await pedir(BASE + archivo); } catch { continue; }
+  for (const m of js.matchAll(/chunk-[A-Z0-9]+\.js/g)) if (!vistos.has(m[0])) pendientes.push(m[0]);
+  for (const m of js.matchAll(/["'`]((?:https?:)?\/\/[^"'`\s]{4,200}|\/?api\/[^"'`\s]{2,200}|[^"'`\s]{0,80}(?:Price|price|Fare|fare|Calendar|calendar|Route|route|Market|market)[^"'`\s]{0,80}\/[^"'`\s]{0,80})["'`]/g)) {
+    hallazgos.add(`${archivo}: ${m[1]}`);
+  }
 }
-writeFileSync('sondeo/resumen.json', JSON.stringify(resumen, null, 1));
-console.log(resumen);
+writeFileSync('sondeo/vueling-urls.txt', [...hallazgos].join('\n'));
+writeFileSync('sondeo/resumen.json', JSON.stringify({ archivos: vistos.size, hallazgos: hallazgos.size }, null, 1));
