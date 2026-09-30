@@ -31,7 +31,9 @@ El menú tiene cuatro apartados (abajo en el móvil y la tableta, al alcance del
 - **Inicio** (este finde): lo mejor para este fin de semana y el siguiente, la cuenta atrás, el
   próximo puente, «Sorpréndeme» y los chollazos.
 - **Explorar**, con pestañas **Escapadas · Planes · Vuelos · Mapa**. El buscador de la cabecera
-  busca en todo y lleva a la pestaña que toque con la búsqueda puesta. Mientras no haya una
+  busca en todo y lleva a la pestaña que toque con la búsqueda puesta. Da igual que sobren o
+  falten espacios («lloretdemar», «barce lona»), y si lo escrito no da nada exacto, enseña lo
+  más parecido avisándolo («barclona», «girnoa»). Mientras no haya una
   fuente de vuelos con día y hora, «Vuelos» es **Chollos de vuelos** (blogs y comunidades, con
   fechas flexibles) y no enseña filtros de finde, aeropuerto ni horario que no se aplicarían.
 - **Fechas**, con **Calendario** (los próximos 12 findes) y **Puentes** (qué día pedir y sus ofertas).

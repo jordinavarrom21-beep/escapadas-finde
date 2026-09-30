@@ -915,6 +915,8 @@ async function comprobarDatosNuevos() {
     if (todo[0].generado === estado.datos.generado || Date.parse(todo[0].generado) < Date.parse(estado.datos.generado)) return;
     datosNuevos = todo;
     const aviso = $('#datos-nuevos');
+    // «Actualizar» (versión nueva) ya trae también los datos nuevos: no se tapa.
+    if (aviso.querySelector('[data-actualizar]')) return;
     aviso.innerHTML = `<span>${icono('nuevo')} Hay ofertas nuevas (revisado ${esc(haceCuanto(todo[0].generado))})</span><button type="button" class="boton boton--primario" data-ver-datos-nuevos>Ver</button>`;
     aviso.hidden = false;
   } catch (error) {
@@ -953,10 +955,13 @@ async function iniciar() {
 /** A mitad de algo (una ficha o «Tu viaje» abiertos, escribiendo): mejor no recargar de golpe. */
 const ocupado = () => dialogo.open || dialogoViaje.open || ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName);
 
+/**
+ * En el aviso flotante, no en la pastilla de novedades: esa es un enlace a «#/buscar?nuevas=1»
+ * y, dentro de él, pulsar «Actualizar» llevaba a las novedades en vez de solo recargar.
+ */
 function avisarVersionNueva() {
-  const aviso = $('#novedades');
-  aviso.innerHTML = `<p>${icono('nuevo')}<span>Hay una versión nueva del panel.</span></p>
-<button type="button" class="boton boton--primario" data-actualizar>Actualizar</button>`;
+  const aviso = $('#datos-nuevos');
+  aviso.innerHTML = `<span>${icono('nuevo')} Hay una versión nueva del panel</span><button type="button" class="boton boton--primario" data-actualizar>Actualizar</button>`;
   aviso.hidden = false;
 }
 

@@ -284,11 +284,13 @@ function periodoDe(cuando, ctx) {
 }
 
 const indiceTexto = new WeakMap();
+/** Texto de la oferta sin tildes ni mayúsculas y sus palabras (lo que va entre espacios y signos). */
 function textoDe(o) {
   if (!indiceTexto.has(o)) {
     const partes = [o.titulo, o.descripcion, o.lugar?.nombre, o.lugar?.region, o.lugar?.pais,
       o.vuelo?.origen, o.vuelo?.destino, o.fuente, o.alojamiento, ...(o.etiquetas ?? [])];
-    indiceTexto.set(o, normalizar(partes.filter(Boolean).join(' ')));
+    const texto = normalizar(partes.filter(Boolean).join(' '));
+    indiceTexto.set(o, { texto, palabras: texto.split(/[^a-z0-9]+/).filter(Boolean) });
   }
   return indiceTexto.get(o);
 }
@@ -309,14 +311,108 @@ const escaparRegex = (texto) => texto.replace(/[.*+?^${}()|[\]\\]/g, (c) => `\\$
  */
 const tienePalabra = (texto, palabra) => new RegExp(`(^|[^a-z0-9])${escaparRegex(palabra)}`).test(texto);
 
+/** Cuántas palabras seguidas del texto se juntan como mucho al buscar sin espacios. */
+const MAX_JUNTAS = 4;
+/** Sin espacios, solo cuenta a partir de aquí: «del» no debe encontrar cualquier «de l…». */
+const MIN_JUNTA = 5;
+
+/** Las palabras del texto desde la `i`, juntas y sin espacios: «lloret de mar» → «lloretdemar». */
+const juntas = (palabras, i, n = MAX_JUNTAS) => palabras.slice(i, i + n).join('');
+
+/**
+ * Distancia entre dos palabras contando letras de más, de menos, cambiadas o dos
+ * seguidas al revés («girnoa» → «girona» es 1). Para en cuanto pasa de `maximo`.
+ */
+export function distanciaPalabras(a, b, maximo = Infinity) {
+  if (Math.abs(a.length - b.length) > maximo) return maximo + 1;
+  let antepenultima = null;
+  let anterior = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i += 1) {
+    const fila = [i];
+    let minimoFila = i;
+    for (let j = 1; j <= b.length; j += 1) {
+      const coste = a[i - 1] === b[j - 1] ? 0 : 1;
+      let d = Math.min(anterior[j] + 1, fila[j - 1] + 1, anterior[j - 1] + coste);
+      if (antepenultima && i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) d = Math.min(d, antepenultima[j - 2] + 1);
+      fila.push(d);
+      minimoFila = Math.min(minimoFila, d);
+    }
+    if (minimoFila > maximo) return maximo + 1;
+    antepenultima = anterior;
+    anterior = fila;
+  }
+  return anterior[b.length];
+}
+
+/**
+ * Faltas que se perdonan según lo larga que es la palabra: ninguna hasta 4 letras (con una,
+ * «reus» ya sería cualquier «res…»), 1 hasta 8 y 2 desde 9.
+ */
+const faltasPermitidas = (palabra) => (palabra.length < 5 ? 0 : palabra.length < 9 ? 1 : 2);
+
+/**
+ * ¿`palabra` es el principio de `destino` con como mucho `faltas` errores? («barclona» y
+ * «barcelona»). La primera letra tiene que ser la misma: casi nunca es la que se equivoca.
+ */
+function empiezaParecido(destino, palabra, faltas) {
+  if (destino[0] !== palabra[0]) return false;
+  for (let largo = palabra.length - faltas; largo <= palabra.length + faltas; largo += 1) {
+    if (largo < 1 || largo > destino.length) continue;
+    if (distanciaPalabras(palabra, destino.slice(0, largo), faltas) <= faltas) return true;
+  }
+  return false;
+}
+
+/**
+ * ¿Aparece la palabra buscada? Al principio de una palabra del texto, o de varias seguidas
+ * escritas sin espacios («lloretdemar», «santcugat», «lescala»). Con `aproximado`, también
+ * con alguna falta («barclona», «girnoa»).
+ */
+function coincidePalabra({ texto, palabras }, palabra, aproximado) {
+  if (tienePalabra(texto, palabra)) return true;
+  const letras = palabra.replace(/[^a-z0-9]/g, '');
+  if (!letras) return false;
+  if (letras.length >= MIN_JUNTA && palabras.some((_, i) => juntas(palabras, i).startsWith(letras))) return true;
+  if (!aproximado) return false;
+  const faltas = faltasPermitidas(letras);
+  return faltas > 0 && palabras.some((_, i) => empiezaParecido(palabras[i], letras, faltas)
+    || (letras.length >= MIN_JUNTA && empiezaParecido(juntas(palabras, i), letras, faltas)));
+}
+
+/**
+ * ¿Coinciden las palabras buscadas desde la `desde`? Si una no aparece, se prueba junta con
+ * las siguientes: «barce lona» es «barcelona».
+ */
+function coincidenPalabras(indice, palabras, aproximado, desde = 0) {
+  if (desde >= palabras.length) return true;
+  for (let n = 1; n <= Math.min(3, palabras.length - desde); n += 1) {
+    const palabra = palabras.slice(desde, desde + n).join('');
+    if (coincidePalabra(indice, palabra, aproximado) && coincidenPalabras(indice, palabras, aproximado, desde + n)) return true;
+  }
+  return false;
+}
+
 /**
  * Todas las palabras aparecen (al principio de una palabra) en título, lugar, etc. y
- * ninguna de las excluidas con «-». La usan el panel y los avisos por email (src/vigilados.js).
+ * ninguna de las excluidas con «-». Da igual que sobren o falten espacios; con
+ * `aproximado`, también se perdonan faltas (solo en las buscadas, nunca en las excluidas).
+ * La usan el panel y los avisos por email (src/vigilados.js), estos sin `aproximado`.
  */
-export function coincideTexto(oferta, consulta = '') {
+export function coincideTexto(oferta, consulta = '', { aproximado = false } = {}) {
   const { incluye, excluye } = analizarConsulta(consulta);
-  const texto = textoDe(oferta);
-  return incluye.every((palabra) => tienePalabra(texto, palabra)) && !excluye.some((palabra) => tienePalabra(texto, palabra));
+  const indice = textoDe(oferta);
+  return coincidenPalabras(indice, incluye, aproximado) && !excluye.some((palabra) => tienePalabra(indice.texto, palabra));
+}
+
+/**
+ * Busca con `buscar(f)` y, si con texto no sale nada, vuelve a buscar perdonando faltas.
+ * Devuelve lo que devuelva `buscar` y si ha hecho falta aproximar.
+ */
+export function conFaltas(buscar, f, vacio = (r) => (Array.isArray(r) ? r : r.ofertas).length === 0) {
+  const exacto = buscar(f);
+  if (!f.q || !vacio(exacto)) return { resultado: exacto, aproximado: false };
+  const parecido = buscar({ ...f, aproximado: true });
+  return vacio(parecido) ? { resultado: exacto, aproximado: false } : { resultado: parecido, aproximado: true };
 }
 
 /** Valores distintos y ordenados de `campo(oferta)`. */
@@ -364,7 +460,7 @@ function cumpleFechas(o, f, ctx) {
 
 /** Filtros que se aplican a cualquier oferta (vuelos incluidos). */
 function cumpleComunes(o, f, ctx) {
-  return (!f.q || coincideTexto(o, f.q))
+  return (!f.q || coincideTexto(o, f.q, { aproximado: f.aproximado }))
     && (!f.temas?.length || f.temas.some((t) => o.temas.includes(t)))
     && !(f.noTemas ?? []).some((t) => o.temas.includes(t))
     && !destinoExcluido(o, f.noDestinos)

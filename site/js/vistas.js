@@ -10,7 +10,7 @@ import {
 } from './formato.js';
 import {
   ALOJAMIENTOS, ATAJOS_ESCAPADAS, ORDENES_ACTIVIDADES, SIN_COCHE, ORDENES_ESCAPADAS, REGIMENES_ORDEN,
-  buscarActividades, buscarEscapadas, buscarTexto, chollosDeVuelos, promocionesDeVuelos, crearHash, destinosDe,
+  buscarActividades, buscarEscapadas, buscarTexto, chollosDeVuelos, conFaltas, promocionesDeVuelos, crearHash, destinosDe,
   destinosDeVuelo, esActividad, esEscapada, filtrarVuelos, filtrosActivos, leerFiltrosActividades, zonasDe,
   leerFiltrosComunes, leerFiltrosEscapadas, leerFiltrosVuelos, radioBusquedaKm, viajeDeParams, tieneVuelo,
   valoresUnicos, vuelosParaMapa,
@@ -107,12 +107,13 @@ export function resultadosVuelos(e, params) {
   const ctx = ctxTarjetas(e);
   const contexto = contextoBusqueda(e);
   const hayConFecha = e.datos.ofertas.some(tieneVuelo);
-  const vuelos = filtrarVuelos(e.datos.ofertas, f, contexto);
-  const chollos = chollosDeVuelos(e.datos.ofertas, f, contexto);
-  const promociones = promocionesDeVuelos(e.datos.ofertas, f, contexto);
+  const { resultado: [vuelos, chollos, promociones], aproximado } = conFaltas((g) => [
+    filtrarVuelos(e.datos.ofertas, g, contexto), chollosDeVuelos(e.datos.ofertas, g, contexto), promocionesDeVuelos(e.datos.ofertas, g, contexto),
+  ], f, (r) => r.every((lista) => !lista.length));
+  const parecido = aproximado ? avisoAproximado(f.q) : '';
   if (!hayConFecha) {
     const resumen = `${contar(chollos.length, 'chollo')} de vuelos${promociones.length ? ` y ${contar(promociones.length, 'promoción', 'promociones')}` : ''}`;
-    return `${filaActivos(e, 'vuelos', params)}${resumenResultados(resumen)}
+    return `${filaActivos(e, 'vuelos', params)}${resumenResultados(resumen)}${parecido}
 ${chollos.length ? rejilla(chollos, ctx, { mostradas: mostradas(e, 'chollos'), clave: 'chollos' }) : estadoVacio('Ningún chollo de vuelos cumple estos filtros.', f.mios ? `Prueba a quitar «Solo desde ${esc(listaAeropuertos(e))}».` : 'Prueba a quitar algún filtro.', botonLimpiar('vuelos'))}
 ${promociones.length ? `<section class="seccion">
   <div class="seccion__cabeza"><h2>Promociones y descuentos de aerolíneas</h2></div>
@@ -124,7 +125,7 @@ ${promociones.length ? `<section class="seccion">
     ? rejilla(vuelos, ctx, { mostradas: mostradas(e, 'vuelos'), clave: 'vuelos' })
     : estadoVacio('Ningún vuelo cumple estos filtros', 'Prueba con otro finde, otro aeropuerto o un precio máximo más alto.', botonLimpiar('vuelos'));
   const resumen = `${contar(vuelos.length, 'vuelo')} con fecha, ${contar(chollos.length, 'billete')} sin fecha y ${contar(promociones.length, 'promoción', 'promociones')}`;
-  return `${filaActivos(e, 'vuelos', params)}${resumenResultados(resumen)}
+  return `${filaActivos(e, 'vuelos', params)}${resumenResultados(resumen)}${parecido}
 <h2 class="subtitulo">Vuelos con fecha y hora</h2>${conFecha}
 <section class="seccion">
   <div class="seccion__cabeza"><h2>Billetes sin fecha concreta, de blogs y comunidades</h2></div>
@@ -303,7 +304,7 @@ function formularioEscapadas(e, params, vista) {
   </div>
   <fieldset class="bloque"><legend class="bloque__titulo">¿Cuándo?</legend>
     <div class="chips chips--desplazables"><div class="chips__lista">${chipsCuando(e, f)}</div></div>
-    <div class="filtros__fila">
+    <div class="filtros__fila filtros__fila--fechas">
       <label class="campo">Un día concreto <input type="date" name="dia" value="${esc(unDia ? f.desde : '')}"></label>
       <label class="campo">O entre el <input type="date" name="desde" value="${esc(unDia ? '' : f.desde)}"></label>
       <label class="campo">y el <input type="date" name="hasta" value="${esc(unDia ? '' : f.hasta)}"></label>
@@ -397,11 +398,12 @@ function explicacionOrden(e, f, costes) {
 
 export function resultadosEscapadas(e, params) {
   const f = leerFiltrosEscapadas(params);
-  const { ofertas, distancias, costes, sinTotal } = buscarEscapadas(e.datos.ofertas, f, contextoBusqueda(e));
+  const { resultado, aproximado } = conFaltas((g) => buscarEscapadas(e.datos.ofertas, g, contextoBusqueda(e)), f);
+  const { ofertas, distancias, costes, sinTotal } = resultado;
   const ctx = ctxTarjetas(e, { distancias, desde: f.punto?.nombre ?? nombreSalida(e) });
   // En el móvil el «Mapa» ya está en la pastilla flotante: aquí sobra.
   const acciones = `<a class="boton boton--suave solo-ancho-flex" href="${crearHash('mapa', params)}">${icono('mapa')}Ver en el mapa</a>`;
-  return `${filaActivos(e, 'escapadas', params)}${resumenResultados(contar(ofertas.length, 'escapada'), acciones)}
+  return `${filaActivos(e, 'escapadas', params)}${resumenResultados(contar(ofertas.length, 'escapada'), acciones)}${aproximado ? avisoAproximado(f.q) : ''}
 ${ordenRapido('escapadas', params, f.orden)}${explicacionOrden(e, f, costes)}${f.presupuesto ? `<p class="seccion__intro">Presupuesto: viaje completo (oferta y gasolina estimada) de hasta ${esc(euros(f.presupuesto))} ${f.presupuestoPor === 'persona' ? 'por persona' : 'en total'} para ${esc(contar(e.viaje?.viajeros ?? 2, 'persona'))}.${sinTotal ? ` ${esc(contar(sinTotal, 'oferta'))} sin datos suficientes para un total no se pueden comprobar y no salen.` : ''}</p>` : ''}
 ${ofertas.length
     ? rejilla(ofertas, ctx, { mostradas: mostradas(e, 'escapadas'), clave: 'escapadas' })
@@ -441,10 +443,10 @@ ${avisoMemoria(e, 'actividades')}${avisoViajeCompartido(e, params)}
 
 export function resultadosActividades(e, params) {
   const f = leerFiltrosActividades(params);
-  const lista = buscarActividades(e.datos.ofertas, f, contextoBusqueda(e));
+  const { resultado: lista, aproximado } = conFaltas((g) => buscarActividades(e.datos.ofertas, g, contextoBusqueda(e)), f);
   const gratis = lista.filter((o) => o.precio === 0).length;
   const resumen = `${contar(lista.length, 'plan', 'planes')}${gratis ? ` · ${gratis} ${gratis === 1 ? 'gratis' : 'gratis'}` : ''}`;
-  return `${filaActivos(e, 'actividades', params)}${resumenResultados(resumen)}
+  return `${filaActivos(e, 'actividades', params)}${resumenResultados(resumen)}${aproximado ? avisoAproximado(f.q) : ''}
 ${lista.length
     ? rejilla(lista, ctxTarjetas(e), { mostradas: mostradas(e, 'actividades'), clave: 'actividades' })
     : estadoVacio('Ninguna actividad cumple estos filtros', 'Prueba a quitar alguna temática, cambiar de lugar o subir el precio máximo.', botonLimpiar('actividades'))}`;
@@ -481,6 +483,11 @@ export function resultadosMapa(e, params, d = datosMapa(e, params)) {
 
 // ── Búsqueda global ──────────────────────────────────────────────────────────
 
+/** Sin nada exacto para lo escrito, se enseña lo más parecido (una falta, una letra de más…) y se dice. */
+function avisoAproximado(q) {
+  return `<p class="aviso-memoria" role="status">${icono('buscar')}Nada coincide exactamente con «${esc(q)}»: te enseñamos lo más parecido.</p>`;
+}
+
 export function vistaBuscar(e, params) {
   const q = (params.q ?? '').trim();
   const titulo = params.nuevas === '1' ? 'Novedades' : q ? `Resultados para «${esc(q)}»` : 'Buscar';
@@ -489,7 +496,7 @@ export function vistaBuscar(e, params) {
 
 export function resultadosBuscar(e, params) {
   const f = leerFiltrosComunes(params);
-  const lista = buscarTexto(e.datos.ofertas, f, contextoBusqueda(e));
+  const { resultado: lista, aproximado } = conFaltas((g) => buscarTexto(e.datos.ofertas, g, contextoBusqueda(e)), f);
   if (!lista.length) {
     return `${resumenResultados('0 ofertas')}${estadoVacio(f.nuevas ? 'No hay novedades desde tu última visita.' : `Nada coincide con «${esc(f.q)}».`, 'Prueba con otra palabra: un destino, una región, un tema… Con «-» delante quitas resultados.')}`;
   }
@@ -503,7 +510,7 @@ export function resultadosBuscar(e, params) {
       pestana('vuelos', 'En Vuelos', 'vuelos', lista.filter((o) => o.tipo === 'vuelo').length),
     ].join(' ')}</nav>`
     : '';
-  return `${resumenResultados(contar(lista.length, 'oferta'))}${seguir}${rejilla(lista, ctxTarjetas(e), { mostradas: mostradas(e, 'buscar'), clave: 'buscar' })}`;
+  return `${resumenResultados(contar(lista.length, 'oferta'))}${aproximado ? avisoAproximado(f.q) : ''}${seguir}${rejilla(lista, ctxTarjetas(e), { mostradas: mostradas(e, 'buscar'), clave: 'buscar' })}`;
 }
 
 // ── Comparar ─────────────────────────────────────────────────────────────────

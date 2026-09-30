@@ -533,6 +533,11 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 .campo { display: grid; gap: 6px; font-size: 0.84rem; font-weight: 750; color: var(--texto-suave); flex: 1 1 150px; min-width: 0; }
 .campo input, .campo select { width: 100%; color: var(--texto); font-weight: normal; }
 .campo--ancho { flex: 1 1 280px; }
+/* Los campos de fecha no encogen por debajo de su contenido (dd/mm/aaaa y el icono): en el
+   móvil, con dos por fila, el segundo se salía del recuadro. Cada uno en su columna, y uno
+   debajo de otro si no caben. */
+.filtros__fila--fechas { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr)); align-items: end; }
+.filtros__fila--fechas .interruptor { grid-column: 1 / -1; }
 .campo .ayuda { font-weight: normal; }
 .interruptor { display: inline-flex; align-items: center; gap: 9px; min-height: 44px; font-weight: 650; font-size: 0.9rem; cursor: pointer; }
 .interruptor input { width: 20px; height: 20px; accent-color: var(--acento); flex: none; }

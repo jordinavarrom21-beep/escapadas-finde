@@ -39,6 +39,8 @@ for (const tema of TEMAS) for (const ancho of ANCHOS) {
       await p.goto(`${BASE}#/comparar`);
       await p.waitForSelector('table.comparar');
     }
+    // En el móvil los filtros empiezan plegados: se despliegan para medirlos también.
+    if (movil) await p.evaluate(() => document.querySelectorAll('[data-plegable-movil]').forEach((d) => { d.open = true; }));
     await p.waitForTimeout(ruta === 'mapa' ? 1500 : 400);
     const r = await p.evaluate(({ movil }) => {
       const out = [];
@@ -61,7 +63,7 @@ for (const tema of TEMAS) for (const ancho of ANCHOS) {
         if (el.scrollWidth > el.clientWidth + 2 && getComputedStyle(el).textOverflow !== 'ellipsis') out.push(`texto cortado: ${el.className} «${el.textContent.trim().slice(0, 40)}» ${el.scrollWidth}>${el.clientWidth}`);
       }
       // Hijos que se salen de su caja (tarjetas, formularios, celdas).
-      for (const caja of document.querySelectorAll('.tarjeta, .billete, .destacado, .buscador-finde, .filtros, .finde-celda, .puente, .vigilado, .vacio, .ficha__lateral, .ayuda-caja, .portada__texto, .explorar__filtros, .resultados__cabeza')) {
+      for (const caja of document.querySelectorAll('.tarjeta, .billete, .destacado, .buscador-finde, .filtros, .finde-celda, .puente, .vigilado, .vacio, .ficha__lateral, .ayuda-caja, .portada__texto, .explorar__filtros, .resultados__cabeza, .bloque, .campo')) {
         if (!visible(caja)) continue;
         const cb = caja.getBoundingClientRect();
         for (const h of caja.querySelectorAll('*')) {
