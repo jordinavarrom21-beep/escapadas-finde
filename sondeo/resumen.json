@@ -1,0 +1,30 @@
+{
+ "robots": {
+  "estado": 200,
+  "tipo": "text/plain",
+  "bytes": 701
+ },
+ "ciudades": {
+  "estado": 200,
+  "tipo": "application/json",
+  "bytes": 2138849,
+  "n": 9652
+ },
+ "aeropuertos": {
+  "estado": 200,
+  "tipo": "application/json",
+  "bytes": 2412639,
+  "n": 10377
+ },
+ "paises": {
+  "estado": 200,
+  "tipo": "application/json",
+  "bytes": 30172,
+  "n": 253
+ },
+ "sinToken": {
+  "estado": 401,
+  "tipo": "text/plain; charset=utf-8",
+  "bytes": 13
+ }
+}
