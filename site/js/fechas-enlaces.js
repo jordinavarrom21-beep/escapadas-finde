@@ -5,6 +5,9 @@
  */
 import { etiquetaRango, sumarDias } from './fechas.js';
 
+/** Entrada a un puente: el último día laborable de antes (el viernes por la tarde), como en el resto de la web. */
+const entradaPuente = (puente) => puente.salidas?.[0] ?? sumarDias(puente.desde, -1);
+
 const DIA = /^\d{4}-\d{2}-\d{2}$/;
 
 /**
@@ -20,7 +23,8 @@ export function fechasDeBusqueda(params = {}, ctx = {}) {
     const finde = cuando === 'finde' ? ctx.finde : (ctx.findes ?? []).find((f) => f.id === cuando);
     if (finde) return rango(finde.viernes, finde.domingo);
     const puente = cuando === 'puente' ? ctx.puente : (ctx.puentes ?? []).find((p) => p.id === cuando);
-    if (puente) return rango(puente.desde, puente.hasta === puente.desde ? sumarDias(puente.desde, 1) : puente.hasta);
+    // Con entrada el viernes y salida el último día libre: lo mismo que dicen la franja y el encaje.
+    if (puente) return rango(entradaPuente(puente), puente.hasta);
   }
   const { desde, hasta } = params;
   if (!DIA.test(desde ?? '')) return null;
