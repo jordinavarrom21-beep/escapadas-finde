@@ -90,7 +90,7 @@ describe('ficha: rica y coherente', () => {
   const html = contenidoFicha(hotel, ctx);
 
   it('resumen arriba: alojamiento con estrellas, valoración con su escala, noches, régimen y solo adultos', () => {
-    assert.match(html, /<ul class="ficha__resumen">[^]*Hotel 4★[^]*8,8 Muy bien · 5 opiniones[^]*1 noche[^]*Media pensión[^]*Solo adultos/);
+    assert.match(html, /<ul class="ficha__resumen">[^]*Hotel 4★[^]*8,8\/10 Muy bien · 5 opiniones[^]*1 noche[^]*Media pensión[^]*Solo adultos/);
     assert.equal(textoAlojamiento({ alojamiento: 'camping', estrellas: 3 }), 'Camping 3★');
     assert.deepEqual([9.5, 8.8, 7.2, 6, 4].map(adjetivoNota), ['Excelente', 'Muy bien', 'Bien', 'Aceptable', 'Flojo']);
   });

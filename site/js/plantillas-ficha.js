@@ -172,7 +172,7 @@ function resumenFicha(o) {
   const minutos = duracionActividad(o);
   const datos = [
     textoAlojamiento(o) && ['cama', textoAlojamiento(o)],
-    v?.nota >= 0 && ['estrella', `${nota(v.nota)} ${adjetivoNota(v.nota)}${v.n ? ` · ${contar(v.n, 'opinión', 'opiniones')}` : ''}`],
+    v?.nota >= 0 && ['estrella', `${nota(v.nota)}/10 ${adjetivoNota(v.nota)}${v.n ? ` · ${contar(v.n, 'opinión', 'opiniones')}` : ''}`],
     o.noches && ['noches', contar(o.noches, 'noche')],
     minutos && ['reloj', duracion(minutos)],
     ETIQUETAS_REGIMEN[o.regimen] && ['cubiertos', ETIQUETAS_REGIMEN[o.regimen]],
@@ -337,7 +337,7 @@ export function contenidoFicha(o, ctx) {
   ${datosFicha(o, ctx)}
 </div>
 <aside class="ficha__lateral" aria-label="Precio y reserva">
-  <div class="ficha__precio">${precio(o)}<span class="acciones">${botonDescartar(o)}${botonComparar(o, ctx)}${botonFavorito(o, ctx)}</span></div>
+  <div class="ficha__precio">${precio(o, { etiqueta: typeof o.precio === 'number' && o.precio > 0 ? `Precio en ${ctx.fuentes?.get(o.fuente) ?? o.fuente}` : null })}<span class="acciones">${botonDescartar(o)}${botonComparar(o, ctx)}${botonFavorito(o, ctx)}</span></div>
   ${textoComprobada(o, ctx)}
   <h3 class="sr">Reservar</h3>
   <ul class="ficha__enlaces">${enlaces[0] ?? ''}</ul>
@@ -370,9 +370,13 @@ ${barraReserva(o, ctx)}
 function barraReserva(o, ctx) {
   const boton = enlaceOferta(o, undefined, ctx);
   if (!boton) return '';
-  const cifra = typeof o.precio !== 'number' ? ''
-    : o.precio === 0 ? '<strong>Gratis</strong>'
-      : `${esPrecioDesde(o) ? '<span class="suave">desde</span> ' : ''}<strong>${euros(o.precio)}</strong>${ETIQUETAS_UNIDAD[o.unidad] ? ` <span class="suave">${ETIQUETAS_UNIDAD[o.unidad]}</span>` : ''}`;
+  // Como en las tarjetas: el coste comparable del viaje si se puede calcular; si no, el de la web.
+  const c = costeDe(o, ctx);
+  const cifra = c.total != null
+    ? `<span class="suave">Viaje para ${contar(c.viajeros, 'persona')}</span> <strong>${c.estimado ? '≈ ' : ''}${euros(Math.round(c.total))}</strong>`
+    : typeof o.precio !== 'number' ? ''
+      : o.precio === 0 ? '<strong>Gratis</strong>'
+        : `${esPrecioDesde(o) ? '<span class="suave">desde</span> ' : ''}<strong>${euros(o.precio)}</strong>${ETIQUETAS_UNIDAD[o.unidad] ? ` <span class="suave">${ETIQUETAS_UNIDAD[o.unidad]}</span>` : ''}`;
   return `<div class="ficha__reserva"><p class="ficha__reserva-precio">${cifra}</p>${boton}</div>`;
 }
 

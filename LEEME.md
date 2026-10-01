@@ -40,7 +40,8 @@ El menú tiene cuatro apartados (abajo en el móvil y la tableta, al alcance del
 - **Guardados**: **búsquedas guardadas** («Guardar búsqueda» en cualquier búsqueda:
   aquí y en el número del menú ves cuántas ofertas nuevas la cumplen desde la última vez que la
   miraste, sin email ni GitHub), favoritos, «Comparar lado a lado», lo que has marcado como
-  reservado o no disponible y los **avisos por email** (los antiguos «vigilados»).
+  reservado o no disponible y los **avisos por email** (los antiguos «vigilados»). Con
+  **«Descargar mis guardados»** y «Cargar una copia» se pasan a otro navegador o dispositivo, sin cuenta.
 
 - **Escapadas**: filtros por temática (spa, romántico, rural, playa, gastronomía,
   familia, ciudad, aventura, parques, eventos, mascotas, alojamientos singulares),
