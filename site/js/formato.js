@@ -152,3 +152,17 @@ export function tituloLegible(titulo = '') {
   }
   return sinEmojis.replace(/\p{Lu}{4,}/gu, capitalizar);
 }
+
+/** Tipos de evento (src/enriquecer/agendas.js): [singular, plural, icono]. */
+export const TIPOS_EVENTO = {
+  musica: ['Concierto', 'Conciertos', 'tema-eventos'],
+  fiestas: ['Fiestas', 'Fiestas', 'fuego'],
+  festivales: ['Festival', 'Festivales', 'tema-eventos'],
+  ferias: ['Feria o mercado', 'Ferias y mercados', 'tema-gastronomia'],
+  escena: ['Teatro o espectáculo', 'Teatro y espectáculos', 'estrella'],
+  familia: ['Para niños', 'Para niños', 'tema-familia'],
+  exposiciones: ['Exposición', 'Exposiciones', 'tema-ciudad'],
+  cine: ['Cine', 'Cine', 'tema-singular'],
+  deporte: ['Deporte', 'Deporte', 'tema-aventura'],
+  otros: ['Cultura', 'Más cultura', 'calendario'],
+};

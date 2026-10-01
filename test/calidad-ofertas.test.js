@@ -54,7 +54,7 @@ describe('calidad: el transporte de la oferta manda', () => {
 
 describe('calidad: el tiempo y los eventos son los de las fechas del viaje', () => {
   const tiempoSabado = { dia: '2026-10-03', maxC: 24, minC: 14, lluviaPct: 10, codigo: 0, texto: 'Despejado' };
-  const evento = { nombre: 'Fira de Tardor', fecha: '2026-10-03', url: 'https://ejemplo.cat/fira', municipio: 'Olot' };
+  const evento = { nombre: 'Fira de Tardor', fecha: '2026-10-03', url: 'https://ejemplo.cat/fira', municipio: 'Olot', tipo: 'ferias', km: 0.4 };
   const flexible = oferta({ titulo: 'Casa rural en Olot', tiempo: tiempoSabado, eventos: [evento] });
   const conFinde = oferta({ titulo: 'Bus a Olot', fechas: { salida: '2026-10-02', findeId: '2026-10-02' }, tiempo: tiempoSabado, eventos: [evento] });
 
@@ -70,13 +70,13 @@ describe('calidad: el tiempo y los eventos son los de las fechas del viaje', () 
     assert.match(html, /Qué hay el próximo finde por la zona \(si vas entonces\)/);
   });
 
-  it('con fechas propias se enseñan tal cual en la ficha; la tarjeta se queda con lo que sirve para comparar', () => {
+  it('con fechas propias se enseñan tal cual en la ficha; la tarjeta, el tipo y la distancia del evento', () => {
     const tarjetaHtml = tarjeta(conFinde, ctxPara([conFinde]));
     assert.ok(!tarjetaHtml.includes('Despejado'), 'la tarjeta se queda con lo que sirve para comparar');
-    assert.ok(!tarjetaHtml.includes('Fira de Tardor'));
+    assert.match(tarjetaHtml, /class="insignia insignia--evento" title="Fira de Tardor · sáb 3 oct">[^]*?Feria o mercado aquí mismo</);
     const html = contenidoFicha(conFinde, ctxPara([conFinde]));
     assert.match(html, /Despejado/);
-    assert.match(html, /Fira de Tardor/);
+    assert.match(html, /Fira de Tardor<\/a> <span class="suave">Feria o mercado · sáb 3 oct · aquí mismo<\/span>/);
     assert.ok(!html.includes('Si vas el'));
   });
 

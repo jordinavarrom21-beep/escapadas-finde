@@ -1,0 +1,265 @@
+{
+ "@graph": [
+  {
+   "@id": "https://datos.madrid.es/egob/catalogo/tipo/evento/50409003-19-edicion-mi-primer-festival-cine.json",
+   "@type": "https://datos.madrid.es/egob/kos/actividades/ProgramacionDestacadaAgendaCultura",
+   "id": "50409003",
+   "title": "19ª edición Mi Primer Festival de Cine",
+   "free": 0,
+   "price": "",
+   "dtstart": "2026-11-07 00:00:00.0",
+   "dtend": "2026-11-22 23:59:00.0",
+   "time": "",
+   "excluded-days": "",
+   "recurrence": {
+    "days": "MO,TU,WE,TH,FR,SA,SU",
+    "frequency": "WEEKLY",
+    "interval": 1
+   },
+   "audience": "Niños,Familias",
+   "uid": "50409003",
+   "link": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=a32c600f78a80a10VgnVCM100000891ecb1aRCRD",
+   "event-location": "Centro de Cultura Contemporánea CondeDuque",
+   "references": {
+    "@id": ""
+   },
+   "relation": {
+    "@id": "https://datos.madrid.es/egob/catalogo/tipo/entidadesyorganismos/1916-centro-cultura-contemporanea-condeduque.json"
+   },
+   "address": {
+    "district": {
+     "@id": "https://datos.madrid.es/egob/kos/Provincia/Madrid/Municipio/Madrid/Distrito/Centro"
+    },
+    "area": {
+     "@id": "https://datos.madrid.es/egob/kos/Provincia/Madrid/Municipio/Madrid/Distrito/Centro/Barrio/Universidad",
+     "locality": "MADRID",
+     "postal-code": "28015",
+     "street-address": "CALLE CONDE DUQUE 9"
+    }
+   },
+   "location": {
+    "latitude": 40.42739911262292,
+    "longitude": -3.710589286287491
+   },
+   "organization": {
+    "organization-name": "Centro de Cultura Contemporánea CondeDuque",
+    "accesibility": "1"
+   }
+  },
+  {
+   "@id": "https://datos.madrid.es/egob/catalogo/tipo/evento/50366129-25-anos-museo-san-isidro-origenes-madrid.json",
+   "@type": "https://datos.madrid.es/egob/kos/actividades/Exposiciones",
+   "id": "50366129",
+   "title": "25 años del Museo de San Isidro. Los Orígenes de Madrid",
+   "free": 1,
+   "price": "",
+   "dtstart": "2026-07-21 00:00:00.0",
+   "dtend": "2027-01-31 23:59:00.0",
+   "time": "",
+   "excluded-days": "24/12/2026;25/12/2026;31/12/2026;1/1/2027;",
+   "recurrence": {
+    "days": "TU,WE,TH,FR,SA,SU",
+    "frequency": "WEEKLY",
+    "interval": 1
+   },
+   "uid": "50366129",
+   "link": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=92684dde03f7f910VgnVCM200000f921e388RCRD",
+   "event-location": "Museo de San Isidro. Los Orígenes de Madrid",
+   "references": {
+    "@id": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=39b35c3f9fe7f910VgnVCM200000f921e388RCRD"
+   },
+   "relation": {
+    "@id": "https://datos.madrid.es/egob/catalogo/tipo/entidadesyorganismos/2112-museo-san-isidro-origenes-madrid.json"
+   },
+   "address": {
+    "district": {
+     "@id": "https://datos.madrid.es/egob/kos/Provincia/Madrid/Municipio/Madrid/Distrito/Centro"
+    },
+    "area": {
+     "@id": "https://datos.madrid.es/egob/kos/Provincia/Madrid/Municipio/Madrid/Distrito/Centro/Barrio/Palacio",
+     "locality": "MADRID",
+     "postal-code": "28005",
+     "street-address": "PLAZA SAN ANDRES 2"
+    }
+   },
+   "location": {
+    "latitude": 40.41207900253883,
+    "longitude": -3.7108161027466378
+   },
+   "organization": {
+    "organization-name": "Museo de San Isidro. Los Orígenes de Madrid",
+    "accesibility": "2,6"
+   }
+  },
+  {
+   "@id": "https://datos.madrid.es/egob/catalogo/tipo/evento/50434084-250-motivos-muchos-influencia-espana-estados-unidos.json",
+   "@type": "https://datos.madrid.es/egob/kos/actividades/ConferenciasColoquios",
+   "id": "50434084",
+   "title": "250 motivos y muchos más de la influencia de España en Estados Unidos",
+   "free": 1,
+   "price": "",
+   "dtstart": "2026-10-06 19:00:00.0",
+   "dtend": "2026-10-06 23:59:00.0",
+   "time": "19:00",
+   "excluded-days": "",
+   "uid": "50434084",
+   "link": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=b69140777b7e0a10VgnVCM100000891ecb1aRCRD",
+   "event-location": "Biblioteca Pública Municipal Eugenio Trías. Casa de Fieras de El Retiro (Retiro)",
+   "references": {
+    "@id": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=653d40777b7e0a10VgnVCM100000891ecb1aRCRD"
+   },
+   "relation": {
+    "@id": "https://datos.madrid.es/egob/catalogo/tipo/entidadesyorganismos/6893633-biblioteca-publica-municipal-eugenio-trias-casa-fieras-retiro-retiro-.json"
+   },
+   "address": {
+    "district": {
+     "@id": "https://datos.madrid.es/egob/kos/Provincia/Madrid/Municipio/Madrid/Distrito/Retiro"
+    },
+    "area": {
+     "@id": "https://datos.madrid.es/egob/kos/Provincia/Madrid/Municipio/Madrid/Distrito/Retiro/Barrio/LosJeronimos",
+     "locality": "MADRID",
+     "postal-code": "28009",
+     "street-address": "PASEO FERNÁN NÚÑEZ 24"
+    }
+   },
+   "location": {
+    "latitude": 40.4166091081099,
+    "longitude": -3.6795930368034804
+   },
+   "organization": {
+    "organization-name": "Biblioteca Pública Municipal Eugenio Trías. Casa de Fieras de El Retiro (Retiro)",
+    "accesibility": "1,5,6"
+   }
+  },
+  {
+   "@id": "https://datos.madrid.es/egob/catalogo/tipo/evento/50434043-50-aniversario-asociacion-vecinal-solidaridad-cuatro-caminos-tetuan.json",
+   "@type": "https://datos.madrid.es/egob/kos/actividades/Exposiciones",
+   "id": "50434043",
+   "title": "50 Aniversario de la Asociación Vecinal Solidaridad Cuatro Caminos-Tetuán",
+   "free": 1,
+   "price": "",
+   "dtstart": "2026-10-19 00:00:00.0",
+   "dtend": "2026-11-10 23:59:00.0",
+   "time": "",
+   "excluded-days": "",
+   "recurrence": {
+    "days": "MO,TU,WE,TH,FR,SA",
+    "frequency": "WEEKLY",
+    "interval": 1
+   },
+   "uid": "50434043",
+   "link": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=ca9b080a5b7e0a10VgnVCM200000f921e388RCRD",
+   "event-location": "Centro Sociocultural José de Espronceda (Tetuán)",
+   "references": {
+    "@id": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=1ba4173467aeb810VgnVCM1000001d4a900aRCRD"
+   },
+   "relation": {
+    "@id": "https://datos.madrid.es/egob/catalogo/tipo/entidadesyorganismos/1947-centro-sociocultural-jose-espronceda-tetuan-.json"
+   },
+   "address": {
+    "district": {
+     "@id": "https://datos.madrid.es/egob/kos/Provincia/Madrid/Municipio/Madrid/Distrito/Tetuan"
+    },
+    "area": {
+     "@id": "https://datos.madrid.es/egob/kos/Provincia/Madrid/Municipio/Madrid/Distrito/Tetuan/Barrio/BellasVistas",
+     "locality": "MADRID",
+     "postal-code": "28039",
+     "street-address": "CALLE ALMANSA 9"
+    }
+   },
+   "location": {
+    "latitude": 40.44864332758775,
+    "longitude": -3.704513191828797
+   },
+   "organization": {
+    "organization-name": "Centro Sociocultural José de Espronceda (Tetuán)",
+    "accesibility": "1"
+   }
+  },
+  {
+   "@id": "https://datos.madrid.es/egob/catalogo/tipo/evento/50346030-90-anos-declaracion-parque-retiro-bien-interes-cultural.json",
+   "@type": "https://datos.madrid.es/egob/kos/actividades/Exposiciones",
+   "id": "50346030",
+   "title": "90 años de la declaración del Parque del Retiro como Bien de Interés Cultural",
+   "free": 1,
+   "price": "",
+   "dtstart": "2026-07-01 10:00:00.0",
+   "dtend": "2026-10-31 23:59:00.0",
+   "time": "10:00",
+   "excluded-days": "",
+   "recurrence": {
+    "days": "TU,WE,TH,FR,SA,SU",
+    "frequency": "WEEKLY",
+    "interval": 1
+   },
+   "uid": "50346030",
+   "link": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=df7bd881d7dfe910VgnVCM200000f921e388RCRD",
+   "event-location": "Centro de Educación Ambiental El Retiro",
+   "references": {
+    "@id": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=1600137ff5dfe910VgnVCM200000f921e388RCRD"
+   },
+   "relation": {
+    "@id": "https://datos.madrid.es/egob/catalogo/tipo/entidadesyorganismos/5463464-centro-educacion-ambiental-retiro.json"
+   },
+   "address": {
+    "district": {
+     "@id": "https://datos.madrid.es/egob/kos/Provincia/Madrid/Municipio/Madrid/Distrito/Retiro"
+    },
+    "area": {
+     "@id": "https://datos.madrid.es/egob/kos/Provincia/Madrid/Municipio/Madrid/Distrito/Retiro/Barrio/LosJeronimos",
+     "locality": "MADRID",
+     "postal-code": "28009",
+     "street-address": "PASEO FERNAN NUÑEZ 2"
+    }
+   },
+   "location": {
+    "latitude": 40.40943503279114,
+    "longitude": -3.6861797800993257
+   },
+   "organization": {
+    "organization-name": "Centro de Educación Ambiental El Retiro",
+    "accesibility": "1"
+   }
+  },
+  {
+   "@id": "https://datos.madrid.es/egob/catalogo/tipo/evento/50421045-life-illuminated.json",
+   "@type": "https://datos.madrid.es/egob/kos/actividades/ProgramacionDestacadaAgendaCultura",
+   "id": "50421045",
+   "title": "A Life Illuminated",
+   "free": 0,
+   "price": "",
+   "dtstart": "2026-10-25 19:30:00.0",
+   "dtend": "2026-10-25 23:59:00.0",
+   "time": "19:30",
+   "excluded-days": "",
+   "uid": "50421045",
+   "link": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=3e8bb375a2ea0a10VgnVCM200000f921e388RCRD",
+   "event-location": "Cineteca Madrid",
+   "references": {
+    "@id": ""
+   },
+   "relation": {
+    "@id": "https://datos.madrid.es/egob/catalogo/tipo/entidadesyorganismos/6963310-cineteca-madrid.json"
+   },
+   "address": {
+    "district": {
+     "@id": "https://datos.madrid.es/egob/kos/Provincia/Madrid/Municipio/Madrid/Distrito/Arganzuela"
+    },
+    "area": {
+     "@id": "https://datos.madrid.es/egob/kos/Provincia/Madrid/Municipio/Madrid/Distrito/Arganzuela/Barrio/Chopera",
+     "locality": "MADRID",
+     "postal-code": "28045",
+     "street-address": "PLAZA LEGAZPI 8"
+    }
+   },
+   "location": {
+    "latitude": 40.39130985242181,
+    "longitude": -3.6958028442054074
+   },
+   "organization": {
+    "organization-name": "Cineteca Madrid",
+    "accesibility": "1"
+   }
+  }
+ ]
+}

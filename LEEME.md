@@ -375,6 +375,17 @@ del navegador con los datos publicados. Si algo falla, no se fusiona.
   enseña como «En una frase». Modelo y límite en `config/ajustes.json` → `resumenes`
   (`maxPorEscaneo`: cuántos nuevos por escaneo). Cada resumen se guarda y solo se rehace si
   cambia el texto de la oferta. Sin el secreto, no hace nada.
+- **Eventos cerca de cada oferta** (gratis): conciertos, fiestas, ferias, teatro, cine y
+  actividades para niños a menos de 25 km del alojamiento en las fechas de la oferta. Salen en
+  la tarjeta («Concierto a 3 km»), en la ficha («Qué hay esos días por la zona») y en el filtro
+  «¿Algo que hacer cerca esos días?». Fuentes públicas por zona (`src/enriquecer/agendas.js`):
+  Agenda Cultural de Catalunya, Kulturklik (Euskadi y Navarra), agenda de Castilla y León y
+  agenda municipal de Madrid. Cada agenda se descarga solo si hay ofertas en su zona y se guarda
+  6 horas.
+- **Conciertos y festivales de toda España** (opcional, gratis): crea una cuenta en
+  [developer.ticketmaster.com](https://developer.ticketmaster.com), copia la «Consumer Key» y
+  guárdala como secreto `TICKETMASTER_KEY` en GitHub (*Settings → Secrets and variables →
+  Actions*). Sin el secreto, no hace nada.
 - **Salud de las fuentes**: cada lunes el workflow `salud.yml` abre o actualiza el issue
   «Fuentes con problemas» con las webs que llevan más de un día fallando y qué hacer; lo cierra
   solo cuando todas vuelven a ir bien.

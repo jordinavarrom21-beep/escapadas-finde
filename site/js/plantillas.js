@@ -6,7 +6,7 @@
 import { costeViaje, resumenCoste } from './coste.js';
 import { diasEntre, etiquetaDia, etiquetaRango, fechaLocal, horaDe } from './fechas.js';
 import {
-  ETIQUETAS_ALOJAMIENTO, ETIQUETAS_REGIMEN, ETIQUETAS_TIPO, ETIQUETAS_TRANSPORTE, ETIQUETAS_UNIDAD, SIN_UNIDAD,
+  ETIQUETAS_ALOJAMIENTO, ETIQUETAS_REGIMEN, ETIQUETAS_TIPO, ETIQUETAS_TRANSPORTE, ETIQUETAS_UNIDAD, SIN_UNIDAD, TIPOS_EVENTO,
   contar, duracion, enumerar, escaparHtml as esc, euros, grados, haceCuanto, nota, puntosMinigrafica, tituloLegible, urlSegura,
 } from './formato.js';
 import {
@@ -230,19 +230,42 @@ function tiempoFoto(o, ctx = {}) {
 /** Los eventos de la oferta que caen en las fechas que se buscan (o todos, si no se busca ninguna). */
 export const eventosDe = (o, ctx) => (o.eventos ?? []).filter((ev) => !fueraDeBusqueda(ev.fecha, o, ctx));
 
-/** Hasta tres eventos cerca del destino esos días. */
+/** «a 3 km», «aquí mismo» (menos de 1 km). */
+const distanciaEvento = (km) => (km == null ? '' : km < 1 ? 'aquí mismo' : `a ${Math.round(km)} km`);
+
+/**
+ * Lo que pasa cerca esos días (hasta 6), con su tipo, cuándo, a qué distancia y, si se sabe,
+ * cuánto cuesta. Del más cercano al más lejano, como llegan del escaneo.
+ */
 export function eventos(o, { conEnlace = false } = {}, ctx = {}) {
-  const lista = eventosDe(o, ctx).slice(0, 3);
+  const lista = eventosDe(o, ctx).slice(0, 6);
   if (!lista.length) return '';
   const filas = lista.map((ev) => {
+    const [tipo, , ic] = TIPOS_EVENTO[ev.tipo] ?? TIPOS_EVENTO.otros;
     const url = conEnlace ? urlSegura(ev.url) : null;
     const nombre = url
       ? `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(ev.nombre)}</a>`
       : esc(ev.nombre);
-    const cuando = ev.fecha ? ` <span class="suave">${esc(etiquetaDia(ev.fecha))}</span>` : '';
-    return `<li>${nombre}${cuando}</li>`;
+    const detalle = [tipo, ev.fecha && etiquetaDia(ev.fecha), [distanciaEvento(ev.km), ev.municipio && ev.km >= 1 ? `(${ev.municipio})` : ''].filter(Boolean).join(' '), ev.precio].filter(Boolean).join(' · ');
+    return `<li class="evento evento--${esc(ev.tipo ?? 'otros')}">${icono(ic)}<span>${nombre} <span class="suave">${esc(detalle)}</span></span></li>`;
   });
-  return `<ul class="eventos" aria-label="Eventos esos días">${filas.join('')}</ul>`;
+  return `<ul class="eventos" aria-label="Eventos cerca esos días">${filas.join('')}</ul>`;
+}
+
+/**
+ * Para la tarjeta, lo más llamativo que pasa cerca: un concierto o unas fiestas antes que
+ * una exposición. «Concierto a 1 km»; el nombre, al pasar por encima y en la ficha.
+ */
+export function insigniaEvento(o, ctx = {}) {
+  // Con fechas flexibles los eventos son los del próximo finde, una suposición: a la tarjeta
+  // solo si son los de sus fechas o los de las que buscas (la ficha los enseña avisando).
+  if (!conFechasDeViaje(o) && !busquedaPara(o, ctx)) return '';
+  const lista = eventosDe(o, ctx);
+  const ev = lista.find((e) => !['exposiciones', 'otros'].includes(e.tipo)) ?? lista[0];
+  if (!ev) return '';
+  const [tipo, , ic] = TIPOS_EVENTO[ev.tipo] ?? TIPOS_EVENTO.otros;
+  const mas = lista.length > 1 ? ` y ${lista.length - 1} más` : '';
+  return `<span class="insignia insignia--evento" title="${esc(`${ev.nombre}${ev.fecha ? ` · ${etiquetaDia(ev.fecha)}` : ''}${mas ? ` · ${lista.length} eventos cerca esos días` : ''}`)}">${icono(ic)}${esc(`${tipo} ${distanciaEvento(ev.km)}`.trim())}${esc(mas)}</span>`;
 }
 
 /** Estrella y nota, con el número de opiniones en el título. */
@@ -574,7 +597,7 @@ export function tarjetaOferta(o, ctx) {
     ${opinionesTarjeta(o, web)}
     ${motivoTarjeta(o, ctx)}
     <ul class="tarjeta__datos">${datosTarjeta(o, ctx)}</ul>
-    <div class="insignias insignias--tarjeta">${equivalentes(o, ctx)}${insigniasTarjeta(o, ctx)}${avisoTarjeta(o, ctx)}</div>
+    <div class="insignias insignias--tarjeta">${insigniaEvento(o, ctx)}${equivalentes(o, ctx)}${insigniasTarjeta(o, ctx)}${avisoTarjeta(o, ctx)}</div>
     <div class="tarjeta__pie">
       <div class="tarjeta__precio">${bloquePrecio(o, ctx)}</div>
       <div class="acciones">${botonComparar(o, ctx)}${enlaceOferta(o, typeof o.precio === 'number' && o.precio > 0 ? textoAccion(o) : `Ver en ${esc(web)}`, ctx)}</div>
