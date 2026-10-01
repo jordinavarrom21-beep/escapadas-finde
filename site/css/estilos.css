@@ -1089,6 +1089,14 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 .ventana-mapa .tarjeta, .ventana-mapa .billete { box-shadow: none; border: 0; }
 .ventana-mapa .tarjeta:hover, .ventana-mapa .billete:hover { transform: none; }
 .ventana-mapa__nota { margin-top: 8px !important; font-size: 0.8rem; color: var(--texto-suave); }
+/* Varias escapadas en el mismo sitio: un círculo con el número y, al pulsarlo, todas en una ventana que se desliza. */
+.marcador-grupo span {
+  display: inline-grid; place-items: center; transform: translate(-50%, -50%); min-width: 30px; height: 30px; padding: 0 6px;
+  border-radius: 999px; background: var(--acento); color: var(--acento-texto); border: 2px solid #ffffff;
+  font: 800 13px/1 var(--fuente); box-shadow: 0 3px 10px rgb(23 33 31 / 28%);
+}
+.ventana-mapa { max-height: min(60vh, 520px); overflow-y: auto; overscroll-behavior: contain; }
+.ventana-mapa .tarjeta + .tarjeta { margin-top: 10px; border-top: 1px solid var(--borde); }
 
 /* ── Ficha (modal) ────────────────────────────────────────────────────────── */
 

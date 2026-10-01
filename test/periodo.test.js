@@ -108,3 +108,12 @@ describe('franja del periodo y Lista / Mapa', async () => {
     assert.match(html, /href="#\/comparar"/);
   });
 });
+
+describe('mapa', async () => {
+  const { agruparPorLugar } = await import('../site/js/mapa.js');
+  it('las ofertas del mismo sitio van en un solo marcador (antes se tapaban unas a otras)', () => {
+    const o = (id, lat, lon) => ({ id, lugar: { lat, lon } });
+    const grupos = agruparPorLugar([o('a', 41.2371, 1.8059), o('b', 41.23712, 1.80588), o('c', 41.98, 2.82)]);
+    assert.deepEqual(grupos.map((g) => g.map((x) => x.id)), [['a', 'b'], ['c']]);
+  });
+});
