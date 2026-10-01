@@ -430,7 +430,7 @@ export function resultadosEscapadas(e, params) {
 ${ordenRapido('escapadas', params, f.orden)}${explicacionOrden(e, f, costes)}${f.presupuesto ? `<p class="seccion__intro">Presupuesto: viaje completo (oferta y gasolina estimada) de hasta ${esc(euros(f.presupuesto))} ${f.presupuestoPor === 'persona' ? 'por persona' : 'en total'} para ${esc(contar(e.viaje?.viajeros ?? 2, 'persona'))}.${sinTotal ? ` ${esc(contar(sinTotal, 'oferta'))} sin datos suficientes para un total no se pueden comprobar y no salen.` : ''}</p>` : ''}
 ${ofertas.length
     ? rejilla(ofertas, ctx, { mostradas: mostradas(e, 'escapadas'), clave: 'escapadas' })
-    : estadoVacio('Ninguna escapada cumple estos filtros', 'Prueba a quitar alguna temática, ampliar la distancia o subir el precio máximo.', botonLimpiar('escapadas'))}`;
+    : estadoVacio('Ninguna escapada cumple estos filtros', 'Prueba a quitar alguna temática, ampliar la distancia o subir el precio máximo.', `${buscarFuera(f.q)}${botonLimpiar('escapadas')}`)}`;
 }
 
 // ── Actividades ──────────────────────────────────────────────────────────────
@@ -507,6 +507,21 @@ export function resultadosMapa(e, params, d = datosMapa(e, params)) {
 // ── Búsqueda global ──────────────────────────────────────────────────────────
 
 /** Sin nada exacto para lo escrito, se enseña lo más parecido (una falta, una letra de más…) y se dice. */
+/**
+ * Sin resultados para un texto (un hotel concreto, un pueblo): no está entre las ofertas que
+ * se vigilan, pero se puede buscar fuera con un clic.
+ */
+export function buscarFuera(q) {
+  const texto = (q ?? '').replace(/(^|\s)-\S+/g, ' ').trim();
+  if (!texto) return '';
+  const enlaces = [
+    ['Booking', `https://www.booking.com/searchresults.es.html?ss=${encodeURIComponent(texto)}`],
+    ['Google', `https://www.google.com/search?q=${encodeURIComponent(`${texto} escapada oferta`)}`],
+  ];
+  return `<p class="buscar-fuera">No está entre las ofertas que vigilamos ahora mismo. Búscalo directamente: ${enlaces
+    .map(([web, url]) => `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">«${esc(texto)}» en ${web}${icono('externo')}</a>`).join(' · ')}</p>`;
+}
+
 function avisoAproximado(q) {
   return `<p class="aviso-memoria" role="status">${icono('buscar')}Nada coincide exactamente con «${esc(q)}»: te enseñamos lo más parecido.</p>`;
 }
@@ -521,7 +536,7 @@ export function resultadosBuscar(e, params) {
   const f = leerFiltrosComunes(params);
   const { resultado: lista, aproximado } = conFaltas((g) => buscarTexto(e.datos.ofertas, g, contextoBusqueda(e)), f);
   if (!lista.length) {
-    return `${resumenResultados('0 ofertas')}${estadoVacio(f.nuevas ? 'No hay novedades desde tu última visita.' : `Nada coincide con «${esc(f.q)}».`, 'Prueba con otra palabra: un destino, una región, un tema… Con «-» delante quitas resultados.')}`;
+    return `${resumenResultados('0 ofertas')}${estadoVacio(f.nuevas ? 'No hay novedades desde tu última visita.' : `Nada coincide con «${esc(f.q)}».`, 'Prueba con otra palabra: un destino, una región, un tema… Con «-» delante quitas resultados.', f.nuevas ? '' : buscarFuera(f.q))}`;
   }
   // Una sola forma de buscar: desde aquí se sigue en la pestaña de Explorar que toque, con
   // la búsqueda puesta y todos sus filtros.

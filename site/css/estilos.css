@@ -1533,3 +1533,6 @@ body:has([data-plegable-movil][open]) .barra-comparar [data-abrir-filtros] { dis
 .ficha__reserva-viaje { display: block; font-size: 0.78rem; }
 /* En tarjetas y destacado el viaje completo es secundario: sin la barra (en la ficha, sí). */
 .tarjeta__precio .coste__barra, .destacado__precio .coste__barra { display: none; }
+.buscar-fuera { font-size: 0.9rem; }
+.buscar-fuera a { color: var(--enlace); white-space: normal; }
+.buscar-fuera .ic { width: 0.9em; height: 0.9em; margin-left: 2px; vertical-align: -0.1em; }

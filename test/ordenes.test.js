@@ -127,3 +127,13 @@ describe('buscar un pueblo', async () => {
     assert.match(html, /más a menos de 30 km de Tossa de Mar[^]*href="#\/escapadas\?lugar=Tossa%20de%20Mar&amp;lat=[\d.]+&amp;lon=[\d.]+&amp;km=30"/);
   });
 });
+
+describe('sin resultados para un hotel concreto', async () => {
+  const { resultadosEscapadas, resultadosBuscar } = await import('../site/js/vistas.js');
+  it('dice que no está entre lo vigilado y enlaza a buscarlo fuera (sin las palabras con «-»)', () => {
+    const html = resultadosBuscar(estado(), { q: 'hotel blancafort -spa' });
+    assert.match(html, /No está entre las ofertas que vigilamos/);
+    assert.match(html, /href="https:\/\/www\.booking\.com\/searchresults\.es\.html\?ss=hotel%20blancafort"/);
+    assert.match(resultadosEscapadas(estado(), { q: 'hotel blancafort' }), /«hotel blancafort» en Google/);
+  });
+});
