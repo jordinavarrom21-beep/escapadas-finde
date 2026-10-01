@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 
 import { castillaLeon, euskadi, evento, madrid, ticketmaster, tipoEvento } from '../src/enriquecer/agendas.js';
 import { anadirEventos } from '../src/enriquecer/eventos.js';
-import { findesProximos } from '../src/util/fechas.js';
+import { fechaLocal, findesProximos } from '../src/util/fechas.js';
 import { AHORA, crearCtx, leerFixtureJson, oferta } from './ayudas.js';
 
 const EUSKADI = leerFixtureJson('eventos-euskadi.json');
@@ -121,6 +121,8 @@ describe('Ticketmaster', () => {
     const eventos = await ticketmaster.descargar(ctx, DESDE, HASTA);
     const u = new URL(peticiones[0]);
     assert.deepEqual([u.searchParams.get('countryCode'), u.searchParams.get('startDateTime'), u.searchParams.get('endDateTime'), u.searchParams.get('apikey')], ['ES', '2026-09-18T00:00:00Z', '2026-10-18T23:59:59Z', 'clave-de-prueba']);
+    // Solo Ticketmaster: Universe (entradas diarias a monumentos) se comía el cupo de 1.000.
+    assert.equal(u.searchParams.get('source'), 'ticketmaster');
     assert.equal(peticiones.length, 1, 'una página: no pide más');
     assert.deepEqual(eventos.map((e) => [e.tipo, e.precio, e.municipio]), [['festivales', 'desde 50 €', 'Madrid'], ['deporte', null, 'Madrid']]);
   });
@@ -163,6 +165,17 @@ describe('eventos cerca de cada oferta, por zona', () => {
     con.ctx.env = { TICKETMASTER_KEY: 'x' };
     await anadirEventos([valencia], con.ctx);
     assert.ok(con.peticiones.some((u) => u.includes('app.ticketmaster.com')));
+  });
+
+  test('lo guardado por la versión anterior se vuelve a pedir; si falla, vale y sin tipo se saca del nombre', async () => {
+    const valencia = oferta({ lugar: { nombre: 'Valencia', lat: 39.47, lon: -0.38 }, fechas: { salida: '2026-10-01', vuelta: '2026-10-03' } });
+    const viejo = { nombre: 'Concierto de jazz en el puerto', desde: '2026-10-02', hasta: '2026-10-02', lat: 39.46, lon: -0.33, url: null, municipio: 'Valencia' };
+    const fallo = contexto(() => { throw new Error('HTTP 503'); });
+    fallo.ctx.env = { TICKETMASTER_KEY: 'x' };
+    fallo.ctx.cache.guardar('eventos:ticketmaster', { desde: fechaLocal(AHORA), eventos: [viejo] }, AHORA.getTime());
+    await anadirEventos([valencia], fallo.ctx);
+    assert.ok(fallo.peticiones.some((u) => u.includes('app.ticketmaster.com')), 'versión 1 guardada: se vuelve a pedir');
+    assert.deepEqual(valencia.eventos.map((e) => [e.nombre, e.tipo]), [['Concierto de jazz en el puerto', 'musica']]);
   });
 });
 

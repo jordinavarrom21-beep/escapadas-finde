@@ -97,16 +97,19 @@ function urlConsulta(desde, hasta) {
  * una única clave (antes una por día, que se quedaban meses en data/cache.json). Si
  * el portal falla, vale la última agenda guardada: sus actos siguen teniendo fecha.
  */
+const VERSION_AGENDA = 2;
+
 async function descargarAgenda(ctx, desde, hasta) {
   const clave = 'eventos:agenda';
   const ahora = ctx.ahora.getTime();
   const fresca = ctx.cache.obtener(clave, CADUCIDAD_MS, ahora);
-  if (fresca?.desde === desde) return fresca.eventos;
+  // La versión 2 trae el tipo de cada acto: lo guardado antes se vuelve a descargar.
+  if (fresca?.desde === desde && fresca.version === VERSION_AGENDA) return fresca.eventos;
   try {
     const filas = await ctx.http.json(urlConsulta(desde, hasta));
     if (!Array.isArray(filas)) throw new Error('respuesta inesperada del portal de datos abiertos');
     const eventos = filas.map(normalizar).filter(Boolean);
-    ctx.cache.guardar(clave, { desde, eventos }, ahora);
+    ctx.cache.guardar(clave, { desde, version: VERSION_AGENDA, eventos }, ahora);
     return eventos;
   } catch (error) {
     const anterior = ctx.cache.obtener(clave)?.eventos;
@@ -123,10 +126,11 @@ async function descargarDe(proveedor, ctx, desde, hasta) {
   const clave = `eventos:${proveedor.id}`;
   const ahora = ctx.ahora.getTime();
   const fresca = ctx.cache.obtener(clave, CADUCIDAD_MS, ahora);
-  if (fresca?.desde === desde) return fresca.eventos;
+  // Con `version` un proveedor invalida lo guardado cuando cambia qué descarga.
+  if (fresca?.desde === desde && (fresca.version ?? 1) === (proveedor.version ?? 1)) return fresca.eventos;
   try {
     const eventos = await proveedor.descargar(ctx, desde, hasta);
-    ctx.cache.guardar(clave, { desde, eventos }, ahora);
+    ctx.cache.guardar(clave, { desde, version: proveedor.version ?? 1, eventos }, ahora);
     return eventos;
   } catch (error) {
     const anterior = ctx.cache.obtener(clave)?.eventos;
@@ -180,7 +184,8 @@ export async function anadirEventos(ofertas, ctx) {
         fecha: evento.desde > periodo.desde ? evento.desde : periodo.desde,
         url: evento.url,
         municipio: evento.municipio,
-        tipo: evento.tipo ?? 'otros',
+        // Lo guardado por una versión anterior puede no traer el tipo: se saca del nombre.
+        tipo: evento.tipo ?? tipoEvento(evento.nombre),
         km: Math.round(km * 10) / 10,
         ...(evento.precio ? { precio: evento.precio } : {}),
       }));
