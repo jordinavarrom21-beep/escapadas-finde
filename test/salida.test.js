@@ -69,10 +69,10 @@ describe('coste total en el panel', async () => {
     const [primera] = ofertas;
     const ctx = ctxTarjetas(e);
     const html = tarjeta(primera, ctx);
-    assert.match(html, /class="dato-extra coste-total" title="[^"]*\d+\s€\/persona[^"]*La oferta la cobra la web[^]*?Viaje (estimado )?para 3 personas<\/span> <strong>(≈ )?\d+\s€<\/strong>/);
-    // Primero el coste comparable; debajo, rotulado, el precio de la web.
-    assert.ok(html.indexOf('coste-total') < html.indexOf('precio--publicado'));
-    assert.match(html, /<p class="precio precio--publicado"><span class="precio__etiqueta">Precio en [^<]+<\/span>/);
+    assert.match(html, /class="dato-extra coste-total" title="[^"]*\d+\s€\/persona[^"]*La oferta la cobra la web[^]*?Viaje completo (estimado )?para 3 personas<\/span> <strong>(≈ )?\d+\s€<\/strong>/);
+    // Primero y en grande el precio de la oferta, rotulado con su web; debajo, el viaje completo.
+    assert.ok(html.indexOf('precio--oferta') < html.indexOf('coste-total'));
+    assert.match(html, /<p class="precio precio--oferta"><span class="precio__etiqueta">Precio en [^<]+<\/span>/);
     const ficha = contenidoFicha(primera, ctx);
     assert.match(ficha, /<\/svg>Coste del viaje<\/h3>/);
     assert.match(ficha, /class="coste__grande"><strong>(≈ )?[\d.]+\s€<\/strong><span class="suave">3 personas/);

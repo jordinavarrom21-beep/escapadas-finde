@@ -5,8 +5,9 @@
  */
 import { normalizarTexto } from '../util/xml.js';
 import { enIsla } from '../../site/js/geo.js';
+import { zonaDe } from './zona.js';
 
-const URL_NOMINATIM = 'https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&accept-language=es&q=';
+const URL_NOMINATIM = 'https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&addressdetails=1&accept-language=es&q=';
 const URL_OSRM = 'https://router.project-osrm.org/table/v1/driving/';
 const URL_CARBURANTES = 'https://sedeaplicaciones.minetur.gob.es/ServiciosRESTCarburantes/PreciosCarburantes/';
 const DIA_MS = 24 * 60 * 60 * 1000;
@@ -63,6 +64,50 @@ export function puntoCreible(lugar, punto) {
 }
 
 /**
+ * Lo que no es un sitio al que se viaja: una calle, un edificio, una tienda o un bar que se
+ * llaman como el destino («Calle Granada», «Bar Dublín»).
+ */
+const CATEGORIAS_NO_LUGAR = new Set(['highway', 'building', 'shop', 'amenity', 'office', 'railway', 'craft', 'man_made']);
+const nombreClave = (texto) => normalizarTexto(texto ?? '').replace(/[^a-z0-9]+/g, ' ').trim();
+
+/** ¿El resultado de Nominatim es ese lugar? Mismo nombre (o uno contiene al otro) y es un sitio. */
+function esElLugar(resultado, nombre) {
+  if (!resultado || CATEGORIAS_NO_LUGAR.has(resultado.category)) return false;
+  const [a, b] = [nombreClave(resultado.name), nombreClave(nombre)];
+  return Boolean(a && b) && (a.includes(b) || b.includes(a));
+}
+
+/** Punto guardado a partir de un resultado de Nominatim, con su país y su provincia si los dice. */
+function puntoDe(resultado) {
+  if (!resultado) return null;
+  const direccion = resultado.address ?? {};
+  return {
+    lat: Number(resultado.lat), lon: Number(resultado.lon),
+    ...(direccion.country_code ? { codigoPais: direccion.country_code.toUpperCase() } : {}),
+    ...(direccion.province || direccion.state ? { regionGeo: direccion.province || direccion.state } : {}),
+  };
+}
+
+/**
+ * Busca un lugar sin país conocido. Casi todas las ofertas son de webs españolas: primero en
+ * España (si sale un sitio con ese nombre), y solo si no, en todo el mundo. Sin esto,
+ * «Granada» acababa en Nicaragua, «Guadalajara» en México y «Laguardia» en Nueva York.
+ */
+async function buscarSinPais(consulta, nombre, ctx) {
+  const [enEspana] = await ctx.http.json(`${URL_NOMINATIM}${encodeURIComponent(consulta)}&countrycodes=es`);
+  if (esElLugar(enEspana, nombre)) return puntoDe(enEspana);
+  await ctx.http.esperar(PAUSA_NOMINATIM_MS);
+  const [enElMundo] = await ctx.http.json(URL_NOMINATIM + encodeURIComponent(consulta));
+  return puntoDe(enElMundo);
+}
+
+/** Las coordenadas son las que dio la búsqueda antigua (sin país, en todo el mundo): hay que repetirla. */
+const deBusquedaAntigua = (lugar, cache, consulta) => {
+  const vieja = cache.obtener(`geo:${normalizarTexto(consulta)}`);
+  return Boolean(vieja) && vieja.lat === lugar.lat && vieja.lon === lugar.lon;
+};
+
+/**
  * Completa `lugar.lat/lon` de las ofertas que tienen nombre de lugar pero no
  * coordenadas. Hace como mucho `maxNuevas` consultas nuevas por ejecución.
  */
@@ -71,11 +116,15 @@ export async function geolocalizar(ofertas, ctx, { maxNuevas = 40 } = {}) {
   let nuevas = 0;
   let aplazadas = 0;
   for (const { lugar } of ofertas) {
-    if (!lugar?.nombre || (tieneCoordenadas(lugar) && puntoCreible(lugar, lugar))) continue;
+    if (!lugar?.nombre) continue;
+    const pais = codigoPais(lugar);
+    const consulta = [lugar.nombre, lugar.region, lugar.pais].filter(Boolean).join(', ');
+    if (tieneCoordenadas(lugar) && puntoCreible(lugar, lugar) && (pais || !deBusquedaAntigua(lugar, ctx.cache, consulta))) continue;
     // Una coordenada imposible que viniera de antes se descarta (y se vuelve a buscar).
     if (tieneCoordenadas(lugar)) Object.assign(lugar, { lat: null, lon: null });
-    const consulta = [lugar.nombre, lugar.region, lugar.pais].filter(Boolean).join(', ');
-    const clave = `geo:${normalizarTexto(consulta)}`;
+    // Sin país se busca primero en España (`buscarSinPais`): otra clave que la de antes, que
+    // buscaba en todo el mundo, para no reutilizar sus resultados.
+    const clave = `${pais ? 'geo' : 'geo2'}:${normalizarTexto(consulta)}`;
     // Lo guardado que no puede ser de ese país se vuelve a pedir (ya acotado al país).
     const increible = (p) => (p === undefined || puntoCreible(lugar, p) ? p : undefined);
     let punto = increible(ctx.cache.obtener(clave, CADUCIDAD_GEO_MS, ahora));
@@ -89,9 +138,12 @@ export async function geolocalizar(ofertas, ctx, { maxNuevas = 40 } = {}) {
         if (nuevas > 0) await ctx.http.esperar(PAUSA_NOMINATIM_MS);
         nuevas++;
         try {
-          const pais = codigoPais(lugar);
-          const [resultado] = await ctx.http.json(URL_NOMINATIM + encodeURIComponent(consulta) + (pais ? `&countrycodes=${pais}` : ''));
-          punto = resultado ? { lat: Number(resultado.lat), lon: Number(resultado.lon) } : null;
+          if (pais) {
+            const [resultado] = await ctx.http.json(URL_NOMINATIM + encodeURIComponent(consulta) + `&countrycodes=${pais}`);
+            punto = puntoDe(resultado);
+          } else {
+            punto = await buscarSinPais(consulta, lugar.nombre, ctx);
+          }
           if (!puntoCreible(lugar, punto)) punto = null;
           ctx.cache.guardar(clave, punto, ahora);
         } catch (error) {
@@ -101,7 +153,14 @@ export async function geolocalizar(ofertas, ctx, { maxNuevas = 40 } = {}) {
         }
       }
     }
-    if (punto) Object.assign(lugar, punto);
+    if (punto) {
+      const { regionGeo, codigoPais: codigo, ...coordenadas } = punto;
+      Object.assign(lugar, coordenadas);
+      if (codigo && !lugar.codigoPais) lugar.codigoPais = codigo;
+      // La provincia que no se dedujo del texto de la web, de la geolocalización: así el
+      // filtro por zona encuentra también estas ofertas.
+      if (!lugar.provincia && !lugar.comunidad && codigo === 'ES' && regionGeo) Object.assign(lugar, zonaDe({ region: regionGeo, pais: 'España' }));
+    }
   }
   if (aplazadas) ctx.log(`${aplazadas} lugares se geolocalizarán en la próxima ejecución`);
 }
