@@ -4,8 +4,9 @@
  */
 
 import { costeViaje } from './coste.js';
-import { diaSemana, etiquetaDia, fechaLocal, sumarDias } from './fechas.js';
+import { diaSemana, diasEntre, etiquetaDia, fechaLocal, sumarDias } from './fechas.js';
 import { distanciaKm, esMismoPunto, minutosEnCoche, radioKmParaMinutos, tieneCoordenadas } from './geo.js';
+import { clavePunto } from './rutas.js';
 import {
   ETIQUETAS_ALOJAMIENTO, ETIQUETAS_REGIMEN, ETIQUETAS_TIPO, ETIQUETAS_TRANSPORTE, duracion, euros, normalizar,
 } from './formato.js';
@@ -179,6 +180,8 @@ export function leerFiltrosEscapadas(p = {}) {
     presupuestoPor: p.prespor === 'persona' ? 'persona' : 'total',
     // Los cruceros se esconden salvo que se pida verlos («cru=0» apaga el interruptor).
     sinCruceros: p.cru !== '0',
+    // Con un finde o un puente elegido, las de fechas cerradas solo si caben enteras en él.
+    soloEncajan: p.encaje === '1',
     orden: ORDENES_ESCAPADAS.includes(p.orden) ? p.orden : 'puntuacion',
   };
 }
@@ -283,6 +286,39 @@ function periodoDe(cuando, ctx) {
   const finde = (ctx.findes ?? []).find((f) => f.id === cuando);
   if (finde) return periodoFinde(finde);
   return periodoPuente((ctx.puentes ?? []).find((p) => p.id === cuando)) ?? null;
+}
+
+/**
+ * Días que abarca lo elegido en «¿Cuándo?» (o en el finde de Vuelos): un finde, de viernes a
+ * domingo; un puente, de su primer a su último día libre. null si no es ni lo uno ni lo otro.
+ * @returns {{id: string, tipo: 'finde'|'puente', inicio: string, fin: string}|null}
+ */
+export function rangoDe(cuando, ctx = {}) {
+  if (!cuando) return null;
+  const id = cuando === 'finde' ? ctx.finde?.id : cuando === 'puente' ? ctx.puente?.id : cuando;
+  if (!id) return null;
+  const finde = [ctx.finde, ...(ctx.findes ?? [])].find((x) => x?.id === id);
+  if (finde) return { id, tipo: 'finde', inicio: finde.viernes, fin: finde.domingo };
+  const puente = [ctx.puente, ...(ctx.puentes ?? [])].find((x) => x?.id === id);
+  return puente ? { id, tipo: 'puente', inicio: puente.desde, fin: puente.hasta } : null;
+}
+
+const dias = (n) => (n === 1 ? 'un día' : `${n} días`);
+
+/**
+ * ¿Cabe una oferta de fechas cerradas (o un vuelo) en el rango? `cabe` si sale y vuelve
+ * dentro; si no, en qué se sale («sale un día antes», «vuelve un día después»). null si la
+ * oferta no tiene fechas cerradas o no hay rango.
+ * @returns {{cabe: boolean, motivos: string[]}|null}
+ */
+export function encajeEnRango(o, rango) {
+  const salida = o.fechas?.salida?.slice(0, 10);
+  if (!salida || !rango) return null;
+  const vuelta = (o.fechas.vuelta ?? o.fechas.salida).slice(0, 10);
+  const motivos = [];
+  if (salida < rango.inicio) motivos.push(`sale ${dias(diasEntre(salida, rango.inicio))} antes`);
+  if (vuelta > rango.fin) motivos.push(`vuelve ${dias(diasEntre(rango.fin, vuelta))} después`);
+  return { cabe: motivos.length === 0, motivos };
 }
 
 const indiceTexto = new WeakMap();
@@ -563,20 +599,25 @@ export function destinosDeVuelo(vuelos) {
 
 /**
  * Distancia desde `punto` (o desde el origen) a cada oferta con coordenadas que no es un vuelo.
- * `kmCoche` son los kilómetros reales por carretera; solo se conocen desde el origen.
+ * `kmCoche` son los kilómetros reales por carretera: desde el origen, los del escaneo; desde
+ * otro punto, los de `rutas` (clave del destino → {min, km}, ver rutas.js) si se han pedido.
  * @returns {Map<string, {km: number, kmCoche: number|null, minutos: number|null, estimado: boolean}>}
  */
-export function medirDistancias(ofertas, punto, origen) {
+export function medirDistancias(ofertas, punto, origen, rutas = null) {
   const desdeOrigen = !punto || esMismoPunto(punto, origen);
   const distancias = new Map();
   for (const o of ofertas) {
     if (esVuelo(o) || !tieneCoordenadas(o.lugar)) continue;
-    distancias.set(o.id, {
-      km: distanciaKm(punto ?? origen, o.lugar),
-      kmCoche: desdeOrigen && typeof o.cocheKm === 'number' ? o.cocheKm : null,
-      minutos: minutosEnCoche(o, punto, origen),
-      estimado: !(desdeOrigen && typeof o.cocheMin === 'number') || Boolean(o.cocheEstimado),
-    });
+    const minutos = minutosEnCoche(o, punto, origen);
+    const ruta = !desdeOrigen && minutos != null ? rutas?.get(clavePunto(o.lugar)) : null;
+    distancias.set(o.id, ruta
+      ? { km: distanciaKm(punto, o.lugar), kmCoche: ruta.km, minutos: ruta.min, estimado: false }
+      : {
+        km: distanciaKm(punto ?? origen, o.lugar),
+        kmCoche: desdeOrigen && typeof o.cocheKm === 'number' ? o.cocheKm : null,
+        minutos,
+        estimado: !(desdeOrigen && typeof o.cocheMin === 'number') || Boolean(o.cocheEstimado),
+      });
   }
   return distancias;
 }
@@ -604,6 +645,7 @@ function cumpleEscapada(o, f, ctx, distancia) {
     && (!f.estrellas || (o.estrellas ?? 0) >= f.estrellas)
     && (!f.fuente || o.fuente === f.fuente)
     && (!f.tipo || o.tipo === f.tipo)
+    && (!f.soloEncajan || encajeEnRango(o, rangoDe(f.cuando, ctx))?.cabe !== false)
     && dentroDelLimite(distancia, f);
 }
 
@@ -1095,6 +1137,37 @@ export function filtrosVigentes(params = {}, { hoy, findes = [], puentes = [] } 
   return vigentes;
 }
 
+/** Vistas de Explorar que comparten el periodo elegido (Vuelos lo llama «finde»). */
+const VISTAS_CON_PERIODO = ['escapadas', 'actividades', 'vuelos', 'mapa'];
+
+/**
+ * Las fechas elegidas en una vista de Explorar ({cuando, desde, hasta}), o null si la vista
+ * no tiene fechas. Vuelos guarda el finde o el puente en «finde».
+ */
+export function periodoDeParams(vista, params = {}) {
+  if (!VISTAS_CON_PERIODO.includes(vista)) return null;
+  return { cuando: (vista === 'vuelos' ? params.finde : params.cuando) ?? '', desde: params.desde ?? '', hasta: params.hasta ?? '' };
+}
+
+/**
+ * Los parámetros de `vista` con el periodo de otra puesto en vez del suyo: así el finde o el
+ * puente elegido sigue siendo el mismo al pasar de Escapadas a Vuelos, Planes o el Mapa.
+ * «finde»/«puente» se traducen al id concreto para Vuelos, que no los entiende.
+ */
+export function conPeriodo(vista, params, periodo, { finde = null, puente = null } = {}) {
+  if (!periodo || !VISTAS_CON_PERIODO.includes(vista)) return params;
+  const { cuando: _c, finde: _f, desde: _d, hasta: _h, ...resto } = params;
+  const cuando = vista === 'vuelos'
+    ? ({ finde: finde?.id, puente: puente?.id }[periodo.cuando] ?? periodo.cuando)
+    : periodo.cuando;
+  return {
+    ...resto,
+    ...(cuando ? { [vista === 'vuelos' ? 'finde' : 'cuando']: cuando } : {}),
+    ...(periodo.desde ? { desde: periodo.desde } : {}),
+    ...(periodo.hasta ? { hasta: periodo.hasta } : {}),
+  };
+}
+
 /** Parámetros que no filtran (ordenan o acompañan a otro) y no salen como chip. */
 const NO_SON_FILTROS = new Set(['orden', 'lat', 'lon', 'prespor', 'sal', 'slat', 'slon', 'vj', 'nc']);
 
@@ -1178,6 +1251,7 @@ function textoFiltro(clave, valor, ctx) {
     dup: () => 'Con las repetidas',
     cru: () => (valor === '0' ? 'Con cruceros' : null),
     cerradas: () => 'Solo con fechas cerradas',
+    encaje: () => 'Solo las que caben enteras en esas fechas',
     gratis: () => 'Solo gratis',
     ninos: () => ETIQUETAS_NINOS[valor] ?? valor,
   };

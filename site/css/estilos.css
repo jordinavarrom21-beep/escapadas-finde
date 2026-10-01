@@ -1536,3 +1536,5 @@ body:has([data-plegable-movil][open]) .barra-comparar [data-abrir-filtros] { dis
 .buscar-fuera { font-size: 0.9rem; }
 .buscar-fuera a { color: var(--enlace); white-space: normal; }
 .buscar-fuera .ic { width: 0.9em; height: 0.9em; margin-left: 2px; vertical-align: -0.1em; }
+.insignia--encaje { background: var(--acento-suave); color: var(--acento-suave-texto); }
+.insignia--encaje.insignia--fuera { background: var(--puente-suave); color: var(--puente); }

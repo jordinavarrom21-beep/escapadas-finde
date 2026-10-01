@@ -201,3 +201,22 @@ export function importarGuardados(copia) {
   }
   return cargadas;
 }
+
+// ── Rutas por carretera desde tu salida (rutas.js) ───────────────────────────
+
+const CLAVE_RUTAS = 'escapadas:rutas';
+/** Las rutas no cambian, pero las carreteras sí, de vez en cuando: se renuevan al mes. */
+const CADUCIDAD_RUTAS_MS = 30 * 86_400_000;
+
+/** Rutas guardadas desde la salida de clave `desde` (Map destino → {min, km}); vacío si son de otra salida o viejas. */
+export function cargarRutas(desde, ahora = new Date()) {
+  const guardado = leerJson(CLAVE_RUTAS, null);
+  if (!guardado || guardado.desde !== desde || !(ahora.getTime() - Date.parse(guardado.fecha) < CADUCIDAD_RUTAS_MS)) return new Map();
+  const valida = ([, r]) => Number.isFinite(r?.min) && Number.isFinite(r?.km);
+  return new Map(Object.entries(guardado.rutas ?? {}).filter(valida));
+}
+
+/** Guarda las rutas de una sola salida (la tuya): al cambiarla se sustituyen. */
+export function guardarRutas(desde, rutas, ahora = new Date()) {
+  escribir(local, CLAVE_RUTAS, JSON.stringify({ desde, fecha: ahora.toISOString(), rutas: Object.fromEntries(rutas) }));
+}

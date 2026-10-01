@@ -8,12 +8,13 @@ import {
   contar, duracion, enumerar, escaparHtml as esc, euros, haceCuanto, urlSegura, ETIQUETAS_ALOJAMIENTO,
   ETIQUETAS_REGIMEN, ETIQUETAS_TIPO, ETIQUETAS_TRANSPORTE,
 } from './formato.js';
+import { etiquetaDia } from './fechas.js';
 import {
   ALOJAMIENTOS, ATAJOS_ESCAPADAS, ATAJOS_A_LA_VISTA, ORDENES_ACTIVIDADES, SIN_COCHE, ORDENES_ESCAPADAS, REGIMENES_ORDEN,
   buscarActividades, buscarEscapadas, buscarTexto, chollosDeVuelos, conFaltas, promocionesDeVuelos, crearHash, destinosDe,
   destinosDeVuelo, esActividad, esEscapada, filtrarVuelos, filtrosActivos, leerFiltrosActividades, zonasDe,
   leerFiltrosComunes, leerFiltrosEscapadas, leerFiltrosVuelos, radioBusquedaKm, viajeDeParams, tieneVuelo,
-  valoresUnicos, vuelosParaMapa, KM_CERCA_DE_LO_BUSCADO, lugarDeConsulta,
+  valoresUnicos, vuelosParaMapa, KM_CERCA_DE_LO_BUSCADO, lugarDeConsulta, encajeEnRango, rangoDe,
 } from './filtros.js';
 import {
   certeza, costeDe, textoAlojamiento, textoCaducidad, textoFechas, textoLugar, estadoVacio, rejilla,
@@ -22,7 +23,7 @@ import {
 import { icono, iconoTema } from './iconos.js';
 import {
   ETIQUETAS_ORDEN, FILTROS_MAS_VUELOS, FILTROS_SECUNDARIOS, bloqueBusquedas, bloqueExclusiones, botonLimpiar,
-  campoTexto, contextoBusqueda, ctxTarjetas, etiquetaPuente, filtrosChollo, filtrosListas, interruptor,
+  campoTexto, contextoBusqueda, ctxTarjetas, etiquetaFinde, etiquetaPuente, filtrosChollo, filtrosListas, interruptor,
   interruptorDefecto, marcado, misAeropuertos, mostradas, nombreSalida, numero, opciones, pestanas, puntoSalida,
   resumenResultados,
 } from './vistas-comun.js';
@@ -52,7 +53,7 @@ export function vistaVuelos(e, params) {
   if (!e.datos.ofertas.some(tieneVuelo)) return vistaChollosVuelos(e, params, f, paises);
   const chips = [
     `<label class="chip"><input type="radio" name="finde" value=""${marcado(!f.finde)}> Todos</label>`,
-    ...e.findes.map((finde, i) => `<label class="chip${finde.puenteId ? ' chip--puente' : ''}"><input type="radio" name="finde" value="${esc(finde.id)}"${marcado(f.finde === finde.id)}> ${i === 0 ? 'Este finde · ' : ''}${esc(finde.etiqueta)}</label>`),
+    ...e.findes.map((finde, i) => `<label class="chip${finde.puenteId ? ' chip--puente' : ''}"><input type="radio" name="finde" value="${esc(finde.id)}"${marcado(f.finde === finde.id)}> ${i === 0 ? 'Este finde · ' : ''}${esc(etiquetaFinde(finde, e.datos.puentes))}</label>`),
     ...e.datos.puentes.map((p) => `<label class="chip chip--puente"><input type="radio" name="finde" value="${esc(p.id)}"${marcado(f.finde === p.id)}> ${etiquetaPuente(p)}</label>`),
   ];
   return `${pestanas('explorar', 'vuelos')}<h1 class="titulo-vista" tabindex="-1">Vuelos</h1>
@@ -104,8 +105,9 @@ const listaAeropuertos = (e) => enumerar(misAeropuertos(e), 'o') || `aeropuertos
 
 export function resultadosVuelos(e, params) {
   const f = leerFiltrosVuelos(params);
-  const ctx = ctxTarjetas(e);
   const contexto = contextoBusqueda(e);
+  const rango = rangoDe(f.finde, contexto);
+  const ctx = ctxTarjetas(e, { rango });
   const hayConFecha = e.datos.ofertas.some(tieneVuelo);
   const { resultado: [vuelos, chollos, promociones], aproximado } = conFaltas((g) => [
     filtrarVuelos(e.datos.ofertas, g, contexto), chollosDeVuelos(e.datos.ofertas, g, contexto), promocionesDeVuelos(e.datos.ofertas, g, contexto),
@@ -121,10 +123,21 @@ ${promociones.length ? `<section class="seccion">
   ${rejilla(promociones, ctx, { mostradas: mostradas(e, 'promociones'), clave: 'promociones' })}
 </section>` : ''}`;
   }
-  const conFecha = vuelos.length
-    ? rejilla(vuelos, ctx, { mostradas: mostradas(e, 'vuelos'), clave: 'vuelos' })
-    : estadoVacio('Ningún vuelo cumple estos filtros', 'Prueba con otro finde, otro aeropuerto o un precio máximo más alto.', botonLimpiar('vuelos'));
-  const resumen = `${contar(vuelos.length, 'vuelo')} con fecha, ${contar(chollos.length, 'billete')} sin fecha y ${contar(promociones.length, 'promoción', 'promociones')}`;
+  // Con un finde o un puente elegido: primero los que salen y vuelven dentro de esos días;
+  // aparte, los que se solapan (salen antes o vuelven después), diciendo en qué.
+  const dentro = rango ? vuelos.filter((o) => encajeEnRango(o, rango)?.cabe !== false) : vuelos;
+  const alrededor = rango ? vuelos.filter((o) => encajeEnRango(o, rango)?.cabe === false) : [];
+  const dias = rango ? `${etiquetaDia(rango.inicio)} – ${etiquetaDia(rango.fin)}` : '';
+  const conFecha = `${rango ? `<p class="seccion__intro">Salen y vuelven entre el <strong>${esc(dias)}</strong>.</p>` : ''}${dentro.length
+    ? rejilla(dentro, ctx, { mostradas: mostradas(e, 'vuelos'), clave: 'vuelos' })
+    : estadoVacio(rango ? `Ningún vuelo sale y vuelve entre el ${esc(dias)}` : 'Ningún vuelo cumple estos filtros',
+      rango && alrededor.length ? 'Abajo tienes los que salen un poco antes o vuelven un poco después.' : 'Prueba con otro finde, otro aeropuerto o un precio máximo más alto.', botonLimpiar('vuelos'))}${alrededor.length ? `
+<section class="seccion">
+  <div class="seccion__cabeza"><h2>Alrededor de esas fechas</h2><span class="contador">${esc(contar(alrededor.length, 'vuelo'))}</span></div>
+  <p class="seccion__intro">No caben enteros en el ${esc(dias)}: cada uno dice si sale antes o vuelve después.</p>
+  ${rejilla(alrededor, ctx, { mostradas: mostradas(e, 'vuelos-alrededor'), clave: 'vuelos-alrededor' })}
+</section>` : ''}`;
+  const resumen = `${contar(dentro.length, 'vuelo')} con fecha${alrededor.length ? ` (y ${alrededor.length} alrededor)` : ''}, ${contar(chollos.length, 'billete')} sin fecha y ${contar(promociones.length, 'promoción', 'promociones')}`;
   return `${filaActivos(e, 'vuelos', params)}${resumenResultados(resumen)}${parecido}
 <h2 class="subtitulo">Vuelos con fecha y hora</h2>${conFecha}
 <section class="seccion">
@@ -151,8 +164,8 @@ function chipsCuando(e, f) {
   const chip = (valor, texto, clase = '') => `<label class="chip${clase}"><input type="radio" name="cuando" value="${esc(valor)}"${marcado(f.cuando === valor)}> ${texto}</label>`;
   return [
     chip('', 'Cualquier fecha'),
-    chip('finde', `Este finde · ${esc(e.findes[0].etiqueta)}`),
-    ...e.findes.slice(1, 6).map((finde) => chip(finde.id, esc(finde.etiqueta))),
+    chip('finde', `Este finde · ${esc(etiquetaFinde(e.findes[0], e.datos.puentes))}`),
+    ...e.findes.slice(1, 6).map((finde) => chip(finde.id, esc(etiquetaFinde(finde, e.datos.puentes)), finde.puenteId ? ' chip--puente' : '')),
     ...e.datos.puentes.map((p) => chip(p.id, etiquetaPuente(p), ' chip--puente')),
   ].join('');
 }
@@ -312,8 +325,9 @@ function formularioEscapadas(e, params, vista) {
       <label class="campo">O entre el <input type="date" name="desde" value="${esc(unDia ? '' : f.desde)}"></label>
       <label class="campo">y el <input type="date" name="hasta" value="${esc(unDia ? '' : f.hasta)}"></label>
       ${interruptor('cerradas', 'Solo con fechas cerradas', f.soloCerradas)}
+      ${interruptor('encaje', 'Las de fechas cerradas, solo si caben enteras en el finde o puente elegido', f.soloEncajan)}
     </div>
-    <p class="ayuda">Las ofertas con <strong>fechas cerradas</strong> dicen el día exacto («vie 16 – dom 18 oct»). Las de <strong>fechas flexibles</strong> se pueden usar cualquier día hasta que caducan: salen en todas las fechas, pero la disponibilidad exacta la confirma la web del anunciante (el botón de la oferta la abre).</p>
+    <p class="ayuda">Las ofertas con <strong>fechas cerradas</strong> dicen el día exacto («vie 16 – dom 18 oct») y, si has elegido un finde o un puente, si <strong>caben</strong> en él o salen antes o vuelven después. Las de <strong>fechas flexibles</strong> se pueden usar cualquier día hasta que caducan: salen en todas las fechas, pero la disponibilidad exacta la confirma la web del anunciante (el botón de la oferta la abre).</p>
   </fieldset>
   <fieldset class="bloque"><legend class="bloque__titulo">¿Qué te apetece?</legend>
     <div class="chips chips--desplazables"><div class="chips__lista">${chipsTemas(e, f)}</div></div>
@@ -423,7 +437,7 @@ export function resultadosEscapadas(e, params) {
   const f = leerFiltrosEscapadas(params);
   const { resultado, aproximado } = conFaltas((g) => buscarEscapadas(e.datos.ofertas, g, contextoBusqueda(e)), f);
   const { ofertas, distancias, costes, sinTotal } = resultado;
-  const ctx = ctxTarjetas(e, { distancias, desde: f.punto?.nombre ?? nombreSalida(e) });
+  const ctx = ctxTarjetas(e, { distancias, desde: f.punto?.nombre ?? nombreSalida(e), rango: rangoDe(f.cuando, contextoBusqueda(e)) });
   // En el móvil el «Mapa» ya está en la pastilla flotante: aquí sobra.
   const acciones = `<a class="boton boton--suave solo-ancho-flex" href="${crearHash('mapa', params)}">${icono('mapa')}Ver en el mapa</a>`;
   return `${filaActivos(e, 'escapadas', params)}${resumenResultados(contar(ofertas.length, 'escapada'), acciones)}${aproximado ? avisoAproximado(f.q) : ''}${tambienCerca(e, f, params, ofertas)}
@@ -447,6 +461,8 @@ ${avisoMemoria(e, 'actividades')}${avisoViajeCompartido(e, params)}
 <div class="explorar">
 <div class="explorar__filtros">${plegableMovil(e, 'actividades', params)}<form class="filtros" data-filtros="actividades" aria-label="Filtros de actividades">
   <div class="filtros__fila">${campoTexto(f)}</div>
+  <fieldset class="chips chips--desplazables"><legend>¿Cuándo?</legend><div class="chips__lista">${chipsCuando(e, f)}</div></fieldset>
+  <p class="ayuda">Las entradas y visitas casi nunca dicen qué días hay plazas: con un finde o un puente salen las que siguen a la venta esos días (la disponibilidad exacta, en su web). Las que tienen fecha concreta solo salen ese día.</p>
   <fieldset class="chips chips--desplazables"><legend>Temática</legend><div class="chips__lista">${chipsTemas(e, f)}</div></fieldset>
   ${campoNinos(f)}
   <div class="filtros__fila">

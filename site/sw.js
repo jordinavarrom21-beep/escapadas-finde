@@ -36,6 +36,7 @@ const INTERFAZ = [
   'js/nota.js',
   'js/plantillas.js',
   'js/plantillas-ficha.js',
+  'js/rutas.js',
   'js/tema.js',
   'js/ubicacion.js',
   'js/viaje.js',

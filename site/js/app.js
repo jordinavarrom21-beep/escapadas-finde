@@ -7,7 +7,7 @@ import { abrirFicha, liberarFicha } from './ficha.js';
 import { fechasDeBusqueda } from './fechas-enlaces.js';
 import { diasEntre, estadoFinde, fechaLocal, findesProximos, proximoPuente } from './fechas.js';
 import {
-  POR_PAGINA, actividadesCerca, traducirFormulario, buscarTexto, crearHash, criterioVigilado, filtrosVigentes, leerFiltrosActividades,
+  POR_PAGINA, actividadesCerca, conPeriodo, periodoDeParams, traducirFormulario, buscarTexto, crearHash, criterioVigilado, filtrosVigentes, leerFiltrosActividades,
   leerFiltrosComunes, leerFiltrosEscapadas, leerFiltrosVuelos, leerRuta, medirDistancias, paramsViaje, referenciaNovedades,
   resumenFuentes, viajeDeParams,
 } from './filtros.js';
@@ -16,8 +16,9 @@ import {
   MAX_COMPARAR, borrarBusqueda, cargarBusquedas, marcarBusquedaVista, cargarComparar, cargarDescartadas, cargarMisEstados, guardarComparar, guardarMisEstados, cargarFavoritos, cargarFiltros, cargarSalida, cargarViaje,
   guardarBusqueda, guardarDescartadas, guardarFavoritos, guardarFiltros, guardarModoLista, guardarSalida, guardarTema, guardarViaje,
   tomarVisitaAnterior, bienvenidaVista, esPropietarioGuardado, guardarPropietario, marcarBienvenidaVista,
-  exportarGuardados, importarGuardados,
+  exportarGuardados, importarGuardados, cargarRutas, guardarRutas,
 } from './local.js';
+import { clavePunto, destinosSinRuta, pedirRutas } from './rutas.js';
 import { salidaEfectiva, validarSalida, validarViaje } from './viaje.js';
 import { destruirMapa, pintarMapa } from './mapa.js';
 import { estadoVacio } from './plantillas.js';
@@ -131,7 +132,8 @@ function crearEstado(datos, historial, vigilados) {
     bienvenidaVista: bienvenidaVista(),
     viaje: validarViaje(cargarViaje(), datos.viajeros),
     // Desde tu salida: desde el origen del escaneo, con los tiempos reales; si no, estimados.
-    distanciasOrigen: medirDistancias(datos.ofertas, salida, datos.origen),
+    rutas: salida ? cargarRutas(clavePunto(salida)) : new Map(),
+    distanciasOrigen: medirDistancias(datos.ofertas, salida, datos.origen, salida ? cargarRutas(clavePunto(salida)) : null),
     paginas: new Map(),
     ubicacion: { hostname: location.hostname, pathname: location.pathname },
   };
@@ -295,10 +297,16 @@ const contextoFechas = () => ({ hoy: estado.hoy, findes: estado.findes, puentes:
  * siguen el historial de verdad (antes se reescribía la entrada «sin filtros»).
  */
 function enlacesConMemoria() {
+  // Desde Explorar, el finde o el puente elegido pasa a las otras pestañas: el mismo periodo
+  // en Escapadas, Planes, Vuelos y Mapa (cada una con sus demás filtros recordados).
+  const actual = rutaActual();
+  const periodo = periodoDeParams(actual.vista, actual.params);
   for (const enlace of document.querySelectorAll('.navegacion a[data-vista], .pestanas a[data-vista]')) {
     const vista = enlace.dataset.vista;
-    if (!VISTAS_CON_MEMORIA.includes(vista)) continue;
-    const guardados = filtrosVigentes(cargarFiltros(vista) ?? {}, contextoFechas());
+    if (!VISTAS_CON_MEMORIA.includes(vista) && vista !== 'mapa') continue;
+    // El mapa enseña las escapadas: sus filtros son los de Escapadas.
+    const recordados = filtrosVigentes(cargarFiltros(vista === 'mapa' ? 'escapadas' : vista) ?? {}, contextoFechas());
+    const guardados = conPeriodo(vista, recordados, periodo, { finde: estado.findes[0], puente: estado.puente });
     enlace.setAttribute('href', crearHash(vista, guardados));
     enlace.toggleAttribute('data-con-memoria', Object.keys(guardados).length > 0);
   }
@@ -406,10 +414,8 @@ function aplicarFiltros(formulario, { repintar = null } = {}) {
   const vista = formulario.dataset.filtros;
   const params = paramsDeFormulario(formulario);
   history.replaceState(null, '', crearHash(vista, params));
-  if (VISTAS_CON_MEMORIA.includes(vista)) {
-    guardarFiltros(vista, params);
-    enlacesConMemoria();
-  }
+  if (VISTAS_CON_MEMORIA.includes(vista)) guardarFiltros(vista, params);
+  enlacesConMemoria();
   estado.paginas.clear();
   if (!repintar) {
     actualizarResultados(vista, params);
@@ -699,8 +705,10 @@ function aplicarViaje(salida, viaje) {
   guardarViaje(viaje);
   estado.salida = salidaEfectiva(salida, estado.datos.origen);
   estado.viaje = viaje;
-  estado.distanciasOrigen = medirDistancias(estado.datos.ofertas, estado.salida, estado.datos.origen);
+  estado.rutas = estado.salida ? cargarRutas(clavePunto(estado.salida)) : new Map();
+  estado.distanciasOrigen = medirDistancias(estado.datos.ofertas, estado.salida, estado.datos.origen, estado.rutas);
   pintarBotonViaje();
+  completarRutas();
   render({ enfocar: false });
   anunciar(`Guardado en este navegador: ${textoViaje(estado)}.`);
 }
@@ -987,6 +995,33 @@ async function iniciar() {
   setInterval(pintarReloj, 30_000);
   setInterval(comprobarDatosNuevos, NOVEDADES_MS);
   activarActualizaciones();
+  completarRutas();
+}
+
+/**
+ * Desde una salida que no es el origen del escaneo, los km y minutos reales por carretera:
+ * se piden a OSRM los que falten (rutas.js), se guardan y se repintan los resultados. Si
+ * mientras tanto cambias de salida, lo que llegue tarde no se usa.
+ */
+async function completarRutas() {
+  const salida = estado.salida;
+  if (!salida) return;
+  const desde = clavePunto(salida);
+  const faltan = destinosSinRuta(estado.datos.ofertas, estado.distanciasOrigen, salida, estado.rutas);
+  if (!faltan.size) return;
+  const nuevas = await pedirRutas(salida, faltan, {
+    pedir: (url) => fetch(url).then((r) => (r.ok ? r.json() : null)),
+    esperar: (ms) => new Promise((listo) => { setTimeout(listo, ms); }),
+  });
+  if (!nuevas.size || estado.salida !== salida) return;
+  for (const [clave, ruta] of nuevas) estado.rutas.set(clave, ruta);
+  guardarRutas(desde, estado.rutas);
+  estado.distanciasOrigen = medirDistancias(estado.datos.ofertas, salida, estado.datos.origen, estado.rutas);
+  // Sin molestar a quien está escribiendo o con la ficha abierta: los resultados, no el formulario.
+  const { vista, params } = leerRuta(location.hash);
+  if (dialogo.open) return;
+  if (VISTAS_HTML[vista]?.resultados && $('#resultados')) actualizarResultados(vista, params);
+  else if (!ocupado()) render({ enfocar: false });
 }
 
 /** A mitad de algo (una ficha o «Tu viaje» abiertos, escribiendo): mejor no recargar de golpe. */

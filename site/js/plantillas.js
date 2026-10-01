@@ -4,13 +4,13 @@
  */
 
 import { costeViaje, resumenCoste } from './coste.js';
-import { diasEntre, etiquetaDia, fechaLocal, horaDe } from './fechas.js';
+import { diasEntre, etiquetaDia, etiquetaRango, fechaLocal, horaDe } from './fechas.js';
 import {
   ETIQUETAS_ALOJAMIENTO, ETIQUETAS_REGIMEN, ETIQUETAS_TIPO, ETIQUETAS_TRANSPORTE, ETIQUETAS_UNIDAD, SIN_UNIDAD,
   contar, duracion, enumerar, escaparHtml as esc, euros, grados, haceCuanto, nota, puntosMinigrafica, tituloLegible, urlSegura,
 } from './formato.js';
 import {
-  SIN_COCHE, duracionActividad, esDuplicada, esNovedad, precioDeSerie, salidasDe, sinComprobar, sufijoSerie,
+  SIN_COCHE, duracionActividad, encajeEnRango, esDuplicada, esNovedad, precioDeSerie, salidasDe, sinComprobar, sufijoSerie,
   tieneVuelo,
 } from './filtros.js';
 import { escena, icono, iconoTema, iconoTiempo, tipoEscena } from './iconos.js';
@@ -482,6 +482,25 @@ function cabeceraFoto(o, ctx) {
 }
 
 /**
+ * Con un finde o un puente elegido (`ctx.rango`), si una oferta de fechas cerradas cabe en
+ * él o en qué se sale: «Cabe en el 10–12 oct» o «Sale un día antes». '' si no aplica.
+ */
+export function textoEncaje(o, ctx = {}) {
+  const encaje = encajeEnRango(o, ctx.rango);
+  if (!encaje) return '';
+  if (encaje.cabe) return `Cabe en el ${etiquetaRango(ctx.rango.inicio, ctx.rango.fin)}`;
+  const texto = encaje.motivos.join(' y ');
+  return `${texto[0].toUpperCase()}${texto.slice(1)} del ${etiquetaRango(ctx.rango.inicio, ctx.rango.fin)}`;
+}
+
+function insigniaEncaje(o, ctx) {
+  const texto = textoEncaje(o, ctx);
+  if (!texto) return '';
+  const cabe = encajeEnRango(o, ctx.rango).cabe;
+  return `<span class="insignia insignia--encaje${cabe ? '' : ' insignia--fuera'}">${icono(cabe ? 'check' : 'calendario')}${esc(texto)}</span>`;
+}
+
+/**
  * Pocos datos, los que sirven para decidir de un vistazo: cuándo, hasta cuándo vale, qué incluye (noches, alojamiento, régimen o duración) y cómo se llega si no es en
  * coche. El resto (valoración, transporte, eventos…) está en la ficha.
  */
@@ -501,7 +520,7 @@ function datosTarjeta(o, ctx = {}) {
   return [
     // Casi todas son de fechas flexibles: en la tarjeta solo se dicen las fechas cerradas (la
     // ficha explica las flexibles), o que puede valer para las que buscas.
-    o.fechas?.salida ? dato('calendario', textoFechas(o))
+    o.fechas?.salida ? dato('calendario', [textoFechas(o), textoEncaje(o, ctx)].filter(Boolean).join(' · '))
       : busquedaPara(o, ctx) ? dato('calendario', `Puede valer para el ${busquedaPara(o, ctx).etiqueta}`) : '',
     // Aparte: «hasta el 30» junto a las fechas se leería como el último día del viaje.
     caduca ? `<li${caduca.urgente ? ' class="dato--urgente"' : ''}>${icono('arena')}<span>${esc(caduca.texto)}</span></li>` : '',
@@ -764,7 +783,7 @@ export function tarjetaVuelo(o, ctx) {
     </div>
   </div>
   <div class="billete__pie">
-    <div class="insignias">${extras}${insignias(o, ctx)}</div>
+    <div class="insignias">${insigniaEncaje(o, ctx)}${extras}${insignias(o, ctx)}</div>
     ${textoComprobada(o, ctx)}
     <div class="acciones">${botonDescartar(o)}${botonComparar(o, ctx)}${botonFavorito(o, ctx)}${enlaceOferta(o, 'Reservar', ctx)}</div>
   </div>
@@ -809,9 +828,11 @@ export function filaActividad(o) {
 /** Explica desde dónde se miden las distancias en el buscador por ubicación. */
 export function textoAyudaUbicacion(punto, origen, salida = null) {
   const desde = punto ?? salida;
-  return desde
-    ? `Midiendo desde ${desde.nombre} (estimación: línea recta × 1,3 a 80 km/h).`
-    : `Midiendo desde ${origen.nombre} con el tiempo real por carretera.`;
+  if (!desde) return `Midiendo desde ${origen.nombre} con el tiempo real por carretera.`;
+  // «Cerca de…» es un radio alrededor del punto; tu salida, rutas reales (rutas.js).
+  return punto
+    ? `Midiendo desde ${desde.nombre}: el radio y los tiempos son aproximados (línea recta × 1,3 a 80 km/h).`
+    : `Midiendo desde ${desde.nombre} con los km y el tiempo reales por carretera (mientras llegan, aproximados).`;
 }
 
 export function insigniaEstado(estado) {
