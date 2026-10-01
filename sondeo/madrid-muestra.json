@@ -1,0 +1,879 @@
+{
+	"@context": {
+		"c": "http://www.w3.org/2002/12/cal#",
+		"dcterms": "http://purl.org/dc/terms/",
+		"geo": "http://www.w3.org/2003/01/geo/wgs84_pos#",
+		"loc": "http://purl.org/ctic/infraestructuras/localizacion#",
+		"org": "http://purl.org/ctic/infraestructuras/organizacion#",
+		"vcard": "http://www.w3.org/2006/vcard/ns#",
+		"schema": "https://schema.org/",
+		"title": "vcard:fn",
+		"id": "dcterms:identifier",
+		"relation": "dcterms:relation",
+		"references": "dcterms:references",
+		"address": "vcard:adr",
+		"area": "loc:barrio",
+		"district": "loc:distrito",
+		"locality": "vcard:locality",
+		"postal-code": "vcard:postal-code",
+		"street-address": "vcard:street-address",
+		"location": "vcard:geo",
+		"latitude": "geo:lat",
+		"longitude": "geo:long",
+		"organization": "vcard:org",
+		"organization-desc": "dcterms:description",
+		"accesibility": "org:accesibilidad",
+		"services": "org:servicios",
+		"schedule": "org:horario",
+		"organization-name": "vcard:organization-name",
+		"description": "c:summary",
+		"link": "c:url",
+		"uid": "c:uid",
+		"dtstart": "c:dtstart",
+		"dtend": "c:dtend",
+		"time": "c:time",
+		"excluded-days": "c:exdate",
+		"event-location": "c:location",
+		"free": "schema:free",
+		"price": "c:resource",
+		"recurrence": "c:rrule",
+		"days": "c:byday",
+		"frequency": "c:freq",
+		"interval": "c:interval",
+		"audience": "dc:audience"
+	},
+	"@graph": [
+	{
+		"@id": "https://datos.madrid.es/egob/catalogo/tipo/evento/50409003-19-edicion-mi-primer-festival-cine.json",
+		"@type": "https://datos.madrid.es/egob/kos/actividades/ProgramacionDestacadaAgendaCultura",
+		"id": "50409003",
+		"title": "19ª edición Mi Primer Festival de Cine",
+		"description": "",
+		"free": 0,		
+		"price": "",
+		"dtstart": "2026-11-07 00:00:00.0",
+		"dtend": "2026-11-22 23:59:00.0",
+		"time": "",
+		"excluded-days": "",
+		"recurrence": {
+			"days": "MO,TU,WE,TH,FR,SA,SU",
+			"frequency": "WEEKLY",
+			"interval": 1
+		},
+			"audience": "Niños,Familias",
+		"uid": "50409003",
+		"link": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=a32c600f78a80a10VgnVCM100000891ecb1aRCRD",
+		"event-location": "Centro de Cultura Contemporánea CondeDuque",
+		"references": {
+			"@id": ""
+		},
+			"relation": {
+				"@id": "https://datos.madrid.es/egob/catalogo/tipo/entidadesyorganismos/1916-centro-cultura-contemporanea-condeduque.json"
+			},
+				"address": {
+					"district": {
+						"@id": "https://datos.madrid.es/egob/kos/Provincia/Madrid/Municipio/Madrid/Distrito/Centro"
+					},
+						"area": {
+							"@id": "https://datos.madrid.es/egob/kos/Provincia/Madrid/Municipio/Madrid/Distrito/Centro/Barrio/Universidad",
+							"locality": "MADRID",		
+							"postal-code": "28015",
+							"street-address": "CALLE CONDE DUQUE 9"
+					}
+				},
+			"location": {
+				"latitude": 40.42739911262292,
+				"longitude": -3.710589286287491
+			},		 
+			"organization": {
+			"organization-name": "Centro de Cultura Contemporánea CondeDuque",
+			"accesibility": "1"
+		}
+	},
+	{
+		"@id": "https://datos.madrid.es/egob/catalogo/tipo/evento/50366129-25-anos-museo-san-isidro-origenes-madrid.json",
+		"@type": "https://datos.madrid.es/egob/kos/actividades/Exposiciones",
+		"id": "50366129",
+		"title": "25 años del Museo de San Isidro. Los Orígenes de Madrid",
+		"description": "",
+		"free": 1,		
+		"price": "",
+		"dtstart": "2026-07-21 00:00:00.0",
+		"dtend": "2027-01-31 23:59:00.0",
+		"time": "",
+		"excluded-days": "24/12/2026;25/12/2026;31/12/2026;1/1/2027;",
+		"recurrence": {
+			"days": "TU,WE,TH,FR,SA,SU",
+			"frequency": "WEEKLY",
+			"interval": 1
+		},
+		"uid": "50366129",
+		"link": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=92684dde03f7f910VgnVCM200000f921e388RCRD",
+		"event-location": "Museo de San Isidro. Los Orígenes de Madrid",
+		"references": {
+			"@id": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=39b35c3f9fe7f910VgnVCM200000f921e388RCRD"
+		},
+			"relation": {
+				"@id": "https://datos.madrid.es/egob/catalogo/tipo/entidadesyorganismos/2112-museo-san-isidro-origenes-madrid.json"
+			},
+				"address": {
+					"district": {
+						"@id": "https://datos.madrid.es/egob/kos/Provincia/Madrid/Municipio/Madrid/Distrito/Centro"
+					},
+						"area": {
+							"@id": "https://datos.madrid.es/egob/kos/Provincia/Madrid/Municipio/Madrid/Distrito/Centro/Barrio/Palacio",
+							"locality": "MADRID",		
+							"postal-code": "28005",
+							"street-address": "PLAZA SAN ANDRES 2"
+					}
+				},
+			"location": {
+				"latitude": 40.41207900253883,
+				"longitude": -3.7108161027466378
+			},		 
+			"organization": {
+			"organization-name": "Museo de San Isidro. Los Orígenes de Madrid",
+			"accesibility": "2,6"
+		}
+	},
+	{
+		"@id": "https://datos.madrid.es/egob/catalogo/tipo/evento/50434084-250-motivos-muchos-influencia-espana-estados-unidos.json",
+		"@type": "https://datos.madrid.es/egob/kos/actividades/ConferenciasColoquios",
+		"id": "50434084",
+		"title": "250 motivos y muchos más de la influencia de España en Estados Unidos",
+		"description": "Comenzamos un nuevo ciclo para adentrarnos en curiosidades sobre la historia de EEUU.  ¿Parte del trazado de la Ruta 66 está diseñado sobre los caminos que exploraron siglos atrás los españoles? ¿Hernando de Soto, primer europeo en conocer el río Mississippi y cuya aventura se encuentra entre las ocho grandes pinturas de la Rotonda del Capitolio de Washington DC, dio nombre a un rutilante modelo de autómovil décadas atrás? ¿Comparten patrones estéticos los bandoleros de las serranías españolas y los ‘fuera-de-la-ley’, los forajidos mitificados por el cine y la novela? Fruto de su experiencia recorriendo la inabarcable inmensidad estadounidense, el periodista Paco Reyero ofrece una disertación en la que presenta una visión de conjunto, formada con sorprendentes historias de la Historia, sobre la relación de España y los territorios que conforman la nación estadounidense.  Entrada libre hasta completar aforo",
+		"free": 1,		
+		"price": "",
+		"dtstart": "2026-10-06 19:00:00.0",
+		"dtend": "2026-10-06 23:59:00.0",
+		"time": "19:00",
+		"excluded-days": "",
+		"uid": "50434084",
+		"link": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=b69140777b7e0a10VgnVCM100000891ecb1aRCRD",
+		"event-location": "Biblioteca Pública Municipal Eugenio Trías. Casa de Fieras de El Retiro (Retiro)",
+		"references": {
+			"@id": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=653d40777b7e0a10VgnVCM100000891ecb1aRCRD"
+		},
+			"relation": {
+				"@id": "https://datos.madrid.es/egob/catalogo/tipo/entidadesyorganismos/6893633-biblioteca-publica-municipal-eugenio-trias-casa-fieras-retiro-retiro-.json"
+			},
+				"address": {
+					"district": {
+						"@id": "https://datos.madrid.es/egob/kos/Provincia/Madrid/Municipio/Madrid/Distrito/Retiro"
+					},
+						"area": {
+							"@id": "https://datos.madrid.es/egob/kos/Provincia/Madrid/Municipio/Madrid/Distrito/Retiro/Barrio/LosJeronimos",
+							"locality": "MADRID",		
+							"postal-code": "28009",
+							"street-address": "PASEO FERNÁN NÚÑEZ 24"
+					}
+				},
+			"location": {
+				"latitude": 40.4166091081099,
+				"longitude": -3.6795930368034804
+			},		 
+			"organization": {
+			"organization-name": "Biblioteca Pública Municipal Eugenio Trías. Casa de Fieras de El Retiro (Retiro)",
+			"accesibility": "1,5,6"
+		}
+	},
+	{
+		"@id": "https://datos.madrid.es/egob/catalogo/tipo/evento/50434043-50-aniversario-asociacion-vecinal-solidaridad-cuatro-caminos-tetuan.json",
+		"@type": "https://datos.madrid.es/egob/kos/actividades/Exposiciones",
+		"id": "50434043",
+		"title": "50 Aniversario de la Asociación Vecinal Solidaridad Cuatro Caminos-Tetuán",
+		"description": "Material y fotografías históricas de la Asociación Vecinal Solidaridad Cuatro Caminos-Tetuán. En las plantas baja y primera del centro.",
+		"free": 1,		
+		"price": "",
+		"dtstart": "2026-10-19 00:00:00.0",
+		"dtend": "2026-11-10 23:59:00.0",
+		"time": "",
+		"excluded-days": "",
+		"recurrence": {
+			"days": "MO,TU,WE,TH,FR,SA",
+			"frequency": "WEEKLY",
+			"interval": 1
+		},
+		"uid": "50434043",
+		"link": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=ca9b080a5b7e0a10VgnVCM200000f921e388RCRD",
+		"event-location": "Centro Sociocultural José de Espronceda (Tetuán)",
+		"references": {
+			"@id": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=1ba4173467aeb810VgnVCM1000001d4a900aRCRD"
+		},
+			"relation": {
+				"@id": "https://datos.madrid.es/egob/catalogo/tipo/entidadesyorganismos/1947-centro-sociocultural-jose-espronceda-tetuan-.json"
+			},
+				"address": {
+					"district": {
+						"@id": "https://datos.madrid.es/egob/kos/Provincia/Madrid/Municipio/Madrid/Distrito/Tetuan"
+					},
+						"area": {
+							"@id": "https://datos.madrid.es/egob/kos/Provincia/Madrid/Municipio/Madrid/Distrito/Tetuan/Barrio/BellasVistas",
+							"locality": "MADRID",		
+							"postal-code": "28039",
+							"street-address": "CALLE ALMANSA 9"
+					}
+				},
+			"location": {
+				"latitude": 40.44864332758775,
+				"longitude": -3.704513191828797
+			},		 
+			"organization": {
+			"organization-name": "Centro Sociocultural José de Espronceda (Tetuán)",
+			"accesibility": "1"
+		}
+	},
+	{
+		"@id": "https://datos.madrid.es/egob/catalogo/tipo/evento/50346030-90-anos-declaracion-parque-retiro-bien-interes-cultural.json",
+		"@type": "https://datos.madrid.es/egob/kos/actividades/Exposiciones",
+		"id": "50346030",
+		"title": "90 años de la declaración del Parque del Retiro como Bien de Interés Cultural",
+		"description": "",
+		"free": 1,		
+		"price": "",
+		"dtstart": "2026-07-01 10:00:00.0",
+		"dtend": "2026-10-31 23:59:00.0",
+		"time": "10:00",
+		"excluded-days": "",
+		"recurrence": {
+			"days": "TU,WE,TH,FR,SA,SU",
+			"frequency": "WEEKLY",
+			"interval": 1
+		},
+		"uid": "50346030",
+		"link": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=df7bd881d7dfe910VgnVCM200000f921e388RCRD",
+		"event-location": "Centro de Educación Ambiental El Retiro",
+		"references": {
+			"@id": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=1600137ff5dfe910VgnVCM200000f921e388RCRD"
+		},
+			"relation": {
+				"@id": "https://datos.madrid.es/egob/catalogo/tipo/entidadesyorganismos/5463464-centro-educacion-ambiental-retiro.json"
+			},
+				"address": {
+					"district": {
+						"@id": "https://datos.madrid.es/egob/kos/Provincia/Madrid/Municipio/Madrid/Distrito/Retiro"
+					},
+						"area": {
+							"@id": "https://datos.madrid.es/egob/kos/Provincia/Madrid/Municipio/Madrid/Distrito/Retiro/Barrio/LosJeronimos",
+							"locality": "MADRID",		
+							"postal-code": "28009",
+							"street-address": "PASEO FERNAN NUÑEZ 2"
+					}
+				},
+			"location": {
+				"latitude": 40.40943503279114,
+				"longitude": -3.6861797800993257
+			},		 
+			"organization": {
+			"organization-name": "Centro de Educación Ambiental El Retiro",
+			"accesibility": "1"
+		}
+	},
+	{
+		"@id": "https://datos.madrid.es/egob/catalogo/tipo/evento/50421045-life-illuminated.json",
+		"@type": "https://datos.madrid.es/egob/kos/actividades/ProgramacionDestacadaAgendaCultura",
+		"id": "50421045",
+		"title": "A Life Illuminated",
+		"description": "A Life Illuminated nos acerca a la figura de la pionera bióloga marina Edie Widder y a una vida dedicada a explorar aquello que el océano todavía oculta. Sus investigaciones sobre la bioluminiscencia y las profundidades marinas revelan un mundo tan extraordinario como vulnerable. A través de la ciencia, el asombro y unas imágenes excepcionales, la película nos invita a comprender mejor estos ecosistemas y a reconocer que proteger lo desconocido también forma parte de proteger el futuro del planeta. &amp;gt; Estreno en España",
+		"free": 0,		
+		"price": "",
+		"dtstart": "2026-10-25 19:30:00.0",
+		"dtend": "2026-10-25 23:59:00.0",
+		"time": "19:30",
+		"excluded-days": "",
+		"uid": "50421045",
+		"link": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=3e8bb375a2ea0a10VgnVCM200000f921e388RCRD",
+		"event-location": "Cineteca Madrid",
+		"references": {
+			"@id": ""
+		},
+			"relation": {
+				"@id": "https://datos.madrid.es/egob/catalogo/tipo/entidadesyorganismos/6963310-cineteca-madrid.json"
+			},
+				"address": {
+					"district": {
+						"@id": "https://datos.madrid.es/egob/kos/Provincia/Madrid/Municipio/Madrid/Distrito/Arganzuela"
+					},
+						"area": {
+							"@id": "https://datos.madrid.es/egob/kos/Provincia/Madrid/Municipio/Madrid/Distrito/Arganzuela/Barrio/Chopera",
+							"locality": "MADRID",		
+							"postal-code": "28045",
+							"street-address": "PLAZA LEGAZPI 8"
+					}
+				},
+			"location": {
+				"latitude": 40.39130985242181,
+				"longitude": -3.6958028442054074
+			},		 
+			"organization": {
+			"organization-name": "Cineteca Madrid",
+			"accesibility": "1"
+		}
+	},
+	{
+		"@id": "https://datos.madrid.es/egob/catalogo/tipo/evento/50428927-ti-no-te-muerdo-loco-tono-balach.json",
+		"@type": "https://datos.madrid.es/egob/kos/actividades/TeatroPerformance",
+		"id": "50428927",
+		"title": "A ti no te muerdo ni loco por Toño Balach",
+		"description": "El Conde siempre ha tenido un don especial para meterse en líos. Pero esta vez el culpable es Mario Vampquerizo, su primo hermano. También es vampiro, aunque mucho más peligroso y lo persigue desde los años ochenta. Ahora ha llegado el momento de descubrir por qué. Un monólogo disparatado sobre la movida, la fama y los líos de un vampiro muy fiestero.  Duración: 60 minutos.  Edad recomendada: A partir de 18 años.",
+		"free": 1,		
+		"price": "",
+		"dtstart": "2026-10-24 19:00:00.0",
+		"dtend": "2026-10-24 23:59:00.0",
+		"time": "19:00",
+		"excluded-days": "",
+		"uid": "50428927",
+		"link": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=cc3b53e5ed7c0a10VgnVCM100000891ecb1aRCRD",
+		"event-location": "Centro Sociocultural García Lorca (Carabanchel)",
+		"references": {
+			"@id": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=6951f36edd371910VgnVCM2000001f4a900aRCRD"
+		},
+			"relation": {
+				"@id": "https://datos.madrid.es/egob/catalogo/tipo/entidadesyorganismos/1926-centro-sociocultural-garcia-lorca-carabanchel-.json"
+			},
+				"address": {
+					"district": {
+						"@id": "https://datos.madrid.es/egob/kos/Provincia/Madrid/Municipio/Madrid/Distrito/Carabanchel"
+					},
+						"area": {
+							"@id": "https://datos.madrid.es/egob/kos/Provincia/Madrid/Municipio/Madrid/Distrito/Carabanchel/Barrio/Buenavista",
+							"locality": "MADRID",		
+							"postal-code": "28044",
+							"street-address": "CALLE EUGENIA DE MONTIJO 105"
+					}
+				},
+			"location": {
+				"latitude": 40.374208184505,
+				"longitude": -3.7510283910283873
+			},		 
+			"organization": {
+			"organization-name": "Centro Sociocultural García Lorca (Carabanchel)",
+			"accesibility": "1"
+		}
+	},
+	{
+		"@id": "https://datos.madrid.es/egob/catalogo/tipo/evento/50430847-viva-voz.json",
+		"@type": "https://datos.madrid.es/egob/kos/actividades/DanzaBaile",
+		"id": "50430847",
+		"title": "A viva voz",
+		"description": "De 12 a 13 horas.  Coro CoroFón.  Edad: Todos los públicos (menores acompañados con un adulto). Imprescindible reserva previa.  Sinopsis: Cálido reencuentro de voces que la pandemia unió tras sus pantallas. Coral Guadix: desde Olivos (Buenos Aires), dirigida por Nicolás Fiorotto, lleva 26 años realizando excelentes conciertos. El CoroFón: dirigido por Alejandra Barella y Carina Brezzi, hace una década que viene interpretando temas populares muy sentidos y comprometidos.",
+		"free": 1,		
+		"price": "",
+		"dtstart": "2026-10-18 12:00:00.0",
+		"dtend": "2026-10-18 23:59:00.0",
+		"time": "12:00",
+		"excluded-days": "",
+			"audience": "Niños,Familias",
+		"uid": "50430847",
+		"link": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=337256d56bdc0a10VgnVCM200000f921e388RCRD",
+		"event-location": "Centro de Educación Ambiental y Cultural Maris Stella (Usera)",
+		"references": {
+			"@id": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=4e25ce5179e61910VgnVCM1000001d4a900aRCRD"
+		},
+			"relation": {
+				"@id": "https://datos.madrid.es/egob/catalogo/tipo/entidadesyorganismos/11526686-centro-educacion-ambiental-cultural-maris-stella-usera-.json"
+			},
+				"address": {
+					"district": {
+						"@id": "https://datos.madrid.es/egob/kos/Provincia/Madrid/Municipio/Madrid/Distrito/Usera"
+					},
+						"area": {
+							"@id": "https://datos.madrid.es/egob/kos/Provincia/Madrid/Municipio/Madrid/Distrito/Usera/Barrio/Pradolongo",
+							"locality": "MADRID",		
+							"postal-code": "28026",
+							"street-address": "CALLE DOCTOR TOLOSA LATOUR 16"
+					}
+				},
+			"location": {
+				"latitude": 40.374166248648216,
+				"longitude": -3.7032220308808577
+			},		 
+			"organization": {
+			"organization-name": "Centro de Educación Ambiental y Cultural Maris Stella (Usera)",
+			"accesibility": "1"
+		}
+	},
+	{
+		"@id": "https://datos.madrid.es/egob/catalogo/tipo/evento/50409133-abraham-boba-163-centimetros.json",
+		"@type": "https://datos.madrid.es/egob/kos/actividades/ProgramacionDestacadaAgendaCultura",
+		"id": "50409133",
+		"title": "Abraham Boba. 163 centímetros",
+		"description": "",
+		"free": 0,		
+		"price": "",
+		"dtstart": "2026-10-08 20:00:00.0",
+		"dtend": "2026-10-08 23:59:00.0",
+		"time": "20:00",
+		"excluded-days": "",
+		"uid": "50409133",
+		"link": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=25a0e61baca80a10VgnVCM100000891ecb1aRCRD",
+		"event-location": "Centro de Cultura Contemporánea CondeDuque",
+		"references": {
+			"@id": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=5b4206e84e580a10VgnVCM200000f921e388RCRD"
+		},
+			"relation": {
+				"@id": "https://datos.madrid.es/egob/catalogo/tipo/entidadesyorganismos/1916-centro-cultura-contemporanea-condeduque.json"
+			},
+				"address": {
+					"district": {
+						"@id": "https://datos.madrid.es/egob/kos/Provincia/Madrid/Municipio/Madrid/Distrito/Centro"
+					},
+						"area": {
+							"@id": "https://datos.madrid.es/egob/kos/Provincia/Madrid/Municipio/Madrid/Distrito/Centro/Barrio/Universidad",
+							"locality": "MADRID",		
+							"postal-code": "28015",
+							"street-address": "CALLE CONDE DUQUE 9"
+					}
+				},
+			"location": {
+				"latitude": 40.42739911262292,
+				"longitude": -3.710589286287491
+			},		 
+			"organization": {
+			"organization-name": "Centro de Cultura Contemporánea CondeDuque",
+			"accesibility": "1"
+		}
+	},
+	{
+		"@id": "https://datos.madrid.es/egob/catalogo/tipo/evento/12130154-actividades-mensuales-centros-mayores-distrito-centro.json",
+		"id": "12130154",
+		"title": "Actividades mensuales de los centros de mayores del distrito Centro",
+		"description": "",
+		"free": 0,		
+		"price": "",
+		"dtstart": "2025-11-01 00:00:00.0",
+		"dtend": "2032-04-30 23:59:00.0",
+		"time": "",
+		"excluded-days": "1/5/2026;2/5/2026;3/5/2026;15/5/2026;16/5/2026;17/5/2026;22/5/2026;23/5/2026;24/5/2026;25/5/2026;29/5/2026;30/5/2026;31/5/2026;",
+		"recurrence": {
+			"days": "MO,TU,WE,TH,FR,SA",
+			"frequency": "WEEKLY",
+			"interval": 1
+		},
+			"audience": "Mayores",
+		"uid": "12130154",
+		"link": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=b8d69bd86cd1b810VgnVCM2000001f4a900aRCRD",
+		"event-location": "",
+		"references": {
+			"@id": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=038a389dcf828810VgnVCM1000001d4a900aRCRD"
+		}				
+	},
+	{
+		"@id": "https://datos.madrid.es/egob/catalogo/tipo/evento/50324384-actividades-mensuales-centros-mayores-distrito-fuencarral-pardo.json",
+		"id": "50324384",
+		"title": "Actividades mensuales de los centros de mayores del distrito Fuencarral - El Pardo",
+		"description": "",
+		"free": 0,		
+		"price": "",
+		"dtstart": "2026-06-01 00:00:00.0",
+		"dtend": "2026-09-30 23:59:00.0",
+		"time": "",
+		"excluded-days": "9/10/2026;28/10/2026;",
+		"recurrence": {
+			"days": "MO,TU,WE,TH,FR",
+			"frequency": "WEEKLY",
+			"interval": 1
+		},
+			"audience": "Mayores",
+		"uid": "50324384",
+		"link": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=34ef9fbdf427e910VgnVCM200000f921e388RCRD",
+		"event-location": "",
+		"references": {
+			"@id": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=01b382e14dd1b810VgnVCM1000001d4a900aRCRD"
+		}				
+	},
+	{
+		"@id": "https://datos.madrid.es/egob/catalogo/tipo/evento/12263426-actividades-mensuales-centros-mayores-distrito-vicalvaro.json",
+		"id": "12263426",
+		"title": "Actividades mensuales de los centros de mayores del distrito Vicálvaro",
+		"description": "",
+		"free": 0,		
+		"price": "",
+		"dtstart": "2026-01-01 00:00:00.0",
+		"dtend": "2031-04-26 23:59:00.0",
+		"time": "",
+		"excluded-days": "3/9/2026;4/9/2026;1/9/2026;2/9/2026;6/9/2026;13/9/2026;20/9/2026;21/9/2026;14/9/2026;9/9/2026;16/9/2026;23/9/2026;30/9/2026;8/9/2026;28/9/2026;7/9/2026;11/9/2026;18/9/2026;25/9/2026;27/9/2026;",
+		"recurrence": {
+			"days": "MO,TU,WE,TH,FR,SU",
+			"frequency": "WEEKLY",
+			"interval": 1
+		},
+			"audience": "Mayores",
+		"uid": "12263426",
+		"link": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=1454a9913813d810VgnVCM1000001d4a900aRCRD",
+		"event-location": "",
+		"references": {
+			"@id": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=08bbcb25a62db810VgnVCM1000001d4a900aRCRD"
+		}				
+	},
+	{
+		"@id": "https://datos.madrid.es/egob/catalogo/tipo/evento/50427592-acuarelas-algo-mas.json",
+		"@type": "https://datos.madrid.es/egob/kos/actividades/Exposiciones",
+		"id": "50427592",
+		"title": "Acuarelas y algo más",
+		"description": "Horario: de 9 a 21:30 horas, de lunes a viernes excepto festivos. Daniel Mass Lorenzo (San Juan, Argentina, 1959) es un arquitecto y artista afincado en España. Aunque su trayectoria abarca el dibujo técnico, el Urban Sketching y el arte digital, es en la acuarela donde encuentra su lenguaje más audaz para interpretar la arquitectura y la figura humana.Su obra fusiona la herencia europea con sus raíces argentinas, dando vida a retratos contemporáneos y escenas de profunda carga emocional, enriquecidas por su experimentación con pigmentos naturales. A través de una estética figurativa y libre, el artista prioriza el estudio de la luz, la profundidad y el color, construyendo atmósferas de calma donde la pincelada se manifiesta con total honestidad y frescura.",
+		"free": 1,		
+		"price": "",
+		"dtstart": "2026-10-28 00:00:00.0",
+		"dtend": "2026-11-13 23:59:00.0",
+		"time": "",
+		"excluded-days": "",
+		"recurrence": {
+			"days": "MO,TU,WE,TH,FR,SA,SU",
+			"frequency": "WEEKLY",
+			"interval": 1
+		},
+		"uid": "50427592",
+		"link": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=ee7a46417c3c0a10VgnVCM200000f921e388RCRD",
+		"event-location": "Centro Cultural Lope de Vega (Puente de Vallecas)",
+		"references": {
+			"@id": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=74ba6ec1906fc610VgnVCM1000001d4a900aRCRD"
+		},
+			"relation": {
+				"@id": "https://datos.madrid.es/egob/catalogo/tipo/entidadesyorganismos/1938-centro-cultural-lope-vega-puente-vallecas-.json"
+			},
+				"address": {
+					"district": {
+						"@id": "https://datos.madrid.es/egob/kos/Provincia/Madrid/Municipio/Madrid/Distrito/PuenteDeVallecas"
+					},
+						"area": {
+							"@id": "https://datos.madrid.es/egob/kos/Provincia/Madrid/Municipio/Madrid/Distrito/PuenteDeVallecas/Barrio/Entrevias",
+							"locality": "MADRID",		
+							"postal-code": "28053",
+							"street-address": "CALLE CONCEJO DE TEVERGA 1"
+					}
+				},
+			"location": {
+				"latitude": 40.386296991431074,
+				"longitude": -3.671858416387963
+			},		 
+			"organization": {
+			"organization-name": "Centro Cultural Lope de Vega (Puente de Vallecas)",
+			"accesibility": "1"
+		}
+	},
+	{
+		"@id": "https://datos.madrid.es/egob/catalogo/tipo/evento/50408169-adg7.json",
+		"@type": "https://datos.madrid.es/egob/kos/actividades/ProgramacionDestacadaAgendaCultura",
+		"id": "50408169",
+		"title": "ADG7",
+		"description": "",
+		"free": 0,		
+		"price": "",
+		"dtstart": "2026-10-04 20:00:00.0",
+		"dtend": "2026-10-04 23:59:00.0",
+		"time": "20:00",
+		"excluded-days": "",
+		"uid": "50408169",
+		"link": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=c6971862ec580a10VgnVCM200000f921e388RCRD",
+		"event-location": "Centro de Cultura Contemporánea CondeDuque",
+		"references": {
+			"@id": ""
+		},
+			"relation": {
+				"@id": "https://datos.madrid.es/egob/catalogo/tipo/entidadesyorganismos/1916-centro-cultura-contemporanea-condeduque.json"
+			},
+				"address": {
+					"district": {
+						"@id": "https://datos.madrid.es/egob/kos/Provincia/Madrid/Municipio/Madrid/Distrito/Centro"
+					},
+						"area": {
+							"@id": "https://datos.madrid.es/egob/kos/Provincia/Madrid/Municipio/Madrid/Distrito/Centro/Barrio/Universidad",
+							"locality": "MADRID",		
+							"postal-code": "28015",
+							"street-address": "CALLE CONDE DUQUE 9"
+					}
+				},
+			"location": {
+				"latitude": 40.42739911262292,
+				"longitude": -3.710589286287491
+			},		 
+			"organization": {
+			"organization-name": "Centro de Cultura Contemporánea CondeDuque",
+			"accesibility": "1"
+		}
+	},
+	{
+		"@id": "https://datos.madrid.es/egob/catalogo/tipo/evento/50402528-agujeros-negros-viaje-al-borde-abismo-giovanni-miniutti.json",
+		"@type": "https://datos.madrid.es/egob/kos/actividades/ConferenciasColoquios",
+		"id": "50402528",
+		"title": "Agujeros negros: un viaje al borde del abismo, con Giovanni Miniutti",
+		"description": "",
+		"free": 1,		
+		"price": "",
+		"dtstart": "2026-10-22 11:00:00.0",
+		"dtend": "2026-10-22 23:59:00.0",
+		"time": "11:00",
+		"excluded-days": "",
+		"uid": "50402528",
+		"link": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=7de6fdf203660a10VgnVCM200000f921e388RCRD",
+		"event-location": "Biblioteca Pública Municipal José Saramago (Fuencarral-El Pardo)",
+		"references": {
+			"@id": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=6c05fdf203660a10VgnVCM200000f921e388RCRD"
+		},
+			"relation": {
+				"@id": "https://datos.madrid.es/egob/catalogo/tipo/entidadesyorganismos/1790-biblioteca-publica-municipal-jose-saramago-fuencarral-pardo-.json"
+			},
+				"address": {
+					"district": {
+						"@id": "https://datos.madrid.es/egob/kos/Provincia/Madrid/Municipio/Madrid/Distrito/Fuencarral-ElPardo"
+					},
+						"area": {
+							"@id": "https://datos.madrid.es/egob/kos/Provincia/Madrid/Municipio/Madrid/Distrito/Fuencarral-ElPardo/Barrio/ElPilar",
+							"locality": "MADRID",		
+							"postal-code": "28029",
+							"street-address": "AVENIDA MONFORTE DE LEMOS 38"
+					}
+				},
+			"location": {
+				"latitude": 40.47860087334554,
+				"longitude": -3.7094408342979954
+			},		 
+			"organization": {
+			"organization-name": "Biblioteca Pública Municipal José Saramago (Fuencarral-El Pardo)",
+			"accesibility": "1,5,6"
+		}
+	},
+	{
+		"@id": "https://datos.madrid.es/egob/catalogo/tipo/evento/50430557-aires-iberoamerica-jasminum-ensemble.json",
+		"@type": "https://datos.madrid.es/egob/kos/actividades/Musica",
+		"id": "50430557",
+		"title": "Aires Iberoamérica, con Jasminum Ensemble",
+		"description": "Aires de Iberoamérica es un viaje musical entre España y Latinoamérica que celebra la diversidad y los lazos culturales a ambos lados del Atlántico. Con obras de Bernstein, Falla, Medaglia, Dvořák y Piazzolla, el programa combina ritmo, tradición y emoción. El quinteto de viento aporta una gran riqueza tímbrica y convierte el concierto en una experiencia cercana y llena de color.  Duración: 60 minutos.  Edad recomendada: A partir de 12 años",
+		"free": 1,		
+		"price": "",
+		"dtstart": "2026-10-10 19:00:00.0",
+		"dtend": "2026-10-10 23:59:00.0",
+		"time": "19:00",
+		"excluded-days": "",
+		"uid": "50430557",
+		"link": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=13d4b13703dc0a10VgnVCM100000891ecb1aRCRD",
+		"event-location": "Centro Cultural Fernando Lázaro Carreter (Carabanchel)",
+		"references": {
+			"@id": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=25bff36edd371910VgnVCM2000001f4a900aRCRD"
+		},
+			"relation": {
+				"@id": "https://datos.madrid.es/egob/catalogo/tipo/entidadesyorganismos/4703628-centro-cultural-fernando-lazaro-carreter-carabanchel-.json"
+			},
+				"address": {
+					"district": {
+						"@id": "https://datos.madrid.es/egob/kos/Provincia/Madrid/Municipio/Madrid/Distrito/Carabanchel"
+					},
+						"area": {
+							"@id": "https://datos.madrid.es/egob/kos/Provincia/Madrid/Municipio/Madrid/Distrito/Carabanchel/Barrio/Opanel",
+							"locality": "MADRID",		
+							"postal-code": "28019",
+							"street-address": "CALLE VERDAD 29"
+					}
+				},
+			"location": {
+				"latitude": 40.39164455403764,
+				"longitude": -3.717137582860074
+			},		 
+			"organization": {
+			"organization-name": "Centro Cultural Fernando Lázaro Carreter (Carabanchel)",
+			"accesibility": "1"
+		}
+	},
+	{
+		"@id": "https://datos.madrid.es/egob/catalogo/tipo/evento/50382703-al-compas-dobemol.json",
+		"@type": "https://datos.madrid.es/egob/kos/actividades/ProgramacionDestacadaAgendaCultura",
+		"id": "50382703",
+		"title": "Al compás de Dobemol",
+		"description": "En las sesiones de música para bebés proponemos disfrutar de la música relacionándonos a través de la voz y el movimiento. Jugaremos con una serie de actividades que dejan espacio para la interacción y la creatividad de los bebés. Experimentaremos con diferentes ritmos, melodías y recitados, tocaremos instrumentos de pequeña percusión y escucharemos música en directo. En definitiva, proponemos una experiencia lúdica y creativa con la que compartir música en familia. Además, las familias inscritas en la actividad tendrán acceso a una página web privada de contenidos (MUSITECA DOBEMOL) mientras permanezcan inscritos en la actividad. El diseño y ejecución del programa corren a cargo de Dobemol (www.dobemolmusica.com) músicos y pedagogas con amplia experiencia en el desarrollo de proyectos musicales relacionados con la primera infancia. Sus propuestas están enfocadas al ámbito pedagógico sin olvidar la dimensión social, lúdica y creativa que la música nos ofrece.   Importante: para elegir el grupo se tendrá en cuenta la edad (en meses) que tendrá el bebé en octubre de 2026.  Grupo 1- Bebés 0-12 meses: martes 16.30 h.    Grupo 1B- Bebés 0-12 meses: jueves 16.30 h.    Grupo 2A- Bebés 13-24 meses: miércoles 16.30 h.    Grupo 2B- Bebés 13-24 meses: martes 17.30 h.    Grupo 2C- Bebés 13-24 meses: jueves 17.30 h.    Grupo 2D- Bebés 13-24 meses: miércoles 18.30 h.     Grupo 3A- Bebés 25-36 meses: miércoles 17.30 h.    Grupo 3B- Bebés 25-36 meses: martes 18.30 h.    Grupo 3C -Bebés 25-36 meses: jueves 18.30 h.",
+		"free": 0,		
+		"price": "Matrícula: 140 euros /trimestre (más gastos de gestión).   Solo se devolverá el importe de la matrícula en caso de que la organización cancele la actividad.",
+		"dtstart": "2026-10-06 00:00:00.0",
+		"dtend": "2026-12-22 23:59:00.0",
+		"time": "",
+		"excluded-days": "",
+		"recurrence": {
+			"days": "TU,WE,TH",
+			"frequency": "WEEKLY",
+			"interval": 1
+		},
+			"audience": "Familias",
+		"uid": "50382703",
+		"link": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=d482ea4110e10a10VgnVCM200000f921e388RCRD",
+		"event-location": "Matadero Madrid",
+		"references": {
+			"@id": ""
+		},
+			"relation": {
+				"@id": "https://datos.madrid.es/egob/catalogo/tipo/entidadesyorganismos/4684678-matadero-madrid.json"
+			},
+				"address": {
+					"district": {
+						"@id": "https://datos.madrid.es/egob/kos/Provincia/Madrid/Municipio/Madrid/Distrito/Arganzuela"
+					},
+						"area": {
+							"@id": "https://datos.madrid.es/egob/kos/Provincia/Madrid/Municipio/Madrid/Distrito/Arganzuela/Barrio/Chopera",
+							"locality": "MADRID",		
+							"postal-code": "28045",
+							"street-address": "PLAZA LEGAZPI 8"
+					}
+				},
+			"location": {
+				"latitude": 40.39130985242181,
+				"longitude": -3.6958028442054074
+			},		 
+			"organization": {
+			"organization-name": "Matadero Madrid",
+			"accesibility": "1"
+		}
+	},
+	{
+		"@id": "https://datos.madrid.es/egob/catalogo/tipo/evento/50426130-aladino-lampara-maravillosa.json",
+		"@type": "https://datos.madrid.es/egob/kos/actividades/CuentacuentosTiteresMarionetas",
+		"id": "50426130",
+		"title": "Aladino y la lámpara maravillosa",
+		"description": "Compañía. Hilando Títeres  Duración: 60 minutos.  Edad recomendada: A partir de 4 años Aladino es engañado por el malvado mago Cucufato que quiere aprovecharse de la lámpara maravillosa. Pero Aladino le derrota y transforma la malvada acción del mago impostor en el triunfo de su aventura.",
+		"free": 1,		
+		"price": "",
+		"dtstart": "2026-10-23 18:00:00.0",
+		"dtend": "2026-10-23 23:59:00.0",
+		"time": "18:00",
+		"excluded-days": "",
+			"audience": "Niños",
+		"uid": "50426130",
+		"link": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=9a647fb34b3b0a10VgnVCM100000891ecb1aRCRD",
+		"event-location": "Centro Cultural Zazuar (Villa de Vallecas)",
+		"references": {
+			"@id": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=bba62d24e6f61910VgnVCM2000001f4a900aRCRD"
+		},
+			"relation": {
+				"@id": "https://datos.madrid.es/egob/catalogo/tipo/entidadesyorganismos/1980-centro-cultural-zazuar-villa-vallecas-.json"
+			},
+				"address": {
+					"district": {
+						"@id": "https://datos.madrid.es/egob/kos/Provincia/Madrid/Municipio/Madrid/Distrito/VillaDeVallecas"
+					},
+						"area": {
+							"@id": "https://datos.madrid.es/egob/kos/Provincia/Madrid/Municipio/Madrid/Distrito/VillaDeVallecas/Barrio/SantaEugenia",
+							"locality": "MADRID",		
+							"postal-code": "28031",
+							"street-address": "CALLE ZAZUAR 4"
+					}
+				},
+			"location": {
+				"latitude": 40.38281866921273,
+				"longitude": -3.6061377076487906
+			},		 
+			"organization": {
+			"organization-name": "Centro Cultural Zazuar (Villa de Vallecas)",
+			"accesibility": "1,6"
+		}
+	},
+	{
+		"@id": "https://datos.madrid.es/egob/catalogo/tipo/evento/50409215-alberto-cortes-corazon-ester.json",
+		"@type": "https://datos.madrid.es/egob/kos/actividades/TeatroPerformance",
+		"id": "50409215",
+		"title": "Alberto Cortés. El corazón de Ester",
+		"description": "",
+		"free": 0,		
+		"price": "",
+		"dtstart": "2026-11-20 00:00:00.0",
+		"dtend": "2026-11-22 23:59:00.0",
+		"time": "",
+		"excluded-days": "",
+		"recurrence": {
+			"days": "MO,TU,WE,TH,FR,SA,SU",
+			"frequency": "WEEKLY",
+			"interval": 1
+		},
+		"uid": "50409215",
+		"link": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=637ee1e34fa80a10VgnVCM100000891ecb1aRCRD",
+		"event-location": "Centro de Cultura Contemporánea CondeDuque",
+		"references": {
+			"@id": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=87ad06e84e580a10VgnVCM200000f921e388RCRD"
+		},
+			"relation": {
+				"@id": "https://datos.madrid.es/egob/catalogo/tipo/entidadesyorganismos/1916-centro-cultura-contemporanea-condeduque.json"
+			},
+				"address": {
+					"district": {
+						"@id": "https://datos.madrid.es/egob/kos/Provincia/Madrid/Municipio/Madrid/Distrito/Centro"
+					},
+						"area": {
+							"@id": "https://datos.madrid.es/egob/kos/Provincia/Madrid/Municipio/Madrid/Distrito/Centro/Barrio/Universidad",
+							"locality": "MADRID",		
+							"postal-code": "28015",
+							"street-address": "CALLE CONDE DUQUE 9"
+					}
+				},
+			"location": {
+				"latitude": 40.42739911262292,
+				"longitude": -3.710589286287491
+			},		 
+			"organization": {
+			"organization-name": "Centro de Cultura Contemporánea CondeDuque",
+			"accesibility": "1"
+		}
+	},
+	{
+		"@id": "https://datos.madrid.es/egob/catalogo/tipo/evento/50432073-alejandra-torres-rovira-osvaldo-burucua-duo.json",
+		"@type": "https://datos.madrid.es/egob/kos/actividades/Musica",
+		"id": "50432073",
+		"title": "Alejandra Torres Rovira &amp; Osvaldo Burucuá Dúo",
+		"description": "Alejandra y Osvaldo presentan un elegante recorrido por el tango, el bolero y otros ritmos latinoamericanos, fusionando tradición y contemporaneidad.Un concierto íntimo en el que la voz y la guitarra dialogan con sensibilidad, ofreciendo una experiencia musical llena de emoción y matices.  Duración: 60 minutos.",
+		"free": 1,		
+		"price": "",
+		"dtstart": "2026-10-23 19:00:00.0",
+		"dtend": "2026-10-23 23:59:00.0",
+		"time": "19:00",
+		"excluded-days": "",
+			"audience": "Familias",
+		"uid": "50432073",
+		"link": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=5572a1765b3d0a10VgnVCM100000891ecb1aRCRD",
+		"event-location": "Centro Cultural San Juan Bautista (Ciudad Lineal)",
+		"references": {
+			"@id": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=6105f6bdf8117910VgnVCM2000001f4a900aRCRD"
+		},
+			"relation": {
+				"@id": "https://datos.madrid.es/egob/catalogo/tipo/entidadesyorganismos/1958-centro-cultural-san-juan-bautista-ciudad-lineal-.json"
+			},
+				"address": {
+					"district": {
+						"@id": "https://datos.madrid.es/egob/kos/Provincia/Madrid/Municipio/Madrid/Distrito/CiudadLineal"
+					},
+						"area": {
+							"@id": "https://datos.madrid.es/egob/kos/Provincia/Madrid/Municipio/Madrid/Distrito/CiudadLineal/Barrio/SanJuanBautista",
+							"locality": "MADRID",		
+							"postal-code": "28043",
+							"street-address": "CALLE SAN NEMESIO 4"
+					}
+				},
+			"location": {
+				"latitude": 40.45224710166,
+				"longitude": -3.658029027767765
+			},		 
+			"organization": {
+			"organization-name": "Centro Cultural San Juan Bautista (Ciudad Lineal)",
+			"accesibility": "1"
+		}
+	},
+	{
+		"@id": "https://datos.madrid.es/egob/catalogo/tipo/evento/50362770-alejandro-maria-laura-chamartin.json",
+		"@type": "https://datos.madrid.es/egob/kos/actividades/1ciudad21distritos",
+		"id": "50362770",
+		"title": "Alejandro y María Laura - Chamartin",
+		"description": "",
+		"free": 1,		
+		"price": "",
+		"dtstart": "2026-10-17 19:00:00.0",
+		"dtend": "2026-10-17 23:59:00.0",
+		"time": "19:00",
+		"excluded-days": "",
+		"uid": "50362770",
+		"link": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=e9a196d88b96f910VgnVCM200000f921e388RCRD",
+		"event-location": "",
+		"references": {
+			"@id": "http://www.madrid.es/sites/v/index.jsp?vgnextchannel=ca9671ee4a9eb410VgnVCM100000171f5a0aRCRD&vgnextoid=3cc196d88b96f910VgnVCM200000f921e388RCRD"
+		}				
+	},
+	{
+		"@id": "https://datos.madrid.es/egob/catalogo/tipo/evento/50429602-alice-in-wonder-wao-producciones.json",
+		"@type": "https://datos.madrid.es/egob/kos/actividades/DanzaBaile",
+		"id": "50429602",
+		"title": "Alice in Wonder, con Wao Producciones",
+		"description": "El espectáculo invita a sumergirse en un mundo de fantasía donde los personajes más emblemáticos de la historia de Alicia en el País de las Maravillas cobran vida a través del juego escénico, la 
