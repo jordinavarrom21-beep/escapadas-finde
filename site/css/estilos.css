@@ -239,6 +239,7 @@ pre code { background: none; padding: 0; }
 .boton-fav[aria-pressed="true"] { color: var(--favorito); border-color: var(--favorito); }
 .boton-fav[aria-pressed="true"] .ic { fill: currentColor; }
 .boton-comparar[aria-pressed="true"] { background: var(--acento); border-color: var(--acento); color: var(--acento-texto); }
+.boton-comparar--texto { display: inline-flex; align-items: center; width: auto; padding-inline: 12px; gap: 6px; font-weight: 700; font-size: 0.86rem; }
 .boton-descartar { border-color: transparent; background: none; color: var(--texto-suave); }
 .boton-descartar:hover { border-color: var(--peligro); color: var(--peligro); }
 
@@ -715,9 +716,9 @@ main { padding-block: 22px 56px; min-height: 60vh; }
  * Tarjeta con huecos fijos: título (2 líneas), opiniones (1), datos (2), etiquetas (1),
  * precio y coste. Así, en una fila, todas miden lo mismo y cada cosa está a la misma altura.
  */
-.tarjeta .tarjeta__titulo { display: block; height: calc(2 * 1.3em); }
+.tarjeta .tarjeta__titulo { display: block; height: calc(3 * 1.3em); }
 /* El título es un botón: el recorte a 2 líneas va en él (en el h3 no se aplicaba). */
-.tarjeta .tarjeta__titulo .enlace-ficha { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
+.tarjeta .tarjeta__titulo .enlace-ficha { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; overflow: hidden; }
 .tarjeta__opiniones {
   margin: 0; height: 20px; display: flex; align-items: center; gap: 5px; min-width: 0;
   font-size: 0.86rem; color: var(--texto-suave); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;

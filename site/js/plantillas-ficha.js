@@ -3,7 +3,7 @@
 import { etiquetaDia } from './fechas.js';
 import {
   ETIQUETAS_REGIMEN, ETIQUETAS_TIPO, ETIQUETAS_TRANSPORTE, ETIQUETAS_UNIDAD, SIN_UNIDAD, contar, duracion, enumerar,
-  escaparHtml as esc, euros, haceCuanto, normalizar, nota, urlSegura,
+  escaparHtml as esc, euros, haceCuanto, normalizar, nota, tituloLegible, urlSegura,
 } from './formato.js';
 import { duracionActividad, sufijoSerie } from './filtros.js';
 import { escena, icono, tipoEscena } from './iconos.js';
@@ -319,7 +319,7 @@ export function contenidoFicha(o, ctx) {
 <div class="ficha__principal">
   <header class="ficha__cabeza">
     <p class="tarjeta__origen">${temasIconos(o, ctx)} ${esc(ETIQUETAS_TIPO[o.tipo] ?? o.tipo)} · ${esc(ctx.fuentes.get(o.fuente) ?? o.fuente)}</p>
-    <h2 id="ficha-titulo">${esc(o.titulo)}</h2>
+    <h2 id="ficha-titulo">${esc(tituloLegible(o.titulo))}</h2>
     <p class="tarjeta__lugar">${textoLugar(o)}</p>
     ${resumenFicha(o)}
   </header>

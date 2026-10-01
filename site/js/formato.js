@@ -134,3 +134,21 @@ export function puntosMinigrafica(serie, ancho = 96, alto = 28, margen = 2) {
     })
     .join(' ');
 }
+
+/**
+ * El título de una oferta, más legible: sin palabras enteras en MAYÚSCULAS («ESCALDES,
+ * ANDORRA» → «Escaldes, Andorra»; las siglas cortas como SPA o BCN se quedan) ni emojis.
+ * Solo para enseñar: el título original sigue en los datos y en la búsqueda.
+ */
+export function tituloLegible(titulo = '') {
+  const sinEmojis = String(titulo ?? '').replace(/[\p{Extended_Pictographic}\uFE0F\u200D]/gu, '').replace(/\s{2,}/g, ' ').trim();
+  const capitalizar = (palabra) => palabra.charAt(0) + palabra.slice(1).toLocaleLowerCase('es');
+  const todoMayusculas = sinEmojis === sinEmojis.toLocaleUpperCase('es') && /\p{Lu}{2}/u.test(sinEmojis);
+  if (todoMayusculas) {
+    // Todo en mayúsculas: las palabras largas con inicial (suelen ser nombres: «Lloret»), las
+    // cortas en minúscula («en», «de», «con»), salvo la primera.
+    const frase = sinEmojis.replace(/\p{L}+/gu, (palabra) => (palabra.length > 3 ? capitalizar(palabra) : palabra.toLocaleLowerCase('es')));
+    return frase.charAt(0).toLocaleUpperCase('es') + frase.slice(1);
+  }
+  return sinEmojis.replace(/\p{Lu}{4,}/gu, capitalizar);
+}

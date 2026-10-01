@@ -7,7 +7,7 @@ import { costeViaje, resumenCoste } from './coste.js';
 import { diasEntre, etiquetaDia, fechaLocal, horaDe } from './fechas.js';
 import {
   ETIQUETAS_ALOJAMIENTO, ETIQUETAS_REGIMEN, ETIQUETAS_TIPO, ETIQUETAS_TRANSPORTE, ETIQUETAS_UNIDAD, SIN_UNIDAD,
-  contar, duracion, enumerar, escaparHtml as esc, euros, grados, haceCuanto, nota, puntosMinigrafica, urlSegura,
+  contar, duracion, enumerar, escaparHtml as esc, euros, grados, haceCuanto, nota, puntosMinigrafica, tituloLegible, urlSegura,
 } from './formato.js';
 import {
   SIN_COCHE, duracionActividad, esDuplicada, esNovedad, precioDeSerie, salidasDe, sinComprobar, sufijoSerie,
@@ -287,7 +287,9 @@ export function botonFavorito(o, ctx) {
 export function botonComparar(o, ctx) {
   if (!ctx.comparar) return '';
   const activo = ctx.comparar.has(o.id);
-  return `<button type="button" class="boton-icono boton-comparar" data-comparar="${esc(o.id)}" aria-pressed="${activo}" title="${activo ? 'Quitar de «Comparar lado a lado»' : 'Comparar lado a lado (hasta 3)'}" aria-label="${activo ? 'Quitar de «Comparar lado a lado»' : 'Añadir a «Comparar lado a lado»'}: ${esc(o.titulo)}">${icono('comparar')}</button>`;
+  // Con la palabra «Comparar» mientras no se compara nada: solo el icono no se entendía.
+  const conTexto = ctx.comparar.size === 0;
+  return `<button type="button" class="boton-icono boton-comparar${conTexto ? ' boton-comparar--texto' : ''}" data-comparar="${esc(o.id)}" aria-pressed="${activo}" title="${activo ? 'Quitar de «Comparar lado a lado»' : 'Comparar lado a lado (hasta 3)'}" aria-label="${activo ? 'Quitar de «Comparar lado a lado»' : 'Añadir a «Comparar lado a lado»'}: ${esc(o.titulo)}">${icono('comparar')}${conTexto ? '<span class="boton-comparar__texto" aria-hidden="true">Comparar</span>' : ''}</button>`;
 }
 
 /** «La he reservado» y «Ya no está disponible»: se guardan en este navegador. */
@@ -545,14 +547,14 @@ export function tarjetaOferta(o, ctx) {
       ${puntuacion(o, ctx)}
       ${botonDescartar(o)}
     </div>
-    <h3 class="tarjeta__titulo"><button type="button" class="enlace-ficha" data-ficha="${esc(o.id)}">${esc(o.titulo)}</button></h3>
+    <h3 class="tarjeta__titulo"><button type="button" class="enlace-ficha" data-ficha="${esc(o.id)}">${esc(tituloLegible(o.titulo))}</button></h3>
     ${opinionesTarjeta(o, web)}
     ${motivoTarjeta(o, ctx)}
     <ul class="tarjeta__datos">${datosTarjeta(o, ctx)}</ul>
     <div class="insignias insignias--tarjeta">${equivalentes(o, ctx)}${insigniasTarjeta(o, ctx)}${avisoTarjeta(o, ctx)}</div>
     <div class="tarjeta__pie">
       <div class="tarjeta__precio">${bloquePrecio(o, ctx)}</div>
-      <div class="acciones">${botonComparar(o, ctx)}${enlaceOferta(o, `Ver en ${esc(web)}`, ctx)}</div>
+      <div class="acciones">${botonComparar(o, ctx)}${enlaceOferta(o, typeof o.precio === 'number' && o.precio > 0 ? 'Ver oferta' : `Ver en ${esc(web)}`, ctx)}</div>
     </div>
   </div>
 </article>`;
@@ -621,7 +623,7 @@ export function tarjetaDestacada(o, ctx, etiqueta = 'Chollazo destacado') {
   </div>
   <div class="destacado__cuerpo">
     <p class="destacado__lugar">${textoLugar(o) || esc(ctx.fuentes.get(o.fuente) ?? o.fuente)}</p>
-    <h2 class="destacado__titulo"><button type="button" class="enlace-ficha" data-ficha="${esc(o.id)}">${esc(o.titulo)}</button></h2>
+    <h2 class="destacado__titulo"><button type="button" class="enlace-ficha" data-ficha="${esc(o.id)}">${esc(tituloLegible(o.titulo))}</button></h2>
     <div class="destacado__precio">${bloquePrecio(o, ctx)}</div>
     ${ahorro ? `<p class="destacado__ahorro">${icono('bajada')}<span>${esc(ahorro)}</span></p>` : ''}
     <div class="destacado__pie"><span>${pie}</span>${enlaceOferta(o, undefined, ctx)}</div>
@@ -703,9 +705,12 @@ function lineaCoste(o, ctx) {
  */
 export function bloquePrecio(o, ctx) {
   const conTotal = costeDe(o, ctx).total != null;
+  // «Precio en Chollometro»: dice qué cobra la web y cuál es (el botón queda en «Ver oferta»).
+  const web = ctx.fuentes?.get(o.fuente) ?? o.fuente;
+  const etiqueta = web ? `Precio en ${web}` : 'Precio publicado';
   return conTotal
-    ? `${lineaCoste(o, ctx)}${precio(o, { etiqueta: 'Precio publicado' })}`
-    : `${precio(o, { etiqueta: typeof o.precio === 'number' && o.precio > 0 ? 'Precio publicado' : null })}${lineaCoste(o, ctx)}`;
+    ? `${lineaCoste(o, ctx)}${precio(o, { etiqueta })}`
+    : `${precio(o, { etiqueta: typeof o.precio === 'number' && o.precio > 0 ? etiqueta : null })}${lineaCoste(o, ctx)}`;
 }
 
 /** Nombre corto de cada parte del coste para la leyenda de la tarjeta. */

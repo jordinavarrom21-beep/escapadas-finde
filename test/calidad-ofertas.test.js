@@ -133,7 +133,7 @@ describe('calidad: cada oferta dice cuándo se comprobó', () => {
   it('una vista hace poco: la tarjeta solo dice a qué web vas; «comprobada hace…», en la ficha', () => {
     const o = oferta({ vistaUltima: '2026-09-29T08:00:00Z' });
     const html = tarjeta(o, ctx([o]));
-    assert.match(html, /<span class="boton__texto">Ver en Weekendesk<\/span>/);
+    assert.match(html, /<span class="boton__texto">Ver en Weekendesk<\/span>/, "sin precio, la web va en el botón");
     assert.ok(!/comprobada hace|Sin comprobar|Puede haber terminado/.test(html), 'sin letra pequeña en la tarjeta');
     assert.match(contenidoFicha(o, ctx([o])), /Comprobada en Weekendesk hace 2 h/);
   });
@@ -251,5 +251,15 @@ describe('calidad: billetes por trayecto', () => {
     assert.match(tarjeta(bus, ctxPara([bus])), /<span class="precio__unidad">por persona y trayecto/);
     const sinUnidad = oferta({ precio: 108, unidad: null, precioTexto: 'desde 108 € por persona en habitación doble' });
     assert.match(tarjeta(sinUnidad, ctxPara([sinUnidad])), /<span class="precio__unidad">desde 108 € por persona en habitación doble/);
+  });
+});
+
+describe('títulos legibles', () => {
+  it('sin palabras en MAYÚSCULAS ni emojis; las siglas cortas se quedan', async () => {
+    const { tituloLegible } = await import('../site/js/formato.js');
+    assert.equal(tituloLegible('Fabuloso hotel 4* en ESCALDES, ANDORRA, muy céntrico'), 'Fabuloso hotel 4* en Escaldes, Andorra, muy céntrico');
+    assert.equal(tituloLegible('Apartamento con SPA en SEVILLA'), 'Apartamento con SPA en Sevilla');
+    assert.equal(tituloLegible('WOW 🌴 🚢 15-day cruise'), 'WOW 15-day cruise');
+    assert.equal(tituloLegible('HOTEL EN LLORET DE MAR'), 'Hotel en Lloret de mar');
   });
 });

@@ -523,7 +523,7 @@ function alternarFavorito(id) {
   else estado.favoritos.delete(id);
   guardarFavoritos(estado.favoritos);
   document.querySelectorAll(`[data-fav="${CSS.escape(id)}"]`).forEach((boton) => boton.setAttribute('aria-pressed', String(activo)));
-  anunciar(activo ? 'Guardada en favoritos' : 'Quitada de favoritos');
+  anunciar(activo ? 'Guardada en favoritos: la tienes en «Guardados»' : 'Quitada de favoritos');
 }
 
 /** Vistas con filtros: en el móvil, la barra de abajo tiene «Filtros» y, si toca, «Mapa» o «Lista». */
