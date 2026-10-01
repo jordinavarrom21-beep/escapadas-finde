@@ -8,7 +8,7 @@ import {
   puenteDelFinde, recomendadas, resumenFuentes, sinComprobar, tieneVuelo,
 } from './filtros.js';
 import { estadoVacio, rejilla, tarjeta, tarjetaConMotivo, tarjetaDestacada } from './plantillas.js';
-import { icono, iconoTema } from './iconos.js';
+import { icono } from './iconos.js';
 import {
   ACTIVIDADES_FINDE, HORAS_SORPRESA, conIcono, contextoBusqueda, ctxTarjetas, marcado, mostradas, nombreSalida,
   ocultas, seccion, webConProblemas,
@@ -134,15 +134,15 @@ export function buscadorFinde(e) {
   const cuando = [
     ['finde', 'Este finde', actual.etiqueta],
     ...(siguiente ? [[siguiente.id, 'El siguiente', siguiente.etiqueta]] : []),
-    ...(e.puente ? [[e.puente.id, `Puente de ${e.puente.nombre}`, e.puente.etiqueta]] : []),
+    // «El puente» y su fecha: el nombre entero («Fiesta Nacional de España») ocupaba cuatro líneas.
+    ...(e.puente ? [[e.puente.id, 'El puente', e.puente.etiqueta]] : []),
     ['', 'Cualquier fecha', 'lo mejor que haya'],
   ];
   const como = [['', 'Como sea'], ['coche', 'En coche'], ['sincoche', 'Sin coche']];
   const opcion = (nombre, [valor, texto, detalle], marcada) => `<label class="opcion"><input type="radio" name="${nombre}" value="${esc(valor)}"${marcado(marcada)}> ${esc(texto)}${detalle ? `<small>${esc(detalle)}</small>` : ''}</label>`;
-  const temas = [
-    `<label class="opcion opcion--tema"><input type="radio" name="temas" value="" checked> ${icono('todo')}Cualquier plan</label>`,
-    ...e.datos.temas.map((t) => `<label class="opcion opcion--tema" style="--color-tema:var(--tema-${esc(t.id)})"><input type="radio" name="temas" value="${esc(t.id)}"> ${iconoTema(t.id)}${esc(t.nombre)}</label>`),
-  ];
+  // Corto y arriba: cuándo, qué plan, presupuesto y el botón; «¿Cómo vas?» en «Más opciones».
+  const temas = [['', 'Cualquier plan'], ...e.datos.temas.map((t) => [t.id, t.nombre])]
+    .map(([valor, texto]) => `<option value="${esc(valor)}">${esc(texto)}</option>`).join('');
   return `<form class="buscador-finde" data-buscador-finde aria-labelledby="buscador-finde-titulo">
   <div class="buscador-finde__cabeza">
     <h2 id="buscador-finde-titulo">${icono('buscar')}Encuéntrame un finde</h2>
@@ -151,21 +151,26 @@ export function buscadorFinde(e) {
   <fieldset class="buscador-finde__grupo"><legend>¿Cuándo?</legend>
     <div class="opciones opciones--cuando">${cuando.map((c, i) => opcion('cuando', c, i === 0)).join('')}</div>
   </fieldset>
-  <fieldset class="buscador-finde__grupo"><legend>¿Qué te apetece?</legend>
-    <div class="opciones opciones--desplazables">${temas.join('')}</div>
-  </fieldset>
   <div class="buscador-finde__fila">
-    <fieldset class="buscador-finde__grupo"><legend>¿Cómo?</legend>
-      <div class="opciones">${como.map((c, i) => opcion('como', c, i === 0)).join('')}</div>
-    </fieldset>
+    <div class="buscador-finde__grupo">
+      <label class="buscador-finde__etiqueta" for="buscador-finde-temas">¿Qué te apetece?</label>
+      <select id="buscador-finde-temas" name="temas">${temas}</select>
+    </div>
     <div class="buscador-finde__grupo">
       <label class="buscador-finde__etiqueta" for="buscador-finde-pres">Máx. por persona</label>
       <span class="campo-euros"><input id="buscador-finde-pres" type="number" name="pres" min="0" step="10" inputmode="numeric" placeholder="Sin límite"></span>
     </div>
+    <button type="submit" class="boton boton--primario buscador-finde__enviar">${icono('buscar')}Ver escapadas</button>
   </div>
+  <details class="buscador-finde__mas">
+    <summary>Más opciones</summary>
+    <fieldset class="buscador-finde__grupo"><legend>¿Cómo vas?</legend>
+      <div class="opciones">${como.map((c, i) => opcion('como', c, i === 0)).join('')}</div>
+    </fieldset>
+  </details>
   <div class="buscador-finde__pie">
     <span>El total incluye la gasolina estimada si vas en coche.</span>
-    <button type="submit" class="boton boton--primario">${icono('buscar')}Buscar planes</button>
+    <button type="button" class="enlace-boton" data-ir-buscador>¿Ya sabes dónde quieres ir? Búscalo</button>
   </div>
 </form>`;
 }
@@ -249,9 +254,9 @@ export function vistaFinde(e, params = {}) {
   <div class="portada__texto">
     <p class="portada__ceja"><span class="pastilla">${icono('calendario')}<span>${esc(etiquetaDia(actual.viernes))} – ${esc(etiquetaDia(actual.domingo))}<span id="cuenta-atras" class="pastilla__extra"></span></span></span><span id="aviso-puente" class="pastilla pastilla--puente" hidden></span><span class="portada__revision"><span class="punto" aria-hidden="true"></span>${esc(revision)}</span>${avisoProblemas}</p>
     <h1 class="titulo-vista" tabindex="-1">¿Dónde nos escapamos <em>este finde</em>?</h1>
+    ${buscadorFinde(e)}
     ${bienvenida(e)}
     ${vistazoPortada(e, escapadas)}
-    ${buscadorFinde(e)}
   </div>
   ${destacado ? `<div class="portada__destacado">${tarjetaDestacada(destacado, ctx)}</div>` : ''}
 </section>

@@ -25,22 +25,24 @@ export function vistaCalendario(e) {
   const niveles = nivelesCalendario(resumen, hayVuelos);
   const celdas = resumen.map(({ finde, puente, vuelo, vuelos, escapadas }, i) => {
     const cuando = i === 0 ? 'Este finde' : i === 1 ? 'El siguiente' : `En ${i} semanas`;
-    const textoVuelo = !hayVuelos ? '' : vuelo
-      ? `${icono('vuelos')}<span>desde <strong>${euros(vuelo.precio)}</strong> · ${esc(vuelo.lugar?.nombre ?? '')}${vuelos > 1 ? ` <span class="suave">· ${contar(vuelos, 'vuelo')}</span>` : ''}</span>`
-      : `${icono('vuelos')}<span class="suave">Sin vuelos con fecha</span>`;
-    const destino = hayVuelos ? crearHash('vuelos', { finde: finde.id }) : crearHash('escapadas', { cuando: finde.id });
-    return `<li><a class="finde-celda${puente ? ' finde-celda--puente' : ''}${niveles[i] ? ` finde-celda--nivel-${niveles[i]}` : ''}" href="${destino}">
+    // Cada finde, dos caminos claros: sus escapadas y (si hay vuelos con fecha) sus vuelos.
+    // Antes la celda entera llevaba a uno solo aunque enseñara los datos de los dos.
+    const verEscapadas = `<a class="boton boton--suave boton--mini finde-celda__accion" href="${crearHash('escapadas', { cuando: finde.id })}">${icono('escapadas')}Ver ${contar(escapadas, 'escapada')}</a>`;
+    const verVuelos = !hayVuelos ? ''
+      : vuelo
+        ? `<a class="boton boton--suave boton--mini finde-celda__accion" href="${crearHash('vuelos', { finde: finde.id })}">${icono('vuelos')}Ver ${contar(vuelos, 'vuelo')} · desde ${euros(vuelo.precio)}</a>`
+        : `<span class="finde-celda__dato suave">${icono('vuelos')}Sin vuelos con fecha</span>`;
+    return `<li><div class="finde-celda${puente ? ' finde-celda--puente' : ''}${niveles[i] ? ` finde-celda--nivel-${niveles[i]}` : ''}">
   <span class="finde-celda__cuando">${cuando}</span>
   <span class="finde-celda__fecha">${esc(finde.etiqueta)}</span>
   ${puente ? `<span class="insignia insignia--puente">${icono('puentes')}${esc(puente.nombre)}</span>` : ''}
-  ${textoVuelo ? `<span class="finde-celda__dato">${textoVuelo}</span>` : ''}
-  <span class="finde-celda__dato">${icono('escapadas')}${contar(escapadas, 'escapada')}</span>
-</a></li>`;
+  <span class="finde-celda__acciones">${verEscapadas}${verVuelos}</span>
+</div></li>`;
   });
   return `${pestanas('fechas', 'calendario')}<h1 class="titulo-vista" tabindex="-1">Calendario</h1>
 <p class="seccion__intro">${hayVuelos
-    ? 'Los próximos 12 findes con el vuelo más barato y las escapadas disponibles (con fecha o flexibles). Los puentes van resaltados. Pulsa uno para ver sus vuelos.'
-    : 'Los próximos 12 findes con las escapadas disponibles (con fecha o flexibles). Los puentes van resaltados. Pulsa uno para ver sus escapadas.'}</p>
+    ? 'Los próximos 12 findes con sus escapadas disponibles (con fecha o flexibles) y el vuelo más barato. Los puentes van resaltados. En cada uno eliges qué ver: escapadas o vuelos.'
+    : 'Los próximos 12 findes con las escapadas disponibles (con fecha o flexibles). Los puentes van resaltados.'}</p>
 ${leyendaCalendario(hayVuelos)}
 <ol class="calendario">${celdas.join('')}</ol>`;
 }
@@ -185,11 +187,11 @@ export function vistaAyuda(e) {
 <section class="seccion">
   <h2 class="subtitulo">Preguntas frecuentes</h2>
   ${pregunta('¿De dónde salen las ofertas?', `<p>De webs de viajes públicas: ${esc(enumerar(webs))}. Solo se leen las páginas que esas webs permiten leer. Si una oferta lleva días sin aparecer en su web, se avisa con «Puede haber terminado».</p><p><a href="#/fuentes">Estado de cada web</a></p>`)}
-  ${pregunta('¿Qué es la «Nota» de cada oferta?', `<p>Una nota de 0 a 100 de lo buena que es como chollo. ${esc(nota)}. Un <strong>Chollazo</strong> está muy por debajo de lo normal para ofertas parecidas.</p>`)}
+  ${pregunta('¿Qué es el «Valor» de cada oferta?', `<p>Un valor de 0 a 100 de lo buena que es la oferta como chollo (no es la opinión de los clientes, que va de 0 a 10). ${esc(nota)}. Un <strong>Chollazo</strong> está muy por debajo de lo normal para ofertas parecidas.</p>`)}
   ${pregunta('¿Qué significan las estrellas y las opiniones?', '<p>«★ 8,2 Muy bien · 266 opiniones» es la valoración de otros clientes en la web de la oferta, de 0 a 10. Las estrellas (4★) son la categoría del hotel.</p>')}
   ${pregunta('¿Por qué hay precios «por persona», «por noche» o «en total»?', '<p>Cada web publica el precio a su manera. Por eso cada oferta dice a qué corresponde y, cuando se puede, se pasa a <strong>por persona y noche</strong> para compararlas, y se calcula <strong>el viaje completo</strong> para tus viajeros, con la gasolina estimada si vas en coche.</p>')}
   ${pregunta('¿Las fechas son exactas?', '<p>Muchas ofertas son de <strong>fechas flexibles</strong>: valen cualquier día hasta que caducan, según disponibilidad. Las de <strong>fechas cerradas</strong> dicen el día exacto. Si buscas unas fechas, los buscadores (y algunas webs) se abren ya con ellas.</p>')}
-  ${pregunta('¿Me avisa cuando salga algo que me interese?', '<p>Sí: monta tu búsqueda y pulsa «Guardar y avisarme». Cada vez que entres, <a href="#/mis">Mis cosas</a> te dirá cuántas ofertas nuevas la cumplen.</p>')}
+  ${pregunta('¿Me avisa cuando salga algo que me interese?', '<p>En la web, sin email: monta tu búsqueda y pulsa «Guardar búsqueda». Cuando vuelvas, <a href="#/mis">Guardados</a> te dirá cuántas ofertas nuevas la cumplen (y el número del menú también).</p>')}
 </section>
 <section class="seccion" id="privacidad">
   <h2 class="subtitulo">Privacidad</h2>
@@ -262,7 +264,7 @@ function bloqueAvisos(e) {
   const avisos = avisosDeBusquedas(e);
   if (!avisos.length) {
     return estadoVacio('Aún no has guardado ninguna búsqueda',
-      'En Explorar, pon los filtros que quieras y pulsa «Guardar y avisarme». Aquí verás cuántas ofertas nuevas la cumplen cada vez que entres.',
+      'En Explorar, pon los filtros que quieras y pulsa «Guardar búsqueda». Cuando vuelvas, aquí verás cuántas ofertas nuevas la cumplen.',
       '<a class="boton boton--primario" href="#/escapadas">Ir a Explorar</a>');
   }
   const contexto = { temas: e.temas, fuentes: e.fuentes, findes: e.findes, puentes: e.datos.puentes };
@@ -294,8 +296,16 @@ export function vistaMis(e) {
   const noDisponibles = marcadas('no-disponible');
   const comparar = [...(e.comparar ?? [])].filter((id) => e.porId.has(id)).length;
   const email = e.datos.avisos?.email;
-  return `${pestanas('mis', 'mis', e)}<h1 class="titulo-vista" tabindex="-1">Mis cosas</h1>
-<p class="seccion__intro">Tus búsquedas guardadas, favoritos y marcas. Todo se guarda solo en este navegador.</p>
+  // Sin nada guardado todavía: qué se puede hacer, en tres pasos, antes que tres listas vacías.
+  const vacio = !favoritos.length && !e.busquedas?.length && !comparar;
+  const pasos = vacio ? `<ol class="pasos-guardados">
+  <li>${icono('corazon')}<span><strong>Guarda una oferta</strong> con el corazón de cualquier tarjeta.</span></li>
+  <li>${icono('comparar')}<span><strong>Compara hasta tres</strong> con «Comparar» y míralas lado a lado.</span></li>
+  <li>${icono('guardar')}<span><strong>Guarda una búsqueda</strong> en Explorar: al volver verás las ofertas nuevas que la cumplen.</span></li>
+</ol><p><a class="boton boton--primario" href="#/escapadas">Ir a Explorar${icono('flecha')}</a></p>` : '';
+  return `${pestanas('mis', 'mis', e)}<h1 class="titulo-vista" tabindex="-1">Guardados</h1>
+<p class="seccion__intro">Tus búsquedas guardadas, favoritos y marcas. Se guardan solo en este navegador: para llevarlos a otro móvil u ordenador, usa la copia de seguridad de abajo.</p>
+${pasos}
 <div class="carruseles">
 ${seccion(conIcono('nuevo', 'Búsquedas guardadas y avisos'), bloqueAvisos(e))}
 ${seccion(conIcono('corazon', 'Favoritos', 'chollo'), favoritos.length
@@ -306,6 +316,9 @@ ${seccion(conIcono('comparar', 'Comparar lado a lado'), comparar
     ? `<p>${contar(comparar, 'oferta elegida', 'ofertas elegidas')} para comparar. <a class="boton boton--suave boton--mini" href="#/comparar">Ver la comparación${icono('flecha')}</a></p>`
     : '<p class="suave">Pulsa el botón de comparar (dos columnas) en hasta tres ofertas para verlas lado a lado.</p>')}
 ${reservadas.length || noDisponibles.length ? seccion(conIcono('check', 'Marcadas por ti'), `${reservadas.length ? `<h3 class="subtitulo">Reservadas</h3><ul class="filas">${reservadas.map(filaOferta).join('')}</ul>` : ''}${noDisponibles.length ? `<h3 class="subtitulo">Ya no disponibles <span class="suave">(no salen en las listas)</span></h3><ul class="filas">${noDisponibles.map(filaOferta).join('')}</ul>` : ''}`) : ''}
+${seccion(conIcono('guardar', 'Copia de seguridad'), `<p>Sin cuenta: descarga un archivo con tus favoritos, búsquedas, comparación y preferencias, y cárgalo en otro navegador o dispositivo (sustituye lo que haya allí).</p>
+<p class="acciones"><button type="button" class="boton boton--suave boton--mini" data-exportar-guardados>${icono('externo')}Descargar mis guardados</button>
+<label class="boton boton--suave boton--mini">${icono('deshacer')}Cargar una copia<input type="file" accept="application/json,.json" data-importar-guardados class="sr"></label></p>`)}
 ${e.propietario ? seccion(conIcono('vigilados', 'Avisos por email'), `<p>${email === true ? 'Activos: te llega un email cuando una oferta cumple uno de tus criterios y baja de precio.' : 'Para recibirlos por email hay que configurar el correo y los criterios en GitHub.'} <a class="boton boton--suave boton--mini" href="#/vigilados">Ver los avisos por email${icono('flecha')}</a></p>`) : ''}`;
 }
 

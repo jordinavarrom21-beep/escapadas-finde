@@ -9,7 +9,7 @@ import {
   ETIQUETAS_REGIMEN, ETIQUETAS_TIPO, ETIQUETAS_TRANSPORTE,
 } from './formato.js';
 import {
-  ALOJAMIENTOS, ATAJOS_ESCAPADAS, ORDENES_ACTIVIDADES, SIN_COCHE, ORDENES_ESCAPADAS, REGIMENES_ORDEN,
+  ALOJAMIENTOS, ATAJOS_ESCAPADAS, ATAJOS_A_LA_VISTA, ORDENES_ACTIVIDADES, SIN_COCHE, ORDENES_ESCAPADAS, REGIMENES_ORDEN,
   buscarActividades, buscarEscapadas, buscarTexto, chollosDeVuelos, conFaltas, promocionesDeVuelos, crearHash, destinosDe,
   destinosDeVuelo, esActividad, esEscapada, filtrarVuelos, filtrosActivos, leerFiltrosActividades, zonasDe,
   leerFiltrosComunes, leerFiltrosEscapadas, leerFiltrosVuelos, radioBusquedaKm, viajeDeParams, tieneVuelo,
@@ -64,7 +64,7 @@ ${plegableMovil(e, 'vuelos', params)}<form class="filtros" data-filtros="vuelos"
     <label class="campo">Aeropuerto <select name="aero">${opciones(e.datos.aeropuertos.map((a) => [a, a]), f.aero, 'Todos')}</select></label>
     <label class="campo">País <select name="pais">${opciones(paises.map((p) => [p, p]), f.pais, 'Todos')}</select></label>
     <label class="campo">Precio máx. (€) <input type="number" name="max" min="0" step="5" inputmode="numeric" placeholder="Sin límite" value="${f.max ?? ''}"></label>
-    <label class="campo">Orden <select name="orden">${opciones([['precio', 'Precio'], ['puntuacion', 'Puntuación'], ['hora', 'Hora de salida']], f.orden)}</select></label>
+    <label class="campo">Orden <select name="orden">${opciones([['precio', 'Precio'], ['puntuacion', 'Valor de la oferta'], ['hora', 'Hora de salida']], f.orden)}</select></label>
     <label class="interruptor"><input type="checkbox" name="ideal" value="1"${marcado(f.ideal)}> Solo horario ideal</label>
     <label class="interruptor"><input type="checkbox" name="mios" value="1"${marcado(f.mios)}> Solo desde ${esc(listaAeropuertos(e))}</label>
   </div>
@@ -87,7 +87,7 @@ ${avisoMemoria(e, 'vuelos')}${avisoViajeCompartido(e, params)}
   <div class="filtros__fila">
     <label class="campo">País <select name="pais">${opciones(paises.map((p) => [p, p]), f.pais, 'Todos')}</select></label>
     <label class="campo">Precio máx. (€) <input type="number" name="max" min="0" step="5" inputmode="numeric" placeholder="Sin límite" value="${f.max ?? ''}"></label>
-    <label class="campo">Orden <select name="orden">${opciones([['precio', 'Precio'], ['puntuacion', 'Nota del chollo']], f.orden)}</select></label>
+    <label class="campo">Orden <select name="orden">${opciones([['precio', 'Precio'], ['puntuacion', 'Valor de la oferta']], f.orden)}</select></label>
     <label class="interruptor"><input type="checkbox" name="mios" value="1"${marcado(f.mios)}> Solo desde ${esc(listaAeropuertos(e))}</label>
   </div>
   <details class="filtros__mas"${FILTROS_MAS_VUELOS.some((clave) => params[clave]) ? ' open' : ''}><summary>Más filtros</summary>
@@ -228,8 +228,11 @@ export const contarSecundarios = (params = {}) => FILTROS_SECUNDARIOS
 
 /** Atajos de un clic: enlaces con su hash. */
 function atajosEscapadas(vista) {
-  const enlaces = ATAJOS_ESCAPADAS.map((a) => `<a class="chip chip--atajo" href="${esc(crearHash(vista, a.params))}">${icono(a.icono)}${esc(a.texto)}</a>`).join('');
-  return `<nav class="atajos" aria-label="Atajos de búsqueda"><div class="chips__lista chips--desplazables-lista">${enlaces}</div></nav>`;
+  const enlace = (a) => `<a class="chip chip--atajo" href="${esc(crearHash(vista, a.params))}">${icono(a.icono)}${esc(a.texto)}</a>`;
+  const [vistos, mas] = [ATAJOS_ESCAPADAS.slice(0, ATAJOS_A_LA_VISTA), ATAJOS_ESCAPADAS.slice(ATAJOS_A_LA_VISTA)];
+  // En varias filas y sin deslizar de lado: en una sola fila no se notaba que había más.
+  return `<nav class="atajos" aria-label="Atajos de búsqueda"><div class="chips__lista">${vistos.map(enlace).join('')}
+  ${mas.length ? `<details class="atajos__mas"><summary class="chip chip--atajo chip--mas">${icono('nuevo')}Más ideas (${mas.length})</summary><div class="chips__lista">${mas.map(enlace).join('')}</div></details>` : ''}</div></nav>`;
 }
 
 /** Icono de cada filtro puesto (por su clave; las temáticas, el de la suya). */
@@ -412,7 +415,7 @@ ${ofertas.length
 
 // ── Actividades ──────────────────────────────────────────────────────────────
 
-const ETIQUETAS_ORDEN_ACTIVIDADES = { puntuacion: 'Puntuación', precio: 'Precio', valoracion: 'Mejor valoradas' };
+const ETIQUETAS_ORDEN_ACTIVIDADES = { puntuacion: 'Valor de la oferta', precio: 'Precio', valoracion: 'Mejor valoradas' };
 
 export function vistaActividades(e, params) {
   const f = leerFiltrosActividades(params);

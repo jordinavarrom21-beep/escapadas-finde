@@ -16,6 +16,7 @@ import {
   MAX_COMPARAR, borrarBusqueda, cargarBusquedas, marcarBusquedaVista, cargarComparar, cargarDescartadas, cargarMisEstados, guardarComparar, guardarMisEstados, cargarFavoritos, cargarFiltros, cargarSalida, cargarViaje,
   guardarBusqueda, guardarDescartadas, guardarFavoritos, guardarFiltros, guardarModoLista, guardarSalida, guardarTema, guardarViaje,
   tomarVisitaAnterior, bienvenidaVista, esPropietarioGuardado, guardarPropietario, marcarBienvenidaVista,
+  exportarGuardados, importarGuardados,
 } from './local.js';
 import { salidaEfectiva, validarSalida, validarViaje } from './viaje.js';
 import { destruirMapa, pintarMapa } from './mapa.js';
@@ -43,7 +44,7 @@ const VISTAS_CON_MEMORIA = ['escapadas', 'actividades', 'vuelos'];
 const TITULOS = {
   finde: 'Este finde', vuelos: 'Vuelos', escapadas: 'Escapadas', actividades: 'Planes', mapa: 'Mapa',
   calendario: 'Calendario', puentes: 'Puentes', vigilados: 'Avisos por email', fuentes: 'Estado de las webs', buscar: 'Buscar',
-  comparar: 'Comparar lado a lado', mis: 'Mis cosas', ayuda: 'Cómo funciona',
+  comparar: 'Comparar lado a lado', mis: 'Guardados', ayuda: 'Cómo funciona',
 };
 /** Qué apartado del menú se marca en cada vista (Inicio, Explorar, Fechas o Mis cosas). */
 const APARTADO = {
@@ -229,7 +230,7 @@ function pintarAvisoMis() {
   const n = totalNovedadesGuardadas(estado);
   aviso.textContent = n > 99 ? '99+' : String(n);
   aviso.hidden = n === 0;
-  aviso.closest('a')?.setAttribute('aria-label', n ? `Mis cosas: ${n} ${n === 1 ? 'oferta nueva' : 'ofertas nuevas'} en tus búsquedas guardadas` : 'Mis cosas');
+  aviso.closest('a')?.setAttribute('aria-label', n ? `Guardados: ${n} ${n === 1 ? 'oferta nueva' : 'ofertas nuevas'} en tus búsquedas guardadas` : 'Guardados');
 }
 
 /** Marca «Tarjetas» o «Lista» según el modo puesto (una clase en <html>, ver tema.js). */
@@ -468,7 +469,7 @@ function guardarBusquedaActual(vista) {
   }
   estado.busquedas = guardarBusqueda({ nombre, vista, hash: location.hash || crearHash(vista, {}) });
   render({ enfocar: false });
-  anunciar(`Búsqueda «${nombre}» guardada: en «Mis cosas» verás las ofertas nuevas que la cumplan.`);
+  anunciar(`Búsqueda «${nombre}» guardada: cuando vuelvas, en «Guardados» verás las ofertas nuevas que la cumplan.`);
 }
 
 function borrarBusquedaGuardada(nombre) {
@@ -523,7 +524,7 @@ function alternarFavorito(id) {
   else estado.favoritos.delete(id);
   guardarFavoritos(estado.favoritos);
   document.querySelectorAll(`[data-fav="${CSS.escape(id)}"]`).forEach((boton) => boton.setAttribute('aria-pressed', String(activo)));
-  anunciar(activo ? 'Guardada en favoritos' : 'Quitada de favoritos');
+  anunciar(activo ? 'Guardada en favoritos: la tienes en «Guardados»' : 'Quitada de favoritos');
 }
 
 /** Vistas con filtros: en el móvil, la barra de abajo tiene «Filtros» y, si toca, «Mapa» o «Lista». */
@@ -735,7 +736,7 @@ function alternarMiEstado(id, nuevo) {
 
 const ACCIONES = '[data-actualizar], [data-compartir-busqueda], [data-usar-viaje], [data-mi-estado], [data-abrir-filtros], [data-comparar], [data-vaciar-comparar], [data-mi-viaje], [data-cerrar-viaje], [data-ficha], [data-fav], [data-descartar], [data-mas], [data-sorpresa],'
   + ' [data-guardar-busqueda], [data-borrar-busqueda], [data-copiar-vigilado], [data-cerrar-ficha], [data-cerrar-novedades],'
-  + ' [data-olvidar-filtros], [data-cerrar-mas], [data-modo-lista], [data-abrir-busqueda], [data-ver-datos-nuevos], [data-cerrar-bienvenida]';
+  + ' [data-olvidar-filtros], [data-cerrar-mas], [data-modo-lista], [data-abrir-busqueda], [data-ver-datos-nuevos], [data-cerrar-bienvenida], [data-ir-buscador], [data-exportar-guardados]';
 
 function manejarClic(evento) {
   const objetivo = evento.target.closest(ACCIONES);
@@ -743,6 +744,13 @@ function manejarClic(evento) {
   const d = objetivo.dataset;
   if ('actualizar' in d) location.reload();
   else if ('verDatosNuevos' in d) aplicarDatosNuevos();
+  else if ('exportarGuardados' in d) descargarGuardados();
+  else if ('irBuscador' in d) {
+    // «Ya sé dónde quiero ir»: al buscador de la cabecera, que busca en todo.
+    const q = $('#q');
+    q.scrollIntoView({ block: 'center' });
+    q.focus({ preventScroll: true });
+  }
   else if ('cerrarBienvenida' in d) {
     marcarBienvenidaVista();
     estado.bienvenidaVista = true;
@@ -787,6 +795,32 @@ function cerrarMasFiltros(boton) {
   $('#resultados')?.scrollIntoView({ block: 'start' });
 }
 
+/** «Descargar mis guardados»: un archivo JSON con lo de este navegador (nada sale de él). */
+function descargarGuardados() {
+  const archivo = new Blob([JSON.stringify(exportarGuardados(), null, 2)], { type: 'application/json' });
+  const enlace = Object.assign(document.createElement('a'), { href: URL.createObjectURL(archivo), download: `escapadas-finde-guardados-${estado.hoy}.json` });
+  document.body.append(enlace);
+  enlace.click();
+  enlace.remove();
+  setTimeout(() => URL.revokeObjectURL(enlace.href), 1000);
+  anunciar('Copia descargada: cárgala en otro navegador desde «Guardados» → «Cargar una copia».');
+}
+
+/** «Cargar una copia»: sustituye lo de este navegador y vuelve a pintar con ello. */
+async function cargarGuardados(entrada) {
+  const [archivo] = entrada.files ?? [];
+  if (!archivo) return;
+  try {
+    const cargadas = importarGuardados(JSON.parse(await archivo.text()));
+    anunciar(`Copia cargada (${cargadas} apartados). Recargando…`);
+    setTimeout(() => location.reload(), 600);
+  } catch (error) {
+    anunciar(error instanceof SyntaxError ? 'Ese archivo no es una copia de «Guardados» (no es JSON).' : error.message);
+  } finally {
+    entrada.value = '';
+  }
+}
+
 // ── Arranque ─────────────────────────────────────────────────────────────────
 
 function conectarEventos() {
@@ -805,6 +839,7 @@ function conectarEventos() {
   });
   principal.addEventListener('input', alCambiarFiltro);
   principal.addEventListener('change', alCambiarFiltro);
+  principal.addEventListener('change', (evento) => { if (evento.target.matches?.('[data-importar-guardados]')) cargarGuardados(evento.target); });
   principal.addEventListener('submit', (evento) => {
     evento.preventDefault();
     if (evento.target.matches('[data-buscador-finde]')) {

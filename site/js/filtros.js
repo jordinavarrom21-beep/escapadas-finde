@@ -1027,18 +1027,25 @@ export function urlEditarVigilados({ hostname = '', pathname = '/' } = {}) {
  * con su hash, así que también se pueden compartir o guardar en marcadores.
  */
 export const ATAJOS_ESCAPADAS = [
+  // Las situaciones que se reconocen de un vistazo van primero y siempre a la vista; el resto,
+  // en «Más ideas» (ATAJOS_A_LA_VISTA).
+  { texto: 'Este finde', icono: 'finde', params: { cuando: 'finde', orden: 'total' } },
+  { texto: 'A menos de 2 h', icono: 'coche', params: { h: '2', orden: 'total' } },
+  { texto: 'Spa', icono: 'tema-spa', params: { temas: 'spa', orden: 'total' } },
+  { texto: 'Con niños', icono: 'tema-familia', params: { ninos: 'apto' } },
+  { texto: 'Sin coche', icono: 'tren', params: { sincoche: '1' } },
+  { texto: 'Menos de 100 € por persona', icono: 'cartera', params: { pres: '100', prespor: 'persona', orden: 'total' } },
   { texto: 'Lo más barato en total', icono: 'cartera', params: { orden: 'total' } },
   { texto: 'Lo más cómodo', icono: 'coche', params: { orden: 'comodo' } },
-  { texto: 'Este finde, lo más barato', icono: 'finde', params: { cuando: 'finde', orden: 'total' } },
   { texto: 'Por debajo de lo normal', icono: 'bajada', params: { orden: 'ahorro' } },
   { texto: 'Spa a menos de 2 h', icono: 'tema-spa', params: { temas: 'spa', h: '2' } },
-  { texto: 'Con niños', icono: 'tema-familia', params: { ninos: 'apto' } },
   { texto: 'Niños gratis o con descuento', icono: 'tema-familia', params: { ninos: 'ventaja' } },
   { texto: 'Campings', icono: 'camping', params: { aloj: 'camping' } },
-  { texto: 'Sin coche', icono: 'tren', params: { sincoche: '1' } },
   { texto: 'Solo chollazos', icono: 'fuego', params: { cho: '1' } },
   { texto: 'Con fechas cerradas', icono: 'calendario', params: { cerradas: '1' } },
 ];
+/** Cuántos atajos se ven siempre (en varias filas, sin deslizar); el resto va en «Más ideas». */
+export const ATAJOS_A_LA_VISTA = 6;
 
 /**
  * Los filtros guardados sin lo que ya ha caducado: un finde o un puente que ya pasó y
@@ -1116,7 +1123,7 @@ function textoFiltro(clave, valor, ctx) {
     pnMin: () => `Desde ${numeroEuros(valor)} por persona y noche`,
     pnMax: () => `Hasta ${numeroEuros(valor)} por persona y noche`,
     dto: () => `Descuento del ${valor} % o más`,
-    pts: () => `Puntuación ${valor} o más`,
+    pts: () => `Valor de la oferta ${valor} o más`,
     nota: () => `Valoración ${valor} o más`,
     noches: () => textoNochesFiltro(valor),
     clasica: () => 'Escapada clásica (2 noches)',

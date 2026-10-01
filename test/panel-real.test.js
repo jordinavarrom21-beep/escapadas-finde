@@ -11,6 +11,7 @@ import { readFileSync } from 'node:fs';
 
 import { ATAJOS_ESCAPADAS, VISTAS, actividadesCerca, leerRuta, medirDistancias } from '../site/js/filtros.js';
 import { proximoPuente } from '../site/js/fechas.js';
+import { tituloLegible } from '../site/js/formato.js';
 import { contenidoFicha } from '../site/js/plantillas.js';
 import { VISTAS_HTML, contenidoSorpresa, ctxTarjetas } from '../site/js/vistas.js';
 
@@ -155,7 +156,7 @@ describe('panel con datos reales: cada vista se pinta limpia', () => {
     for (const oferta of datos.ofertas) {
       const ctx = ctxTarjetas(e, { distancias: e.distanciasOrigen, actividades: actividadesCerca(datos.ofertas, oferta) });
       const visible = revisarHtml(contenidoFicha(oferta, ctx), `ficha ${oferta.id}`, e);
-      assert.ok(desescapar(visible).includes(oferta.titulo), `ficha ${oferta.id}: lleva el título`);
+      assert.ok(desescapar(visible).includes(tituloLegible(oferta.titulo)), `ficha ${oferta.id}: lleva el título`);
     }
   });
 

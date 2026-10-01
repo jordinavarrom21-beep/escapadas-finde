@@ -166,3 +166,37 @@ export const guardarPropietario = (si) => escribir(local, CLAVE_PROPIETARIO, si 
 const CLAVE_BIENVENIDA = 'escapadas:bienvenida';
 export const bienvenidaVista = () => leer(local, CLAVE_BIENVENIDA) === '1';
 export const marcarBienvenidaVista = () => escribir(local, CLAVE_BIENVENIDA, '1');
+
+// Copia de seguridad sin cuenta: lo guardado se descarga en un archivo y se carga en otro
+// navegador o dispositivo. Solo estas claves (ni la última visita ni el modo propietario).
+const CLAVES_COPIA = [CLAVE_FAVORITOS, CLAVE_DESCARTADAS, CLAVE_BUSQUEDAS, CLAVE_FILTROS, CLAVE_SALIDA, CLAVE_VIAJE, CLAVE_COMPARAR, CLAVE_MIS_ESTADOS, CLAVE_TEMA, CLAVE_MODO_LISTA];
+const FORMATO_COPIA = 'escapadas-finde/guardados';
+
+/** Todo lo guardado en este navegador, listo para descargar como JSON. */
+export function exportarGuardados(ahora = new Date()) {
+  const datos = {};
+  for (const clave of CLAVES_COPIA) {
+    const valor = leer(local, clave);
+    if (valor !== null) datos[clave] = valor;
+  }
+  return { formato: FORMATO_COPIA, version: 1, exportado: ahora.toISOString(), datos };
+}
+
+/**
+ * Carga una copia (lo que devuelve exportarGuardados) y sustituye lo de este navegador.
+ * Solo acepta las claves conocidas y textos: un archivo cualquiera no puede escribir otra
+ * cosa. Devuelve cuántas claves ha cargado; lanza un error si el archivo no es una copia.
+ */
+export function importarGuardados(copia) {
+  if (copia?.formato !== FORMATO_COPIA || !copia.datos || typeof copia.datos !== 'object') {
+    throw new Error('El archivo no es una copia de «Guardados» de Escapadas Finde');
+  }
+  let cargadas = 0;
+  for (const clave of CLAVES_COPIA) {
+    const valor = copia.datos[clave];
+    if (typeof valor !== 'string') continue;
+    escribir(local, clave, valor);
+    cargadas += 1;
+  }
+  return cargadas;
+}

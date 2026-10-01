@@ -21,6 +21,6 @@
     { "name": "Este finde", "url": "./#/finde", "icons": [{ "src": "icono-192.png", "sizes": "192x192", "type": "image/png" }] },
     { "name": "Explorar", "url": "./#/escapadas", "icons": [{ "src": "icono-192.png", "sizes": "192x192", "type": "image/png" }] },
     { "name": "Fechas y puentes", "url": "./#/calendario", "icons": [{ "src": "icono-192.png", "sizes": "192x192", "type": "image/png" }] },
-    { "name": "Mis cosas", "url": "./#/mis", "icons": [{ "src": "icono-192.png", "sizes": "192x192", "type": "image/png" }] }
+    { "name": "Guardados", "url": "./#/mis", "icons": [{ "src": "icono-192.png", "sizes": "192x192", "type": "image/png" }] }
   ]
 }

@@ -239,6 +239,7 @@ pre code { background: none; padding: 0; }
 .boton-fav[aria-pressed="true"] { color: var(--favorito); border-color: var(--favorito); }
 .boton-fav[aria-pressed="true"] .ic { fill: currentColor; }
 .boton-comparar[aria-pressed="true"] { background: var(--acento); border-color: var(--acento); color: var(--acento-texto); }
+.boton-comparar--texto { display: inline-flex; align-items: center; width: auto; padding-inline: 12px; gap: 6px; font-weight: 700; font-size: 0.86rem; }
 .boton-descartar { border-color: transparent; background: none; color: var(--texto-suave); }
 .boton-descartar:hover { border-color: var(--peligro); color: var(--peligro); }
 
@@ -303,6 +304,7 @@ pre code { background: none; padding: 0; }
   font-variant-numeric: tabular-nums;
 }
 .puntuacion__etiqueta { font-weight: 700; opacity: 0.85; }
+.puntuacion__max, .tarjeta__opiniones-max { font-size: 0.78em; font-weight: 600; opacity: 0.75; }
 .tarjeta__cabeza .puntuacion { padding: 0 9px; }
 .puntuacion--alta { background: var(--chollo-suave); color: var(--chollo-fuerte); }
 .puntuacion--media { background: var(--acento-suave); color: var(--acento-suave-texto); }
@@ -458,6 +460,10 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 }
 .buscador-finde__etiqueta { margin-bottom: 0; }
 .buscador-finde__fila { display: grid; gap: 16px; }
+.buscador-finde__fila select { width: 100%; }
+.buscador-finde__enviar { min-height: 46px; padding-inline: 22px; }
+.buscador-finde__mas > summary { cursor: pointer; font-weight: 700; font-size: 0.9rem; color: var(--texto-suave); padding-block: 10px; }
+.buscador-finde__mas[open] > summary { margin-bottom: 10px; }
 .opciones { display: flex; flex-wrap: wrap; gap: 8px; }
 .opciones--desplazables { position: relative; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin; }
 /* Las filas que se deslizan se desvanecen en el borde derecho: se ve que hay más, no un corte. */
@@ -584,7 +590,12 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 
 /* Atajos de un clic y «lo que tienes puesto». */
 .atajos { margin-bottom: 14px; }
-.atajos .chips__lista { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 6px; scrollbar-width: thin; }
+.atajos .chips__lista { flex-wrap: wrap; }
+.atajos__mas { display: contents; }
+.atajos__mas > summary { list-style: none; cursor: pointer; }
+.atajos__mas > summary::-webkit-details-marker { display: none; }
+.atajos__mas[open] > summary { background: var(--superficie-2); }
+.atajos__mas > .chips__lista { flex-basis: 100%; }
 .chip--atajo { color: var(--texto) !important; text-decoration: none; }
 .chip--atajo .ic { color: var(--acento); }
 .chip--atajo:hover { border-color: var(--texto); }
@@ -705,9 +716,9 @@ main { padding-block: 22px 56px; min-height: 60vh; }
  * Tarjeta con huecos fijos: título (2 líneas), opiniones (1), datos (2), etiquetas (1),
  * precio y coste. Así, en una fila, todas miden lo mismo y cada cosa está a la misma altura.
  */
-.tarjeta .tarjeta__titulo { display: block; height: calc(2 * 1.3em); }
+.tarjeta .tarjeta__titulo { display: block; height: calc(3 * 1.3em); }
 /* El título es un botón: el recorte a 2 líneas va en él (en el h3 no se aplicaba). */
-.tarjeta .tarjeta__titulo .enlace-ficha { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
+.tarjeta .tarjeta__titulo .enlace-ficha { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; overflow: hidden; }
 .tarjeta__opiniones {
   margin: 0; height: 20px; display: flex; align-items: center; gap: 5px; min-width: 0;
   font-size: 0.86rem; color: var(--texto-suave); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -846,10 +857,8 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 .explorar__resultados { min-width: 0; }
 @media (min-width: 1100px) {
   .explorar { grid-template-columns: 340px minmax(0, 1fr); }
-  .explorar__filtros {
-    position: sticky; top: 84px; max-height: calc(100vh - 100px); overflow-y: auto; overscroll-behavior: contain;
-    border-radius: var(--radio); scrollbar-width: thin;
-  }
+  /* Sin scroll propio: con dos zonas que se desplazan no se sabía cuál se movía con la rueda. */
+  .explorar__filtros { border-radius: var(--radio); }
   .explorar__filtros .filtros { margin-bottom: 0; padding: 16px; gap: 14px; }
   .explorar__filtros .filtros__fila { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; align-items: stretch; }
   .explorar__filtros .campo { min-width: 0; width: 100%; }
@@ -997,7 +1006,6 @@ main { padding-block: 22px 56px; min-height: 60vh; }
   background: var(--superficie); border: 1px solid var(--borde); border-radius: var(--radio);
   color: var(--texto) !important; text-decoration: none; transition: transform 0.18s, box-shadow 0.18s;
 }
-.finde-celda:hover { transform: translateY(-2px); box-shadow: var(--sombra-alta); }
 .finde-celda--puente { background: var(--banda); border-color: var(--banda); color: var(--banda-texto) !important; }
 .finde-celda--puente .finde-celda__cuando, .finde-celda--puente .suave { color: var(--banda-suave); }
 .finde-celda--puente .insignia--puente { background: var(--chollo); color: var(--chollo-texto); }
@@ -1005,6 +1013,9 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 .finde-celda__fecha { font-family: var(--fuente-titulos); font-size: 1.4rem; font-weight: 800; letter-spacing: -0.02em; }
 .finde-celda__dato { display: flex; align-items: center; gap: 6px; font-size: 0.87rem; overflow-wrap: anywhere; }
 .finde-celda .insignia { align-self: flex-start; }
+.finde-celda__acciones { margin-top: auto; display: flex; flex-wrap: wrap; gap: 6px; }
+.finde-celda__accion { flex: 1 1 auto; justify-content: center; }
+.finde-celda--puente .finde-celda__accion { background: color-mix(in srgb, var(--banda-texto) 12%, transparent); color: var(--banda-texto) !important; border-color: transparent; }
 
 /* ── Vigilados y fuentes ──────────────────────────────────────────────────── */
 
@@ -1319,11 +1330,12 @@ main { padding-block: 22px 56px; min-height: 60vh; }
   .marca img { width: 32px; height: 32px; }
   .cabecera__acciones .boton-icono { width: 40px; height: 40px; }
 
-  /* Salida, cuenta atrás, puente y revisión: una fila que se desliza, no cuatro. */
+  /* Salida, novedades y revisión: en filas si no caben (deslizándose de lado, el aviso de
+     «Revisado hace…» quedaba cortado fuera de la pantalla). */
   .cabecera-info { flex-direction: column; flex-wrap: nowrap; align-items: stretch; gap: 8px; padding-top: 10px; }
-  .cabecera__info { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; gap: 6px; }
-  .cabecera__info::-webkit-scrollbar { display: none; }
-  .cabecera__info > * { flex: none; white-space: nowrap; }
+  .cabecera__info { flex-wrap: wrap; gap: 6px; }
+  .cabecera__info > * { flex: none; white-space: nowrap; max-width: 100%; }
+  .atajos .chip { min-height: 40px; padding-block: 6px; font-size: 0.88rem; }
   .cabecera__info .pastilla { font-size: 0.8rem; min-height: 40px; }
   .buscador { flex: none; width: 100%; max-width: none; margin: 0; }
   #boton-viaje { order: -1; }
@@ -1342,7 +1354,11 @@ main { padding-block: 22px 56px; min-height: 60vh; }
   .ficha { width: 100%; max-width: 100%; max-height: 94vh; margin: auto 0 0; border-radius: 26px 26px 0 0; }
   .ficha__contenido { padding: 0 14px 22px; }
   .buscador-finde { padding: 16px; border-radius: 22px; }
-  .buscador-finde__pie .boton { width: 100%; }
+  /* Portada en el móvil: menos alto antes del planificador. */
+  .portada__ceja { font-size: 0.8rem; }
+  .portada__ceja .pastilla { font-size: 0.78rem; padding-inline: 12px; }
+  .portada .titulo-vista { font-size: 2rem; }
+  .buscador-finde__pie .boton, .buscador-finde__enviar { width: 100%; }
   .opciones--cuando { display: grid; grid-template-columns: 1fr 1fr; }
   .opciones--cuando .opcion { flex: auto; }
   .seccion { margin-top: 36px; }
@@ -1372,7 +1388,7 @@ main { padding-block: 22px 56px; min-height: 60vh; }
   .titulo-vista .suave { display: inline; margin-left: 10px; }
   .ficha__contenido { padding: 0 28px 28px; }
   .buscador-finde { padding: 24px; }
-  .buscador-finde__fila { grid-template-columns: minmax(0, 1fr) 220px; align-items: start; }
+  .buscador-finde__fila { grid-template-columns: minmax(0, 1fr) 180px auto; align-items: end; }
   .seccion--puente { padding: 34px 36px; }
 }
 
@@ -1492,3 +1508,13 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 /* «En una frase»: el resumen automático de lo que incluye la oferta. */
 .ficha__resumen-ia { margin: 0; padding: 10px 14px; border-radius: 14px; background: var(--acento-suave); color: var(--texto); font-size: 0.95rem; }
 .ficha__resumen-ia .suave { font-size: 0.8rem; }
+
+/* «Guardados» vacío: los tres pasos para empezar. */
+.pasos-guardados { list-style: none; margin: 0 0 14px; padding: 0; display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); counter-reset: paso; }
+.pasos-guardados li { counter-increment: paso; display: flex; gap: 10px; align-items: flex-start; padding: 14px; border: 1px solid var(--borde); border-radius: var(--radio-medio); background: var(--superficie); }
+.pasos-guardados li::before { content: counter(paso); flex: none; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--acento); color: var(--acento-texto); font-weight: 800; font-size: 0.85rem; }
+.pasos-guardados .ic { flex: none; margin-top: 3px; color: var(--acento); }
+label.boton { cursor: pointer; }
+/* Con los filtros ya abiertos, el «Filtros» de la barra flotante sobra (y tapaba el formulario). */
+body:has([data-plegable-movil][open]) .barra-comparar [data-abrir-filtros] { display: none; }
+.ficha__precio .precio.precio--publicado strong { font-size: 2.2rem; }

@@ -37,10 +37,11 @@ El menú tiene cuatro apartados (abajo en el móvil y la tableta, al alcance del
   fuente de vuelos con día y hora, «Vuelos» es **Chollos de vuelos** (blogs y comunidades, con
   fechas flexibles) y no enseña filtros de finde, aeropuerto ni horario que no se aplicarían.
 - **Fechas**, con **Calendario** (los próximos 12 findes) y **Puentes** (qué día pedir y sus ofertas).
-- **Mis cosas**: **búsquedas guardadas que avisan** («Guardar y avisarme» en cualquier búsqueda:
+- **Guardados**: **búsquedas guardadas** («Guardar búsqueda» en cualquier búsqueda:
   aquí y en el número del menú ves cuántas ofertas nuevas la cumplen desde la última vez que la
   miraste, sin email ni GitHub), favoritos, «Comparar lado a lado», lo que has marcado como
-  reservado o no disponible y los **avisos por email** (los antiguos «vigilados»).
+  reservado o no disponible y los **avisos por email** (los antiguos «vigilados»). Con
+  **«Descargar mis guardados»** y «Cargar una copia» se pasan a otro navegador o dispositivo, sin cuenta.
 
 - **Escapadas**: filtros por temática (spa, romántico, rural, playa, gastronomía,
   familia, ciudad, aventura, parques, eventos, mascotas, alojamientos singulares),
