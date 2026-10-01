@@ -105,6 +105,8 @@ describe('Ticketmaster', () => {
       events: [
         { name: 'Festival Jardín de las Delicias', url: 'https://www.ticketmaster.es/event/1', dates: { start: { localDate: '2026-10-03' } }, classifications: [{ segment: { name: 'Music' }, genre: { name: 'Pop' } }], priceRanges: [{ min: 49.5 }], _embedded: { venues: [{ city: { name: 'Madrid' }, location: { latitude: '40.39', longitude: '-3.70' } }] } },
         { name: 'Real Madrid - Valencia CF', url: 'https://www.ticketmaster.es/event/2', dates: { start: { localDate: '2026-10-04' } }, classifications: [{ segment: { name: 'Sports' } }], _embedded: { venues: [{ city: { name: 'Madrid' }, location: { latitude: '40.45', longitude: '-3.69' } }] } },
+        // Universe: entradas diarias a un monumento, no un evento. Fuera.
+        { name: 'CATEDRAL DE CORIA', url: 'https://www.universe.com/events/catedral-de-coria-tickets-ABC?ref=ticketmaster', dates: { start: { localDate: '2026-10-04' } }, classifications: [{ segment: { name: 'Miscellaneous' } }], _embedded: { venues: [{ city: { name: 'Coria' }, location: { latitude: '39.98', longitude: '-6.53' } }] } },
         { name: 'Sin recinto', dates: { start: { localDate: '2026-10-04' } } },
       ],
     },
@@ -121,8 +123,7 @@ describe('Ticketmaster', () => {
     const eventos = await ticketmaster.descargar(ctx, DESDE, HASTA);
     const u = new URL(peticiones[0]);
     assert.deepEqual([u.searchParams.get('countryCode'), u.searchParams.get('startDateTime'), u.searchParams.get('endDateTime'), u.searchParams.get('apikey')], ['ES', '2026-09-18T00:00:00Z', '2026-10-18T23:59:59Z', 'clave-de-prueba']);
-    // Solo Ticketmaster: Universe (entradas diarias a monumentos) se comía el cupo de 1.000.
-    assert.equal(u.searchParams.get('source'), 'ticketmaster');
+    assert.equal(u.searchParams.get('source'), null, 'sin «source=ticketmaster»: para España devolvía 0 eventos');
     assert.equal(peticiones.length, 1, 'una página: no pide más');
     assert.deepEqual(eventos.map((e) => [e.tipo, e.precio, e.municipio]), [['festivales', 'desde 50 €', 'Madrid'], ['deporte', null, 'Madrid']]);
   });

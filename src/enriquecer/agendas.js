@@ -150,8 +150,9 @@ const PAGINAS_TM = 5;
 
 export const ticketmaster = {
   id: 'ticketmaster',
-  // 2: solo eventos de Ticketmaster (antes entraban los de Universe, entradas diarias a monumentos).
-  version: 2,
+  // 3: fuera los de Universe (entradas diarias a monumentos) por su enlace; con «source=ticketmaster»
+  // la API no devolvía nada para España.
+  version: 3,
   nombre: 'Ticketmaster',
   zona: () => true,
   activo: (ctx) => Boolean(ctx.env?.TICKETMASTER_KEY),
@@ -160,14 +161,14 @@ export const ticketmaster = {
     for (let pagina = 0; pagina < PAGINAS_TM; pagina += 1) {
       if (pagina) await ctx.http.esperar(300);
       const p = new URLSearchParams({
-        // Solo Ticketmaster: Universe trae entradas diarias a catedrales y museos (no son eventos)
-        // y se comían casi todo el cupo de 1.000 resultados.
-        apikey: ctx.env.TICKETMASTER_KEY, countryCode: 'ES', source: 'ticketmaster', locale: '*', size: '200', page: String(pagina), sort: 'date,asc',
+        apikey: ctx.env.TICKETMASTER_KEY, countryCode: 'ES', locale: '*', size: '200', page: String(pagina), sort: 'date,asc',
         startDateTime: `${desde}T00:00:00Z`, endDateTime: `${hasta}T23:59:59Z`,
       });
       const r = await ctx.http.json(`https://app.ticketmaster.com/discovery/v2/events.json?${p}`);
       const lista = r?._embedded?.events ?? [];
       for (const ev of lista) {
+        // Universe (plataforma de Ticketmaster) trae entradas diarias a catedrales y museos: no son eventos.
+        if (/universe\.com/i.test(ev.url ?? '')) continue;
         const sitio = ev._embedded?.venues?.[0];
         const segmento = ev.classifications?.[0]?.segment?.name;
         const genero = ev.classifications?.[0]?.genre?.name;
