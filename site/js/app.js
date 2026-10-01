@@ -1025,6 +1025,9 @@ function activarActualizaciones() {
   });
   navigator.serviceWorker.register('sw.js')
     .then((registro) => {
+      // También al abrir: Safari del iPhone puede tardar en mirar si hay sw.js nuevo y la
+      // web seguía con la interfaz anterior.
+      registro?.update?.().catch(() => {});
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') registro?.update?.().catch(() => {});
       });

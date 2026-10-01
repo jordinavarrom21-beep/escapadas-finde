@@ -4,6 +4,7 @@
  * Ministerio), siempre con caché y respetando la política de uso de los servicios.
  */
 import { normalizarTexto } from '../util/xml.js';
+import { enIsla } from '../../site/js/geo.js';
 
 const URL_NOMINATIM = 'https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&accept-language=es&q=';
 const URL_OSRM = 'https://router.project-osrm.org/table/v1/driving/';
@@ -41,12 +42,8 @@ export function distanciaKm(a, b) {
 const tieneCoordenadas = (lugar) => typeof lugar?.lat === 'number' && typeof lugar?.lon === 'number';
 const clavePunto = ({ lat, lon }) => `${lat.toFixed(3)},${lon.toFixed(3)}`;
 
-/** Baleares y Canarias (cajas que no tocan la península). */
-const ISLAS = [
-  { latMin: 38.6, latMax: 40.2, lonMin: 1.1, lonMax: 4.5 },
-  { latMin: 27.5, latMax: 29.5, lonMin: -18.3, lonMax: -13.3 },
-];
-export const enIsla = ({ lat, lon }) => ISLAS.some((c) => lat >= c.latMin && lat <= c.latMax && lon >= c.lonMin && lon <= c.lonMax);
+// Las mismas islas que usa el panel para no estimar coche cruzando el mar.
+export { enIsla } from '../../site/js/geo.js';
 
 /** País de un lugar en ISO-3166 (minúsculas), si se sabe. */
 const codigoPais = (lugar) => (lugar.codigoPais ?? (normalizarTexto(lugar.pais ?? '') === 'espana' ? 'ES' : ''))?.toLowerCase() || '';

@@ -28,7 +28,8 @@ export const ETIQUETAS_ORDEN = {
   noche: 'Precio por persona y noche',
   ahorro: 'Más por debajo de lo normal',
   valoracion: 'Mejor valoradas',
-  distancia: 'Distancia',
+  distancia: 'Distancia (más cerca primero)',
+  alojamiento: 'Tipo de alojamiento',
   novedad: 'Novedad',
 };
 
@@ -84,6 +85,8 @@ export function ctxTarjetas(e, extra = {}) {
   return {
     temas: e.temas, fuentes: e.fuentes, favoritos: e.favoritos, referencia: e.referencia,
     historial: e.historial, distancias: e.distanciasOrigen, desde: nombreSalida(e),
+    // Aunque las distancias que se enseñan sean desde «Cerca de…», el viaje sale de tu salida.
+    distanciasCoste: e.distanciasOrigen,
     // El coste de coche que calcula el escaneo es desde su origen: desde otra salida no vale.
     salidaPropia: Boolean(e.salida), ...datosViaje(e), ahora: e.ahora, comparar: e.comparar ?? null, misEstados: e.misEstados ?? null,
     intervalos: intervalosDe(e), busqueda: e.busqueda ?? null, ...extra,
@@ -109,6 +112,7 @@ export function contextoBusqueda(e) {
   return {
     origen: e.datos.origen,
     salida: e.salida ?? null,
+    distanciasSalida: e.distanciasOrigen ?? null,
     ...datosViaje(e),
     aeropuertos: misAeropuertos(e),
     finde: e.findes[0],
@@ -240,7 +244,7 @@ export function bloqueExclusiones(e, f, ofertas) {
 /** Guardar la búsqueda actual y copiarla como criterio de vigilados. */
 export function bloqueBusquedas(e, vista) {
   const chips = e.busquedas.map((b) => `<span class="chip chip--guardada">
-  <a href="${esc(b.hash)}">${esc(b.nombre)}</a>
+  <a href="${esc(b.hash)}" title="${esc(b.nombre)}">${esc(b.nombre)}</a>
   <button type="button" class="boton-icono boton-icono--mini" data-borrar-busqueda="${esc(b.nombre)}" aria-label="Borrar la búsqueda guardada ${esc(b.nombre)}">${icono('cerrar')}</button>
 </span>`).join('');
   return `<details class="filtros__mas"${e.busquedas.length ? ' open' : ''}>

@@ -47,7 +47,7 @@ export function traducirFormulario(p) {
   return p;
 }
 export const ORDENES_VUELOS = ['precio', 'puntuacion', 'hora'];
-export const ORDENES_ESCAPADAS = ['puntuacion', 'total', 'persona', 'calidad', 'comodo', 'precio', 'noche', 'ahorro', 'valoracion', 'distancia', 'novedad'];
+export const ORDENES_ESCAPADAS = ['puntuacion', 'total', 'persona', 'calidad', 'comodo', 'precio', 'noche', 'ahorro', 'valoracion', 'distancia', 'alojamiento', 'novedad'];
 export const ORDENES_ACTIVIDADES = ['puntuacion', 'precio', 'valoracion'];
 /** De menos a más incluido: sirve para el filtro de «régimen mínimo». */
 export const REGIMENES_ORDEN = ['solo-alojamiento', 'desayuno', 'media-pension', 'pension-completa', 'todo-incluido'];
@@ -109,6 +109,8 @@ export function cumpleNinos(o, valor) {
 
 /** Filtros que valen para cualquier oferta (también para la búsqueda global). */
 export function leerFiltrosComunes(p = {}) {
+  // «Entre el 18 y el 16» es «entre el 16 y el 18»: con las fechas al revés no salía nada.
+  const [desde, hasta] = [dia(p.desde), dia(p.hasta)].sort((a, b) => (a && b ? a.localeCompare(b) : 0));
   return {
     q: (p.q ?? '').trim(),
     max: positivo(p.max),
@@ -131,8 +133,8 @@ export function leerFiltrosComunes(p = {}) {
     soloComprobadas: p.frescas === '1',
     noTemas: lista(p.notemas),
     noDestinos: lista(p.nodest),
-    desde: dia(p.desde),
-    hasta: dia(p.hasta),
+    desde,
+    hasta,
     cuando: p.cuando ?? '',
     // Solo las que ya traen fechas concretas; las flexibles se confirman en la web.
     soloCerradas: p.cerradas === '1',
@@ -616,6 +618,8 @@ function porComodidad(distancias) {
     || porPuntuacion(a, b);
 }
 
+const posicionAlojamiento = (o) => (ALOJAMIENTOS.includes(o.alojamiento) ? ALOJAMIENTOS.indexOf(o.alojamiento) : null);
+
 function calidadPrecio(o, costes) {
   const porPersona = costes.get(o.id)?.porPersona;
   return o.valoracion?.nota > 0 && porPersona > 0 ? (o.valoracion.nota / porPersona) * 100 : null;
@@ -624,11 +628,11 @@ function calidadPrecio(o, costes) {
 const cabeEnPresupuesto = (coste, f) => coste?.total != null
   && (f.presupuestoPor === 'persona' ? coste.porPersona : coste.total) <= f.presupuesto;
 
-const comparadoresEscapadas = (distancias, costes) => ({
+const comparadoresEscapadas = (distancias, costes, desdeSalida = distancias) => ({
   // Sin total (falta precio, unidad o cómo llegar) van al final: no se comparan con lo que sí lo tiene.
   total: (a, b) => ascendente(costes.get(a.id)?.total, costes.get(b.id)?.total) || porPuntuacion(a, b),
   persona: (a, b) => ascendente(costes.get(a.id)?.porPersona, costes.get(b.id)?.porPersona) || porPuntuacion(a, b),
-  comodo: porComodidad(distancias),
+  comodo: porComodidad(desdeSalida),
   // Calidad/precio: nota sobre 10 por cada 100 € por persona. Sin nota o sin total, al final.
   calidad: (a, b) => descendente(calidadPrecio(a, costes), calidadPrecio(b, costes)) || porPuntuacion(a, b),
   puntuacion: (a, b) => porPuntuacion(a, b) || ascendente(a.precio, b.precio),
@@ -638,8 +642,11 @@ const comparadoresEscapadas = (distancias, costes) => ({
   valoracion: (a, b) => descendente(a.valoracion?.nota, b.valoracion?.nota) || porPuntuacion(a, b),
   distancia: (a, b) => {
     const [da, db] = [distancias.get(a.id), distancias.get(b.id)];
-    return ascendente(da?.minutos ?? da?.km, db?.minutos ?? db?.km) || porPuntuacion(a, b);
+    // Minutos y kilómetros no se mezclan: sin tiempo en coche (islas), al final y por kilómetros.
+    return ascendente(da?.minutos, db?.minutos) || ascendente(da?.km, db?.km) || porPuntuacion(a, b);
   },
+  // Por tipo de alojamiento en el orden de ALOJAMIENTOS; sin tipo conocido, al final.
+  alojamiento: (a, b) => ascendente(posicionAlojamiento(a), posicionAlojamiento(b)) || porPuntuacion(a, b),
   novedad: (a, b) => ascendente(b.vistaPrimera, a.vistaPrimera) || porPuntuacion(a, b),
 });
 
@@ -649,17 +656,19 @@ const comparadoresEscapadas = (distancias, costes) => ({
  * @returns {{ofertas: object[], distancias: Map}}
  */
 export function buscarEscapadas(ofertas, f, ctx) {
-  // Sin un punto en los filtros, desde tu salida (o desde el origen del escaneo).
-  const distancias = medirDistancias(ofertas, f.punto ?? ctx.salida ?? null, ctx.origen);
+  // El radio, el tiempo máximo y «Distancia» se miden desde el punto de «Cerca de…» si lo hay;
+  // la gasolina y «Más cómodo» siempre desde tu salida, que es desde donde viajas.
+  const desdeSalida = ctx.distanciasSalida ?? medirDistancias(ofertas, ctx.salida ?? null, ctx.origen);
+  const distancias = f.punto ? medirDistancias(ofertas, f.punto, ctx.origen) : desdeSalida;
   let lista = ofertas.filter((o) => esEscapada(o) && cumpleEscapada(o, f, ctx, distancias.get(o.id)));
   const costes = new Map(f.presupuesto || ['total', 'persona', 'calidad'].includes(f.orden)
-    ? lista.map((o) => [o.id, costeViaje(o, { viajeros: ctx.viajeros, noches: ctx.noches, distancia: distancias.get(o.id), coche: ctx.coche })])
+    ? lista.map((o) => [o.id, costeViaje(o, { viajeros: ctx.viajeros, noches: ctx.noches, distancia: desdeSalida.get(o.id), coche: ctx.coche })])
     : []);
   // Con presupuesto solo entran las que tienen un total que se puede comprobar.
   const sinTotal = f.presupuesto ? lista.filter((o) => costes.get(o.id).total == null).length : 0;
   if (f.presupuesto) lista = lista.filter((o) => cabeEnPresupuesto(costes.get(o.id), f));
-  const comparador = comparadoresEscapadas(distancias, costes)[f.orden] ?? porPuntuacion;
-  return { ofertas: alFinalSinComprobar(lista.sort(comparador), ctx), distancias, costes, sinTotal };
+  const comparador = comparadoresEscapadas(distancias, costes, desdeSalida)[f.orden] ?? porPuntuacion;
+  return { ofertas: alFinalSinComprobar(lista.sort(comparador), ctx), distancias, desdeSalida, costes, sinTotal };
 }
 
 // ── Actividades ──────────────────────────────────────────────────────────────
