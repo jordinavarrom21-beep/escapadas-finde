@@ -1161,8 +1161,11 @@ export function periodoDeParams(vista, params = {}) {
 export function conPeriodo(vista, params, periodo, { finde = null, puente = null } = {}) {
   if (!periodo || !VISTAS_CON_PERIODO.includes(vista)) return params;
   const { cuando: _c, finde: _f, desde: _d, hasta: _h, ...resto } = params;
-  const cuando = vista === 'vuelos'
-    ? ({ finde: finde?.id, puente: puente?.id }[periodo.cuando] ?? periodo.cuando)
+  // «finde»/«puente» sin un finde o puente conocido (p. ej. pasado el último puente del año)
+  // no se pasan como texto: Vuelos no los entiende y se quedaría sin resultados.
+  const relativo = ['finde', 'puente'].includes(periodo.cuando);
+  const cuando = vista === 'vuelos' && relativo
+    ? { finde: finde?.id, puente: puente?.id }[periodo.cuando]
     : periodo.cuando;
   return {
     ...resto,
