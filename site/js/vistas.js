@@ -13,7 +13,7 @@ import {
   buscarActividades, buscarEscapadas, buscarTexto, chollosDeVuelos, conFaltas, promocionesDeVuelos, crearHash, destinosDe,
   destinosDeVuelo, esActividad, esEscapada, filtrarVuelos, filtrosActivos, leerFiltrosActividades, zonasDe,
   leerFiltrosComunes, leerFiltrosEscapadas, leerFiltrosVuelos, radioBusquedaKm, viajeDeParams, tieneVuelo,
-  valoresUnicos, vuelosParaMapa,
+  valoresUnicos, vuelosParaMapa, KM_CERCA_DE_LO_BUSCADO, lugarDeConsulta,
 } from './filtros.js';
 import {
   certeza, costeDe, textoAlojamiento, textoCaducidad, textoFechas, textoLugar, estadoVacio, rejilla,
@@ -403,6 +403,22 @@ function explicacionOrden(e, f, costes) {
   return `<p class="seccion__intro explicacion-orden">${esc(textos[f.orden])}${esc(alFinal)} <button type="button" class="enlace-boton" data-mi-viaje>Cambiar salida, viajeros o noches</button></p>`;
 }
 
+/**
+ * Buscando un pueblo («Cadaqués»), las ofertas de al lado no dicen su nombre: se avisa de
+ * cuántas hay a menos de 30 km y se enlazan con «Cerca de…».
+ */
+function tambienCerca(e, f, params, encontradas) {
+  if (!f.q || f.punto) return '';
+  const lugar = lugarDeConsulta(e.datos.ofertas, f.q);
+  if (!lugar) return '';
+  const ya = new Set(encontradas.map((o) => o.id));
+  const cerca = buscarEscapadas(e.datos.ofertas, { ...f, q: '', punto: lugar, km: KM_CERCA_DE_LO_BUSCADO, horas: null }, contextoBusqueda(e)).ofertas
+    .filter((o) => !ya.has(o.id)).length;
+  if (!cerca) return '';
+  const hash = crearHash('escapadas', { ...params, q: '', lugar: lugar.nombre, lat: String(lugar.lat), lon: String(lugar.lon), km: String(KM_CERCA_DE_LO_BUSCADO), h: '' });
+  return `<p class="aviso-memoria aviso-cerca">${icono('mapa')}<span>Hay ${esc(contar(cerca, 'escapada'))} más a menos de ${KM_CERCA_DE_LO_BUSCADO} km de ${esc(lugar.nombre)} que no lo dicen en el título. <a href="${esc(hash)}">Ver todo lo que hay cerca de ${esc(lugar.nombre)}</a></span></p>`;
+}
+
 export function resultadosEscapadas(e, params) {
   const f = leerFiltrosEscapadas(params);
   const { resultado, aproximado } = conFaltas((g) => buscarEscapadas(e.datos.ofertas, g, contextoBusqueda(e)), f);
@@ -410,7 +426,7 @@ export function resultadosEscapadas(e, params) {
   const ctx = ctxTarjetas(e, { distancias, desde: f.punto?.nombre ?? nombreSalida(e) });
   // En el móvil el «Mapa» ya está en la pastilla flotante: aquí sobra.
   const acciones = `<a class="boton boton--suave solo-ancho-flex" href="${crearHash('mapa', params)}">${icono('mapa')}Ver en el mapa</a>`;
-  return `${filaActivos(e, 'escapadas', params)}${resumenResultados(contar(ofertas.length, 'escapada'), acciones)}${aproximado ? avisoAproximado(f.q) : ''}
+  return `${filaActivos(e, 'escapadas', params)}${resumenResultados(contar(ofertas.length, 'escapada'), acciones)}${aproximado ? avisoAproximado(f.q) : ''}${tambienCerca(e, f, params, ofertas)}
 ${ordenRapido('escapadas', params, f.orden)}${explicacionOrden(e, f, costes)}${f.presupuesto ? `<p class="seccion__intro">Presupuesto: viaje completo (oferta y gasolina estimada) de hasta ${esc(euros(f.presupuesto))} ${f.presupuestoPor === 'persona' ? 'por persona' : 'en total'} para ${esc(contar(e.viaje?.viajeros ?? 2, 'persona'))}.${sinTotal ? ` ${esc(contar(sinTotal, 'oferta'))} sin datos suficientes para un total no se pueden comprobar y no salen.` : ''}</p>` : ''}
 ${ofertas.length
     ? rejilla(ofertas, ctx, { mostradas: mostradas(e, 'escapadas'), clave: 'escapadas' })

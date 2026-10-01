@@ -370,13 +370,15 @@ ${barraReserva(o, ctx)}
 function barraReserva(o, ctx) {
   const boton = enlaceOferta(o, undefined, ctx);
   if (!boton) return '';
-  // Como en las tarjetas: el coste comparable del viaje si se puede calcular; si no, el de la web.
+  // Como en las tarjetas: primero el precio de la oferta; el viaje completo, debajo y en pequeño.
   const c = costeDe(o, ctx);
-  const cifra = c.total != null
-    ? `<span class="suave">Viaje para ${contar(c.viajeros, 'persona')}</span> <strong>${c.estimado ? '≈ ' : ''}${euros(Math.round(c.total))}</strong>`
-    : typeof o.precio !== 'number' ? ''
-      : o.precio === 0 ? '<strong>Gratis</strong>'
-        : `${esPrecioDesde(o) ? '<span class="suave">desde</span> ' : ''}<strong>${euros(o.precio)}</strong>${ETIQUETAS_UNIDAD[o.unidad] ? ` <span class="suave">${ETIQUETAS_UNIDAD[o.unidad]}</span>` : ''}`;
+  const oferta = typeof o.precio !== 'number' ? ''
+    : o.precio === 0 ? '<strong>Gratis</strong>'
+      : `${esPrecioDesde(o) ? '<span class="suave">desde</span> ' : ''}<strong>${euros(o.precio)}</strong>${ETIQUETAS_UNIDAD[o.unidad] ? ` <span class="suave">${ETIQUETAS_UNIDAD[o.unidad]}</span>` : ''}`;
+  const viaje = c.total != null && o.precio > 0
+    ? `<span class="ficha__reserva-viaje suave">Viaje completo ${c.estimado ? '≈ ' : ''}${euros(Math.round(c.total))} (${contar(c.viajeros, 'persona')})</span>`
+    : '';
+  const cifra = `${oferta}${viaje}`;
   return `<div class="ficha__reserva"><p class="ficha__reserva-precio">${cifra}</p>${boton}</div>`;
 }
 

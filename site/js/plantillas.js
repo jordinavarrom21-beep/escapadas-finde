@@ -347,12 +347,13 @@ function calculoPorNoche(o) {
 }
 
 /**
- * El precio que publica la web. Con `etiqueta` («Precio publicado») va rotulado y en pequeño:
- * es lo que sale cuando arriba ya está el coste del viaje, para que nadie tome uno por otro.
+ * El precio que publica la web. Con `etiqueta` («Precio en Atrápalo») va rotulado: en grande
+ * con `principal` (tarjetas) o en pequeño si al lado hay otra cifra mayor.
  */
-export function precio(o, { etiqueta = null } = {}) {
+export function precio(o, { etiqueta = null, principal = false } = {}) {
   const rotulo = etiqueta ? `<span class="precio__etiqueta">${esc(etiqueta)}</span>` : '';
-  const clase = etiqueta ? 'precio precio--publicado' : 'precio';
+  // `principal`: rotulado pero en grande, que es lo primero que se mira.
+  const clase = etiqueta ? `precio ${principal ? 'precio--oferta' : 'precio--publicado'}` : 'precio';
   return rotulo ? precioBase(o).replace('<p class="precio">', `<p class="${clase}">${rotulo}`) : precioBase(o);
 }
 
@@ -680,9 +681,9 @@ function supuestosCortos(o, c, ctx) {
 }
 
 /**
- * El coste comparable, primero y en grande: «Viaje estimado para 2 personas ≈ 164 €», de
- * dónde sale (oferta + gasolina) y lo que se supone. Sin total, la gasolina que calculó el
- * escaneo (solo desde su origen) y, si tampoco, nada.
+ * El coste del viaje completo, debajo del precio y en pequeño: «Viaje para 2 personas, con
+ * gasolina ≈ 164 €», de dónde sale (oferta + gasolina) y lo que se supone. Sin total, la
+ * gasolina que calculó el escaneo (solo desde su origen) y, si tampoco, nada.
  */
 function lineaCoste(o, ctx) {
   const c = costeDe(o, ctx);
@@ -694,23 +695,20 @@ function lineaCoste(o, ctx) {
     : '';
   const supuestos = supuestosCortos(o, c, ctx);
   return `<div class="dato-extra coste-total" title="${esc(titulo)}">
-    <p class="coste-total__cifra"><span class="coste-total__etiqueta">${c.estimado ? 'Viaje estimado' : 'Viaje'} para ${esc(contar(c.viajeros, 'persona'))}</span> <strong>${c.estimado ? '≈ ' : ''}${esc(euros(Math.round(c.total)))}</strong></p>
+    <p class="coste-total__cifra"><span class="coste-total__etiqueta">${c.estimado ? 'Viaje completo estimado' : 'Viaje completo'} para ${esc(contar(c.viajeros, 'persona'))}</span> <strong>${c.estimado ? '≈ ' : ''}${esc(euros(Math.round(c.total)))}</strong></p>
     ${partes}${supuestos ? `<span class="coste-total__supuestos">${esc(supuestos)}</span>` : ''}
   </div>`;
 }
 
 /**
- * Pie de precio de las tarjetas y del destacado: con total, el coste del viaje arriba y el
- * precio de la web debajo y rotulado; sin total, el precio de la web (y la gasolina si se sabe).
+ * Pie de precio de las tarjetas y del destacado: primero y en grande el precio de la oferta
+ * (lo que cobra la web), rotulado con la web; debajo, en pequeño, el viaje completo con la
+ * gasolina para comparar.
  */
 export function bloquePrecio(o, ctx) {
-  const conTotal = costeDe(o, ctx).total != null;
-  // «Precio en Chollometro»: dice qué cobra la web y cuál es (el botón queda en «Ver oferta»).
   const web = ctx.fuentes?.get(o.fuente) ?? o.fuente;
-  const etiqueta = web ? `Precio en ${web}` : 'Precio publicado';
-  return conTotal
-    ? `${lineaCoste(o, ctx)}${precio(o, { etiqueta })}`
-    : `${precio(o, { etiqueta: typeof o.precio === 'number' && o.precio > 0 ? etiqueta : null })}${lineaCoste(o, ctx)}`;
+  const etiqueta = typeof o.precio === 'number' && o.precio > 0 ? (web ? `Precio en ${web}` : 'Precio publicado') : null;
+  return `${precio(o, { etiqueta, principal: true })}${lineaCoste(o, ctx)}`;
 }
 
 /** Nombre corto de cada parte del coste para la leyenda de la tarjeta. */

@@ -516,9 +516,10 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 .destacado__titulo .enlace-ficha { color: var(--banda-texto); }
 .destacado .precio strong { font-size: 2.6rem; color: var(--banda-texto); }
 .destacado .precio--publicado strong { font-size: 1.2rem; }
+.destacado .precio--oferta .precio__etiqueta { flex-basis: 100%; }
 .destacado .precio__unidad, .destacado .precio__desde, .destacado .precio__anterior, .destacado .precio__noche, .destacado .precio__etiqueta { color: var(--banda-suave); }
 .destacado__precio { display: grid; gap: 8px; }
-.destacado .coste-total__cifra strong { font-size: 2.3rem; }
+.destacado .coste-total__cifra strong { font-size: 1.15rem; }
 .destacado__ahorro { display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--chollo-claro); }
 .destacado__pie {
   margin-top: auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;
@@ -754,15 +755,17 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 .insignia--comparar { background: var(--superficie-2); color: var(--texto); }
 .insignia--comparar a { color: var(--enlace); }
 .insignia--comparar .ic { color: var(--acento); }
-/* Precio: primero el coste comparable del viaje (.coste-total) y debajo, rotulado, el de la web. */
+/* Precio: primero y en grande el de la oferta (rotulado con su web); debajo, en pequeño, el viaje completo. */
 .tarjeta__precio { display: grid; gap: 6px; align-content: start; min-height: 122px; }
 .tarjeta__precio .precio { margin: 0; }
 .coste-total__cifra { margin: 0; flex-basis: 100%; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 8px; }
 .coste-total__etiqueta { font-size: 0.8rem; font-weight: 700; }
-.coste-total__cifra strong { font-family: var(--fuente-titulos); font-size: 1.55rem; font-weight: 800; letter-spacing: -0.02em; line-height: 1.05; color: var(--texto); }
+.coste-total__cifra strong { font-family: var(--fuente-titulos); font-size: 1.05rem; font-weight: 800; letter-spacing: -0.02em; line-height: 1.05; color: var(--texto); }
 .coste-total__supuestos { flex-basis: 100%; font-size: 0.74rem; font-weight: 500; color: var(--texto-suave); }
 .precio--publicado { gap: 0 5px; }
 .precio.precio--publicado strong { font-size: 1.05rem; }
+.precio--oferta { gap: 0 7px; }
+.precio--oferta .precio__etiqueta { flex-basis: 100%; }
 .precio__etiqueta { font-size: 0.78rem; font-weight: 650; color: var(--texto-suave); }
 .precio__etiqueta::after { content: ":"; }
 .tarjeta .acciones { flex-wrap: nowrap; }
@@ -1527,3 +1530,6 @@ label.boton { cursor: pointer; }
 /* Con los filtros ya abiertos, el «Filtros» de la barra flotante sobra (y tapaba el formulario). */
 body:has([data-plegable-movil][open]) .barra-comparar [data-abrir-filtros] { display: none; }
 .ficha__precio .precio.precio--publicado strong { font-size: 2.2rem; }
+.ficha__reserva-viaje { display: block; font-size: 0.78rem; }
+/* En tarjetas y destacado el viaje completo es secundario: sin la barra (en la ficha, sí). */
+.tarjeta__precio .coste__barra, .destacado__precio .coste__barra { display: none; }

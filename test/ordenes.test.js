@@ -114,3 +114,16 @@ describe('islas', async () => {
     assert.ok(minutosEnCoche(hotelEnMallorca, { nombre: 'Palma', lat: 39.57, lon: 2.65 }, origen) > 0);
   });
 });
+
+describe('buscar un pueblo', async () => {
+  const { lugarDeConsulta } = await import('../site/js/filtros.js');
+  const { resultadosEscapadas } = await import('../site/js/vistas.js');
+  it('reconoce el lugar (sin tildes ni mayúsculas) y no inventa uno que no está', () => {
+    assert.equal(lugarDeConsulta(datos.ofertas, 'tossa de mar')?.nombre, 'Tossa de Mar');
+    assert.equal(lugarDeConsulta(datos.ofertas, 'spa'), null);
+  });
+  it('avisa de lo que hay alrededor que no lleva el nombre en el título, con enlace a «Cerca de…»', () => {
+    const html = resultadosEscapadas(estado(), { q: 'tossa de mar' });
+    assert.match(html, /más a menos de 30 km de Tossa de Mar[^]*href="#\/escapadas\?lugar=Tossa%20de%20Mar&amp;lat=[\d.]+&amp;lon=[\d.]+&amp;km=30"/);
+  });
+});

@@ -723,6 +723,25 @@ export function vuelosParaMapa(ofertas, f, ctx) {
   return ofertas.filter((o) => esVuelo(o) && cumpleComunes(o, f, ctx));
 }
 
+/** Radio de «también cerca de…» cuando lo buscado es un pueblo o una ciudad. */
+export const KM_CERCA_DE_LO_BUSCADO = 30;
+
+/**
+ * Si lo buscado es el nombre de un lugar de las ofertas («lloret de mar», «Cadaqués»), ese
+ * lugar con sus coordenadas; si no, null. Sirve para ofrecer lo que hay alrededor, que no
+ * lleva el nombre del pueblo en el título.
+ */
+export function lugarDeConsulta(ofertas, consulta = '') {
+  const buscado = normalizar(consulta).replace(/[^a-z0-9]+/g, ' ').trim();
+  if (buscado.length < 3) return null;
+  const clave = (nombre) => normalizar(nombre ?? '').replace(/[^a-z0-9]+/g, ' ').trim();
+  const candidatas = ofertas.filter((x) => tieneCoordenadas(x.lugar) && !esVuelo(x));
+  // El nombre exacto y, si no, uno que empieza igual («Vielha» es «Vielha e Mijaran»).
+  const o = candidatas.find((x) => clave(x.lugar.nombre) === buscado)
+    ?? candidatas.find((x) => clave(x.lugar.nombre).startsWith(`${buscado} `));
+  return o ? { nombre: o.lugar.nombre, lat: o.lugar.lat, lon: o.lugar.lon } : null;
+}
+
 /** Radio en km del círculo de búsqueda (o null si no hay límite). */
 export function radioBusquedaKm(f) {
   if (f.km) return f.km;

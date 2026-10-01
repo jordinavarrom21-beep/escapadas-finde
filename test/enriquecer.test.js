@@ -163,13 +163,42 @@ describe('geo', () => {
       oferta({ lugar: { nombre: 'Otro lugar' } }),
     ];
     await geolocalizar(ofertas, ctx, { maxNuevas: 2 });
-    assert.equal(peticiones.length, 2);
-    assert.deepEqual(esperas, [1100]);
+    // Sin país, «Lugar inventado» se busca en España y, como no sale, en todo el mundo.
+    assert.equal(peticiones.length, 3);
+    assert.match(peticiones[1], /Lugar%20inventado&countrycodes=es$/);
+    assert.deepEqual(esperas, [1100, 1100]);
     assert.ok(Math.abs(ofertas[0].lugar.lat - 40.407) < 0.01);
     assert.equal(ofertas[1].lugar.lat, ofertas[0].lugar.lat);
     assert.equal(ofertas[2].lugar.lat ?? null, null);
-    assert.equal(ctx.cache.obtener('geo:lugar inventado'), null);
+    assert.equal(ctx.cache.obtener('geo2:lugar inventado'), null);
     assert.match(logs[0], /1 lugares se geolocalizarán/);
+  });
+
+  test('sin país, primero España: «Granada» no acaba en América y se sabe su provincia', async () => {
+    const espana = { lat: '37.1773', lon: '-3.5986', category: 'boundary', name: 'Granada', address: { province: 'Granada', country_code: 'es' } };
+    const { ctx, peticiones } = crearCtx({ respuestas: (url) => (url.includes('countrycodes=es') ? [espana] : [{ lat: '11.93', lon: '-85.95', name: 'Granada', category: 'boundary', address: { country_code: 'ni' } }]) });
+    const granada = oferta({ lugar: { nombre: 'Granada' } });
+    await geolocalizar([granada], ctx);
+    assert.equal(peticiones.length, 1);
+    assert.deepEqual([granada.lugar.lat, granada.lugar.lon, granada.lugar.provincia, granada.lugar.comunidad], [37.1773, -3.5986, 'Granada', 'Andalucía']);
+  });
+
+  test('sin país, lo de fuera se busca en el mundo; una calle con ese nombre en España no vale', async () => {
+    const calle = { lat: '40.4', lon: '-3.7', category: 'highway', name: 'Calle de Dublín', address: { country_code: 'es' } };
+    const dublin = { lat: '53.35', lon: '-6.26', category: 'boundary', name: 'Dublín', address: { country_code: 'ie' } };
+    const { ctx } = crearCtx({ respuestas: (url) => (url.includes('countrycodes=es') ? [calle] : [dublin]) });
+    const o = oferta({ lugar: { nombre: 'Dublín' } });
+    await geolocalizar([o], ctx);
+    assert.deepEqual([o.lugar.lat, o.lugar.lon, o.lugar.codigoPais], [53.35, -6.26, 'IE']);
+  });
+
+  test('las coordenadas de la búsqueda antigua (en todo el mundo) se repiten', async () => {
+    const espana = { lat: '40.63', lon: '-3.16', category: 'boundary', name: 'Guadalajara', address: { province: 'Guadalajara', country_code: 'es' } };
+    const { ctx } = crearCtx({ respuestas: () => [espana] });
+    ctx.cache.guardar('geo:guadalajara', { lat: 20.67, lon: -103.35 }, AHORA.getTime());
+    const o = oferta({ lugar: { nombre: 'Guadalajara', lat: 20.67, lon: -103.35 } });
+    await geolocalizar([o], ctx);
+    assert.deepEqual([o.lugar.lat, o.lugar.lon], [40.63, -3.16]);
   });
 
   test('calcularCoche con OSRM y estimación si falla', async () => {

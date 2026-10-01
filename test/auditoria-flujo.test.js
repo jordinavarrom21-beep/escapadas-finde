@@ -170,7 +170,7 @@ describe('auditoría: tiempo, eventos y geolocalización', () => {
 
   test('una coordenada caducada sirve de respaldo si Nominatim falla', async () => {
     const { ctx } = crearCtx();
-    ctx.cache.guardar('geo:olot, girona', { lat: 42.18, lon: 2.49 }, AHORA.getTime() - 100 * DIA_MS);
+    ctx.cache.guardar('geo2:olot, girona', { lat: 42.18, lon: 2.49 }, AHORA.getTime() - 100 * DIA_MS);
     ctx.http.json = async () => { throw new Error('HTTP 429'); };
     const o = oferta({ lugar: { nombre: 'Olot', region: 'Girona', lat: null, lon: null } });
     await geolocalizar([o], ctx);
