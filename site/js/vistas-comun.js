@@ -3,7 +3,7 @@
  * las secciones, las pestañas y los campos de los formularios de filtros.
  */
 
-import { etiquetaRango } from './fechas.js';
+import { etiquetaDia } from './fechas.js';
 import { contar, escaparHtml as esc } from './formato.js';
 import { POR_PAGINA, destinosDe } from './filtros.js';
 import { NOCHES, VIAJEROS, aeropuertosCercanos } from './viaje.js';
@@ -64,7 +64,7 @@ export function formularioViaje(e) {
       <button type="button" class="boton boton--suave boton-ubicacion" data-mi-ubicacion title="Usar mi ubicación" aria-label="Usar mi ubicación">${icono('ubicacion')}<span class="boton-ubicacion__texto">Mi ubicación</span></button>
     </div>
     <p class="ayuda" id="salida-ayuda" role="status">${s
-    ? `Desde ${esc(s.nombre)} las distancias y la gasolina son estimaciones (línea recta × 1,3). Déjalo vacío para volver a ${esc(e.datos.origen.nombre)}.`
+    ? `Desde ${esc(s.nombre)} se piden los km y el tiempo reales por carretera (tarda unos segundos la primera vez; mientras, se estiman). Déjalo vacío para volver a ${esc(e.datos.origen.nombre)}.`
     : `Desde ${esc(e.datos.origen.nombre)} hay tiempos reales por carretera. Escribe otra ciudad si sales de otro sitio.`}</p>
   </fieldset>
   <div class="filtros__fila">
@@ -183,8 +183,29 @@ export function motivoFuente(f) {
   return f.error ?? '';
 }
 
+/** «sáb 10 – lun 12 oct»: los días con su nombre, para no confundir un finde con un puente. */
+export const diasExplicitos = (desde, hasta) => {
+  const [a, b] = [etiquetaDia(desde), etiquetaDia(hasta)];
+  // «sáb 10 oct – lun 12 oct» → «sáb 10 – lun 12 oct» si es el mismo mes.
+  return a.split(' ')[2] === b.split(' ')[2] ? `${a.split(' ').slice(0, 2).join(' ')} – ${b}` : `${a} – ${b}`;
+};
+
+/** El puente con sus días y que es el puente entero: «Fiesta Nacional · sáb 10 – lun 12 oct · todo el puente». */
 export function etiquetaPuente(p) {
-  return `${icono('puentes')}${esc(p.nombre)} · ${esc(p.etiqueta ?? etiquetaRango(p.desde, p.hasta))}`;
+  return `${icono('puentes')}${esc(p.nombre)} · ${esc(diasExplicitos(p.desde, p.hasta))} · todo el puente`;
+}
+
+/**
+ * El finde con sus días y, si toca un puente, qué parte coge: «vie 9 – dom 11 oct · vuelve
+ * antes del festivo» (el puente sigue hasta el lunes).
+ */
+export function etiquetaFinde(finde, puentes = []) {
+  const dias = diasExplicitos(finde.viernes, finde.domingo);
+  const puente = puentes.find((p) => p.id === finde.puenteId);
+  if (!puente) return dias;
+  if (puente.hasta > finde.domingo) return `${dias} · vuelve antes del festivo`;
+  if (puente.desde < finde.viernes) return `${dias} · sin el festivo de antes`;
+  return dias;
 }
 
 // ── Piezas compartidas de los formularios ────────────────────────────────────

@@ -5,12 +5,12 @@ import { contar, escaparHtml as esc, euros, haceCuanto } from './formato.js';
 import {
   actividadesPara, buscarActividades, buscarEscapadas, chollazos, chollosDeVuelos, crearHash, filtrarVuelos,
   leerFiltrosActividades, leerFiltrosEscapadas, leerFiltrosVuelos, perfilFavoritos, periodoFinde, planesSorpresa,
-  puenteDelFinde, recomendadas, resumenFuentes, sinComprobar, tieneVuelo,
+  recomendadas, resumenFuentes, sinComprobar, tieneVuelo,
 } from './filtros.js';
 import { estadoVacio, rejilla, tarjeta, tarjetaConMotivo, tarjetaDestacada } from './plantillas.js';
 import { icono } from './iconos.js';
 import {
-  ACTIVIDADES_FINDE, HORAS_SORPRESA, conIcono, contextoBusqueda, ctxTarjetas, marcado, mostradas, nombreSalida,
+  ACTIVIDADES_FINDE, HORAS_SORPRESA, conIcono, contextoBusqueda, ctxTarjetas, etiquetaFinde, marcado, mostradas, nombreSalida,
   ocultas, seccion, webConProblemas,
 } from './vistas-comun.js';
 
@@ -230,7 +230,6 @@ export function vistaFinde(e, params = {}) {
   const busqueda = contextoBusqueda(e);
   const top = chollazos(e.datos.ofertas).filter((o) => !ocultasFinde.has(o.id) && !sinComprobar(o, busqueda));
   const favoritos = e.datos.ofertas.filter((o) => e.favoritos.has(o.id));
-  const puenteSiguiente = siguiente && puenteDelFinde(siguiente, e.datos.puentes);
   // Cada bloque se pinta en orden y no repite lo que ya ha salido más arriba (tampoco el destacado).
   const vistos = new Set(favoritos.map((o) => o.id));
   const destacado = top.find((o) => !vistos.has(o.id)) ?? null;
@@ -239,7 +238,7 @@ export function vistaFinde(e, params = {}) {
 
   const vuelos = hayVuelosConFecha
     ? bloqueVuelos(e, actual, conIcono('vuelos', `Vuelos este finde <span class="suave">(${esc(actual.etiqueta)})</span>`))
-      + (siguiente ? bloqueVuelos(e, siguiente, conIcono('vuelos', `Vuelos el finde siguiente <span class="suave">(${esc(siguiente.etiqueta)}${puenteSiguiente ? ' · puente' : ''})</span>`)) : '')
+      + (siguiente ? bloqueVuelos(e, siguiente, conIcono('vuelos', `Vuelos el finde siguiente <span class="suave">(${esc(etiquetaFinde(siguiente, e.datos.puentes))})</span>`)) : '')
     : seccion(conIcono('vuelos', 'Chollos de vuelos <span class="suave">(sin fecha concreta, desde tus aeropuertos)</span>'),
       rejilla(sinVistas(chollosDeVuelos(e.datos.ofertas, leerFiltrosVuelos({ mios: '1' }), contextoBusqueda(e)), vistos, 3), ctx, { mostradas: 3, clave: 'finde-chollos' }),
       { href: crearHash('vuelos', { mios: '1' }), texto: 'Ver todos' });
