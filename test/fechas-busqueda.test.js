@@ -17,7 +17,10 @@ describe('fechas que se buscan', () => {
   it('finde, puente, rango y día (con las noches del viaje)', () => {
     assert.deepEqual(fechasDeBusqueda({ cuando: '2026-10-16' }, ctxFechas), { entrada: '2026-10-16', salida: '2026-10-18', etiqueta: '16–18 oct' });
     assert.equal(fechasDeBusqueda({ cuando: 'finde' }, ctxFechas).entrada, '2026-10-02');
-    assert.deepEqual(fechasDeBusqueda({ cuando: 'puente-2026-10-10' }, ctxFechas), { entrada: '2026-10-10', salida: '2026-10-12', etiqueta: '10–12 oct' });
+    // Un puente entra el último laborable (viernes), como cuentan la franja y el encaje; no el primer día libre.
+    assert.deepEqual(fechasDeBusqueda({ cuando: 'puente-2026-10-10' }, ctxFechas), { entrada: '2026-10-09', salida: '2026-10-12', etiqueta: '9–12 oct' });
+    assert.equal(fechasDeBusqueda({ cuando: 'puente' }, ctxFechas).entrada, '2026-10-09');
+    assert.equal(fechasDeBusqueda({ cuando: 'puente-2026-10-10' }, { ...ctxFechas, puentes: [{ ...puentes[0], salidas: undefined }] }).entrada, '2026-10-09', 'sin «salidas», el día anterior');
     assert.deepEqual(fechasDeBusqueda({ desde: '2026-11-06', hasta: '2026-11-09' }, ctxFechas), { entrada: '2026-11-06', salida: '2026-11-09', etiqueta: '6–9 nov' });
     assert.equal(fechasDeBusqueda({ desde: '2026-11-06', hasta: '2026-11-06' }, { ...ctxFechas, noches: 3 }).salida, '2026-11-09', 'un día: + las noches del viaje');
     assert.equal(fechasDeBusqueda({}, ctxFechas), null);
