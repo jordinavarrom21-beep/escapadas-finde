@@ -290,7 +290,7 @@ function periodoDe(cuando, ctx) {
 
 /**
  * Días que abarca lo elegido en «¿Cuándo?» (o en el finde de Vuelos): un finde, de viernes a
- * domingo; un puente, de su primer a su último día libre. null si no es ni lo uno ni lo otro.
+ * domingo; un puente, del último día laborable de antes (para salir) a su último día libre. null si no es ni lo uno ni lo otro.
  * @returns {{id: string, tipo: 'finde'|'puente', inicio: string, fin: string}|null}
  */
 export function rangoDe(cuando, ctx = {}) {
@@ -300,10 +300,14 @@ export function rangoDe(cuando, ctx = {}) {
   const finde = [ctx.finde, ...(ctx.findes ?? [])].find((x) => x?.id === id);
   if (finde) return { id, tipo: 'finde', inicio: finde.viernes, fin: finde.domingo };
   const puente = [ctx.puente, ...(ctx.puentes ?? [])].find((x) => x?.id === id);
-  return puente ? { id, tipo: 'puente', inicio: puente.desde, fin: puente.hasta } : null;
+  // Al puente se sale el último día laborable (el viernes por la tarde): también cuenta.
+  return puente ? { id, tipo: 'puente', inicio: salidaPuente(puente), fin: puente.hasta } : null;
 }
 
 const dias = (n) => (n === 1 ? 'un día' : `${n} días`);
+
+/** Primer día para salir a un puente: el último laborable antes del primer día libre. */
+export const salidaPuente = (puente) => puente.salidas?.[0] ?? sumarDias(puente.desde, -1);
 
 /**
  * ¿Cabe una oferta de fechas cerradas (o un vuelo) en el rango? `cabe` si sale y vuelve

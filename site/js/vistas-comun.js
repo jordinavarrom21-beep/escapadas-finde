@@ -5,7 +5,7 @@
 
 import { etiquetaDia } from './fechas.js';
 import { contar, escaparHtml as esc } from './formato.js';
-import { POR_PAGINA, destinosDe } from './filtros.js';
+import { POR_PAGINA, crearHash, destinosDe, salidaPuente } from './filtros.js';
 import { NOCHES, VIAJEROS, aeropuertosCercanos } from './viaje.js';
 import { icono } from './iconos.js';
 
@@ -143,9 +143,11 @@ export const selectorModo = `<div class="selector-modo" role="group" aria-label=
 </div>`;
 /** Las pestañas de cada apartado del menú: Explorar, Fechas y Mis cosas. */
 export const PESTANAS = {
-  explorar: ['Explorar', [['escapadas', 'Escapadas', 'escapadas'], ['actividades', 'Planes', 'actividades'], ['vuelos', 'Vuelos', 'vuelos'], ['mapa', 'Mapa', 'mapa']]],
+  // El Mapa no es otra categoría: es otra forma de ver las escapadas (conmutador Lista / Mapa).
+  explorar: ['Explorar', [['escapadas', 'Escapadas', 'escapadas'], ['vuelos', 'Vuelos', 'vuelos'], ['actividades', 'Planes', 'actividades']]],
   fechas: ['Fechas', [['calendario', 'Calendario', 'calendario'], ['puentes', 'Puentes', 'puentes']]],
-  mis: ['Guardados', [['mis', 'Favoritos y búsquedas', 'corazon', 'Guardados'], ['comparar', 'Comparar lado a lado', 'comparar', 'Comparar'], ['vigilados', 'Avisos por email', 'vigilados', 'Por email']]],
+  // Tres cosas distintas, cada una en su pestaña: lo que guardas, lo que buscas y lo que comparas.
+  mis: ['Guardados', [['mis', 'Favoritos', 'corazon'], ['mis?ver=busquedas', 'Búsquedas guardadas', 'guardar', 'Búsquedas'], ['comparar', 'Comparar lado a lado', 'comparar', 'Comparar'], ['vigilados', 'Avisos por email', 'vigilados', 'Por email']]],
 };
 export function pestanas(apartado, activa, e = null) {
   const [nombre, todas] = PESTANAS[apartado];
@@ -153,7 +155,8 @@ export function pestanas(apartado, activa, e = null) {
   const lista = todas.filter(([vista]) => vista !== 'vigilados' || e?.propietario || activa === 'vigilados');
   // En el móvil, el nombre corto (si lo hay) para que quepan todas sin deslizar.
   const texto = (largo, corto) => (corto ? `<span class="solo-ancho">${largo}</span><span class="solo-estrecho">${corto}</span>` : `<span>${largo}</span>`);
-  return `<nav class="pestanas" aria-label="${esc(nombre)}">${lista.map(([vista, largo, ic, corto]) => `<a class="pestana" href="#/${vista}" data-vista="${vista}"${corto ? ` aria-label="${esc(largo)}"` : ''}${vista === activa ? ' aria-current="page"' : ''}>${icono(ic)}${texto(largo, corto)}</a>`).join('')}</nav>`;
+  // `ruta` puede llevar parámetros («mis?ver=busquedas»): la vista es lo de antes del «?».
+  return `<nav class="pestanas" aria-label="${esc(nombre)}">${lista.map(([ruta, largo, ic, corto]) => `<a class="pestana" href="#/${ruta}"${ruta.includes('?') ? '' : ` data-vista="${ruta}"`}${corto ? ` aria-label="${esc(largo)}"` : ''}${ruta === activa ? ' aria-current="page"' : ''}>${icono(ic)}${texto(largo, corto)}</a>`).join('')}</nav>`;
 }
 
 export const resumenResultados = (texto, extra = '', { conModo = true } = {}) => `<div class="resultados__cabeza" data-resumen="${esc(texto)}"><p class="resultados__cuenta">${esc(texto)}</p>${conModo ? selectorModo : ''}${extra}</div>`;
@@ -190,9 +193,12 @@ export const diasExplicitos = (desde, hasta) => {
   return a.split(' ')[2] === b.split(' ')[2] ? `${a.split(' ').slice(0, 2).join(' ')} – ${b}` : `${a} – ${b}`;
 };
 
-/** El puente con sus días y que es el puente entero: «Fiesta Nacional · sáb 10 – lun 12 oct · todo el puente». */
+/**
+ * El puente con sus días, contando la tarde del último laborable para salir:
+ * «Fiesta Nacional · vie 9 – lun 12 oct · todo el puente».
+ */
 export function etiquetaPuente(p) {
-  return `${icono('puentes')}${esc(p.nombre)} · ${esc(diasExplicitos(p.desde, p.hasta))} · todo el puente`;
+  return `${icono('puentes')}${esc(p.nombre)} · ${esc(diasExplicitos(salidaPuente(p), p.hasta))} · todo el puente`;
 }
 
 /**
@@ -282,3 +288,32 @@ export function bloqueBusquedas(e, vista) {
 </details>`;
 }
 
+
+/**
+ * La franja con el periodo elegido, arriba de los resultados de Escapadas, Vuelos, Planes y
+ * Mapa: «Puente · Fiesta Nacional · vie 9 – lun 12 oct · Cambiar fechas». Es la misma en
+ * todas las pestañas (el periodo pasa de una a otra), así se ve enseguida si algo no cuadra.
+ */
+export function franjaPeriodo(e, vista, params = {}) {
+  const cuando = (vista === 'vuelos' ? params.finde : params.cuando) ?? '';
+  const id = cuando === 'finde' ? e.findes[0]?.id : cuando === 'puente' ? e.puente?.id : cuando;
+  const finde = e.findes.find((f) => f.id === id);
+  const puente = (e.datos.puentes ?? []).find((p) => p.id === id);
+  const { desde = '', hasta = '' } = params;
+  let texto;
+  if (finde) texto = `<strong>${finde.id === e.findes[0]?.id ? 'Este finde' : 'Finde'}</strong> · ${esc(etiquetaFinde(finde, e.datos.puentes))}`;
+  else if (puente) texto = `<strong>Puente</strong> · ${esc(puente.nombre)} · ${esc(diasExplicitos(salidaPuente(puente), puente.hasta))}`;
+  else if (desde && hasta) texto = desde === hasta ? `<strong>El ${esc(etiquetaDia(desde))}</strong>` : `<strong>Fechas</strong> · ${esc(diasExplicitos(desde, hasta))}`;
+  else if (desde || hasta) texto = `<strong>${desde ? `Desde el ${esc(etiquetaDia(desde))}` : `Hasta el ${esc(etiquetaDia(hasta))}`}</strong>`;
+  else texto = '<strong>Cualquier fecha</strong>';
+  const elegido = texto !== '<strong>Cualquier fecha</strong>';
+  const sinFechas = Object.fromEntries(Object.entries(params).filter(([clave]) => !['cuando', 'finde', 'desde', 'hasta'].includes(clave)));
+  const quitar = elegido ? `<a class="franja-periodo__quitar" href="${esc(crearHash(vista, sinFechas))}" aria-label="Quitar las fechas">${icono('cerrar')}</a>` : '';
+  return `<div class="franja-periodo">${icono('calendario')}<span class="franja-periodo__texto">${texto}</span><button type="button" class="enlace-boton" data-cambiar-fechas>${elegido ? 'Cambiar fechas' : 'Elegir fechas'}</button>${quitar}</div>`;
+}
+
+/** «Lista | Mapa»: la misma búsqueda (categoría, fechas y filtros) vista de una u otra forma. */
+export function conmutadorListaMapa(params, actual) {
+  const opcion = (vista, ic, texto) => `<a class="conmutador__opcion" href="${esc(crearHash(vista, params))}"${actual === vista ? ' aria-current="page"' : ''}>${icono(ic)}${texto}</a>`;
+  return `<nav class="conmutador solo-ancho-flex" aria-label="Ver como">${opcion('escapadas', 'lista', 'Lista')}${opcion('mapa', 'mapa', 'Mapa')}</nav>`;
+}

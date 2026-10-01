@@ -34,6 +34,9 @@ await ir(p, 'finde');
 const hayDestacado = await p.locator('.portada .destacado').count() === 1;
 ok(hayDestacado || !datos.ofertas.some((o) => o.chollazo), 'portada: hay chollazo destacado (si hay chollazos)');
 ok((await p.locator('.buscador-finde input[name="cuando"]').count()) >= 3, 'portada: opciones de «¿Cuándo?»');
+ok((await p.locator('.organizar button[name="que"]').count()) === 3, 'portada: «¿Qué buscas?» con escapada, vuelo y plan');
+// Las demás ideas (sorpresa, vuelos, chollazos…) van plegadas en «Más ideas».
+await p.locator('.portada__mas > summary').click();
 const antes = await p.locator('#sorpresa').innerHTML();
 await p.locator('[data-sorpresa]').click();
 await p.waitForTimeout(200);
@@ -62,11 +65,12 @@ if (hayDestacado) {
 
 // Buscador de la portada
 await p.locator('.buscador-finde label.opcion:has(input[name="cuando"]:not([value="finde"]):not([value=""]))').first().click();
-await p.locator('.buscador-finde select[name="temas"]').selectOption('rural');
+// «Afinar la escapada» (plegado): qué apetece, cómo vas y presupuesto; luego «Una escapada».
 await p.locator('.buscador-finde__mas > summary').click();
+await p.locator('.buscador-finde select[name="temas"]').selectOption('rural');
 await p.locator('.buscador-finde label.opcion:has(input[value="sincoche"])').click();
 await p.locator('#buscador-finde-pres').fill('150');
-await p.locator('.buscador-finde button[type="submit"]').click();
+await p.locator('.buscador-finde button[value="escapadas"]').click();
 await p.waitForSelector('#resultados .resultados__cuenta');
 const h = decodeURIComponent(await p.evaluate(() => location.hash));
 ok(/#\/escapadas\?/.test(h) && /temas=rural/.test(h) && /sincoche=1/.test(h) && /pres=150/.test(h) && /prespor=persona/.test(h) && /orden=total/.test(h), `buscador: lleva a escapadas con los filtros (${h})`);
@@ -208,7 +212,10 @@ await ir(p, 'vigilados');
 ok((await p.locator('.vigilado, .vacio').count()) > 0, 'vigilados: se pinta');
 await ir(p, 'fuentes');
 ok((await p.locator('.tabla-fuentes tbody tr').count()) > 10, 'fuentes: tabla completa');
-const palabra = (datos.ofertas.find((o) => o.tipo !== 'vuelo' && o.lugar?.nombre && /^[a-záéíóúñ]{5,}$/i.test(o.lugar.nombre))?.lugar.nombre ?? 'spa').toLowerCase();
+// Un pueblo de una oferta que no se haya descartado antes en esta prueba (las descartadas no salen).
+const descartadas = await p.evaluate(() => JSON.parse(localStorage.getItem('escapadas:descartadas') ?? '[]'));
+const palabra = (datos.ofertas.find((o) => o.tipo !== 'vuelo' && !descartadas.includes(o.id) && o.lugar?.nombre && /^[a-záéíóúñ]{5,}$/i.test(o.lugar.nombre)
+  && !datos.ofertas.some((x) => x.lugar?.nombre === o.lugar.nombre && descartadas.includes(x.id)))?.lugar.nombre ?? 'spa').toLowerCase();
 await p.locator('#q').fill(palabra);
 await p.locator('#buscador button[type="submit"]').click();
 await p.waitForTimeout(400);
@@ -240,7 +247,7 @@ await p.locator('.navegacion a[data-vista="escapadas"]').click(); await p.waitFo
 await p.locator('.pestanas a[data-vista="actividades"]').click(); await p.waitForTimeout(300);
 ok((await p.locator('.titulo-vista').textContent()).trim() === 'Planes' && (await p.locator('.navegacion a[aria-current="page"]').textContent()).includes('Explorar'), 'pestañas: Planes dentro de «Explorar»');
 await p.locator('.navegacion a[data-vista="mis"]').click(); await p.waitForTimeout(300);
-ok((await p.locator('.titulo-vista').textContent()).trim() === 'Guardados', 'menú: «Guardados»');
+ok((await p.locator('.titulo-vista').textContent()).trim() === 'Favoritos' && (await p.locator('.pestanas a[href="#/mis?ver=busquedas"]').count()) === 1, 'menú: «Guardados» abre Favoritos, con su pestaña de Búsquedas guardadas');
 await p.locator('.pestanas a[data-vista="vigilados"]').click(); await p.waitForTimeout(300);
 ok((await p.locator('.titulo-vista').textContent()).trim() === 'Avisos por email', 'pestañas: avisos por email dentro de «Mis cosas»');
 await p.locator('#estado-fuentes').click(); await p.waitForTimeout(300);

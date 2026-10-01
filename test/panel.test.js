@@ -811,7 +811,9 @@ describe('mis cosas: búsquedas guardadas que avisan', () => {
     assert.deepEqual(rural.nuevas.map((o) => o.id), todas.filter((o) => Date.parse(o.vistaPrimera) > Date.parse(corte)).map((o) => o.id));
     assert.deepEqual(sinMirar.nuevas, [], 'sin fecha de la última vez no hay «nuevas»');
     assert.equal(totalNovedadesGuardadas(e), rural.nuevas.length);
-    const html = vistaMis(e);
+    const html = vistaMis(e, { ver: 'busquedas' });
+    assert.match(html, /No te llega ningún aviso/, 'dice que no avisa por fuera');
+    assert.match(vistaMis(e), /están en <a href="#\/mis\?ver=busquedas">Búsquedas guardadas<\/a>/, 'desde Favoritos se llega a las búsquedas');
     assert.match(html, /<h3>Rural<\/h3>/);
     assert.match(html, /data-abrir-busqueda="Rural"/);
     assert.match(html, /data-borrar-busqueda="Sin mirar"/);
@@ -824,8 +826,8 @@ describe('mis cosas: búsquedas guardadas que avisan', () => {
     const [una] = ofertas;
     e.misEstados = new Map([[una.id, 'no-disponible']]);
     const html = vistaMis(e);
-    assert.match(html, /Aún no has guardado ninguna búsqueda/);
-    assert.match(html, /Guardar búsqueda/);
+    assert.match(vistaMis(e, { ver: 'busquedas' }), /Aún no has guardado ninguna búsqueda/);
+    assert.match(html, /Guarda una búsqueda/);
     assert.match(html, /Ya no disponibles/);
     assert.match(html, new RegExp(`data-ficha="${una.id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`));
   });

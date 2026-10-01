@@ -220,3 +220,18 @@ export function cargarRutas(desde, ahora = new Date()) {
 export function guardarRutas(desde, rutas, ahora = new Date()) {
   escribir(local, CLAVE_RUTAS, JSON.stringify({ desde, fecha: ahora.toISOString(), rutas: Object.fromEntries(rutas) }));
 }
+
+// ── El periodo elegido en Explorar (finde, puente o fechas) ──────────────────
+
+const CLAVE_PERIODO = 'escapadas:periodo';
+const dia = (v) => (typeof v === 'string' && /^(\d{4}-\d{2}-\d{2})?$/.test(v) ? v : '');
+
+/** El último periodo elegido en Escapadas, Vuelos, Planes o Mapa, o null. */
+export function cargarPeriodo() {
+  const p = leerJson(CLAVE_PERIODO, null);
+  if (!p || typeof p !== 'object') return null;
+  const cuando = typeof p.cuando === 'string' && /^(finde|puente|[\w-]{1,40})?$/.test(p.cuando) ? p.cuando : '';
+  return { cuando, desde: dia(p.desde), hasta: dia(p.hasta) };
+}
+
+export const guardarPeriodo = (periodo) => escribir(local, CLAVE_PERIODO, JSON.stringify(periodo));

@@ -5,9 +5,9 @@
 
 import { abrirFicha, liberarFicha } from './ficha.js';
 import { fechasDeBusqueda } from './fechas-enlaces.js';
-import { diasEntre, estadoFinde, fechaLocal, findesProximos, proximoPuente } from './fechas.js';
+import { diasEntre, estadoFinde, etiquetaRango, fechaLocal, findesProximos, proximoPuente } from './fechas.js';
 import {
-  POR_PAGINA, actividadesCerca, conPeriodo, periodoDeParams, traducirFormulario, buscarTexto, crearHash, criterioVigilado, filtrosVigentes, leerFiltrosActividades,
+  POR_PAGINA, actividadesCerca, conPeriodo, periodoDeParams, salidaPuente, traducirFormulario, buscarTexto, crearHash, criterioVigilado, filtrosVigentes, leerFiltrosActividades,
   leerFiltrosComunes, leerFiltrosEscapadas, leerFiltrosVuelos, leerRuta, medirDistancias, paramsViaje, referenciaNovedades,
   resumenFuentes, viajeDeParams,
 } from './filtros.js';
@@ -16,7 +16,7 @@ import {
   MAX_COMPARAR, borrarBusqueda, cargarBusquedas, marcarBusquedaVista, cargarComparar, cargarDescartadas, cargarMisEstados, guardarComparar, guardarMisEstados, cargarFavoritos, cargarFiltros, cargarSalida, cargarViaje,
   guardarBusqueda, guardarDescartadas, guardarFavoritos, guardarFiltros, guardarModoLista, guardarSalida, guardarTema, guardarViaje,
   tomarVisitaAnterior, bienvenidaVista, esPropietarioGuardado, guardarPropietario, marcarBienvenidaVista,
-  exportarGuardados, importarGuardados, cargarRutas, guardarRutas,
+  exportarGuardados, importarGuardados, cargarRutas, guardarRutas, cargarPeriodo, guardarPeriodo,
 } from './local.js';
 import { clavePunto, destinosSinRuta, pedirRutas } from './rutas.js';
 import { salidaEfectiva, validarSalida, validarViaje } from './viaje.js';
@@ -25,7 +25,7 @@ import { estadoVacio } from './plantillas.js';
 import { icono } from './iconos.js';
 import { activarUbicacion } from './ubicacion.js';
 import {
-  VISTAS_HTML, contarSecundarios, totalNovedadesGuardadas, paramsBuscadorFinde, contenidoSorpresa, contextoBusqueda, ctxTarjetas, datosMapa, formularioViaje, nombreSalida,
+  VISTAS_HTML, contarSecundarios, totalNovedadesGuardadas, destinoOrganizar, contenidoSorpresa, contextoBusqueda, ctxTarjetas, datosMapa, formularioViaje, nombreSalida,
   misAeropuertos, resultadosMapa, textoViaje,
 } from './vistas.js';
 
@@ -186,7 +186,8 @@ function pintarPuente() {
   if (!p || !aviso) return;
   const faltan = diasEntre(estado.hoy, p.desde);
   const cuando = faltan <= 0 ? 'ahora' : faltan === 1 ? 'mañana' : `en ${faltan} días`;
-  aviso.innerHTML = `<a href="${crearHash('puentes', {})}" title="Puente de ${esc(p.nombre)}">${icono('puentes')}Puente ${esc(p.etiqueta)} · ${cuando}</a>`;
+  // Con la tarde del último laborable para salir, como en el resto de la web.
+  aviso.innerHTML = `<a href="${crearHash('puentes', {})}" title="Puente de ${esc(p.nombre)}">${icono('puentes')}Puente ${esc(etiquetaRango(salidaPuente(p), p.hasta))} · ${cuando}</a>`;
   aviso.hidden = false;
 }
 
@@ -300,13 +301,16 @@ function enlacesConMemoria() {
   // Desde Explorar, el finde o el puente elegido pasa a las otras pestañas: el mismo periodo
   // en Escapadas, Planes, Vuelos y Mapa (cada una con sus demás filtros recordados).
   const actual = rutaActual();
-  const periodo = periodoDeParams(actual.vista, actual.params);
+  // Fuera de Explorar (Inicio, Fechas…), el último periodo elegido allí.
+  const periodo = periodoDeParams(actual.vista, actual.params) ?? cargarPeriodo();
+  if (periodoDeParams(actual.vista, actual.params)) guardarPeriodo(periodo);
   for (const enlace of document.querySelectorAll('.navegacion a[data-vista], .pestanas a[data-vista]')) {
     const vista = enlace.dataset.vista;
     if (!VISTAS_CON_MEMORIA.includes(vista) && vista !== 'mapa') continue;
     // El mapa enseña las escapadas: sus filtros son los de Escapadas.
-    const recordados = filtrosVigentes(cargarFiltros(vista === 'mapa' ? 'escapadas' : vista) ?? {}, contextoFechas());
-    const guardados = conPeriodo(vista, recordados, periodo, { finde: estado.findes[0], puente: estado.puente });
+    const recordados = cargarFiltros(vista === 'mapa' ? 'escapadas' : vista) ?? {};
+    // Lo que ya pasó (un finde o unas fechas de antes de hoy) se quita también del periodo.
+    const guardados = filtrosVigentes(conPeriodo(vista, recordados, periodo, { finde: estado.findes[0], puente: estado.puente }), contextoFechas());
     enlace.setAttribute('href', crearHash(vista, guardados));
     enlace.toggleAttribute('data-con-memoria', Object.keys(guardados).length > 0);
   }
@@ -614,7 +618,8 @@ function ocultarTarjetas(id) {
   document.querySelectorAll(`[data-descartar="${CSS.escape(id)}"]`)
     .forEach((boton) => boton.closest('.con-motivo, .tarjeta, .billete')?.remove());
   // El chollazo destacado de la portada no lleva ✕, pero se puede descartar desde su ficha.
-  document.querySelectorAll(`.destacado [data-ficha="${CSS.escape(id)}"]`).forEach((enlace) => enlace.closest('.destacado')?.remove());
+  // Con su rótulo («La sugerencia de hoy»): sin él, la portada vuelve a ocupar todo el ancho.
+  document.querySelectorAll(`.destacado [data-ficha="${CSS.escape(id)}"]`).forEach((enlace) => (enlace.closest('.portada__destacado') ?? enlace.closest('.destacado'))?.remove());
 }
 
 /** La primera vez que se descarta algo se activa el filtro, para que no vuelva a aparecer. */
@@ -744,7 +749,7 @@ function alternarMiEstado(id, nuevo) {
 
 const ACCIONES = '[data-actualizar], [data-compartir-busqueda], [data-usar-viaje], [data-mi-estado], [data-abrir-filtros], [data-comparar], [data-vaciar-comparar], [data-mi-viaje], [data-cerrar-viaje], [data-ficha], [data-fav], [data-descartar], [data-mas], [data-sorpresa],'
   + ' [data-guardar-busqueda], [data-borrar-busqueda], [data-copiar-vigilado], [data-cerrar-ficha], [data-cerrar-novedades],'
-  + ' [data-olvidar-filtros], [data-cerrar-mas], [data-modo-lista], [data-abrir-busqueda], [data-ver-datos-nuevos], [data-cerrar-bienvenida], [data-ir-buscador], [data-exportar-guardados]';
+  + ' [data-olvidar-filtros], [data-cerrar-mas], [data-modo-lista], [data-abrir-busqueda], [data-ver-datos-nuevos], [data-cerrar-bienvenida], [data-ir-buscador], [data-exportar-guardados], [data-cambiar-fechas]';
 
 function manejarClic(evento) {
   const objetivo = evento.target.closest(ACCIONES);
@@ -753,6 +758,15 @@ function manejarClic(evento) {
   if ('actualizar' in d) location.reload();
   else if ('verDatosNuevos' in d) aplicarDatosNuevos();
   else if ('exportarGuardados' in d) descargarGuardados();
+  else if ('cambiarFechas' in d) {
+    // «Cambiar fechas»: abre los filtros (plegados en el móvil o en el mapa) y lleva al «¿Cuándo?».
+    const campo = principal.querySelector('[data-campo-fechas]');
+    if (campo) {
+      for (let p = campo.parentElement; p; p = p.parentElement) if (p.tagName === 'DETAILS') p.open = true;
+      campo.scrollIntoView({ block: 'center' });
+      (campo.querySelector('input:checked') ?? campo.querySelector('input'))?.focus({ preventScroll: true });
+    }
+  }
   else if ('irBuscador' in d) {
     // «Ya sé dónde quiero ir»: al buscador de la cabecera, que busca en todo.
     const q = $('#q');
@@ -851,7 +865,9 @@ function conectarEventos() {
   principal.addEventListener('submit', (evento) => {
     evento.preventDefault();
     if (evento.target.matches('[data-buscador-finde]')) {
-      location.hash = crearHash('escapadas', paramsBuscadorFinde(Object.fromEntries(new FormData(evento.target))));
+      // «Una escapada», «Un vuelo» o «Un plan»: el botón pulsado; con Intro, escapadas.
+      const que = evento.submitter?.value ?? 'escapadas';
+      location.hash = destinoOrganizar(que, Object.fromEntries(new FormData(evento.target)), { finde: estado.findes[0], puente: estado.puente });
     }
   });
   // «#principal» (el enlace de saltar al contenido) no es una ruta: no se cambia de vista.

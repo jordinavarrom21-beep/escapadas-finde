@@ -306,7 +306,7 @@ pre code { background: none; padding: 0; }
 .puntuacion__etiqueta { font-weight: 700; opacity: 0.85; }
 .puntuacion__max, .tarjeta__opiniones-max { font-size: 0.78em; font-weight: 600; opacity: 0.75; }
 .tarjeta__cabeza .puntuacion { padding: 0 9px; }
-.puntuacion--alta { background: var(--chollo-suave); color: var(--chollo-fuerte); }
+.puntuacion--alta { background: var(--acento); color: var(--acento-texto); }
 .puntuacion--media { background: var(--acento-suave); color: var(--acento-suave-texto); }
 
 .estado { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; font-size: 0.85rem; white-space: nowrap; }
@@ -1428,9 +1428,9 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 
 @media (min-width: 1100px) {
   .portada { grid-template-columns: minmax(0, 1fr) 400px; gap: 40px; align-items: stretch; }
-  .portada__destacado { display: flex; }
+  .portada__destacado { display: flex; flex-direction: column; }
   .portada__destacado > .destacado { flex: 1; }
-  .portada:has(.portada__destacado:empty) { grid-template-columns: minmax(0, 1fr); }
+  .portada:not(:has(.portada__destacado)) { grid-template-columns: minmax(0, 1fr); }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1538,3 +1538,41 @@ body:has([data-plegable-movil][open]) .barra-comparar [data-abrir-filtros] { dis
 .buscar-fuera .ic { width: 0.9em; height: 0.9em; margin-left: 2px; vertical-align: -0.1em; }
 .insignia--encaje { background: var(--acento-suave); color: var(--acento-suave-texto); }
 .insignia--encaje.insignia--fuera { background: var(--puente-suave); color: var(--puente); }
+
+/* Tendencia del precio: verde si baja, rojo si sube, gris si sigue igual (con texto, no solo color). */
+.tendencia { display: inline-flex; align-items: center; gap: 6px; font-size: 0.74rem; font-weight: 700; color: var(--texto-suave); }
+.tendencia--baja { color: var(--exito); }
+.tendencia--sube { color: var(--peligro); }
+.tendencia .minigrafica { color: inherit; }
+
+/* Inicio: «¿Qué buscas?» con tres opciones grandes, y lo demás plegado debajo. */
+.organizar { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr)); }
+.organizar__opcion {
+  display: flex; align-items: center; gap: 12px; padding: 14px 16px; min-height: 64px; text-align: left; cursor: pointer;
+  border: 1.5px solid var(--borde); border-radius: var(--radio-chico); background: var(--superficie); color: var(--texto); font: inherit;
+}
+.organizar__opcion:hover { border-color: var(--acento); background: var(--acento-suave); }
+.organizar__opcion:focus-visible { outline: 3px solid var(--acento); outline-offset: 2px; }
+.organizar__opcion > .ic { width: 28px; height: 28px; flex: none; color: var(--acento); }
+.organizar__opcion span { display: grid; gap: 2px; min-width: 0; }
+.organizar__opcion strong { font-size: 1.05rem; }
+.organizar__opcion small { color: var(--texto-suave); font-size: 0.8rem; }
+.portada__sugerencia { display: flex; align-items: center; gap: 6px; margin: 0 0 8px; font-weight: 800; font-size: 0.8rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--texto-suave); }
+.portada__mas { margin-top: 24px; border-top: 1px solid var(--borde); padding-top: 12px; }
+.portada__mas > summary { cursor: pointer; font-weight: 800; font-size: 1.05rem; padding: 10px 0; min-height: 44px; }
+
+/* Franja del periodo elegido: la misma arriba de Escapadas, Vuelos, Planes y Mapa. */
+.franja-periodo {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin: 0 0 12px; padding: 8px 8px 8px 14px;
+  border-radius: 14px; background: var(--acento-suave); color: var(--acento-suave-texto); font-size: 0.92rem;
+}
+.franja-periodo > .ic { flex: none; }
+.franja-periodo__texto { flex: 1 1 0; min-width: 12em; }
+.franja-periodo__quitar { display: inline-grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; color: inherit; }
+.franja-periodo__quitar:hover { background: color-mix(in srgb, currentColor 12%, transparent); }
+.franja-periodo .enlace-boton { min-height: 32px; font-weight: 800; }
+/* «Lista | Mapa». */
+.conmutador { display: inline-flex; padding: 3px; gap: 2px; border-radius: 999px; background: var(--superficie-2, var(--superficie)); border: 1px solid var(--borde); }
+.conmutador__opcion { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 14px; border-radius: 999px; color: var(--texto); text-decoration: none; font-weight: 700; font-size: 0.88rem; }
+.conmutador__opcion[aria-current="page"] { background: var(--acento); color: var(--acento-texto); }
+.conmutador__opcion .ic { width: 1em; height: 1em; }

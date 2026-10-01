@@ -23,7 +23,7 @@ import {
 import { icono, iconoTema } from './iconos.js';
 import {
   ETIQUETAS_ORDEN, FILTROS_MAS_VUELOS, FILTROS_SECUNDARIOS, bloqueBusquedas, bloqueExclusiones, botonLimpiar,
-  campoTexto, contextoBusqueda, ctxTarjetas, etiquetaFinde, etiquetaPuente, filtrosChollo, filtrosListas, interruptor,
+  campoTexto, conmutadorListaMapa, contextoBusqueda, ctxTarjetas, etiquetaFinde, etiquetaPuente, franjaPeriodo, filtrosChollo, filtrosListas, interruptor,
   interruptorDefecto, marcado, misAeropuertos, mostradas, nombreSalida, numero, opciones, pestanas, puntoSalida,
   resumenResultados,
 } from './vistas-comun.js';
@@ -35,7 +35,7 @@ export {
   contextoBusqueda, ctxTarjetas, formularioViaje, misAeropuertos, nombreSalida, ocultas, pestanas, puntoSalida,
   textoViaje, webConProblemas,
 } from './vistas-comun.js';
-export { buscadorFinde, contenidoSorpresa, paramsBuscadorFinde, vistaFinde } from './vistas-portada.js';
+export { buscadorFinde, contenidoSorpresa, destinoOrganizar, paramsBuscadorFinde, vistaFinde } from './vistas-portada.js';
 export {
   avisosDeBusquedas, resultadosDeBusqueda, totalNovedadesGuardadas, vistaAyuda, vistaCalendario, vistaFuentes,
   vistaMis, vistaPuentes, vistaVigilados,
@@ -59,7 +59,7 @@ export function vistaVuelos(e, params) {
   return `${pestanas('explorar', 'vuelos')}<h1 class="titulo-vista" tabindex="-1">Vuelos</h1>
 ${avisoMemoria(e, 'vuelos')}${avisoViajeCompartido(e, params)}
 ${plegableMovil(e, 'vuelos', params)}<form class="filtros" data-filtros="vuelos" aria-label="Filtros de vuelos">
-  <fieldset class="chips chips--desplazables"><legend>Finde o puente</legend><div class="chips__lista">${chips.join('')}</div></fieldset>
+  <fieldset class="chips chips--desplazables" data-campo-fechas><legend>Finde o puente</legend><div class="chips__lista">${chips.join('')}</div></fieldset>
   <div class="filtros__fila">
     ${campoTexto(f)}
     <label class="campo">Aeropuerto <select name="aero">${opciones(e.datos.aeropuertos.map((a) => [a, a]), f.aero, 'Todos')}</select></label>
@@ -128,7 +128,7 @@ ${promociones.length ? `<section class="seccion">
   const dentro = rango ? vuelos.filter((o) => encajeEnRango(o, rango)?.cabe !== false) : vuelos;
   const alrededor = rango ? vuelos.filter((o) => encajeEnRango(o, rango)?.cabe === false) : [];
   const dias = rango ? `${etiquetaDia(rango.inicio)} – ${etiquetaDia(rango.fin)}` : '';
-  const conFecha = `${rango ? `<p class="seccion__intro">Salen y vuelven entre el <strong>${esc(dias)}</strong>.</p>` : ''}${dentro.length
+  const conFecha = `${rango ? `<p class="seccion__intro">Salen y vuelven entre el <strong>${esc(dias)}</strong>${rango.tipo === 'puente' ? ' (el primer día es el último laborable, para salir por la tarde)' : ''}.</p>` : ''}${dentro.length
     ? rejilla(dentro, ctx, { mostradas: mostradas(e, 'vuelos'), clave: 'vuelos' })
     : estadoVacio(rango ? `Ningún vuelo sale y vuelve entre el ${esc(dias)}` : 'Ningún vuelo cumple estos filtros',
       rango && alrededor.length ? 'Abajo tienes los que salen un poco antes o vuelven un poco después.' : 'Prueba con otro finde, otro aeropuerto o un precio máximo más alto.', botonLimpiar('vuelos'))}${alrededor.length ? `
@@ -138,7 +138,7 @@ ${promociones.length ? `<section class="seccion">
   ${rejilla(alrededor, ctx, { mostradas: mostradas(e, 'vuelos-alrededor'), clave: 'vuelos-alrededor' })}
 </section>` : ''}`;
   const resumen = `${contar(dentro.length, 'vuelo')} con fecha${alrededor.length ? ` (y ${alrededor.length} alrededor)` : ''}, ${contar(chollos.length, 'billete')} sin fecha y ${contar(promociones.length, 'promoción', 'promociones')}`;
-  return `${filaActivos(e, 'vuelos', params)}${resumenResultados(resumen)}${parecido}
+  return `${franjaPeriodo(e, 'vuelos', params)}${filaActivos(e, 'vuelos', params)}${resumenResultados(resumen)}${parecido}
 <h2 class="subtitulo">Vuelos con fecha y hora</h2>${conFecha}
 <section class="seccion">
   <div class="seccion__cabeza"><h2>Billetes sin fecha concreta, de blogs y comunidades</h2></div>
@@ -261,10 +261,14 @@ const iconoFiltro = (c) => (c.clave === 'temas' ? iconoTema(c.valor) : icono(ICO
  * «Lo que tienes puesto»: un chip por filtro con su ✕ (un enlace a la misma búsqueda
  * sin él) y «Quitar todos». Va con los resultados para seguir al día al cambiar filtros.
  */
+/** Fechas que ya enseña (y deja cambiar o quitar) la franja del periodo: no se repiten como chip. */
+const CLAVES_PERIODO = ['cuando', 'finde', 'desde', 'hasta'];
+
 function filaActivos(e, vista, params) {
+  const conFranja = ['escapadas', 'vuelos', 'actividades', 'mapa'].includes(vista);
   const chips = filtrosActivos(vista, params, {
     temas: e.temas, fuentes: e.fuentes, findes: e.findes, puentes: e.datos.puentes,
-  });
+  }).filter((c) => !conFranja || !CLAVES_PERIODO.includes(c.clave));
   if (!chips.length) return '';
   // Si al quitarlo no queda ninguno, también se olvida la memoria (si no, volvería al entrar).
   const olvidar = (c) => (c.hash === `#/${vista}` ? ' data-olvidar-filtros' : '');
@@ -318,7 +322,7 @@ function formularioEscapadas(e, params, vista) {
   <div class="filtros__fila">${campoTexto(f)}
     <label class="campo">Ordenar por <select name="orden">${opciones(ORDENES_ESCAPADAS.map((o) => [o, ETIQUETAS_ORDEN[o]]), f.orden)}</select></label>
   </div>
-  <fieldset class="bloque"><legend class="bloque__titulo">¿Cuándo?</legend>
+  <fieldset class="bloque" data-campo-fechas><legend class="bloque__titulo">¿Cuándo?</legend>
     <div class="chips chips--desplazables"><div class="chips__lista">${chipsCuando(e, f)}</div></div>
     <div class="filtros__fila filtros__fila--fechas">
       <label class="campo">Un día concreto <input type="date" name="dia" value="${esc(unDia ? f.desde : '')}"></label>
@@ -439,8 +443,8 @@ export function resultadosEscapadas(e, params) {
   const { ofertas, distancias, costes, sinTotal } = resultado;
   const ctx = ctxTarjetas(e, { distancias, desde: f.punto?.nombre ?? nombreSalida(e), rango: rangoDe(f.cuando, contextoBusqueda(e)) });
   // En el móvil el «Mapa» ya está en la pastilla flotante: aquí sobra.
-  const acciones = `<a class="boton boton--suave solo-ancho-flex" href="${crearHash('mapa', params)}">${icono('mapa')}Ver en el mapa</a>`;
-  return `${filaActivos(e, 'escapadas', params)}${resumenResultados(contar(ofertas.length, 'escapada'), acciones)}${aproximado ? avisoAproximado(f.q) : ''}${tambienCerca(e, f, params, ofertas)}
+  const acciones = conmutadorListaMapa(params, 'escapadas');
+  return `${franjaPeriodo(e, 'escapadas', params)}${filaActivos(e, 'escapadas', params)}${resumenResultados(contar(ofertas.length, 'escapada'), acciones)}${aproximado ? avisoAproximado(f.q) : ''}${tambienCerca(e, f, params, ofertas)}
 ${ordenRapido('escapadas', params, f.orden)}${explicacionOrden(e, f, costes)}${f.presupuesto ? `<p class="seccion__intro">Presupuesto: viaje completo (oferta y gasolina estimada) de hasta ${esc(euros(f.presupuesto))} ${f.presupuestoPor === 'persona' ? 'por persona' : 'en total'} para ${esc(contar(e.viaje?.viajeros ?? 2, 'persona'))}.${sinTotal ? ` ${esc(contar(sinTotal, 'oferta'))} sin datos suficientes para un total no se pueden comprobar y no salen.` : ''}</p>` : ''}
 ${ofertas.length
     ? rejilla(ofertas, ctx, { mostradas: mostradas(e, 'escapadas'), clave: 'escapadas' })
@@ -461,7 +465,7 @@ ${avisoMemoria(e, 'actividades')}${avisoViajeCompartido(e, params)}
 <div class="explorar">
 <div class="explorar__filtros">${plegableMovil(e, 'actividades', params)}<form class="filtros" data-filtros="actividades" aria-label="Filtros de actividades">
   <div class="filtros__fila">${campoTexto(f)}</div>
-  <fieldset class="chips chips--desplazables"><legend>¿Cuándo?</legend><div class="chips__lista">${chipsCuando(e, f)}</div></fieldset>
+  <fieldset class="chips chips--desplazables" data-campo-fechas><legend>¿Cuándo?</legend><div class="chips__lista">${chipsCuando(e, f)}</div></fieldset>
   <p class="ayuda">Las entradas y visitas casi nunca dicen qué días hay plazas: con un finde o un puente salen las que siguen a la venta esos días (la disponibilidad exacta, en su web). Las que tienen fecha concreta solo salen ese día.</p>
   <fieldset class="chips chips--desplazables"><legend>Temática</legend><div class="chips__lista">${chipsTemas(e, f)}</div></fieldset>
   ${campoNinos(f)}
@@ -485,14 +489,15 @@ export function resultadosActividades(e, params) {
   const { resultado: lista, aproximado } = conFaltas((g) => buscarActividades(e.datos.ofertas, g, contextoBusqueda(e)), f);
   const gratis = lista.filter((o) => o.precio === 0).length;
   const resumen = `${contar(lista.length, 'plan', 'planes')}${gratis ? ` · ${gratis} ${gratis === 1 ? 'gratis' : 'gratis'}` : ''}`;
-  return `${filaActivos(e, 'actividades', params)}${resumenResultados(resumen)}${aproximado ? avisoAproximado(f.q) : ''}
+  return `${franjaPeriodo(e, 'actividades', params)}${filaActivos(e, 'actividades', params)}${resumenResultados(resumen)}${aproximado ? avisoAproximado(f.q) : ''}
 ${lista.length
     ? rejilla(lista, ctxTarjetas(e), { mostradas: mostradas(e, 'actividades'), clave: 'actividades' })
     : estadoVacio('Ninguna actividad cumple estos filtros', 'Prueba a quitar alguna temática, cambiar de lugar o subir el precio máximo.', botonLimpiar('actividades'))}`;
 }
 
 export function vistaMapa(e, params) {
-  return `${pestanas('explorar', 'mapa')}<h1 class="titulo-vista" tabindex="-1">Mapa</h1>
+  // El mapa es otra forma de ver las escapadas: su pestaña es la de Escapadas.
+  return `${pestanas('explorar', 'escapadas')}<h1 class="titulo-vista" tabindex="-1">Escapadas en el mapa</h1>
 ${atajosEscapadas('mapa')}<details class="filtros-plegables"><summary>Filtros del mapa</summary>${formularioEscapadas(e, params, 'mapa')}</details>
 <div id="resultados">${resultadosMapa(e, params)}</div>
 <div id="mapa" class="mapa" role="region" aria-label="Mapa de escapadas y destinos de vuelo"><p class="mapa__cargando">Cargando el mapa…</p></div>`;
@@ -517,7 +522,7 @@ export function datosMapa(e, params) {
 export function resultadosMapa(e, params, d = datosMapa(e, params)) {
   const sin = d.sinUbicacion ? ` (${contar(d.sinUbicacion, 'escapada')} sin ubicación no aparecen)` : '';
   const texto = `${contar(d.escapadas.length, 'escapada')} y ${contar(d.destinos.length, 'destino')} de vuelo en el mapa${sin}`;
-  return resumenResultados(texto, `<a class="boton boton--suave solo-ancho-flex" href="${crearHash('escapadas', params)}">Ver en lista</a>`, { conModo: false });
+  return `${franjaPeriodo(e, 'mapa', params)}${resumenResultados(texto, conmutadorListaMapa(params, 'mapa'), { conModo: false })}`;
 }
 
 // ── Búsqueda global ──────────────────────────────────────────────────────────
@@ -545,7 +550,9 @@ function avisoAproximado(q) {
 export function vistaBuscar(e, params) {
   const q = (params.q ?? '').trim();
   const titulo = params.nuevas === '1' ? 'Novedades' : q ? `Resultados para «${esc(q)}»` : 'Buscar';
-  return `${pestanas('explorar', null)}<h1 class="titulo-vista" tabindex="-1">${titulo}</h1><div id="resultados">${resultadosBuscar(e, params)}</div>`;
+  return `${pestanas('explorar', null)}<h1 class="titulo-vista" tabindex="-1">${titulo}</h1>
+<p class="seccion__intro">Busca en <strong>todas</strong> las ofertas: escapadas, vuelos y planes. Para afinar con filtros, sigue en la pestaña que te interese.</p>
+<div id="resultados">${resultadosBuscar(e, params)}</div>`;
 }
 
 export function resultadosBuscar(e, params) {
