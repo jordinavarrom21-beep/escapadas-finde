@@ -62,7 +62,8 @@ if (hayDestacado) {
 
 // Buscador de la portada
 await p.locator('.buscador-finde label.opcion:has(input[name="cuando"]:not([value="finde"]):not([value=""]))').first().click();
-await p.locator('.buscador-finde label.opcion:has(input[value="rural"])').click();
+await p.locator('.buscador-finde select[name="temas"]').selectOption('rural');
+await p.locator('.buscador-finde__mas > summary').click();
 await p.locator('.buscador-finde label.opcion:has(input[value="sincoche"])').click();
 await p.locator('#buscador-finde-pres').fill('150');
 await p.locator('.buscador-finde button[type="submit"]').click();

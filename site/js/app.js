@@ -735,7 +735,7 @@ function alternarMiEstado(id, nuevo) {
 
 const ACCIONES = '[data-actualizar], [data-compartir-busqueda], [data-usar-viaje], [data-mi-estado], [data-abrir-filtros], [data-comparar], [data-vaciar-comparar], [data-mi-viaje], [data-cerrar-viaje], [data-ficha], [data-fav], [data-descartar], [data-mas], [data-sorpresa],'
   + ' [data-guardar-busqueda], [data-borrar-busqueda], [data-copiar-vigilado], [data-cerrar-ficha], [data-cerrar-novedades],'
-  + ' [data-olvidar-filtros], [data-cerrar-mas], [data-modo-lista], [data-abrir-busqueda], [data-ver-datos-nuevos], [data-cerrar-bienvenida]';
+  + ' [data-olvidar-filtros], [data-cerrar-mas], [data-modo-lista], [data-abrir-busqueda], [data-ver-datos-nuevos], [data-cerrar-bienvenida], [data-ir-buscador]';
 
 function manejarClic(evento) {
   const objetivo = evento.target.closest(ACCIONES);
@@ -743,6 +743,12 @@ function manejarClic(evento) {
   const d = objetivo.dataset;
   if ('actualizar' in d) location.reload();
   else if ('verDatosNuevos' in d) aplicarDatosNuevos();
+  else if ('irBuscador' in d) {
+    // «Ya sé dónde quiero ir»: al buscador de la cabecera, que busca en todo.
+    const q = $('#q');
+    q.scrollIntoView({ block: 'center' });
+    q.focus({ preventScroll: true });
+  }
   else if ('cerrarBienvenida' in d) {
     marcarBienvenidaVista();
     estado.bienvenidaVista = true;

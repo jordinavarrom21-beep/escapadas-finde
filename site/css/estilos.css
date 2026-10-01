@@ -459,6 +459,10 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 }
 .buscador-finde__etiqueta { margin-bottom: 0; }
 .buscador-finde__fila { display: grid; gap: 16px; }
+.buscador-finde__fila select { width: 100%; }
+.buscador-finde__enviar { min-height: 46px; padding-inline: 22px; }
+.buscador-finde__mas > summary { cursor: pointer; font-weight: 700; font-size: 0.9rem; color: var(--texto-suave); }
+.buscador-finde__mas[open] > summary { margin-bottom: 10px; }
 .opciones { display: flex; flex-wrap: wrap; gap: 8px; }
 .opciones--desplazables { position: relative; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin; }
 /* Las filas que se deslizan se desvanecen en el borde derecho: se ve que hay más, no un corte. */
@@ -1349,7 +1353,11 @@ main { padding-block: 22px 56px; min-height: 60vh; }
   .ficha { width: 100%; max-width: 100%; max-height: 94vh; margin: auto 0 0; border-radius: 26px 26px 0 0; }
   .ficha__contenido { padding: 0 14px 22px; }
   .buscador-finde { padding: 16px; border-radius: 22px; }
-  .buscador-finde__pie .boton { width: 100%; }
+  /* Portada en el móvil: menos alto antes del planificador. */
+  .portada__ceja { font-size: 0.8rem; }
+  .portada__ceja .pastilla { font-size: 0.78rem; padding-inline: 12px; }
+  .portada .titulo-vista { font-size: 2rem; }
+  .buscador-finde__pie .boton, .buscador-finde__enviar { width: 100%; }
   .opciones--cuando { display: grid; grid-template-columns: 1fr 1fr; }
   .opciones--cuando .opcion { flex: auto; }
   .seccion { margin-top: 36px; }
@@ -1379,7 +1387,7 @@ main { padding-block: 22px 56px; min-height: 60vh; }
   .titulo-vista .suave { display: inline; margin-left: 10px; }
   .ficha__contenido { padding: 0 28px 28px; }
   .buscador-finde { padding: 24px; }
-  .buscador-finde__fila { grid-template-columns: minmax(0, 1fr) 220px; align-items: start; }
+  .buscador-finde__fila { grid-template-columns: minmax(0, 1fr) 180px auto; align-items: end; }
   .seccion--puente { padding: 34px 36px; }
 }
 
