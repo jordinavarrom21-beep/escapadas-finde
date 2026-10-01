@@ -124,8 +124,11 @@ describe('Ticketmaster', () => {
     const u = new URL(peticiones[0]);
     assert.deepEqual([u.searchParams.get('countryCode'), u.searchParams.get('startDateTime'), u.searchParams.get('endDateTime'), u.searchParams.get('apikey')], ['ES', '2026-09-18T00:00:00Z', '2026-10-18T23:59:59Z', 'clave-de-prueba']);
     assert.equal(u.searchParams.get('source'), null, 'sin «source=ticketmaster»: para España devolvía 0 eventos');
-    assert.equal(peticiones.length, 1, 'una página: no pide más');
-    assert.deepEqual(eventos.map((e) => [e.tipo, e.precio, e.municipio]), [['festivales', 'desde 50 €', 'Madrid'], ['deporte', null, 'Madrid']]);
+    // Una búsqueda por categoría: así Universe («Miscellaneous») no gasta el cupo de 1.000.
+    assert.deepEqual(peticiones.map((x) => new URL(x).searchParams.get('segmentName')), ['Music', 'Arts & Theatre', 'Family', 'Sports', 'Film']);
+    assert.equal(peticiones.length, 5, 'una página por categoría: no pide más');
+    assert.deepEqual(eventos.slice(0, 2).map((e) => [e.tipo, e.precio, e.municipio]), [['festivales', 'desde 50 €', 'Madrid'], ['deporte', null, 'Madrid']]);
+    assert.ok(eventos.every((e) => !/universe\.com/.test(e.url ?? '')), 'los de Universe no entran aunque llegaran');
   });
 });
 

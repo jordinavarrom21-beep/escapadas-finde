@@ -147,21 +147,27 @@ export const madrid = {
 const TIPOS_TM = { Music: 'musica', 'Arts & Theatre': 'escena', Family: 'familia', Sports: 'deporte', Film: 'cine' };
 /** La API no deja pasar de 1.000 resultados por búsqueda (5 páginas de 200). */
 const PAGINAS_TM = 5;
+/**
+ * Una búsqueda por categoría: las entradas diarias a monumentos de Universe («Miscellaneous»)
+ * se comían el cupo de 1.000 de una búsqueda única y dejaban fuera casi todos los conciertos.
+ */
+const SEGMENTOS_TM = Object.keys(TIPOS_TM);
 
 export const ticketmaster = {
   id: 'ticketmaster',
-  // 3: fuera los de Universe (entradas diarias a monumentos) por su enlace; con «source=ticketmaster»
-  // la API no devolvía nada para España.
-  version: 3,
+  // 4: una búsqueda por categoría (antes una sola, y Universe se comía el cupo de 1.000).
+  version: 4,
   nombre: 'Ticketmaster',
   zona: () => true,
   activo: (ctx) => Boolean(ctx.env?.TICKETMASTER_KEY),
   async descargar(ctx, desde, hasta) {
     const eventos = [];
-    for (let pagina = 0; pagina < PAGINAS_TM; pagina += 1) {
-      if (pagina) await ctx.http.esperar(300);
+    let peticiones = 0;
+    for (const segmentName of SEGMENTOS_TM) for (let pagina = 0; pagina < PAGINAS_TM; pagina += 1) {
+      if (peticiones) await ctx.http.esperar(300);
+      peticiones += 1;
       const p = new URLSearchParams({
-        apikey: ctx.env.TICKETMASTER_KEY, countryCode: 'ES', locale: '*', size: '200', page: String(pagina), sort: 'date,asc',
+        apikey: ctx.env.TICKETMASTER_KEY, countryCode: 'ES', segmentName, locale: '*', size: '200', page: String(pagina), sort: 'date,asc',
         startDateTime: `${desde}T00:00:00Z`, endDateTime: `${hasta}T23:59:59Z`,
       });
       const r = await ctx.http.json(`https://app.ticketmaster.com/discovery/v2/events.json?${p}`);
