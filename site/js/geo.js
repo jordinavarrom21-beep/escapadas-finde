@@ -29,6 +29,14 @@ export function radioKmParaMinutos(minutos) {
   return ((minutos / 60) * VELOCIDAD_MEDIA_KMH) / FACTOR_CARRETERA;
 }
 
+/** Baleares y Canarias (cajas que no tocan la península). */
+const ISLAS = [
+  { latMin: 38.6, latMax: 40.2, lonMin: 1.1, lonMax: 4.5 },
+  { latMin: 27.5, latMax: 29.5, lonMin: -18.3, lonMax: -13.3 },
+];
+const islaDe = ({ lat, lon }) => ISLAS.findIndex((c) => lat >= c.latMin && lat <= c.latMax && lon >= c.lonMin && lon <= c.lonMax);
+export const enIsla = (p) => islaDe(p) >= 0;
+
 export function esMismoPunto(a, b) {
   const km = distanciaKm(a, b);
   return km != null && km <= MISMO_PUNTO_KM;
@@ -44,6 +52,8 @@ export function minutosEnCoche(oferta, punto, origen) {
   if (!tieneCoordenadas(lugar) || oferta.tipo === 'vuelo' || oferta.transporte === 'avion' || oferta.transporte === 'ferry') return null;
   const desde = punto ?? origen;
   if ((!punto || esMismoPunto(punto, origen)) && typeof oferta.cocheMin === 'number') return oferta.cocheMin;
+  // Entre la península y una isla (o entre archipiélagos) no se va en coche: no se estima cruzando el mar.
+  if (tieneCoordenadas(desde) && islaDe(desde) !== islaDe(lugar)) return null;
   const km = distanciaKm(desde, lugar);
   return km == null ? null : estimarMinutos(km);
 }

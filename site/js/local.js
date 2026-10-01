@@ -66,7 +66,8 @@ export const guardarDescartadas = (descartadas) => guardarIds(CLAVE_DESCARTADAS,
 export function cargarBusquedas() {
   const lista = leerJson(CLAVE_BUSQUEDAS, []);
   return Array.isArray(lista)
-    ? lista.filter((b) => b?.nombre && b?.hash).map((b) => ({ ...b, visto: typeof b.visto === 'string' ? b.visto : null }))
+    // Solo enlaces del propio panel («#/…»): una copia importada podría traer cualquier cosa.
+    ? lista.filter((b) => typeof b?.nombre === 'string' && b.nombre && typeof b?.hash === 'string' && b.hash.startsWith('#/')).map((b) => ({ ...b, visto: typeof b.visto === 'string' ? b.visto : null }))
     : [];
 }
 

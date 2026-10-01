@@ -149,6 +149,9 @@ describe('filtros claros: memoria por vista (localStorage)', () => {
     // Las guardadas antes de esto no tienen fecha: se leen con visto null.
     local.set('escapadas:busquedas', JSON.stringify([{ nombre: 'Vieja', vista: 'vuelos', hash: '#/vuelos' }]));
     assert.deepEqual(cargarBusquedas(), [{ nombre: 'Vieja', vista: 'vuelos', hash: '#/vuelos', visto: null }]);
+    // Una copia importada con un enlace que no es del panel no se enseña.
+    local.set('escapadas:busquedas', JSON.stringify([{ nombre: 'Mala', hash: 'javascript:alert(1)' }, { nombre: 'Fuera', hash: 'https://ejemplo.com' }]));
+    assert.deepEqual(cargarBusquedas(), []);
   });
 
   it('guarda, recupera y olvida los filtros de cada vista por separado', async () => {

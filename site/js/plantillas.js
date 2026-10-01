@@ -658,7 +658,7 @@ export function textoComprobada(o, ctx) {
 
 /** El coste del viaje completo con tu salida, viajeros y noches (coste.js). */
 export const costeDe = (o, ctx) => costeViaje(o, {
-  viajeros: ctx.viajeros ?? undefined, noches: ctx.noches ?? undefined, distancia: ctx.distancias?.get(o.id), coche: ctx.coche,
+  viajeros: ctx.viajeros ?? undefined, noches: ctx.noches ?? undefined, distancia: (ctx.distanciasCoste ?? ctx.distancias)?.get(o.id), coche: ctx.coche,
 });
 
 /** «Alojamiento 240 € + Gasolina ≈ 29 € (estimado)» para el título de la línea del total. */

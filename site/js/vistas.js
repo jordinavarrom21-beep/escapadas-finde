@@ -385,7 +385,9 @@ function ordenRapido(vista, params, actual) {
 
 /** Por qué salen en este orden: qué se suma, desde dónde, para cuántos y qué va al final. */
 function explicacionOrden(e, f, costes) {
-  const desde = f.punto?.nombre ?? nombreSalida(e);
+  // El coste y la comodidad son desde tu salida; la distancia, desde «Cerca de…» si lo hay.
+  const desde = nombreSalida(e);
+  const cerca = f.punto?.nombre ?? desde;
   const para = `${contar(e.viaje?.viajeros ?? 2, 'persona')} y ${contar(e.viaje?.noches ?? 2, 'noche')} si la oferta no las fija`;
   const sinTotal = [...costes.values()].filter((c) => c.total == null).length;
   const textos = {
@@ -393,6 +395,8 @@ function explicacionOrden(e, f, costes) {
     persona: `Ordenadas por lo que cuesta el viaje completo por persona desde ${desde} (${para}): la oferta y, si vas en coche, la gasolina estimada.`,
     calidad: `Primero lo que más nota (sobre 10) da por cada euro por persona del viaje completo desde ${desde}. Sin nota o sin total, al final.`,
     comodo: `Primero lo que está a menos tiempo de ${desde}; a igualdad, lo que incluye más (régimen) y lo mejor valorado. Lo que no tiene tiempo de viaje conocido (islas, avión), al final.`,
+    distancia: `Primero lo que está a menos tiempo en coche de ${cerca}; lo que no se puede ir en coche (islas), al final.`,
+    alojamiento: 'Agrupadas por tipo de alojamiento (hotel, casa rural, apartamento…) y, dentro de cada uno, por valor de la oferta.',
   };
   if (!textos[f.orden]) return '';
   const alFinal = sinTotal ? ` ${contar(sinTotal, 'oferta')} sin datos suficientes para un total van al final.` : '';
