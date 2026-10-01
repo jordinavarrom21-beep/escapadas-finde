@@ -296,8 +296,16 @@ export function vistaMis(e) {
   const noDisponibles = marcadas('no-disponible');
   const comparar = [...(e.comparar ?? [])].filter((id) => e.porId.has(id)).length;
   const email = e.datos.avisos?.email;
+  // Sin nada guardado todavía: qué se puede hacer, en tres pasos, antes que tres listas vacías.
+  const vacio = !favoritos.length && !e.busquedas?.length && !comparar;
+  const pasos = vacio ? `<ol class="pasos-guardados">
+  <li>${icono('corazon')}<span><strong>Guarda una oferta</strong> con el corazón de cualquier tarjeta.</span></li>
+  <li>${icono('comparar')}<span><strong>Compara hasta tres</strong> con «Comparar» y míralas lado a lado.</span></li>
+  <li>${icono('guardar')}<span><strong>Guarda una búsqueda</strong> en Explorar: al volver verás las ofertas nuevas que la cumplen.</span></li>
+</ol><p><a class="boton boton--primario" href="#/escapadas">Ir a Explorar${icono('flecha')}</a></p>` : '';
   return `${pestanas('mis', 'mis', e)}<h1 class="titulo-vista" tabindex="-1">Guardados</h1>
-<p class="seccion__intro">Tus búsquedas guardadas, favoritos y marcas. Todo se guarda solo en este navegador.</p>
+<p class="seccion__intro">Tus búsquedas guardadas, favoritos y marcas. Se guardan solo en este navegador: para llevarlos a otro móvil u ordenador, usa la copia de seguridad de abajo.</p>
+${pasos}
 <div class="carruseles">
 ${seccion(conIcono('nuevo', 'Búsquedas guardadas y avisos'), bloqueAvisos(e))}
 ${seccion(conIcono('corazon', 'Favoritos', 'chollo'), favoritos.length
@@ -308,6 +316,9 @@ ${seccion(conIcono('comparar', 'Comparar lado a lado'), comparar
     ? `<p>${contar(comparar, 'oferta elegida', 'ofertas elegidas')} para comparar. <a class="boton boton--suave boton--mini" href="#/comparar">Ver la comparación${icono('flecha')}</a></p>`
     : '<p class="suave">Pulsa el botón de comparar (dos columnas) en hasta tres ofertas para verlas lado a lado.</p>')}
 ${reservadas.length || noDisponibles.length ? seccion(conIcono('check', 'Marcadas por ti'), `${reservadas.length ? `<h3 class="subtitulo">Reservadas</h3><ul class="filas">${reservadas.map(filaOferta).join('')}</ul>` : ''}${noDisponibles.length ? `<h3 class="subtitulo">Ya no disponibles <span class="suave">(no salen en las listas)</span></h3><ul class="filas">${noDisponibles.map(filaOferta).join('')}</ul>` : ''}`) : ''}
+${seccion(conIcono('guardar', 'Copia de seguridad'), `<p>Sin cuenta: descarga un archivo con tus favoritos, búsquedas, comparación y preferencias, y cárgalo en otro navegador o dispositivo (sustituye lo que haya allí).</p>
+<p class="acciones"><button type="button" class="boton boton--suave boton--mini" data-exportar-guardados>${icono('externo')}Descargar mis guardados</button>
+<label class="boton boton--suave boton--mini">${icono('deshacer')}Cargar una copia<input type="file" accept="application/json,.json" data-importar-guardados class="sr"></label></p>`)}
 ${e.propietario ? seccion(conIcono('vigilados', 'Avisos por email'), `<p>${email === true ? 'Activos: te llega un email cuando una oferta cumple uno de tus criterios y baja de precio.' : 'Para recibirlos por email hay que configurar el correo y los criterios en GitHub.'} <a class="boton boton--suave boton--mini" href="#/vigilados">Ver los avisos por email${icono('flecha')}</a></p>`) : ''}`;
 }
 

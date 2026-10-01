@@ -16,6 +16,7 @@ import {
   MAX_COMPARAR, borrarBusqueda, cargarBusquedas, marcarBusquedaVista, cargarComparar, cargarDescartadas, cargarMisEstados, guardarComparar, guardarMisEstados, cargarFavoritos, cargarFiltros, cargarSalida, cargarViaje,
   guardarBusqueda, guardarDescartadas, guardarFavoritos, guardarFiltros, guardarModoLista, guardarSalida, guardarTema, guardarViaje,
   tomarVisitaAnterior, bienvenidaVista, esPropietarioGuardado, guardarPropietario, marcarBienvenidaVista,
+  exportarGuardados, importarGuardados,
 } from './local.js';
 import { salidaEfectiva, validarSalida, validarViaje } from './viaje.js';
 import { destruirMapa, pintarMapa } from './mapa.js';
@@ -735,7 +736,7 @@ function alternarMiEstado(id, nuevo) {
 
 const ACCIONES = '[data-actualizar], [data-compartir-busqueda], [data-usar-viaje], [data-mi-estado], [data-abrir-filtros], [data-comparar], [data-vaciar-comparar], [data-mi-viaje], [data-cerrar-viaje], [data-ficha], [data-fav], [data-descartar], [data-mas], [data-sorpresa],'
   + ' [data-guardar-busqueda], [data-borrar-busqueda], [data-copiar-vigilado], [data-cerrar-ficha], [data-cerrar-novedades],'
-  + ' [data-olvidar-filtros], [data-cerrar-mas], [data-modo-lista], [data-abrir-busqueda], [data-ver-datos-nuevos], [data-cerrar-bienvenida], [data-ir-buscador]';
+  + ' [data-olvidar-filtros], [data-cerrar-mas], [data-modo-lista], [data-abrir-busqueda], [data-ver-datos-nuevos], [data-cerrar-bienvenida], [data-ir-buscador], [data-exportar-guardados]';
 
 function manejarClic(evento) {
   const objetivo = evento.target.closest(ACCIONES);
@@ -743,6 +744,7 @@ function manejarClic(evento) {
   const d = objetivo.dataset;
   if ('actualizar' in d) location.reload();
   else if ('verDatosNuevos' in d) aplicarDatosNuevos();
+  else if ('exportarGuardados' in d) descargarGuardados();
   else if ('irBuscador' in d) {
     // «Ya sé dónde quiero ir»: al buscador de la cabecera, que busca en todo.
     const q = $('#q');
@@ -793,6 +795,32 @@ function cerrarMasFiltros(boton) {
   $('#resultados')?.scrollIntoView({ block: 'start' });
 }
 
+/** «Descargar mis guardados»: un archivo JSON con lo de este navegador (nada sale de él). */
+function descargarGuardados() {
+  const archivo = new Blob([JSON.stringify(exportarGuardados(), null, 2)], { type: 'application/json' });
+  const enlace = Object.assign(document.createElement('a'), { href: URL.createObjectURL(archivo), download: `escapadas-finde-guardados-${estado.hoy}.json` });
+  document.body.append(enlace);
+  enlace.click();
+  enlace.remove();
+  setTimeout(() => URL.revokeObjectURL(enlace.href), 1000);
+  anunciar('Copia descargada: cárgala en otro navegador desde «Guardados» → «Cargar una copia».');
+}
+
+/** «Cargar una copia»: sustituye lo de este navegador y vuelve a pintar con ello. */
+async function cargarGuardados(entrada) {
+  const [archivo] = entrada.files ?? [];
+  if (!archivo) return;
+  try {
+    const cargadas = importarGuardados(JSON.parse(await archivo.text()));
+    anunciar(`Copia cargada (${cargadas} apartados). Recargando…`);
+    setTimeout(() => location.reload(), 600);
+  } catch (error) {
+    anunciar(error instanceof SyntaxError ? 'Ese archivo no es una copia de «Guardados» (no es JSON).' : error.message);
+  } finally {
+    entrada.value = '';
+  }
+}
+
 // ── Arranque ─────────────────────────────────────────────────────────────────
 
 function conectarEventos() {
@@ -811,6 +839,7 @@ function conectarEventos() {
   });
   principal.addEventListener('input', alCambiarFiltro);
   principal.addEventListener('change', alCambiarFiltro);
+  principal.addEventListener('change', (evento) => { if (evento.target.matches?.('[data-importar-guardados]')) cargarGuardados(evento.target); });
   principal.addEventListener('submit', (evento) => {
     evento.preventDefault();
     if (evento.target.matches('[data-buscador-finde]')) {
