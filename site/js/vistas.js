@@ -14,7 +14,7 @@ import {
   buscarActividades, buscarEscapadas, buscarTexto, chollosDeVuelos, conFaltas, promocionesDeVuelos, crearHash, destinosDe,
   destinosDeVuelo, esActividad, esEscapada, filtrarVuelos, filtrosActivos, leerFiltrosActividades, zonasDe,
   leerFiltrosComunes, leerFiltrosEscapadas, leerFiltrosVuelos, radioBusquedaKm, viajeDeParams, tieneVuelo,
-  valoresUnicos, vuelosParaMapa, KM_CERCA_DE_LO_BUSCADO, lugarDeConsulta, encajeEnRango, rangoDe,
+  valoresUnicos, vuelosParaMapa, KM_CERCA_DE_LO_BUSCADO, lugarDeConsulta, encajeEnRango, periodoPasado, rangoDe,
 } from './filtros.js';
 import {
   certeza, costeDe, textoAlojamiento, textoCaducidad, textoFechas, textoLugar, estadoVacio, rejilla,
@@ -41,6 +41,9 @@ export {
   vistaMis, vistaPuentes, vistaVigilados,
 } from './vistas-info.js';
 
+/** Con un finde o un puente que ya pasó en la URL no hay nada que enseñar: se dice y se ofrece cambiarlo. */
+const vacioPeriodoPasado = (vista) => estadoVacio('Ese finde o puente ya pasó', 'Elige otras fechas arriba o quítalas para ver todo.', botonLimpiar(vista));
+
 // ── Vuelos ───────────────────────────────────────────────────────────────────
 
 export function vistaVuelos(e, params) {
@@ -52,7 +55,7 @@ export function vistaVuelos(e, params) {
   // hay de verdad: chollos de blogs y comunidades, sin los filtros de finde, aeropuerto y horario.
   if (!e.datos.ofertas.some(tieneVuelo)) return vistaChollosVuelos(e, params, f, paises);
   const chips = [
-    `<label class="chip"><input type="radio" name="finde" value=""${marcado(!f.finde)}> Todos</label>`,
+    `<label class="chip"><input type="radio" name="finde" value=""${marcado(!f.finde && !f.desde && !f.hasta)}> Todos</label>`,
     ...e.findes.map((finde, i) => `<label class="chip${finde.puenteId ? ' chip--puente' : ''}"><input type="radio" name="finde" value="${esc(finde.id)}"${marcado(f.finde === finde.id)}> ${i === 0 ? 'Este finde · ' : ''}${esc(etiquetaFinde(finde, e.datos.puentes))}</label>`),
     ...e.datos.puentes.map((p) => `<label class="chip chip--puente"><input type="radio" name="finde" value="${esc(p.id)}"${marcado(f.finde === p.id)}> ${etiquetaPuente(p)}</label>`),
   ];
@@ -60,6 +63,7 @@ export function vistaVuelos(e, params) {
 ${avisoMemoria(e, 'vuelos')}${avisoViajeCompartido(e, params)}
 ${plegableMovil(e, 'vuelos', params)}<form class="filtros" data-filtros="vuelos" aria-label="Filtros de vuelos">
   <fieldset class="chips chips--desplazables" data-campo-fechas><legend>Finde o puente</legend><div class="chips__lista">${chips.join('')}</div></fieldset>
+  ${f.desde || f.hasta ? `<input type="hidden" name="desde" value="${esc(f.desde)}"><input type="hidden" name="hasta" value="${esc(f.hasta)}">` : ''}
   <div class="filtros__fila">
     ${campoTexto(f)}
     <label class="campo">Aeropuerto <select name="aero">${opciones(e.datos.aeropuertos.map((a) => [a, a]), f.aero, 'Todos')}</select></label>
@@ -130,7 +134,8 @@ ${promociones.length ? `<section class="seccion">
   const dias = rango ? `${etiquetaDia(rango.inicio)} – ${etiquetaDia(rango.fin)}` : '';
   const conFecha = `${rango ? `<p class="seccion__intro">Salen y vuelven entre el <strong>${esc(dias)}</strong>${rango.tipo === 'puente' ? ' (el primer día es el último laborable, para salir por la tarde)' : ''}.</p>` : ''}${dentro.length
     ? rejilla(dentro, ctx, { mostradas: mostradas(e, 'vuelos'), clave: 'vuelos' })
-    : estadoVacio(rango ? `Ningún vuelo sale y vuelve entre el ${esc(dias)}` : 'Ningún vuelo cumple estos filtros',
+    : periodoPasado(f.finde, contexto) ? vacioPeriodoPasado('vuelos')
+      : estadoVacio(rango ? `Ningún vuelo sale y vuelve entre el ${esc(dias)}` : 'Ningún vuelo cumple estos filtros',
       rango && alrededor.length ? 'Abajo tienes los que salen un poco antes o vuelven un poco después.' : 'Prueba con otro finde, otro aeropuerto o un precio máximo más alto.', botonLimpiar('vuelos'))}${alrededor.length ? `
 <section class="seccion">
   <div class="seccion__cabeza"><h2>Alrededor de esas fechas</h2><span class="contador">${esc(contar(alrededor.length, 'vuelo'))}</span></div>
@@ -456,7 +461,8 @@ export function resultadosEscapadas(e, params) {
 ${ordenRapido('escapadas', params, f.orden)}${explicacionOrden(e, f, costes)}${f.presupuesto ? `<p class="seccion__intro">Presupuesto: viaje completo (oferta y gasolina estimada) de hasta ${esc(euros(f.presupuesto))} ${f.presupuestoPor === 'persona' ? 'por persona' : 'en total'} para ${esc(contar(e.viaje?.viajeros ?? 2, 'persona'))}.${sinTotal ? ` ${esc(contar(sinTotal, 'oferta'))} sin datos suficientes para un total no se pueden comprobar y no salen.` : ''}</p>` : ''}
 ${ofertas.length
     ? rejilla(ofertas, ctx, { mostradas: mostradas(e, 'escapadas'), clave: 'escapadas' })
-    : estadoVacio('Ninguna escapada cumple estos filtros', 'Prueba a quitar alguna temática, ampliar la distancia o subir el precio máximo.', `${buscarFuera(f.q)}${botonLimpiar('escapadas')}`)}`;
+    : periodoPasado(f.cuando, contextoBusqueda(e)) ? vacioPeriodoPasado('escapadas')
+      : estadoVacio('Ninguna escapada cumple estos filtros', 'Prueba a quitar alguna temática, ampliar la distancia o subir el precio máximo.', `${buscarFuera(f.q)}${botonLimpiar('escapadas')}`)}`;
 }
 
 // ── Actividades ──────────────────────────────────────────────────────────────
@@ -500,7 +506,8 @@ export function resultadosActividades(e, params) {
   return `${franjaPeriodo(e, 'actividades', params)}${filaActivos(e, 'actividades', params)}${resumenResultados(resumen)}${aproximado ? avisoAproximado(f.q) : ''}
 ${lista.length
     ? rejilla(lista, ctxTarjetas(e), { mostradas: mostradas(e, 'actividades'), clave: 'actividades' })
-    : estadoVacio('Ninguna actividad cumple estos filtros', 'Prueba a quitar alguna temática, cambiar de lugar o subir el precio máximo.', botonLimpiar('actividades'))}`;
+    : periodoPasado(f.cuando, contextoBusqueda(e)) ? vacioPeriodoPasado('actividades')
+      : estadoVacio('Ninguna actividad cumple estos filtros', 'Prueba a quitar alguna temática, cambiar de lugar o subir el precio máximo.', botonLimpiar('actividades'))}`;
 }
 
 export function vistaMapa(e, params) {

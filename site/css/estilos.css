@@ -1607,3 +1607,5 @@ body:has([data-plegable-movil][open]) .barra-comparar [data-abrir-filtros] { dis
 /* En la portada, tu viaje y el destino van en el buscador: arriba no se repiten. */
 body[data-vista="finde"] #boton-viaje, body[data-vista="finde"] #buscador { display: none; }
 body[data-vista="finde"] .cabecera-info:not(:has(#novedades:not([hidden]), #actualizado:not([hidden]))) { display: none; }
+/* Un finde o puente que ya pasó en la URL: la franja avisa en vez de decir «cualquier fecha». */
+.franja-periodo--pasado { background: var(--aviso-suave); color: var(--aviso); }

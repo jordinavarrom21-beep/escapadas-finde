@@ -324,6 +324,11 @@ function render({ enfocar = true } = {}) {
   vistaActual = vista;
   // En la portada, tu viaje y la búsqueda van dentro del buscador: no se repiten arriba.
   document.body.dataset.vista = vista;
+  // El buscador de la portada arranca con el periodo elegido en Explorar (si no ha pasado ya).
+  if (vista === 'finde') {
+    const guardado = cargarPeriodo();
+    estado.periodo = guardado ? filtrosVigentes(guardado, contextoFechas()) : null;
+  }
   principal.innerHTML = VISTAS_HTML[vista].html(estado, params);
   // El aviso «con los filtros de la última vez» solo vale para la entrada desde el menú.
   estado.filtrosRecordados = false;

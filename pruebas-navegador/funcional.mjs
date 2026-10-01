@@ -220,6 +220,27 @@ await p.locator('.filtros input[name="mios"]').check();
 await p.waitForTimeout(400);
 ok((await p.evaluate(() => location.hash)).includes('mios=1'), 'vuelos: «Solo desde mis aeropuertos»');
 ok(typeof nVuelos === 'string', 'vuelos: resumen de resultados');
+if (conVuelosConFecha) {
+  // Un rango elegido en Escapadas llega a Vuelos y no se pierde al tocar otro filtro (el formulario no tiene campos de rango).
+  await p.goto(`${BASE}#/vuelos?desde=2026-10-16&hasta=2026-10-18`); await p.waitForSelector('#resultados'); await p.waitForTimeout(300);
+  ok(!(await p.locator('input[name="finde"][value=""]').isChecked()), 'vuelos: con un rango, «Todos» no sale marcado');
+  await p.locator('.filtros input[name="ideal"]').check(); await p.waitForTimeout(400);
+  const hashRango = await p.evaluate(() => location.hash);
+  ok(hashRango.includes('desde=2026-10-16') && hashRango.includes('ideal=1'), `vuelos: el rango sobrevive a tocar otro filtro (${hashRango})`);
+  // Un finde que ya pasó en la URL: se dice, no se finge «cualquier fecha».
+  await p.goto(`${BASE}#/vuelos?finde=2020-01-03`); await p.waitForSelector('#resultados'); await p.waitForTimeout(300);
+  ok((await p.locator('.franja-periodo__texto').textContent()).includes('Fechas que ya pasaron') && (await p.locator('#resultados').textContent()).includes('ya pasó'), 'vuelos: un finde pasado se explica');
+}
+// El periodo elegido en Explorar arranca marcado en Inicio.
+// El Inicio ofrece «el puente» = el próximo que no ha terminado (hoy de verdad: la prueba corre con el reloj real).
+const hoyReal = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Madrid' });
+const puenteId = [...(datos.puentes ?? [])].filter((x) => x.hasta >= hoyReal).sort((a, b) => a.desde.localeCompare(b.desde))[0]?.id;
+if (puenteId) {
+  await p.goto(`${BASE}#/escapadas?cuando=${puenteId}`); await p.waitForSelector('#resultados'); await p.waitForTimeout(300);
+  await ir(p, 'finde');
+  ok((await p.locator('.buscador-finde input[name="cuando"]:checked').getAttribute('value')) === puenteId, 'inicio: arranca con el puente elegido en Explorar');
+  ok((await p.locator('[data-enviar-para]').textContent()).startsWith('para '), 'inicio: el botón dice esos días');
+}
 await ir(p, 'actividades');
 await p.locator('.filtros input[name="gratis"]').check();
 await p.waitForTimeout(400);

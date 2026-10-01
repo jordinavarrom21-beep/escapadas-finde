@@ -5,7 +5,7 @@
 
 import { etiquetaDia } from './fechas.js';
 import { contar, escaparHtml as esc } from './formato.js';
-import { POR_PAGINA, crearHash, destinosDe, resumenFuentes, salidaPuente } from './filtros.js';
+import { POR_PAGINA, TEXTO_PERIODO_PASADO, crearHash, destinosDe, resumenFuentes, salidaPuente } from './filtros.js';
 import { NOCHES, VIAJEROS, aeropuertosCercanos } from './viaje.js';
 import { icono } from './iconos.js';
 
@@ -322,11 +322,13 @@ export function franjaPeriodo(e, vista, params = {}) {
   else if (puente) texto = `<strong>Puente</strong> · ${esc(puente.nombre)} · ${esc(diasExplicitos(salidaPuente(puente), puente.hasta))}`;
   else if (desde && hasta) texto = desde === hasta ? `<strong>El ${esc(etiquetaDia(desde))}</strong>` : `<strong>Fechas</strong> · ${esc(diasExplicitos(desde, hasta))}`;
   else if (desde || hasta) texto = `<strong>${desde ? `Desde el ${esc(etiquetaDia(desde))}` : `Hasta el ${esc(etiquetaDia(hasta))}`}</strong>`;
+  // Un finde o puente que ya pasó (enlace viejo): se dice, no se finge «cualquier fecha» con 0 resultados.
+  else if (cuando) texto = `<strong>${TEXTO_PERIODO_PASADO}</strong>`;
   else texto = '<strong>Cualquier fecha</strong>';
   const elegido = texto !== '<strong>Cualquier fecha</strong>';
   const sinFechas = Object.fromEntries(Object.entries(params).filter(([clave]) => !['cuando', 'finde', 'desde', 'hasta'].includes(clave)));
   const quitar = elegido ? `<a class="franja-periodo__quitar" href="${esc(crearHash(vista, sinFechas))}" aria-label="Quitar las fechas">${icono('cerrar')}</a>` : '';
-  return `<div class="franja-periodo">${icono('calendario')}<span class="franja-periodo__texto">${texto}</span><button type="button" class="enlace-boton" data-cambiar-fechas>${elegido ? 'Cambiar fechas' : 'Elegir fechas'}</button>${quitar}</div>`;
+  return `<div class="franja-periodo${!finde && !puente && !desde && !hasta && cuando ? ' franja-periodo--pasado' : ''}">${icono('calendario')}<span class="franja-periodo__texto">${texto}</span><button type="button" class="enlace-boton" data-cambiar-fechas>${elegido ? 'Cambiar fechas' : 'Elegir fechas'}</button>${quitar}</div>`;
 }
 
 /** «Lista | Mapa»: la misma búsqueda (categoría, fechas y filtros) vista de una u otra forma. */

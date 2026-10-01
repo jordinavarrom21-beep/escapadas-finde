@@ -71,25 +71,34 @@ export function textoEnviar(que, dias = '') {
 export function buscadorFinde(e) {
   const [actual, siguiente] = e.findes;
   // [valor, rótulo, días]: los días van a la vista y al botón («para vie 2 – dom 4 oct»).
+  // El periodo elegido en Explorar (y aún vigente) arranca marcado: Inicio y Explorar dicen lo mismo.
+  const periodo = e.periodo ?? {};
+  const rango = !periodo.cuando && periodo.desde && periodo.hasta ? [periodo.desde, periodo.hasta] : null;
   const cuando = [
     ['finde', 'Este finde', diasExplicitos(actual.viernes, actual.domingo)],
     ...(siguiente ? [[siguiente.id, 'El siguiente', etiquetaFinde(siguiente, e.datos.puentes)]] : []),
     // «El puente» y sus días (con la tarde del último laborable para salir).
     ...(e.puente ? [[e.puente.id, 'El puente', diasExplicitos(salidaPuente(e.puente), e.puente.hasta)]] : []),
+    ...(rango ? [['rango', 'Tus fechas', diasExplicitos(...rango)]] : []),
     ['', 'Cualquier fecha', ''],
   ];
-  const opcionCuando = ([valor, texto, dias], marcada) => `<label class="opcion opcion--fecha"><input type="radio" name="cuando" value="${esc(valor)}" data-dias="${esc(dias)}"${marcado(marcada)}><small>${esc(texto)}</small><span>${esc(dias || 'lo mejor que haya')}</span></label>`;
+  // Sin nada elegido (o ya pasado: filtrosVigentes quita la clave), «Este finde»; «Cualquier
+  // fecha» (cuando: '') solo si se eligió a propósito en Explorar.
+  const elegido = rango ? 'rango' : periodo.cuando === actual.id ? 'finde' : periodo.cuando === 'puente' ? e.puente?.id : periodo.cuando;
+  const marcadoCuando = elegido !== undefined && cuando.some(([valor]) => valor === elegido) ? elegido : 'finde';
+  const opcionCuando = ([valor, texto, dias]) => `<label class="opcion opcion--fecha"><input type="radio" name="cuando" value="${esc(valor)}" data-dias="${esc(dias)}"${marcado(valor === marcadoCuando)}><small>${esc(texto)}</small><span>${esc(dias || 'lo mejor que haya')}</span></label>`;
   const como = [['', 'Como sea'], ['coche', 'En coche'], ['sincoche', 'Sin coche']];
   const opcion = (nombre, [valor, texto], marcada) => `<label class="opcion"><input type="radio" name="${nombre}" value="${esc(valor)}"${marcado(marcada)}> ${esc(texto)}</label>`;
   const temas = [['', 'Cualquier plan'], ...e.datos.temas.map((t) => [t.id, t.nombre])]
     .map(([valor, texto]) => `<option value="${esc(valor)}">${esc(texto)}</option>`).join('');
   const que = (valor, ic, titulo, detalle) => `<label class="organizar__opcion"><input class="sr" type="radio" name="que" value="${valor}"${marcado(valor === 'escapadas')}>
       <span class="organizar__icono" aria-hidden="true">${icono(ic)}</span><span class="organizar__texto"><strong>${titulo}</strong><small>${detalle}</small></span><span class="organizar__estado" aria-hidden="true"></span></label>`;
-  const enviar = textoEnviar('escapadas', cuando[0][2]);
+  const enviar = textoEnviar('escapadas', cuando.find(([valor]) => valor === marcadoCuando)[2]);
   return `<form class="buscador-finde" data-buscador-finde aria-labelledby="buscador-finde-titulo">
   <h2 id="buscador-finde-titulo" class="sr">Elige qué buscar y para cuándo</h2>
   <fieldset class="buscador-finde__grupo"><legend>1. ¿Cuándo?</legend>
-    <div class="opciones opciones--cuando">${cuando.map((c, i) => opcionCuando(c, i === 0)).join('')}</div>
+    <div class="opciones opciones--cuando">${cuando.map(opcionCuando).join('')}</div>
+    ${rango ? `<input type="hidden" name="desde" value="${esc(rango[0])}"><input type="hidden" name="hasta" value="${esc(rango[1])}">` : ''}
   </fieldset>
   <fieldset class="buscador-finde__grupo"><legend>2. ¿Qué buscas?</legend>
     <div class="organizar">
@@ -130,7 +139,10 @@ export function buscadorFinde(e) {
  * destino, si se escribe, va a las tres como búsqueda.
  */
 export function destinoOrganizar(que, campos, { finde = null, puente = null } = {}) {
-  const periodo = { cuando: campos.cuando ?? '', desde: '', hasta: '' };
+  // «Tus fechas» (un rango elegido en Explorar) va como desde/hasta; lo demás, como «cuando».
+  const periodo = campos.cuando === 'rango'
+    ? { cuando: '', desde: campos.desde ?? '', hasta: campos.hasta ?? '' }
+    : { cuando: campos.cuando ?? '', desde: '', hasta: '' };
   const q = (campos.q ?? '').trim();
   const base = q ? { q } : {};
   if (que === 'vuelos') return crearHash('vuelos', conPeriodo('vuelos', base, periodo, { finde, puente }));
@@ -139,9 +151,9 @@ export function destinoOrganizar(que, campos, { finde = null, puente = null } = 
 }
 
 /** Los filtros de Escapadas que corresponden a lo elegido en el buscador de la portada. */
-export function paramsBuscadorFinde({ cuando = '', pres = '', como = '', temas = '', q = '' } = {}) {
+export function paramsBuscadorFinde({ cuando = '', pres = '', como = '', temas = '', q = '', desde = '', hasta = '' } = {}) {
   return {
-    cuando, temas, orden: 'total',
+    ...(cuando === 'rango' ? { desde, hasta } : { cuando }), temas, orden: 'total',
     ...(q.trim() ? { q: q.trim() } : {}),
     ...(Number(pres) > 0 ? { pres: String(Number(pres)), prespor: 'persona' } : {}),
     ...(como === 'coche' ? { transporte: 'coche' } : como === 'sincoche' ? { sincoche: '1' } : {}),
