@@ -5,7 +5,7 @@
  */
 
 import {
-  contar, duracion, enumerar, escaparHtml as esc, euros, haceCuanto, urlSegura, ETIQUETAS_ALOJAMIENTO,
+  contar, duracion, enumerar, escaparHtml as esc, euros, haceCuanto, urlSegura, ETIQUETAS_ALOJAMIENTO, TIPOS_EVENTO,
   ETIQUETAS_REGIMEN, ETIQUETAS_TIPO, ETIQUETAS_TRANSPORTE,
 } from './formato.js';
 import { etiquetaDia } from './fechas.js';
@@ -234,6 +234,13 @@ function campoNinos(f) {
   return `<fieldset class="chips chips--desplazables"><legend>¿Vas con niños?</legend><div class="chips__lista">${opcion('', 'Da igual')}${opcion('apto', 'Para ir con niños')}${opcion('ventaja', 'Gratis o con descuento')}${opcion('gratis', 'Niños gratis')}</div></fieldset>`;
 }
 
+/** Conciertos, fiestas, ferias… a menos de 25 km esos días. */
+function campoEventos(f) {
+  const opcion = (valor, texto) => `<label class="chip"><input type="radio" name="evtipo" value="${valor}"${marcado(f.evento === valor)}> ${texto}</label>`;
+  const tipos = ['musica', 'fiestas', 'festivales', 'ferias', 'escena', 'familia'].map((t) => opcion(t, TIPOS_EVENTO[t][1]));
+  return `<fieldset class="chips chips--desplazables"><legend>¿Algo que hacer cerca esos días?</legend><div class="chips__lista">${opcion('', 'Da igual')}${opcion('todos', 'Cualquier evento')}${tipos.join('')}</div></fieldset>`;
+}
+
 /** Cuántos filtros de «Más filtros» hay puestos (para su contador). */
 // «En coche» se elige arriba, en «¿Cómo vas?»: no es un filtro de «Más filtros».
 export const contarSecundarios = (params = {}) => FILTROS_SECUNDARIOS
@@ -336,6 +343,7 @@ function formularioEscapadas(e, params, vista) {
   <fieldset class="bloque"><legend class="bloque__titulo">¿Qué te apetece?</legend>
     <div class="chips chips--desplazables"><div class="chips__lista">${chipsTemas(e, f)}</div></div>
     ${campoNinos(f)}
+    ${campoEventos(f)}
   </fieldset>
   <div class="bloque"><h2 class="bloque__titulo">¿Dónde?</h2>${campoUbicacion(e, f)}</div>
   <div class="bloque"><h2 class="bloque__titulo">¿Cómo vas?</h2>${campoComo(f)}</div>

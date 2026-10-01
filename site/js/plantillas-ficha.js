@@ -332,7 +332,7 @@ export function contenidoFicha(o, ctx) {
   ${opinionesFicha(o, ctx)}
   ${cocheFicha(o, ctx)}
   ${tiempo(o, ctx)}
-  ${eventosDe(o, ctx).length ? `<section class="ficha__eventos"><h3>${icono('puentes')}${busquedaPara(o, ctx) ? `Qué hay por la zona esos días (${esc(busquedaPara(o, ctx).etiqueta)})` : conFechasDeViaje(o) ? 'Qué hay esos días por la zona' : 'Qué hay el próximo finde por la zona (si vas entonces)'}</h3>${eventos(o, { conEnlace: true }, ctx)}</section>` : ''}
+  ${eventosDe(o, ctx).length ? `<section class="ficha__eventos"><h3>${icono('tema-eventos')}${busquedaPara(o, ctx) ? `Qué hay por la zona esos días (${esc(busquedaPara(o, ctx).etiqueta)})` : conFechasDeViaje(o) ? 'Qué hay esos días por la zona' : 'Qué hay el próximo finde por la zona (si vas entonces)'}</h3>${eventos(o, { conEnlace: true }, ctx)}</section>` : ''}
   ${queHacerAlli(ctx)}
   ${datosFicha(o, ctx)}
 </div>

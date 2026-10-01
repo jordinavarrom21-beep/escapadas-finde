@@ -1,18 +1,23 @@
 /**
- * Qué pasa cerca del destino ese fin de semana, con la «Agenda cultural de
- * Catalunya (per localitzacions)» de Dades Obertes (Socrata SODA).
- * Solo cubre Cataluña: para el resto de destinos no hay eventos.
+ * Qué pasa cerca del destino esos días (conciertos, fiestas, ferias, teatro…): la «Agenda
+ * cultural de Catalunya (per localitzacions)» de Dades Obertes (Socrata SODA) y las demás
+ * agendas por zona de agendas.js (Euskadi, Castilla y León, Madrid y, con clave, Ticketmaster
+ * en toda España). Cada oferta se queda con lo que pasa a menos de 25 km en sus fechas.
  */
 import { fechaLocal, sumarDias } from '../util/fechas.js';
 import { normalizarTexto } from '../util/xml.js';
 import { distanciaKm } from './geo.js';
 import { periodoViaje } from './tiempo.js';
+import { PROVEEDORES, tipoEvento } from './agendas.js';
 
 const RECURSO = 'https://analisi.transparenciacatalunya.cat/resource/rhpv-yr4f.json';
-const CAMPOS = 'codi,denominaci,data_inici,data_fi,localitat,municipi,latitud,longitud,urlactivitat,url,enlla_os';
+const CAMPOS = 'codi,denominaci,data_inici,data_fi,localitat,municipi,latitud,longitud,urlactivitat,url,enlla_os,tags_categor_es,tags_mbits';
 const DIAS_VENTANA = 30;
 const MAX_DESCARGA = 2000;
-const MAX_POR_OFERTA = 3;
+/** Los que se guardan por oferta: la ficha los agrupa por tipo; la tarjeta enseña el primero. */
+const MAX_POR_OFERTA = 6;
+/** Lo que dura más (exposiciones de meses) va detrás de lo que pasa solo esos días. */
+const DIAS_PUNTUAL = 7;
 const RADIO_KM = 25;
 const CADUCIDAD_MS = 6 * 60 * 60 * 1000;
 /** Rectángulo que envuelve Cataluña: fuera de aquí la agenda no tiene nada. */
@@ -72,6 +77,8 @@ function normalizar(fila) {
     municipio: municipioDe(fila),
     lat,
     lon,
+    // «agenda:categories/concerts,agenda:categories/infantil»: lo primero que se reconozca.
+    tipo: tipoEvento(fila.tags_categor_es, fila.tags_mbits, fila.denominaci),
   };
 }
 
@@ -109,8 +116,34 @@ async function descargarAgenda(ctx, desde, hasta) {
 }
 
 /**
- * Rellena `eventos` con hasta 3 actos a menos de 25 km del destino cuyas fechas
- * coinciden con el finde o el puente de la oferta, del más cercano al más lejano.
+ * Agenda de un proveedor de agendas.js para los próximos días, en caché 6 h (una clave por
+ * fuente). Si la fuente falla, vale la última guardada; si tampoco hay, sin eventos de esa zona.
+ */
+async function descargarDe(proveedor, ctx, desde, hasta) {
+  const clave = `eventos:${proveedor.id}`;
+  const ahora = ctx.ahora.getTime();
+  const fresca = ctx.cache.obtener(clave, CADUCIDAD_MS, ahora);
+  if (fresca?.desde === desde) return fresca.eventos;
+  try {
+    const eventos = await proveedor.descargar(ctx, desde, hasta);
+    ctx.cache.guardar(clave, { desde, eventos }, ahora);
+    return eventos;
+  } catch (error) {
+    const anterior = ctx.cache.obtener(clave)?.eventos;
+    ctx.log(`${proveedor.nombre} no disponible (${error.message}): ${anterior ? 'se usa la última guardada' : 'esta vez sin eventos de esa zona'}`);
+    return anterior ?? [];
+  }
+}
+
+const duracion = (e) => Math.round((Date.parse(e.hasta) - Date.parse(e.desde)) / 86_400_000);
+/** Una exposición de meses «está» cualquier finde: cuenta como si estuviera 15 km más lejos. */
+const KM_DE_MAS_LARGAS = 15;
+const lejania = ({ evento, km }) => km + (evento.tipo === 'exposiciones' && duracion(evento) > DIAS_PUNTUAL ? KM_DE_MAS_LARGAS : 0);
+
+/**
+ * Rellena `eventos` con hasta 6 actos a menos de 25 km del destino cuyas fechas coinciden
+ * con el finde o el puente de la oferta, del más cercano al más lejano (las exposiciones de
+ * semanas, como si estuvieran más lejos: no tapan un concierto o una fiesta de esos días).
  */
 export async function anadirEventos(ofertas, ctx) {
   // Los de la ejecución anterior podrían ser de un finde ya pasado.
@@ -120,26 +153,36 @@ export async function anadirEventos(ofertas, ctx) {
   const candidatas = [];
   for (const oferta of ofertas) {
     const periodo = periodoViaje(oferta, ctx);
-    if (!enCataluna(oferta.lugar) || !periodo || periodo.desde > hasta || periodo.hasta < desde) continue;
+    if (typeof oferta.lugar?.lat !== 'number' || typeof oferta.lugar?.lon !== 'number' || !periodo || periodo.desde > hasta || periodo.hasta < desde) continue;
     // Si el viaje ya ha empezado, solo interesa lo que queda por delante.
     candidatas.push({ oferta, periodo: { desde: periodo.desde < desde ? desde : periodo.desde, hasta: periodo.hasta } });
   }
   if (!candidatas.length) return;
 
-  const agenda = await descargarAgenda(ctx, desde, hasta);
-  if (!agenda) return;
+  // Solo se descarga la agenda de una zona si hay alguna oferta en ella.
+  const agenda = [];
+  if (candidatas.some(({ oferta }) => enCataluna(oferta.lugar))) agenda.push(...((await descargarAgenda(ctx, desde, hasta)) ?? []));
+  for (const proveedor of PROVEEDORES) {
+    if (proveedor.activo && !proveedor.activo(ctx)) continue;
+    if (!candidatas.some(({ oferta }) => proveedor.zona(oferta.lugar))) continue;
+    agenda.push(...await descargarDe(proveedor, ctx, desde, hasta));
+  }
+  if (!agenda.length) return;
 
   for (const { oferta, periodo } of candidatas) {
     const cercanos = agenda
       .filter((evento) => evento.desde <= periodo.hasta && evento.hasta >= periodo.desde)
       .map((evento) => ({ evento, km: distanciaKm(oferta.lugar, evento) }))
       .filter(({ km }) => km <= RADIO_KM)
-      .sort((a, b) => a.km - b.km)
-      .map(({ evento }) => ({
+      .sort((a, b) => lejania(a) - lejania(b))
+      .map(({ evento, km }) => ({
         nombre: evento.nombre,
         fecha: evento.desde > periodo.desde ? evento.desde : periodo.desde,
         url: evento.url,
         municipio: evento.municipio,
+        tipo: evento.tipo ?? 'otros',
+        km: Math.round(km * 10) / 10,
+        ...(evento.precio ? { precio: evento.precio } : {}),
       }));
     oferta.eventos = sinRepetir(cercanos).slice(0, MAX_POR_OFERTA);
   }

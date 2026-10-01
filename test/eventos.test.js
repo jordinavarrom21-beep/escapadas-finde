@@ -10,7 +10,6 @@ const AGENDA = leerFixtureJson('eventos-agenda.json');
 const FINDES = findesProximos(10, AHORA);
 const SITGES = { nombre: 'Sitges', lat: 41.2345, lon: 1.8062 };
 const VILANOVA = { nombre: 'Vilanova i la Geltrú', lat: 41.2241, lon: 1.7252 };
-const MADRID = { nombre: 'Madrid', lat: 40.4168, lon: -3.7038 };
 
 function contexto(opciones = {}) {
   const creado = crearCtx({ respuestas: () => AGENDA, ...opciones });
@@ -19,16 +18,19 @@ function contexto(opciones = {}) {
 }
 
 describe('eventos', () => {
-  test('asigna hasta 3 eventos del finde, del más cercano al más lejano', async () => {
+  test('asigna hasta 6 eventos del finde, del más cercano al más lejano', async () => {
     const { ctx, peticiones } = contexto();
     const o = oferta({ titulo: 'Hotel en Sitges', lugar: SITGES, fechas: { findeId: '2026-09-25' } });
     await anadirEventos([o], ctx);
 
-    assert.equal(o.eventos.length, 3);
-    assert.ok(o.eventos.every((e) => e.municipio === 'Sitges'));
-    assert.ok(o.eventos.every((e) => e.fecha === '2026-09-25'), 'la fecha se recorta al inicio del finde');
+    assert.ok(o.eventos.length >= 3 && o.eventos.length <= 6, `${o.eventos.length} eventos`);
+    assert.ok(o.eventos.every((e) => typeof e.km === 'number' && e.km <= 25 && e.tipo), 'con distancia y tipo');
+    assert.equal(o.eventos[0].municipio, 'Sitges', 'lo más cercano, primero');
+    assert.ok(o.eventos.every((e) => e.fecha >= '2026-09-25' && e.fecha <= '2026-09-27'), 'dentro del finde');
+    assert.ok(o.eventos.filter((e) => e.municipio === 'Sitges').every((e) => e.fecha === '2026-09-25'), 'lo que ya había empezado, se recorta al inicio del finde');
     assert.ok(o.eventos.some((e) => e.nombre === "36è Festival L'Hora del Jazz"));
-    assert.equal(o.eventos.find((e) => e.nombre.startsWith('Exposició "Absències')).url, 'https://museusdesitges.cat/ca');
+    assert.ok(o.eventos.every((e) => e.url === null || /^https?:\/\//.test(e.url)), 'enlaces web o ninguno');
+    assert.equal(o.eventos[0].tipo, 'festivales', 'el festival de jazz de Sitges, el primero');
 
     const consulta = new URL(peticiones[0]);
     assert.equal(`${consulta.origin}${consulta.pathname}`, 'https://analisi.transparenciacatalunya.cat/resource/rhpv-yr4f.json');
@@ -62,9 +64,9 @@ describe('eventos', () => {
     assert.equal(peticiones.length, 1, 'la segunda vez sale de la caché');
   });
 
-  test('no consulta nada fuera de Cataluña, sin coordenadas ni para findes lejanos', async () => {
+  test('no consulta nada en zonas sin agenda, sin coordenadas ni para findes lejanos', async () => {
     const { ctx, peticiones } = contexto();
-    const fuera = oferta({ titulo: 'Hotel en Madrid', lugar: MADRID });
+    const fuera = oferta({ titulo: 'Hotel en Valencia', lugar: { nombre: 'Valencia', lat: 39.47, lon: -0.38 } });
     const sinLugar = oferta({ titulo: 'Descuento general de la web' });
     const lejana = oferta({ lugar: SITGES, fechas: { findeId: FINDES[5].id } });
     await anadirEventos([fuera, sinLugar, lejana], ctx);
@@ -87,7 +89,7 @@ describe('eventos', () => {
     const { ctx, logs } = contexto({ respuestas: () => { throw new Error('HTTP 503'); }, cache: primero.ctx.cache, ahora: new Date('2026-09-20T08:00:00Z') });
     const o = oferta({ lugar: SITGES, fechas: { findeId: '2026-09-25' } });
     await anadirEventos([o], ctx);
-    assert.equal(o.eventos.length, 3);
+    assert.ok(o.eventos.length >= 3);
     assert.match(logs[0], /se usa la última guardada/);
     assert.deepEqual(Object.keys(ctx.cache.exportar()).filter((k) => k.startsWith('eventos:')), ['eventos:agenda'], 'una sola clave, no una por día');
   });

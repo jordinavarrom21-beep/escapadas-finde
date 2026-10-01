@@ -8,7 +8,7 @@ import { diaSemana, diasEntre, etiquetaDia, fechaLocal, sumarDias } from './fech
 import { distanciaKm, esMismoPunto, minutosEnCoche, radioKmParaMinutos, tieneCoordenadas } from './geo.js';
 import { clavePunto } from './rutas.js';
 import {
-  ETIQUETAS_ALOJAMIENTO, ETIQUETAS_REGIMEN, ETIQUETAS_TIPO, ETIQUETAS_TRANSPORTE, duracion, euros, normalizar,
+  ETIQUETAS_ALOJAMIENTO, ETIQUETAS_REGIMEN, ETIQUETAS_TIPO, ETIQUETAS_TRANSPORTE, TIPOS_EVENTO, duracion, euros, normalizar,
 } from './formato.js';
 
 export const VISTAS = ['finde', 'vuelos', 'escapadas', 'actividades', 'mapa', 'calendario', 'puentes', 'vigilados', 'fuentes', 'buscar', 'comparar', 'mis', 'ayuda'];
@@ -182,6 +182,8 @@ export function leerFiltrosEscapadas(p = {}) {
     sinCruceros: p.cru !== '0',
     // Con un finde o un puente elegido, las de fechas cerradas solo si caben enteras en él.
     soloEncajan: p.encaje === '1',
+    // Con eventos cerca esos días (src/enriquecer/eventos.js): de cualquier tipo o de uno.
+    evento: p.evtipo === 'todos' || Object.hasOwn(TIPOS_EVENTO, p.evtipo ?? '') ? p.evtipo : '',
     orden: ORDENES_ESCAPADAS.includes(p.orden) ? p.orden : 'puntuacion',
   };
 }
@@ -650,6 +652,7 @@ function cumpleEscapada(o, f, ctx, distancia) {
     && (!f.fuente || o.fuente === f.fuente)
     && (!f.tipo || o.tipo === f.tipo)
     && (!f.soloEncajan || encajeEnRango(o, rangoDe(f.cuando, ctx))?.cabe !== false)
+    && (!f.evento || (o.eventos ?? []).some((ev) => f.evento === 'todos' || ev.tipo === f.evento))
     && dentroDelLimite(distancia, f);
 }
 
@@ -1114,6 +1117,7 @@ export const ATAJOS_ESCAPADAS = [
   { texto: 'Por debajo de lo normal', icono: 'bajada', params: { orden: 'ahorro' } },
   { texto: 'Spa a menos de 2 h', icono: 'tema-spa', params: { temas: 'spa', h: '2' } },
   { texto: 'Niños gratis o con descuento', icono: 'tema-familia', params: { ninos: 'ventaja' } },
+  { texto: 'Con conciertos o fiestas cerca', icono: 'tema-eventos', params: { evtipo: 'todos' } },
   { texto: 'Campings', icono: 'camping', params: { aloj: 'camping' } },
   { texto: 'Solo chollazos', icono: 'fuego', params: { cho: '1' } },
   { texto: 'Con fechas cerradas', icono: 'calendario', params: { cerradas: '1' } },
@@ -1259,6 +1263,7 @@ function textoFiltro(clave, valor, ctx) {
     cru: () => (valor === '0' ? 'Con cruceros' : null),
     cerradas: () => 'Solo con fechas cerradas',
     encaje: () => 'Solo las que caben enteras en esas fechas',
+    evtipo: () => (valor === 'todos' ? 'Con eventos cerca' : `Con ${(TIPOS_EVENTO[valor]?.[1] ?? valor).toLowerCase()} cerca`),
     gratis: () => 'Solo gratis',
     ninos: () => ETIQUETAS_NINOS[valor] ?? valor,
   };

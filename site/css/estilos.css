@@ -1584,3 +1584,11 @@ body:has([data-plegable-movil][open]) .barra-comparar [data-abrir-filtros] { dis
 .conmutador__opcion { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 14px; border-radius: 999px; color: var(--texto); text-decoration: none; font-weight: 700; font-size: 0.88rem; }
 .conmutador__opcion[aria-current="page"] { background: var(--acento); color: var(--acento-texto); }
 .conmutador__opcion .ic { width: 1em; height: 1em; }
+
+/* Eventos cerca: cada uno con el icono de su tipo; en la tarjeta, una etiqueta. */
+.eventos { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.evento { display: flex; align-items: flex-start; gap: 8px; line-height: 1.35; }
+.evento > .ic { flex: none; width: 18px; height: 18px; margin-top: 2px; color: var(--acento); }
+.evento .suave { display: block; font-size: 0.82rem; }
+.insignias--tarjeta > .insignia--evento { flex-shrink: 0; max-width: 100%; }
+.insignia--evento { background: color-mix(in srgb, var(--tema-eventos, var(--acento)) 16%, var(--superficie)); color: var(--texto); }
