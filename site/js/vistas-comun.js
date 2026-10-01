@@ -5,7 +5,7 @@
 
 import { etiquetaDia } from './fechas.js';
 import { contar, escaparHtml as esc } from './formato.js';
-import { POR_PAGINA, crearHash, destinosDe, salidaPuente } from './filtros.js';
+import { POR_PAGINA, TEXTO_PERIODO_PASADO, crearHash, destinosDe, resumenFuentes, salidaPuente } from './filtros.js';
 import { NOCHES, VIAJEROS, aeropuertosCercanos } from './viaje.js';
 import { icono } from './iconos.js';
 
@@ -179,6 +179,23 @@ export function webConProblemas(fuentes = [], ahora = new Date()) {
     || (f.estado === 'error' && f.desdeError && ahora - Date.parse(f.desdeError) >= HORAS_PROBLEMA * 3_600_000));
 }
 
+/**
+ * El estado de las webs en una frase, la misma en la portada y en el pie (antes una decía
+ * «1 web con problemas» y la otra «26 de 26 webs funcionan» a la vez). Un fallo reciente
+ * suele arreglarse en la siguiente revisión: se dice que se reintenta, no que hay problemas.
+ */
+export function estadoWebs(fuentes = [], ahora = new Date()) {
+  const r = resumenFuentes(fuentes);
+  const problemas = webConProblemas(fuentes, ahora);
+  const reintentando = fuentes.filter((f) => f.estado === 'error' && !problemas.includes(f)).length;
+  const texto = problemas.length
+    ? `${problemas.length} de ${contar(r.activas, 'web')} con problemas`
+    : reintentando
+      ? `${r.activas - reintentando} de ${contar(r.activas, 'web')} al día · ${reintentando} reintentando`
+      : `Las ${contar(r.activas, 'web')} funcionan`;
+  return { texto, problemas, error: problemas.length > 0 };
+}
+
 export function motivoFuente(f) {
   if (f.motivo) return f.motivo;
   if (f.aviso) return f.aviso;
@@ -305,11 +322,13 @@ export function franjaPeriodo(e, vista, params = {}) {
   else if (puente) texto = `<strong>Puente</strong> · ${esc(puente.nombre)} · ${esc(diasExplicitos(salidaPuente(puente), puente.hasta))}`;
   else if (desde && hasta) texto = desde === hasta ? `<strong>El ${esc(etiquetaDia(desde))}</strong>` : `<strong>Fechas</strong> · ${esc(diasExplicitos(desde, hasta))}`;
   else if (desde || hasta) texto = `<strong>${desde ? `Desde el ${esc(etiquetaDia(desde))}` : `Hasta el ${esc(etiquetaDia(hasta))}`}</strong>`;
+  // Un finde o puente que ya pasó (enlace viejo): se dice, no se finge «cualquier fecha» con 0 resultados.
+  else if (cuando) texto = `<strong>${TEXTO_PERIODO_PASADO}</strong>`;
   else texto = '<strong>Cualquier fecha</strong>';
   const elegido = texto !== '<strong>Cualquier fecha</strong>';
   const sinFechas = Object.fromEntries(Object.entries(params).filter(([clave]) => !['cuando', 'finde', 'desde', 'hasta'].includes(clave)));
   const quitar = elegido ? `<a class="franja-periodo__quitar" href="${esc(crearHash(vista, sinFechas))}" aria-label="Quitar las fechas">${icono('cerrar')}</a>` : '';
-  return `<div class="franja-periodo">${icono('calendario')}<span class="franja-periodo__texto">${texto}</span><button type="button" class="enlace-boton" data-cambiar-fechas>${elegido ? 'Cambiar fechas' : 'Elegir fechas'}</button>${quitar}</div>`;
+  return `<div class="franja-periodo${!finde && !puente && !desde && !hasta && cuando ? ' franja-periodo--pasado' : ''}">${icono('calendario')}<span class="franja-periodo__texto">${texto}</span><button type="button" class="enlace-boton" data-cambiar-fechas>${elegido ? 'Cambiar fechas' : 'Elegir fechas'}</button>${quitar}</div>`;
 }
 
 /** «Lista | Mapa»: la misma búsqueda (categoría, fechas y filtros) vista de una u otra forma. */

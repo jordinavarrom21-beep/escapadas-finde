@@ -5,7 +5,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { conPeriodo, encajeEnRango, leerFiltrosEscapadas, periodoDeParams, rangoDe } from '../site/js/filtros.js';
+import { conPeriodo, encajeEnRango, filtrarVuelos, filtrosActivos, leerFiltrosEscapadas, leerFiltrosVuelos, periodoDeParams, periodoPasado, rangoDe } from '../site/js/filtros.js';
 import { etiquetaFinde, etiquetaPuente } from '../site/js/vistas-comun.js';
 
 const FINDE = { id: '2026-10-09', viernes: '2026-10-09', sabado: '2026-10-10', domingo: '2026-10-11', etiqueta: '9–11 oct', puenteId: '2026-10-10' };
@@ -80,6 +80,10 @@ describe('Inicio: qué quieres organizar y para cuándo', async () => {
     assert.equal(destinoOrganizar('actividades', { cuando: '2026-10-09' }, ids), '#/actividades?cuando=2026-10-09');
     assert.equal(destinoOrganizar('escapadas', { cuando: 'puente', pres: '150' }, ids), '#/escapadas?cuando=puente&orden=total&pres=150&prespor=persona');
     assert.equal(destinoOrganizar('vuelos', { cuando: '' }, ids), '#/vuelos');
+    // El destino escrito va a las tres.
+    assert.equal(destinoOrganizar('actividades', { cuando: '', q: ' Girona ' }, ids), '#/actividades?q=Girona');
+    assert.match(destinoOrganizar('vuelos', { cuando: 'finde', q: 'Roma' }, ids), /^#\/vuelos\?(?=.*q=Roma)(?=.*finde=2026-10-02)/);
+    assert.match(destinoOrganizar('escapadas', { cuando: 'finde', q: 'Girona' }, ids), /[?&]q=Girona/);
   });
 });
 
@@ -115,5 +119,77 @@ describe('mapa', async () => {
     const o = (id, lat, lon) => ({ id, lugar: { lat, lon } });
     const grupos = agruparPorLugar([o('a', 41.2371, 1.8059), o('b', 41.23712, 1.80588), o('c', 41.98, 2.82)]);
     assert.deepEqual(grupos.map((g) => g.map((x) => x.id)), [['a', 'b'], ['c']]);
+  });
+});
+
+describe('un finde o puente que ya pasó en la URL: todas las piezas dicen lo mismo', async () => {
+  const { franjaPeriodo } = await import('../site/js/vistas-comun.js');
+  const { resultadosEscapadas, resultadosVuelos, resultadosActividades, vistaVuelos } = await import('../site/js/vistas.js');
+  const { estadoPanel, ctxPanel } = await import('./ayudas-panel.js');
+  const e = estadoPanel();
+  const ctx = ctxPanel(e);
+
+  it('se reconoce como pasado (o desconocido) y no como «cualquier fecha»', () => {
+    assert.equal(periodoPasado('2020-01-01', ctx), true);
+    assert.equal(periodoPasado('puente-1999-01-01', ctx), true);
+    assert.equal(periodoPasado('finde', ctx), false);
+    assert.equal(periodoPasado('', ctx), false);
+    assert.equal(periodoPasado('puente', { ...ctx, puente: null }), true, 'sin puente a la vista, «el puente» no es nada');
+  });
+
+  it('franja, chip y estado vacío lo dicen (antes: «Cualquier fecha», el id crudo y 0 resultados sin explicar)', () => {
+    assert.match(franjaPeriodo(e, 'escapadas', { cuando: '2020-01-01' }), /<strong>Fechas que ya pasaron<\/strong>[^]*franja-periodo__quitar/);
+    assert.match(franjaPeriodo(e, 'vuelos', { finde: '2020-01-01' }), /Fechas que ya pasaron/);
+    assert.deepEqual(filtrosActivos('escapadas', { cuando: '2020-01-01' }, ctx).map((c) => c.texto), ['Fechas que ya pasaron']);
+    for (const html of [resultadosEscapadas(e, { cuando: '2020-01-01' }), resultadosActividades(e, { cuando: '2020-01-01' }), resultadosVuelos(e, { finde: '2020-01-01' })]) {
+      assert.match(html, /Ese finde o puente ya pasó/);
+    }
+    assert.ok(!/Ese finde o puente ya pasó/.test(resultadosEscapadas(e, { cuando: 'finde', temas: 'no-existe' })), 'con fechas vivas y 0 resultados, el vacío normal');
+  });
+
+  it('Vuelos entiende «finde» y «puente» igual que Escapadas (antes: 0 vuelos con la franja diciendo «Este finde»)', () => {
+    const porId = filtrarVuelos(e.datos.ofertas, leerFiltrosVuelos({ finde: e.findes[0].id }), ctx);
+    assert.ok(porId.length > 0);
+    assert.deepEqual(filtrarVuelos(e.datos.ofertas, leerFiltrosVuelos({ finde: 'finde' }), ctx).map((o) => o.id), porId.map((o) => o.id));
+    assert.deepEqual(filtrarVuelos(e.datos.ofertas, leerFiltrosVuelos({ finde: 'puente' }), ctx).map((o) => o.id),
+      filtrarVuelos(e.datos.ofertas, leerFiltrosVuelos({ finde: e.puente.id }), ctx).map((o) => o.id));
+    assert.deepEqual(filtrarVuelos(e.datos.ofertas, leerFiltrosVuelos({ finde: 'puente' }), { ...ctx, puente: null }), [], 'sin puente a la vista, ninguno');
+  });
+
+  it('Vuelos con un rango de fechas: «Todos» no sale marcado y el rango viaja en el formulario (tocar otro filtro no lo pierde)', () => {
+    const html = vistaVuelos(e, { desde: '2026-10-16', hasta: '2026-10-18' });
+    assert.ok(!/name="finde" value="" checked/.test(html));
+    assert.match(html, /<input type="hidden" name="desde" value="2026-10-16"><input type="hidden" name="hasta" value="2026-10-18">/);
+    assert.ok(!/name="desde"/.test(vistaVuelos(e, { finde: e.findes[0].id })), 'sin rango, sin campos ocultos');
+  });
+});
+
+describe('Inicio arranca con el periodo elegido en Explorar', async () => {
+  const { buscadorFinde, destinoOrganizar, paramsBuscadorFinde } = await import('../site/js/vistas-portada.js');
+  const { estadoPanel } = await import('./ayudas-panel.js');
+  const e = estadoPanel();
+  const marcado = (html) => html.match(/name="cuando" value="([^"]*)"[^>]*checked/)?.[1];
+
+  it('sin periodo guardado (o ya pasado), «Este finde»; con uno vigente, ese; «Cualquier fecha» solo a propósito', () => {
+    assert.equal(marcado(buscadorFinde({ ...e, periodo: null })), 'finde');
+    assert.equal(marcado(buscadorFinde({ ...e, periodo: {} })), 'finde', 'pasado: filtrosVigentes quitó la clave');
+    assert.equal(marcado(buscadorFinde({ ...e, periodo: { cuando: e.findes[0].id } })), 'finde');
+    assert.equal(marcado(buscadorFinde({ ...e, periodo: { cuando: e.findes[1].id } })), e.findes[1].id);
+    assert.equal(marcado(buscadorFinde({ ...e, periodo: { cuando: e.puente.id } })), e.puente.id);
+    assert.equal(marcado(buscadorFinde({ ...e, periodo: { cuando: 'puente' } })), e.puente.id);
+    assert.equal(marcado(buscadorFinde({ ...e, periodo: { cuando: '', desde: '', hasta: '' } })), '');
+    assert.equal(marcado(buscadorFinde({ ...e, periodo: { cuando: e.findes[7].id } })), 'finde', 'un finde que el Inicio no ofrece: lo de siempre');
+  });
+
+  it('un rango elegido en Explorar aparece como «Tus fechas» y vuelve a Explorar como desde/hasta', () => {
+    const html = buscadorFinde({ ...e, periodo: { cuando: '', desde: '2026-10-16', hasta: '2026-10-18' } });
+    assert.equal(marcado(html), 'rango');
+    assert.match(html, /<small>Tus fechas<\/small><span>vie 16 – dom 18 oct<\/span>/);
+    assert.match(html, /name="desde" value="2026-10-16"/);
+    assert.match(html, /data-enviar-para>para vie 16 – dom 18 oct</);
+    const ids = { finde: e.findes[0], puente: e.puente };
+    assert.equal(destinoOrganizar('vuelos', { cuando: 'rango', desde: '2026-10-16', hasta: '2026-10-18' }, ids), '#/vuelos?desde=2026-10-16&hasta=2026-10-18');
+    assert.equal(destinoOrganizar('actividades', { cuando: 'rango', desde: '2026-10-16', hasta: '2026-10-18' }, ids), '#/actividades?desde=2026-10-16&hasta=2026-10-18');
+    assert.deepEqual(paramsBuscadorFinde({ cuando: 'rango', desde: '2026-10-16', hasta: '2026-10-18' }), { desde: '2026-10-16', hasta: '2026-10-18', temas: '', orden: 'total' });
   });
 });

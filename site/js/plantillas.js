@@ -650,30 +650,25 @@ function avisoTarjeta(o, ctx) {
 }
 
 /**
- * La tarjeta grande y oscura de la portada para el mejor chollazo: foto, precio, cuánto
- * baja de lo normal y el viaje completo.
+ * La sugerencia de hoy en la portada, en corto y por debajo del buscador: foto, qué es, el
+ * precio de la oferta y el viaje completo en una línea. El desglose, en su ficha.
  */
-export function tarjetaDestacada(o, ctx, etiqueta = 'Chollazo destacado') {
-  const r = o.referencia;
-  const minimo = textoMinimo(o, ctx);
-  const ahorro = [r?.ahorroPct > 0 && `Un ${r.ahorroPct} % por debajo de lo normal`, minimo?.texto].filter(Boolean).join(' · ');
-  const coche = textoCoche(ctx.distancias?.get(o.id), ctx.desde, o);
-  const pastillas = [coche && `<span class="pastilla-foto">${coche}</span>`, tiempoFoto(o, ctx)].filter(Boolean).join('');
-  // El coste del viaje ya va arriba (bloquePrecio): aquí, qué es y dónde se reserva.
-  const pie = esc(`${ETIQUETAS_TIPO[o.tipo] ?? o.tipo} · ${ctx.fuentes.get(o.fuente) ?? o.fuente}`);
-  return `<article class="destacado" style="--color-tema:${colorTema(o)}">
-  <div class="tarjeta__media">${mediaOferta(o)}
-    <div class="tarjeta__sellos"><span class="sello sello--chollazo"${o.chollazoMotivo ? ` title="${esc(o.chollazoMotivo)}"` : ''}>${icono('fuego')}${esc(etiqueta)}</span></div>
-    ${botonFavorito(o, ctx)}
-    ${pastillas ? `<div class="tarjeta__pastillas">${pastillas}</div>` : ''}
+export function tarjetaSugerencia(o, ctx) {
+  const c = costeDe(o, ctx);
+  const total = c.total != null
+    ? `${c.estimado ? '≈ ' : ''}${euros(Math.round(c.total))} el viaje completo para ${contar(c.viajeros, 'persona')}${ctx.desde ? ` desde ${ctx.desde}` : ''}`
+    : '';
+  const lugar = textoLugar(o);
+  return `<article class="sugerencia" style="--color-tema:${colorTema(o)}">
+  <div class="sugerencia__media">${mediaOferta(o)}</div>
+  <div class="sugerencia__cuerpo">
+    <p class="sugerencia__ceja">${icono('fuego')}Sugerencia de hoy</p>
+    <h2 class="sugerencia__titulo"><button type="button" class="enlace-ficha" data-ficha="${esc(o.id)}">${esc(tituloLegible(o.titulo))}</button></h2>
+    ${lugar ? `<p class="sugerencia__lugar">${lugar}</p>` : ''}
+    ${precio(o)}
+    ${total ? `<p class="sugerencia__total">${esc(total)}</p>` : ''}
   </div>
-  <div class="destacado__cuerpo">
-    <p class="destacado__lugar">${textoLugar(o) || esc(ctx.fuentes.get(o.fuente) ?? o.fuente)}</p>
-    <h2 class="destacado__titulo"><button type="button" class="enlace-ficha" data-ficha="${esc(o.id)}">${esc(tituloLegible(o.titulo))}</button></h2>
-    <div class="destacado__precio">${bloquePrecio(o, ctx)}</div>
-    ${ahorro ? `<p class="destacado__ahorro">${icono('bajada')}<span>${esc(ahorro)}</span></p>` : ''}
-    <div class="destacado__pie"><span>${pie}</span>${enlaceOferta(o, undefined, ctx)}</div>
-  </div>
+  <button type="button" class="boton boton--suave sugerencia__accion" data-ficha="${esc(o.id)}">Ver desglose y oferta${icono('flecha')}</button>
 </article>`;
 }
 

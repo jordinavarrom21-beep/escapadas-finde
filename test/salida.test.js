@@ -132,11 +132,16 @@ describe('comparar', async () => {
 });
 
 describe('encuéntrame un finde', async () => {
-  const { buscadorFinde, paramsBuscadorFinde } = await import('../site/js/vistas.js');
+  const { buscadorFinde, paramsBuscadorFinde, resumenViaje, textoEnviar } = await import('../site/js/vistas.js');
   it('un solo formulario desde tu salida y lleva a escapadas con esos filtros, por coste total', () => {
     const html = buscadorFinde({ ...estado(GIRONA) });
-    assert.match(html, /Desde <button[^>]*data-mi-viaje>Girona, 3 personas y 2 noches<\/button>/);
-    for (const campo of ['cuando', 'pres', 'como', 'temas']) assert.match(html, new RegExp(`name="${campo}"`));
+    assert.match(resumenViaje({ ...estado(GIRONA) }), /<small>Tu viaje<\/small><strong>Girona · 3 personas · 2 noches<\/strong>/);
+    for (const campo of ['cuando', 'que', 'q', 'pres', 'como', 'temas']) assert.match(html, new RegExp(`name="${campo}"`));
+    // El botón dice qué se va a ver y para cuándo.
+    assert.match(html, /<span data-enviar-accion>Ver escapadas<\/span><small data-enviar-para>para [^<]+<\/small>/);
+    assert.deepEqual(textoEnviar('vuelos', 'sáb 10 – lun 12 oct'), { accion: 'Ver vuelos', para: 'para sáb 10 – lun 12 oct' });
+    assert.deepEqual(textoEnviar('actividades', ''), { accion: 'Ver planes', para: 'en cualquier fecha' });
+    assert.deepEqual(paramsBuscadorFinde({ cuando: 'finde', q: ' Girona ' }), { cuando: 'finde', temas: '', orden: 'total', q: 'Girona' });
     assert.deepEqual(paramsBuscadorFinde({ cuando: 'finde', pres: '150', como: 'sincoche', temas: 'spa' }),
       { cuando: 'finde', temas: 'spa', orden: 'total', pres: '150', prespor: 'persona', sincoche: '1' });
     assert.deepEqual(paramsBuscadorFinde({ cuando: '', pres: '', como: 'coche' }), { cuando: '', temas: '', orden: 'total', transporte: 'coche' });

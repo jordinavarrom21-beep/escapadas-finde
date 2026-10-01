@@ -308,6 +308,13 @@ export function rangoDe(cuando, ctx = {}) {
 
 const dias = (n) => (n === 1 ? 'un día' : `${n} días`);
 
+/**
+ * Un «cuando» (o el «finde» de Vuelos) que no es ningún finde ni puente a la vista: un enlace
+ * viejo o escrito a mano. No filtra nada que exista, así que todas las vistas lo dicen igual.
+ */
+export const periodoPasado = (cuando, ctx = {}) => Boolean(cuando) && !rangoDe(cuando, ctx);
+export const TEXTO_PERIODO_PASADO = 'Fechas que ya pasaron';
+
 /** Primer día para salir a un puente: el último laborable antes del primer día libre. */
 export const salidaPuente = (puente) => puente.salidas?.[0] ?? sumarDias(puente.desde, -1);
 
@@ -538,9 +545,11 @@ const COMPARADORES_VUELOS = {
 
 /** Vuelos con fechas que cumplen los filtros, ya ordenados. `finde` admite el id de un finde o de un puente. */
 export function filtrarVuelos(ofertas, f, ctx = {}) {
+  // «finde»/«puente» (un enlace antiguo o escrito a mano) valen lo mismo que en Escapadas.
+  const finde = f.finde === 'finde' ? ctx.finde?.id : f.finde === 'puente' ? ctx.puente?.id : f.finde;
   const lista = ofertas
     .filter((o) => tieneVuelo(o)
-      && (!f.finde || o.fechas?.findeId === f.finde || o.fechas?.puenteId === f.finde)
+      && (!f.finde || o.fechas?.findeId === finde || o.fechas?.puenteId === finde)
       && (!f.aero || o.vuelo.origen === f.aero)
       && (!f.ideal || o.vuelo.horarioIdeal)
       && cumpleComunes(o, f, ctx))
@@ -1217,7 +1226,7 @@ function textoFiltro(clave, valor, ctx) {
   const periodo = (id) => {
     if (id === 'finde') return 'Este finde';
     if (id === 'puente') return 'Próximo puente';
-    return ctx.findes?.find((f) => f.id === id)?.etiqueta ?? ctx.puentes?.find((p) => p.id === id)?.nombre ?? id;
+    return ctx.findes?.find((f) => f.id === id)?.etiqueta ?? ctx.puentes?.find((p) => p.id === id)?.nombre ?? TEXTO_PERIODO_PASADO;
   };
   const numeroEuros = (v) => euros(Number(v));
   const textos = {
