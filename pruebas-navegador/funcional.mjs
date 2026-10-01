@@ -31,50 +31,74 @@ const p = await pagina(c);
 
 // ── Portada ──
 await ir(p, 'finde');
-const hayDestacado = await p.locator('.portada .destacado').count() === 1;
-ok(hayDestacado || !datos.ofertas.some((o) => o.chollazo), 'portada: hay chollazo destacado (si hay chollazos)');
+const hayDestacado = await p.locator('.portada__destacado .sugerencia').count() === 1;
+ok(hayDestacado || !datos.ofertas.some((o) => o.chollazo), 'portada: hay sugerencia de hoy (si hay chollazos)');
 ok((await p.locator('.buscador-finde input[name="cuando"]').count()) >= 3, 'portada: opciones de «¿Cuándo?»');
-ok((await p.locator('.organizar button[name="que"]').count()) === 3, 'portada: «¿Qué buscas?» con escapada, vuelo y plan');
-// Las demás ideas (sorpresa, vuelos, chollazos…) van plegadas en «Más ideas».
-await p.locator('.portada__mas > summary').click();
+ok((await p.locator('.organizar input[name="que"]').count()) === 3, 'portada: «¿Qué buscas?» con escapadas, vuelos y planes');
+ok((await p.locator('.viaje-resumen').count()) === 1 && !(await p.locator('#boton-viaje').isVisible()) && !(await p.locator('#buscador').isVisible()), 'portada: tu viaje y el destino, una sola vez');
+// La portada y el pie dicen lo mismo del estado de las webs.
+const estadoPortada = (await p.locator('.portada__confianza a[href="#/fuentes"]').textContent()).trim();
+ok((await p.locator('#estado-fuentes').textContent()).includes(estadoPortada), `portada y pie: el mismo estado de las webs («${estadoPortada}»)`);
+// El botón dice qué se va a ver y para cuándo.
+await p.locator('.organizar__opcion:has(input[value="vuelos"])').click();
+ok((await p.locator('[data-enviar-accion]').textContent()) === 'Ver vuelos', 'buscador: el botón cambia a «Ver vuelos»');
+ok(!(await p.locator('.buscador-finde__mas').isVisible()), 'buscador: «Afinar la escapada» solo con escapadas');
+await p.locator('.buscador-finde label.opcion:has(input[name="cuando"][value=""])').click();
+ok((await p.locator('[data-enviar-para]').textContent()) === 'en cualquier fecha', 'buscador: el botón dice «en cualquier fecha»');
+await p.locator('.organizar__opcion:has(input[value="escapadas"])').click();
+// «Sorpréndeme» (atajo) abre tres planes; «Otra ronda», otros.
+ok(await p.locator('#sorpresa-bloque').isHidden(), 'sorpresa: plegada de entrada');
+await p.locator('.atajos-portada [data-sorpresa]').click();
+await p.waitForTimeout(300);
+ok(await p.locator('#sorpresa-bloque').isVisible() && (await aviso(p)).includes('Tres planes para ti'), 'sorpresa: el atajo la abre');
 const antes = await p.locator('#sorpresa').innerHTML();
-await p.locator('[data-sorpresa]').click();
+await p.locator('#sorpresa-bloque [data-sorpresa]').click();
 await p.waitForTimeout(200);
 ok((await p.locator('#sorpresa').innerHTML()) !== antes, 'sorpresa: «Otra ronda» cambia los planes');
 ok((await aviso(p)).includes('Tres planes nuevos'), 'sorpresa: se anuncia');
+// Más ideas: pocas por apartado, cada uno con su «Ver…».
+await p.locator('.portada__mas > summary').click();
+ok((await p.locator('.portada__mas .seccion').count()) >= 3, 'más ideas: escapadas, vuelos y planes');
+ok((await p.locator('.portada__mas .rejilla').evaluateAll((rs) => rs.every((r) => r.children.length <= 3))), 'más ideas: como mucho tres por apartado');
 if (hayDestacado) {
-  // Destacado: favorito sincronizado y descartar desde su ficha lo quita
-  const idDestacado = await p.locator('.destacado .enlace-ficha').getAttribute('data-ficha');
-  await p.locator('.destacado .boton-fav').click();
-  ok((await p.locator('.destacado .boton-fav').getAttribute('aria-pressed')) === 'true', 'destacado: favorito marcado');
-  await p.locator('.destacado .enlace-ficha').click();
+  // Sugerencia: su ficha guarda el favorito y descartar desde ella la quita
+  const idDestacado = await p.locator('.sugerencia .enlace-ficha').getAttribute('data-ficha');
+  await p.locator('.sugerencia__accion').click();
   await p.waitForSelector('#ficha[open]');
-  ok((await p.locator('#ficha .boton-fav').getAttribute('aria-pressed')) === 'true', 'ficha: el favorito llega marcado');
+  await p.locator('#ficha .boton-fav').click();
+  ok((await p.locator('#ficha .boton-fav').getAttribute('aria-pressed')) === 'true', 'ficha: favorito marcado');
   await p.locator('#ficha [data-descartar]').click();
   await p.waitForTimeout(300);
   ok(!(await p.locator('#ficha[open]').count()), 'descartar desde la ficha la cierra');
-  ok(!(await p.locator(`.destacado [data-ficha="${idDestacado}"]`).count()), 'descartar quita el destacado');
-  const columnas = await p.locator('.portada').evaluate((el) => getComputedStyle(el).gridTemplateColumns.split(' ').length);
-  ok(columnas === 1, `portada sin destacado ocupa todo el ancho (${columnas} columna)`);
-  // La descartada no vuelve al recargar; se recupera desde el filtro
+  ok(!(await p.locator(`.sugerencia [data-ficha="${idDestacado}"]`).count()), 'descartar quita la sugerencia');
+  // La descartada no vuelve al recargar
   await p.reload(); await p.waitForSelector('.portada');
-  ok(!(await p.locator(`.destacado [data-ficha="${idDestacado}"]`).count()), 'la descartada no vuelve a ser la destacada tras recargar');
+  ok(!(await p.locator(`.sugerencia [data-ficha="${idDestacado}"]`).count()), 'la descartada no vuelve a ser la sugerencia tras recargar');
   // Recomendado aparece al tener favoritos
+  await p.locator('.portada__mas > summary').click();
   ok((await p.locator('text=Por tus').count()) > 0 || (await p.locator('.seccion:has-text("Recomendado para ti") .rejilla').count()) > 0, 'recomendado: aparece con favoritos');
 }
 
 // Buscador de la portada
 await p.locator('.buscador-finde label.opcion:has(input[name="cuando"]:not([value="finde"]):not([value=""]))').first().click();
-// «Afinar la escapada» (plegado): qué apetece, cómo vas y presupuesto; luego «Una escapada».
+// «Afinar la escapada» (plegado): qué apetece, cómo vas y presupuesto; luego «Ver escapadas».
 await p.locator('.buscador-finde__mas > summary').click();
 await p.locator('.buscador-finde select[name="temas"]').selectOption('rural');
 await p.locator('.buscador-finde label.opcion:has(input[value="sincoche"])').click();
 await p.locator('#buscador-finde-pres').fill('150');
-await p.locator('.buscador-finde button[value="escapadas"]').click();
+await p.locator('.buscador-finde__enviar').click();
 await p.waitForSelector('#resultados .resultados__cuenta');
 const h = decodeURIComponent(await p.evaluate(() => location.hash));
 ok(/#\/escapadas\?/.test(h) && /temas=rural/.test(h) && /sincoche=1/.test(h) && /pres=150/.test(h) && /prespor=persona/.test(h) && /orden=total/.test(h), `buscador: lleva a escapadas con los filtros (${h})`);
 ok((await p.locator('.activos .chip--activo').count()) >= 3, 'buscador: se ven los filtros puestos');
+// Con destino y «Planes»: a Planes con la búsqueda escrita.
+await ir(p, 'finde');
+await p.locator('.organizar__opcion:has(input[value="actividades"])').click();
+await p.locator('#buscador-finde-q').fill('Girona');
+await p.locator('#buscador-finde-q').press('Enter');
+await p.waitForTimeout(400);
+const hp = decodeURIComponent(await p.evaluate(() => location.hash));
+ok(hp.startsWith('#/actividades') && hp.includes('q=Girona'), `buscador: destino y planes (${hp})`);
 
 // ── Escapadas: filtros, ver más, comparar, descartar ──
 await ir(p, 'escapadas');

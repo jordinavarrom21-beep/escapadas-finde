@@ -80,6 +80,10 @@ describe('Inicio: qué quieres organizar y para cuándo', async () => {
     assert.equal(destinoOrganizar('actividades', { cuando: '2026-10-09' }, ids), '#/actividades?cuando=2026-10-09');
     assert.equal(destinoOrganizar('escapadas', { cuando: 'puente', pres: '150' }, ids), '#/escapadas?cuando=puente&orden=total&pres=150&prespor=persona');
     assert.equal(destinoOrganizar('vuelos', { cuando: '' }, ids), '#/vuelos');
+    // El destino escrito va a las tres.
+    assert.equal(destinoOrganizar('actividades', { cuando: '', q: ' Girona ' }, ids), '#/actividades?q=Girona');
+    assert.match(destinoOrganizar('vuelos', { cuando: 'finde', q: 'Roma' }, ids), /^#\/vuelos\?(?=.*q=Roma)(?=.*finde=2026-10-02)/);
+    assert.match(destinoOrganizar('escapadas', { cuando: 'finde', q: 'Girona' }, ids), /[?&]q=Girona/);
   });
 });
 

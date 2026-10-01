@@ -376,12 +376,16 @@ describe('actividades', () => {
     const portada = vistaFinde(estadoPanel(), {});
     assert.match(portada, /Planes para este finde/);
     assert.match(portada, /href="#\/actividades"/);
-    // «De un vistazo»: cifras que llevan a la misma búsqueda que cuentan.
-    const vistazo = portada.match(/<ul class="vistazo"[^]*?<\/ul>/)?.[0] ?? '';
-    const escapadasFinde = vistazo.match(/<strong>(\d+)<\/strong> escapadas? este finde/)?.[1];
-    assert.ok(escapadasFinde, 'dice cuántas escapadas hay este finde');
-    assert.match(vistazo, /href="#\/escapadas\?cuando=finde&amp;orden=noche"|href="#\/escapadas\?cuando=finde&orden=noche"/);
-    assert.match(vistazo, /desde \d+\s€ por persona y noche/);
+    // Atajos rápidos: cada cifra es la de la lista a la que lleva; «Sorpréndeme» siempre.
+    const atajos = portada.match(/<ul class="atajos-portada"[^]*?<\/ul>/)?.[0] ?? '';
+    const chollos = atajos.match(/Chollos<\/span><span class="atajo__cifra">(\d+)</)?.[1];
+    assert.ok(Number(chollos) > 0, 'dice cuántos chollos hay');
+    assert.match(atajos, /href="#\/escapadas\?cho=1"/);
+    assert.match(atajos, /data-sorpresa/);
+    assert.ok((atajos.match(/<li>/g) ?? []).length <= 4, 'como mucho cuatro atajos');
+    // Una sola vez tu viaje, y el estado de las webs en una línea.
+    assert.equal((portada.match(/data-mi-viaje/g) ?? []).length, 1);
+    assert.match(portada, /class="portada__confianza[^"]*"[^]*?href="#\/fuentes"/);
 
     const conActividades = contenidoFicha(escapadaGirona, { ...ctxFicha, actividades: actividadesCerca(ofertas, escapadaGirona) });
     assert.match(conActividades, /Qué hacer allí/);

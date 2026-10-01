@@ -33,9 +33,9 @@ import { vistaAyuda, vistaCalendario, vistaFuentes, vistaMis, vistaPuentes, vist
 // Lo que el resto de la web importa de aquí, esté donde esté.
 export {
   contextoBusqueda, ctxTarjetas, formularioViaje, misAeropuertos, nombreSalida, ocultas, pestanas, puntoSalida,
-  textoViaje, webConProblemas,
+  estadoWebs, textoViaje, webConProblemas,
 } from './vistas-comun.js';
-export { buscadorFinde, contenidoSorpresa, destinoOrganizar, paramsBuscadorFinde, vistaFinde } from './vistas-portada.js';
+export { buscadorFinde, contenidoSorpresa, destinoOrganizar, paramsBuscadorFinde, resumenViaje, textoEnviar, vistaFinde } from './vistas-portada.js';
 export {
   avisosDeBusquedas, resultadosDeBusqueda, totalNovedadesGuardadas, vistaAyuda, vistaCalendario, vistaFuentes,
   vistaMis, vistaPuentes, vistaVigilados,

@@ -63,7 +63,7 @@ for (const tema of TEMAS) for (const ancho of ANCHOS) {
         if (el.scrollWidth > el.clientWidth + 2 && getComputedStyle(el).textOverflow !== 'ellipsis') out.push(`texto cortado: ${el.className} «${el.textContent.trim().slice(0, 40)}» ${el.scrollWidth}>${el.clientWidth}`);
       }
       // Hijos que se salen de su caja (tarjetas, formularios, celdas).
-      for (const caja of document.querySelectorAll('.tarjeta, .billete, .destacado, .buscador-finde, .filtros, .finde-celda, .puente, .vigilado, .vacio, .ficha__lateral, .ayuda-caja, .portada__texto, .explorar__filtros, .resultados__cabeza, .bloque, .campo')) {
+      for (const caja of document.querySelectorAll('.tarjeta, .billete, .sugerencia, .buscador-finde, .filtros, .finde-celda, .puente, .vigilado, .vacio, .ficha__lateral, .ayuda-caja, .viaje-resumen, .explorar__filtros, .resultados__cabeza, .bloque, .campo')) {
         if (!visible(caja)) continue;
         const cb = caja.getBoundingClientRect();
         for (const h of caja.querySelectorAll('*')) {
