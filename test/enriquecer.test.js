@@ -192,6 +192,19 @@ describe('geo', () => {
     assert.deepEqual([o.lugar.lat, o.lugar.lon, o.lugar.codigoPais], [53.35, -6.26, 'IE']);
   });
 
+  test('una zona que nombra una provincia («Costa de Huelva») se sitúa en ella, no en México', async () => {
+    const huelva = { lat: '37.26', lon: '-6.95', category: 'boundary', name: 'Huelva', address: { province: 'Huelva', country_code: 'es' } };
+    const { ctx, peticiones } = crearCtx({ respuestas: (url) => (url.includes('Huelva%2C%20Espa') ? [huelva] : url.includes('countrycodes=es') ? [] : [{ lat: '25.73', lon: '-100.24', name: 'Costa de Huelva', address: { country_code: 'mx' } }]) });
+    const o = oferta({ lugar: { nombre: 'Costa de Huelva' } });
+    await geolocalizar([o], ctx);
+    assert.deepEqual([o.lugar.lat, o.lugar.lon, o.lugar.provincia, o.lugar.codigoPais], [37.26, -6.95, 'Huelva', 'ES']);
+    assert.ok(!peticiones.some((u) => !u.includes('countrycodes=es')), 'no hace falta buscar en el mundo');
+    // Lo que ya estaba guardado en México se vuelve a buscar.
+    const vieja = oferta({ lugar: { nombre: 'Costa de Huelva', lat: 25.73, lon: -100.24 } });
+    await geolocalizar([vieja], ctx);
+    assert.equal(vieja.lugar.lat, 37.26);
+  });
+
   test('las coordenadas de la búsqueda antigua (en todo el mundo) se repiten', async () => {
     const espana = { lat: '40.63', lon: '-3.16', category: 'boundary', name: 'Guadalajara', address: { province: 'Guadalajara', country_code: 'es' } };
     const { ctx } = crearCtx({ respuestas: () => [espana] });

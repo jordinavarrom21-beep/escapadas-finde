@@ -109,3 +109,15 @@ export function aplicarZona(oferta) {
   if (oferta.lugar) Object.assign(oferta.lugar, zonaDe(oferta.lugar));
   return oferta;
 }
+
+/**
+ * La provincia de España que se nombra dentro de un texto («Costa de Huelva», «Hotel en la
+ * costa de Almería»), o null. Solo nombres de provincia o isla de dos o más letras enteras.
+ */
+export function provinciaEnTexto(texto) {
+  const k = ` ${clave(texto)} `;
+  for (const [alias, provincia] of PROVINCIA) {
+    if (alias.length >= 4 && k.includes(` ${alias} `)) return provincia;
+  }
+  return null;
+}

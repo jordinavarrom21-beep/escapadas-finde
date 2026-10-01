@@ -14,17 +14,19 @@ const ctx = { finde: { id: '2026-10-02', viernes: '2026-10-02', domingo: '2026-1
 const viaje = (salida, vuelta) => ({ fechas: { salida: `${salida}T13:10:00`, vuelta: `${vuelta}T10:45:00` } });
 
 describe('periodo elegido', () => {
-  it('un finde va de viernes a domingo y un puente de su primer a su último día', () => {
+  it('un finde va de viernes a domingo y un puente del último laborable (para salir) a su último día', () => {
     assert.deepEqual(rangoDe('2026-10-09', ctx), { id: '2026-10-09', tipo: 'finde', inicio: '2026-10-09', fin: '2026-10-11' });
-    assert.deepEqual(rangoDe('puente', ctx), { id: '2026-10-10', tipo: 'puente', inicio: '2026-10-10', fin: '2026-10-12' });
+    assert.deepEqual(rangoDe('puente', ctx), { id: '2026-10-10', tipo: 'puente', inicio: '2026-10-09', fin: '2026-10-12' });
+    assert.equal(rangoDe('puente', { puente: { ...PUENTE, salidas: ['2026-10-08', '2026-10-10'] } }).inicio, '2026-10-08', 'si el escaneo dice otro día, manda');
     assert.equal(rangoDe('', ctx), null);
   });
 
-  it('el puente 10–12 y el finde 9–11 ya no son lo mismo: cada vuelo dice si cabe o en qué se sale', () => {
+  it('cada vuelo dice si cabe en el periodo o en qué se sale', () => {
     const puente = rangoDe('2026-10-10', ctx);
     const finde = rangoDe('2026-10-09', ctx);
     assert.deepEqual(encajeEnRango(viaje('2026-10-10', '2026-10-12'), puente), { cabe: true, motivos: [] });
-    assert.deepEqual(encajeEnRango(viaje('2026-10-09', '2026-10-11'), puente), { cabe: false, motivos: ['sale un día antes'] });
+    assert.deepEqual(encajeEnRango(viaje('2026-10-09', '2026-10-12'), puente), { cabe: true, motivos: [] }, 'el viernes por la tarde ya vale para el puente');
+    assert.deepEqual(encajeEnRango(viaje('2026-10-08', '2026-10-11'), puente), { cabe: false, motivos: ['sale un día antes'] });
     assert.deepEqual(encajeEnRango(viaje('2026-10-09', '2026-10-11'), finde), { cabe: true, motivos: [] });
     assert.deepEqual(encajeEnRango(viaje('2026-10-10', '2026-10-12'), finde), { cabe: false, motivos: ['vuelve un día después'] });
     assert.equal(encajeEnRango({ fechas: {} }, finde), null, 'las flexibles no se juzgan');
@@ -35,7 +37,7 @@ describe('periodo elegido', () => {
     const base = { tipo: 'hotel', temas: [], puntuacion: 50, precio: 100, etiquetas: [], lugar: { nombre: 'X' } };
     const ofertas = [
       { ...base, id: 'cabe', fechas: { salida: '2026-10-10', vuelta: '2026-10-12', puenteId: '2026-10-10' } },
-      { ...base, id: 'antes', fechas: { salida: '2026-10-09', vuelta: '2026-10-11', puenteId: '2026-10-10' } },
+      { ...base, id: 'antes', fechas: { salida: '2026-10-08', vuelta: '2026-10-11', puenteId: '2026-10-10' } },
       { ...base, id: 'flexible', fechas: {} },
     ];
     const ids = (p) => buscarEscapadas(ofertas, leerFiltrosEscapadas(p), { ...ctx, origen: { lat: 41.39, lon: 2.17 } }).ofertas.map((o) => o.id).sort();
@@ -65,6 +67,53 @@ describe('etiquetas que no confunden un finde con un puente', () => {
   it('días con nombre y qué parte del puente coge', () => {
     assert.equal(etiquetaFinde(FINDE, [PUENTE]), 'vie 9 – dom 11 oct · vuelve antes del festivo');
     assert.equal(etiquetaFinde({ ...FINDE, puenteId: null }, [PUENTE]), 'vie 9 – dom 11 oct');
-    assert.match(etiquetaPuente(PUENTE), /Fiesta Nacional · sáb 10 – lun 12 oct · todo el puente$/);
+    assert.match(etiquetaPuente(PUENTE), /Fiesta Nacional · vie 9 – lun 12 oct · todo el puente$/);
+  });
+});
+
+describe('Inicio: qué quieres organizar y para cuándo', async () => {
+  const { destinoOrganizar } = await import('../site/js/vistas-portada.js');
+  it('el mismo «¿Cuándo?» lleva a Escapadas, Vuelos o Planes', () => {
+    const ids = { finde: ctx.finde, puente: PUENTE };
+    assert.equal(destinoOrganizar('vuelos', { cuando: 'puente' }, ids), '#/vuelos?finde=2026-10-10');
+    assert.equal(destinoOrganizar('vuelos', { cuando: 'finde' }, ids), '#/vuelos?finde=2026-10-02');
+    assert.equal(destinoOrganizar('actividades', { cuando: '2026-10-09' }, ids), '#/actividades?cuando=2026-10-09');
+    assert.equal(destinoOrganizar('escapadas', { cuando: 'puente', pres: '150' }, ids), '#/escapadas?cuando=puente&orden=total&pres=150&prespor=persona');
+    assert.equal(destinoOrganizar('vuelos', { cuando: '' }, ids), '#/vuelos');
+  });
+});
+
+describe('franja del periodo y Lista / Mapa', async () => {
+  const { conmutadorListaMapa, franjaPeriodo, pestanas } = await import('../site/js/vistas-comun.js');
+  const e = { findes: [ctx.finde, FINDE], puente: PUENTE, datos: { puentes: [PUENTE] } };
+  it('dice el periodo con sus días, igual en todas las pestañas, y ofrece cambiarlo', () => {
+    assert.match(franjaPeriodo(e, 'escapadas', { cuando: 'puente' }), /<strong>Puente<\/strong> · Fiesta Nacional · vie 9 – lun 12 oct[^]*data-cambiar-fechas>Cambiar fechas/);
+    const texto = (html) => html.match(/franja-periodo__texto">(.*?)<\/span>/)[1];
+    assert.equal(texto(franjaPeriodo(e, 'vuelos', { finde: '2026-10-10' })), texto(franjaPeriodo(e, 'actividades', { cuando: '2026-10-10' })));
+    assert.match(franjaPeriodo(e, 'vuelos', { finde: '2026-10-10', aero: 'BCN' }), /href="#\/vuelos\?aero=BCN" aria-label="Quitar las fechas"/);
+    assert.match(franjaPeriodo(e, 'escapadas', { cuando: '2026-10-09' }), /<strong>Finde<\/strong> · vie 9 – dom 11 oct · vuelve antes del festivo/);
+    assert.match(franjaPeriodo(e, 'mapa', {}), /Cualquier fecha[^]*Elegir fechas/);
+    assert.match(franjaPeriodo(e, 'escapadas', { desde: '2026-10-16', hasta: '2026-10-18' }), /<strong>Fechas<\/strong> · vie 16 – dom 18 oct/);
+  });
+  it('el mapa es otra vista de la misma búsqueda, no otra pestaña', () => {
+    const html = conmutadorListaMapa({ cuando: 'puente', temas: 'spa' }, 'mapa');
+    assert.match(html, /href="#\/escapadas\?cuando=puente&amp;temas=spa">[^]*Lista/);
+    assert.match(html, /href="#\/mapa\?cuando=puente&amp;temas=spa" aria-current="page"/);
+    assert.doesNotMatch(pestanas('explorar', 'escapadas'), /data-vista="mapa"/);
+  });
+  it('Guardados: Favoritos, Búsquedas guardadas y Comparar, cada uno en su pestaña', () => {
+    const html = pestanas('mis', 'mis?ver=busquedas');
+    assert.match(html, /href="#\/mis" data-vista="mis"[^>]*>[^]*Favoritos/);
+    assert.match(html, /href="#\/mis\?ver=busquedas" aria-label="Búsquedas guardadas" aria-current="page"/);
+    assert.match(html, /href="#\/comparar"/);
+  });
+});
+
+describe('mapa', async () => {
+  const { agruparPorLugar } = await import('../site/js/mapa.js');
+  it('las ofertas del mismo sitio van en un solo marcador (antes se tapaban unas a otras)', () => {
+    const o = (id, lat, lon) => ({ id, lugar: { lat, lon } });
+    const grupos = agruparPorLugar([o('a', 41.2371, 1.8059), o('b', 41.23712, 1.80588), o('c', 41.98, 2.82)]);
+    assert.deepEqual(grupos.map((g) => g.map((x) => x.id)), [['a', 'b'], ['c']]);
   });
 });

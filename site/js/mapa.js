@@ -22,11 +22,15 @@ const colorCss = (nombre) => getComputedStyle(document.documentElement).getPrope
 function crearMapa(L, contenedor) {
   destruirMapa();
   contenedor.replaceChildren();
-  mapa = L.map(contenedor, { preferCanvas: true });
+  // Los controles de Leaflet vienen en inglés («Zoom in», «Layers»): en español, como el resto.
+  mapa = L.map(contenedor, { preferCanvas: true, zoomControl: false });
+  L.control.zoom({ zoomInTitle: 'Acercar', zoomOutTitle: 'Alejar' }).addTo(mapa);
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18, attribution: ATRIBUCION }).addTo(mapa);
   capas = { escapadas: L.layerGroup(), vuelos: L.layerGroup(), busqueda: L.layerGroup() };
   Object.values(capas).forEach((capa) => capa.addTo(mapa));
-  L.control.layers(null, { [`${icono('escapadas')} Escapadas`]: capas.escapadas, [`${icono('vuelos')} Vuelos`]: capas.vuelos }).addTo(mapa);
+  const selector = L.control.layers(null, { [`${icono('escapadas')} Escapadas`]: capas.escapadas, [`${icono('vuelos')} Vuelos`]: capas.vuelos }).addTo(mapa);
+  const boton = selector.getContainer()?.querySelector('.leaflet-control-layers-toggle');
+  if (boton) { boton.title = 'Qué enseñar en el mapa'; boton.setAttribute('aria-label', 'Qué enseñar en el mapa'); }
   observador = new ResizeObserver(() => {
     mapa.invalidateSize();
     if (encuadrePendiente && contenedor.clientWidth) encuadrar(L, encuadrePendiente);
@@ -68,11 +72,18 @@ export async function pintarMapa(contenedor, d, ctx) {
   Object.values(capas).forEach((capa) => capa.clearLayers());
 
   const acento = colorCss('--acento');
-  for (const o of d.escapadas) {
+  // Las del mismo sitio (unos 100 m) van en un solo marcador: si no, quedaban una encima de
+  // otra y solo se podía pulsar la de arriba.
+  for (const grupo of agruparPorLugar(d.escapadas)) {
+    const [o] = grupo;
     const color = colorCss(`--tema-${o.temas[0]}`) || acento;
-    L.circleMarker([o.lugar.lat, o.lugar.lon], { radius: 8, color: '#ffffff', weight: 2, fillColor: color, fillOpacity: 0.95 })
-      .bindPopup(() => ventana(tarjeta(o, ctx)), { minWidth: 260, maxWidth: 320 })
-      .addTo(capas.escapadas);
+    const marcador = grupo.length === 1
+      ? L.circleMarker([o.lugar.lat, o.lugar.lon], { radius: 8, color: '#ffffff', weight: 2, fillColor: color, fillOpacity: 0.95 })
+      : L.marker([o.lugar.lat, o.lugar.lon], {
+        icon: L.divIcon({ className: 'marcador-grupo', html: `<span>${grupo.length}</span>`, iconSize: null }),
+        title: `${grupo.length} escapadas en ${o.lugar.nombre ?? 'este sitio'}`, riseOnHover: true,
+      });
+    marcador.bindPopup(() => ventana(contenidoGrupo(grupo, ctx)), { minWidth: 260, maxWidth: 320 }).addTo(capas.escapadas);
   }
   for (const { oferta, total } of d.destinos) {
     const icono = L.divIcon({ className: 'marcador-precio', html: `<span>${euros(Math.round(oferta.precio))}</span>`, iconSize: null });
@@ -89,6 +100,26 @@ export async function pintarMapa(contenedor, d, ctx) {
       .addTo(capas.busqueda);
   }
   encuadrar(L, d);
+}
+
+/** Ofertas agrupadas por sitio (coordenadas redondeadas a unos 100 m), en el orden en que llegan. */
+export function agruparPorLugar(ofertas) {
+  const grupos = new Map();
+  for (const o of ofertas) {
+    const clave = `${o.lugar.lat.toFixed(3)},${o.lugar.lon.toFixed(3)}`;
+    if (!grupos.has(clave)) grupos.set(clave, []);
+    grupos.get(clave).push(o);
+  }
+  return [...grupos.values()];
+}
+
+/** Ventana de un marcador: la tarjeta o, si son varias, las primeras y cuántas hay. */
+const MAX_EN_VENTANA = 5;
+function contenidoGrupo(grupo, ctx) {
+  if (grupo.length === 1) return tarjeta(grupo[0], ctx);
+  const lugar = grupo[0].lugar.nombre ?? 'este sitio';
+  const resto = grupo.length > MAX_EN_VENTANA ? `<p class="ventana-mapa__nota">Y ${grupo.length - MAX_EN_VENTANA} más: cierra el mapa con «Lista» para verlas todas.</p>` : '';
+  return `<p class="ventana-mapa__nota"><strong>${grupo.length} escapadas en ${escaparHtml(lugar)}</strong></p>${grupo.slice(0, MAX_EN_VENTANA).map((o) => tarjeta(o, ctx)).join('')}${resto}`;
 }
 
 export function destruirMapa() {

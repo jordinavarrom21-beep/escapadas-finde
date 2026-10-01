@@ -554,6 +554,9 @@ function insigniasTarjeta(o, ctx) {
   return [...fijas.filter(Boolean), mejor].filter(Boolean).join('');
 }
 
+/** La acción principal de la tarjeta dice qué abre: «Ver escapada», «Ver plan» o «Ver vuelo». */
+const textoAccion = (o) => ({ actividad: 'Ver plan', vuelo: 'Ver vuelo' }[o.tipo] ?? 'Ver escapada');
+
 /** Tarjeta de escapada, hotel, paquete o chollo de vuelo sin fechas. */
 export function tarjetaOferta(o, ctx) {
   const web = ctx.fuentes?.get(o.fuente) ?? o.fuente;
@@ -574,7 +577,7 @@ export function tarjetaOferta(o, ctx) {
     <div class="insignias insignias--tarjeta">${equivalentes(o, ctx)}${insigniasTarjeta(o, ctx)}${avisoTarjeta(o, ctx)}</div>
     <div class="tarjeta__pie">
       <div class="tarjeta__precio">${bloquePrecio(o, ctx)}</div>
-      <div class="acciones">${botonComparar(o, ctx)}${enlaceOferta(o, typeof o.precio === 'number' && o.precio > 0 ? 'Ver oferta' : `Ver en ${esc(web)}`, ctx)}</div>
+      <div class="acciones">${botonComparar(o, ctx)}${enlaceOferta(o, typeof o.precio === 'number' && o.precio > 0 ? textoAccion(o) : `Ver en ${esc(web)}`, ctx)}</div>
     </div>
   </div>
 </article>`;
@@ -746,7 +749,10 @@ export function minigrafica(serie) {
   const puntos = puntosMinigrafica(serie);
   if (!puntos) return '';
   const [primero, ultimo] = [serie[0][1], serie.at(-1)[1]];
-  return `<svg class="minigrafica" viewBox="0 0 96 28" width="96" height="28" role="img" aria-label="Historial de ${serie.length} días: de ${euros(primero)} a ${euros(ultimo)}"><polyline points="${puntos}" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
+  // El color dice hacia dónde va el precio (verde, baja; rojo, sube; gris, igual) y lo repite en palabras.
+  const tendencia = ultimo < primero ? 'baja' : ultimo > primero ? 'sube' : 'igual';
+  const texto = { baja: '↘ Ha bajado', sube: '↗ Ha subido', igual: '→ Sin cambios' }[tendencia];
+  return `<span class="tendencia tendencia--${tendencia}" title="Precio de los últimos ${serie.length} días: de ${euros(primero)} a ${euros(ultimo)}"><svg class="minigrafica" viewBox="0 0 96 28" width="96" height="28" role="img" aria-label="Historial de ${serie.length} días: de ${euros(primero)} a ${euros(ultimo)}"><polyline points="${puntos}" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/></svg><span class="tendencia__texto">${texto}</span></span>`;
 }
 
 /** «vie 16 oct · 19:05 → 20:50 · Directo»: la llegada si se sabe; si no, la duración. */

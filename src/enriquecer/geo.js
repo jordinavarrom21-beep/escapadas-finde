@@ -5,7 +5,7 @@
  */
 import { normalizarTexto } from '../util/xml.js';
 import { enIsla } from '../../site/js/geo.js';
-import { zonaDe } from './zona.js';
+import { provinciaEnTexto, zonaDe } from './zona.js';
 
 const URL_NOMINATIM = 'https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&addressdetails=1&accept-language=es&q=';
 const URL_OSRM = 'https://router.project-osrm.org/table/v1/driving/';
@@ -58,7 +58,9 @@ const CAJA_ESPANA = { latMin: 27.4, latMax: 44, lonMin: -18.5, lonMax: 4.6 };
 export function puntoCreible(lugar, punto) {
   if (!punto) return true;
   if (!Number.isFinite(punto.lat) || !Number.isFinite(punto.lon)) return false;
-  if (codigoPais(lugar) !== 'es') return true;
+  // Sin país, pero nombrando una provincia («Costa de Huelva»): también tiene que estar en España.
+  const pais = codigoPais(lugar);
+  if (pais !== 'es' && (pais || !provinciaEnTexto(lugar.nombre ?? ''))) return true;
   const c = CAJA_ESPANA;
   return punto.lat >= c.latMin && punto.lat <= c.latMax && punto.lon >= c.lonMin && punto.lon <= c.lonMax;
 }
@@ -96,6 +98,14 @@ function puntoDe(resultado) {
 async function buscarSinPais(consulta, nombre, ctx) {
   const [enEspana] = await ctx.http.json(`${URL_NOMINATIM}${encodeURIComponent(consulta)}&countrycodes=es`);
   if (esElLugar(enEspana, nombre)) return puntoDe(enEspana);
+  // «Costa de Huelva» no es un sitio en el mapa, pero dice la provincia: se sitúa en ella
+  // (aproximado, pero a 0 km y no en México).
+  const provincia = provinciaEnTexto(nombre);
+  if (provincia) {
+    await ctx.http.esperar(PAUSA_NOMINATIM_MS);
+    const [enProvincia] = await ctx.http.json(`${URL_NOMINATIM}${encodeURIComponent(`${provincia}, España`)}&countrycodes=es`);
+    if (enProvincia) return { ...puntoDe(enProvincia), regionGeo: provincia, codigoPais: 'ES' };
+  }
   await ctx.http.esperar(PAUSA_NOMINATIM_MS);
   const [enElMundo] = await ctx.http.json(URL_NOMINATIM + encodeURIComponent(consulta));
   return puntoDe(enElMundo);
