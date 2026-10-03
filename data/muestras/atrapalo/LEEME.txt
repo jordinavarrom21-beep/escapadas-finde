@@ -1,0 +1,7 @@
+Fuente: atrapalo
+Cuándo: 2026-10-03T14:04:49.415Z
+Motivo: Solo 26 ofertas (lo normal son unas 106): no se borran las demás de golpe; si de verdad ya no están, se retiran solas en unos días. ¿Ha cambiado la web?
+
+pagina-1.html: https://www.atrapalo.com/escapadas/?page=5
+pagina-2.html: https://www.atrapalo.com/escapadas/?region_id=6&page=5
+pagina-3.html: https://www.atrapalo.com/escapadas/?region_id=54&page=5
