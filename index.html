@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <!-- Defensa en profundidad: aunque se colara HTML en una oferta, no podría ejecutar
+       scripts en línea ni cargar código de otros sitios. Imágenes de cualquier web https
+       (las de las ofertas); conexiones solo al propio sitio y al buscador de lugares. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' https: data:; connect-src 'self' https://jordinavarrom21-beep.github.io https://photon.komoot.io https://router.project-osrm.org; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta name="escapadas-datos" content="https://jordinavarrom21-beep.github.io/escapadas-finde/">
+  <link rel="preconnect" href="https://jordinavarrom21-beep.github.io" crossorigin data-datos>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <!-- La portada conserva este título al pintarse (app.js): es el que enseñan los buscadores. -->
+  <title>Escapadas de fin de semana desde Barcelona · Escapadas Finde</title>
+  <meta name="description" content="Escapadas de fin de semana desde Barcelona: casas rurales, hoteles con spa, planes y chollos de vuelos de más de 20 webs, revisados cada 15 minutos y con el coste del viaje completo.">
+  <meta name="robots" content="max-image-preview:large">
+  <!-- Vista previa al compartir el enlace (WhatsApp, redes). El despliegue pone la URL
+       absoluta de og.png (las redes no aceptan rutas relativas). -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Escapadas Finde">
+  <meta property="og:title" content="Escapadas Finde: chollos de escapadas para este finde">
+  <meta property="og:description" content="Escapadas, casas rurales, planes y chollos de vuelos de más de 20 webs de viajes, juntos y revisados cada 15 minutos.">
+  <meta property="og:image" content="https://escapadasfinde.com/og.png">
+  <meta property="og:url" content="https://escapadasfinde.com/">
+  <link rel="canonical" href="https://escapadasfinde.com/">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:locale" content="es_ES">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#f4efe6" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0f1514" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icono.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-title" content="Escapadas">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <script src="js/tema.js"></script>
+  <link rel="preload" href="fonts/figtree.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/bricolage-grotesque.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="css/estilos.css">
+  <link rel="modulepreload" href="js/filtros.js">
+  <link rel="modulepreload" href="js/vistas.js">
+  <link rel="modulepreload" href="js/vistas-comun.js">
+  <link rel="modulepreload" href="js/vistas-portada.js">
+  <link rel="modulepreload" href="js/plantillas.js">
+  <link rel="modulepreload" href="js/iconos.js">
+  <script type="module" src="js/app.js"></script>
+  <!-- datos-estructurados: el despliegue (scripts/preparar-web.js) pone aquí el JSON-LD de la web. -->
+  <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"WebSite","@id":"https://escapadasfinde.com/#web","url":"https://escapadasfinde.com/","name":"Escapadas Finde","inLanguage":"es-ES","publisher":{"@id":"https://escapadasfinde.com/#organizacion"}},{"@type":"Organization","@id":"https://escapadasfinde.com/#organizacion","name":"Escapadas Finde","url":"https://escapadasfinde.com/","logo":"https://escapadasfinde.com/icono-512.png"}]}</script>
+  <!-- /datos-estructurados -->
+</head>
+<body>
+  <a class="saltar" href="#principal">Saltar al contenido</a>
+
+  <header class="cabecera">
+    <div class="contenedor cabecera__fila">
+      <a class="marca" href="#/finde">
+        <img src="icono.svg" alt="" width="36" height="36">
+        <span>Escapadas Finde</span>
+      </a>
+      <nav class="navegacion" aria-label="Secciones">
+        <ul>
+          <li><a href="#/finde" data-vista="finde"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 8h16v12H4zM9 8V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V8M4 13h16M10.5 13v2h3v-2"/></svg><span>Inicio</span></a></li>
+          <li><a href="#/escapadas" data-vista="escapadas"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 11a7 7 0 1 0 14 0a7 7 0 1 0 -14 0M20 20l-4-4"/></svg><span>Explorar</span></a></li>
+          <li><a href="#/calendario" data-vista="calendario"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 6.5h16V20H4zM4 10.5h16M8.5 4v4M15.5 4v4"/></svg><span>Fechas</span></a></li>
+          <li><a href="#/mis" data-vista="mis"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 20s-7.5-4.6-7.5-10.2A4.2 4.2 0 0 1 12 7.2a4.2 4.2 0 0 1 7.5 2.6C19.5 15.4 12 20 12 20z"/></svg><span>Guardados</span><span id="aviso-mis" class="navegacion__aviso" hidden></span></a></li>
+        </ul>
+      </nav>
+      <div class="cabecera__acciones">
+        <button id="cambiar-tema" class="boton-icono" type="button" aria-label="Cambiar el modo de color"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg></button>
+      </div>
+    </div>
+  </header>
+
+  <div class="contenedor cabecera-info">
+    <div class="cabecera__info">
+      <button id="boton-viaje" class="pastilla pastilla--viaje" type="button" data-mi-viaje aria-haspopup="dialog"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 21s-6.5-5.8-6.5-11.2a6.5 6.5 0 0 1 13 0C18.5 15.2 12 21 12 21zM9.8 9.8a2.2 2.2 0 1 0 4.4 0a2.2 2.2 0 1 0 -4.4 0"/></svg><span>Tu salida</span></button>
+      <a id="novedades" class="pastilla pastilla--novedades" href="#/buscar?nuevas=1" hidden></a>
+      <p id="actualizado" class="cabecera__actualizado" hidden></p>
+    </div>
+    <form id="buscador" class="buscador" role="search">
+      <label class="sr" for="q">Buscar en todas las ofertas</label>
+      <input id="q" name="q" type="search" placeholder="Buscar en todo: destino, hotel, región…" autocomplete="off" enterkeyhint="search">
+      <button class="boton boton--tinta" type="submit"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 11a7 7 0 1 0 14 0a7 7 0 1 0 -14 0M20 20l-4-4"/></svg><span class="sr">Buscar</span></button>
+    </form>
+  </div>
+
+  <main id="principal" class="contenedor" tabindex="-1">
+    <!-- portada-estatica: el despliegue (scripts/preparar-web.js) pone aquí, para quien no
+         ejecuta el panel (buscadores, vistas previas), qué es la web, lo mejor de ahora y las guías. -->
+<div class="portada-estatica">
+<h1>Escapadas de fin de semana desde Barcelona</h1>
+<p>Escapadas, casas rurales, hoteles con spa, planes y chollos de vuelos de más de 20 webs de viajes, juntos y revisados cada 15 minutos. Cada oferta con el coste del viaje completo para 2 personas desde Barcelona (la oferta y la gasolina), el tiempo en coche y cuándo se comprobó. Datos del sáb 3 oct.</p>
+<h2>Lo mejor de ahora</h2>
+<ol class="lista-guia"><li class="fila-guia">
+  <h3>Hotel 4* Adults Only en Lloret de Mar ¿A qué esperas?</h3>
+  <p>📍 Lloret de Mar, Girona · Fechas flexibles · 1 h 2 min en coche</p>
+  <p><strong>desde 39 € por persona</strong> · viaje completo ≈ 96 € para 2 (48 € por persona)</p>
+  <p class="suave">Publicada en BuscoUnChollo · comprobada el sáb 3 oct · <a href="https://www.buscounchollo.com/reserva-chollo/38392/hotel-4-adults-only-en-lloret-de-mar-a-que-esperas" rel="nofollow noopener" target="_blank">Ver la oferta</a></p>
+</li><li class="fila-guia">
+  <h3>¡Ocasión para familias en la Costa Brava! hotel 4* en Tossa de Mar</h3>
+  <p>📍 Tossa de Mar, Girona · Fechas flexibles · 1 h 15 min en coche</p>
+  <p><strong>desde 29 € por persona</strong> · viaje completo ≈ 78 € para 2 (39 € por persona)</p>
+  <p class="suave">Publicada en BuscoUnChollo · comprobada el sáb 3 oct · <a href="https://www.buscounchollo.com/reserva-chollo/38806/ocasion-para-familias-en-la-costa-brava-hotel-4-en-tossa-de-mar" rel="nofollow noopener" target="_blank">Ver la oferta</a></p>
+</li><li class="fila-guia">
+  <h3>Grup Cal Jafra Jepet del Goncer</h3>
+  <p>📍 Llorenç del Penedès, Tarragona · Fechas flexibles · 57 min en coche · ⭐ 10</p>
+  <p><strong>desde 27 € por persona y noche</strong> · viaje completo ≈ 124 € para 2 (62 € por persona)</p>
+  <p class="suave">Publicada en Escapada Rural · comprobada el sáb 3 oct · <a href="https://www.escapadarural.com/casa-rural/tarragona/cal-jafra" rel="nofollow noopener" target="_blank">Ver la oferta</a></p>
+</li><li class="fila-guia">
+  <h3>¡Escapada a la vista en Andorra! Tu estancia en la montaña en hotel 3*</h3>
+  <p>📍 La Massana, La Massana · Fechas flexibles · 2 h 49 min en coche</p>
+  <p><strong>desde 16 € por persona</strong> · viaje completo ≈ 78 € para 2 (39 € por persona)</p>
+  <p class="suave">Publicada en BuscoUnChollo · comprobada el sáb 3 oct · <a href="https://www.buscounchollo.com/reserva-chollo/39810/escapada-a-la-vista-en-andorra-tu-estancia-en-la-montana-en-hotel-3" rel="nofollow noopener" target="_blank">Ver la oferta</a></p>
+</li><li class="fila-guia">
+  <h3>¡Respira Andorra! Naturaleza, aire fresco y hotel 4* en plena montaña</h3>
+  <p>📍 Arinsal, La Massana · Fechas flexibles · 2 h 54 min en coche</p>
+  <p><strong>desde 21 € por persona</strong> · viaje completo ≈ 89 € para 2 (44 € por persona)</p>
+  <p class="suave">Publicada en BuscoUnChollo · comprobada el sáb 3 oct · <a href="https://www.buscounchollo.com/reserva-chollo/39721/respira-andorra-naturaleza-aire-fresco-y-hotel-4-en-plena-montana" rel="nofollow noopener" target="_blank">Ver la oferta</a></p>
+</li><li class="fila-guia">
+  <h3>Mas Virgili</h3>
+  <p>📍 El Milà, Tarragona · Fechas flexibles · 1 h 24 min en coche · ⭐ 10</p>
+  <p><strong>desde 25 € por persona y noche</strong> · viaje completo ≈ 124 € para 2 (62 € por persona)</p>
+  <p class="suave">Publicada en Escapada Rural · comprobada el sáb 3 oct · <a href="https://www.escapadarural.com/casa-rural/tarragona/mas-virgili" rel="nofollow noopener" target="_blank">Ver la oferta</a></p>
+</li><li class="fila-guia">
+  <h3>Hotel Can Pico: noche íntima en la Costa Brava interior</h3>
+  <p>📍 Roses, Girona · Fechas flexibles · 1 h 57 min en coche</p>
+  <p><strong>desde 42 € por persona</strong> · viaje completo ≈ 121 € para 2 (60 € por persona)</p>
+  <p class="suave">Publicada en Atrápalo · comprobada el sáb 3 oct · <a href="https://www.atrapalo.com/escapadas/hotel-can-pico-noche-intima-en-la-costa-brava-interior_v68679" rel="nofollow noopener" target="_blank">Ver la oferta</a></p>
+</li><li class="fila-guia">
+  <h3>Alójate en un hotel 4* a 200m de la playa en Vera (Almería)</h3>
+  <p>📍 Vera, Almería · Fechas flexibles · 7 h 50 min en coche</p>
+  <p><strong>desde 29 € por persona</strong> · viaje completo ≈ 221 € para 2 (110 € por persona)</p>
+  <p class="suave">Publicada en BuscoUnChollo · comprobada el sáb 3 oct · <a href="https://www.buscounchollo.com/reserva-chollo/38568/alojate-en-un-hotel-4-a-200m-de-la-playa-en-vera-almeria" rel="nofollow noopener" target="_blank">Ver la oferta</a></p>
+</li><li class="fila-guia">
+  <h3>Escapada de spa en Calella, a un paso de la playa</h3>
+  <p>📍 Calella, Barcelona · Fechas flexibles · 46 min en coche</p>
+  <p><strong>desde 49 € por persona</strong> · viaje completo ≈ 111 € para 2 (56 € por persona)</p>
+  <p class="suave">Publicada en Atrápalo · comprobada el sáb 3 oct · <a href="https://www.atrapalo.com/escapadas/escapada-de-spa-en-calella-a-un-paso-de-la-playa_v69515" rel="nofollow noopener" target="_blank">Ver la oferta</a></p>
+</li><li class="fila-guia">
+  <h3>Pensión completa y zona relax en plena Costa Brava</h3>
+  <p>📍 Lloret de Mar, Cataluña · Fechas flexibles · 1 h 2 min en coche · ⭐ 8,7</p>
+  <p><strong>desde 101 € en total</strong> · viaje completo ≈ 118 € para 2 (59 € por persona)</p>
+  <p class="suave">Publicada en Weekendesk · comprobada el sáb 3 oct · <a href="https://www.weekendesk.es/fin-de-semana/21887726/escapadas-fin-de-semana-en-Lloret_de_Mar-Cataluna-Playa" rel="nofollow noopener" target="_blank">Ver la oferta</a></p>
+</li><li class="fila-guia">
+  <h3>Pon rumbo a Platja d&#39;Aro para un Halloween de miedo</h3>
+  <p>📍 Platja d&#39;Aro, Girona · Fechas flexibles · 1 h 23 min en coche</p>
+  <p><strong>desde 26 € por persona</strong> · viaje completo ≈ 77 € para 2 (39 € por persona)</p>
+  <p class="suave">Publicada en BuscoUnChollo · comprobada el sáb 3 oct · <a href="https://www.buscounchollo.com/reserva-chollo/39789/pon-rumbo-a-platja-daro-para-un-halloween-de-miedo" rel="nofollow noopener" target="_blank">Ver la oferta</a></p>
+</li><li class="fila-guia">
+  <h3>La Torre d&#39;Ogern</h3>
+  <p>📍 Ogern, Lleida · Fechas flexibles · 1 h 49 min en coche · ⭐ 10</p>
+  <p><strong>desde 26 € por persona y noche</strong> · viaje completo ≈ 133 € para 2 (66 € por persona)</p>
+  <p class="suave">Publicada en Escapada Rural · comprobada el sáb 3 oct · <a href="https://www.escapadarural.com/casa-rural/lleida/la-torre-d-ogern" rel="nofollow noopener" target="_blank">Ver la oferta</a></p>
+</li></ol>
+<nav class="guias" aria-label="Guías"><div class="guias__grupo"><h2>Escapadas</h2><ul><li><a href="escapadas/">Todas las escapadas</a></li><li><a href="escapadas/menos-de-100-euros/">Por menos de 100 € por persona</a></li><li><a href="escapadas/este-finde/">Para este finde</a></li><li><a href="escapadas/puente/">Para el puente del 10–12 oct</a></li><li><a href="escapadas/a-menos-de-1-hora/">A menos de 1 hora en coche</a></li><li><a href="escapadas/a-menos-de-2-horas/">A menos de 2 horas en coche</a></li><li><a href="escapadas/sin-coche/">Sin coche</a></li></ul></div><div class="guias__grupo"><h2>Por temática y alojamiento</h2><ul><li><a href="escapadas/spa/">Escapadas con spa</a></li><li><a href="escapadas/con-ninos/">Escapadas con niños</a></li><li><a href="escapadas/rurales/">Escapadas rurales</a></li><li><a href="escapadas/romanticas/">Escapadas románticas</a></li><li><a href="escapadas/playa/">Escapadas a la playa</a></li><li><a href="escapadas/gastronomicas/">Escapadas gastronómicas y de vino</a></li><li><a href="escapadas/con-perro/">Escapadas con perro</a></li><li><a href="escapadas/aventura-y-nieve/">Escapadas de aventura y nieve</a></li><li><a href="escapadas/ciudades/">Escapadas a ciudades</a></li><li><a href="escapadas/alojamientos-singulares/">Alojamientos singulares</a></li><li><a href="escapadas/parques-tematicos/">Escapadas a parques temáticos</a></li><li><a href="escapadas/casas-rurales/">Casas rurales</a></li><li><a href="escapadas/campings/">Campings y glamping</a></li></ul></div><div class="guias__grupo"><h2>Por zona</h2><ul><li><a href="escapadas/cataluna/">Escapadas en Cataluña</a></li><li><a href="escapadas/girona/">Escapadas en Girona</a></li><li><a href="escapadas/barcelona/">Escapadas en Barcelona</a></li><li><a href="escapadas/tarragona/">Escapadas en Tarragona</a></li><li><a href="escapadas/lleida/">Escapadas en Lleida</a></li><li><a href="escapadas/andalucia/">Escapadas en Andalucía</a></li><li><a href="escapadas/comunidad-valenciana/">Escapadas en Comunidad Valenciana</a></li><li><a href="escapadas/castilla-y-leon/">Escapadas en Castilla y León</a></li><li><a href="escapadas/islas-baleares/">Escapadas en Islas Baleares</a></li><li><a href="escapadas/canarias/">Escapadas en Canarias</a></li><li><a href="escapadas/andorra/">Escapadas en Andorra</a></li><li><a href="escapadas/castilla-la-mancha/">Escapadas en Castilla-La Mancha</a></li><li><a href="escapadas/galicia/">Escapadas en Galicia</a></li><li><a href="escapadas/francia/">Escapadas en Francia</a></li><li><a href="escapadas/valencia/">Escapadas en Valencia</a></li><li><a href="escapadas/cantabria/">Escapadas en Cantabria</a></li></ul></div><div class="guias__grupo"><h2>Vuelos y planes</h2><ul><li><a href="vuelos/">Chollos de vuelos</a></li><li><a href="actividades/gratis/">Actividades gratis</a></li></ul></div></nav>
+</div>
+    <!-- /portada-estatica -->
+    <p class="cargando" role="status">Cargando ofertas…</p>
+  </main>
+
+  <footer class="pie contenedor">
+    <p class="pie__marca"><img src="icono.svg" alt="" width="28" height="28"> Escapadas Finde</p>
+    <p>Reunimos ofertas publicadas por webs de viajes y las revisamos cada 15 minutos. No vendemos nada: el precio y
+      las condiciones los confirma siempre la web de la oferta al reservar.</p>
+    <p><a href="#/ayuda">Cómo funciona</a> · <a href="#/ayuda?seccion=privacidad">Privacidad</a> · Sin cookies ni seguimiento ·
+      Mapa © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> ·
+      Lugares con <a href="https://photon.komoot.io" target="_blank" rel="noopener noreferrer">Photon</a></p>
+    <p><a id="estado-fuentes" class="estado-fuentes" href="#/fuentes"><span class="punto" aria-hidden="true"></span><span class="estado-fuentes__texto">Estado de las webs</span></a></p>
+    <p id="aviso-comercial"></p>
+    <p>Guías: <a href="escapadas/">escapadas</a> · <a href="escapadas/menos-de-100-euros/">por menos de 100 €</a> ·
+      <a href="escapadas/spa/">con spa</a> · <a href="escapadas/con-ninos/">con niños</a> · <a href="vuelos/">chollos de vuelos</a> ·
+      <a href="actividades/gratis/">actividades gratis</a></p>
+  </footer>
+
+  <dialog id="ficha" class="ficha" aria-labelledby="ficha-titulo">
+    <div class="ficha__caja">
+      <div class="ficha__barra">
+        <button type="button" class="boton-icono" data-cerrar-ficha aria-label="Cerrar la ficha"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div>
+      <div class="ficha__contenido"></div>
+    </div>
+  </dialog>
+
+  <dialog id="mi-viaje" class="ficha ficha--viaje" aria-labelledby="viaje-titulo">
+    <form class="ficha__caja" id="form-viaje"></form>
+  </dialog>
+
+  <div id="barra-comparar" class="barra-comparar" hidden></div>
+
+  <div id="datos-nuevos" class="aviso-flotante aviso-flotante--datos" role="status" hidden></div>
+  <div id="aviso" class="aviso-flotante" role="status" aria-live="polite"></div>
+</body>
+</html>
