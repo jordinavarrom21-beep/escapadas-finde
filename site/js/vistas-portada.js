@@ -4,6 +4,7 @@
  * sugerencia de hoy en corto y, plegadas, unas pocas ideas por apartado.
  */
 
+import { nombreFinde, nombreFindeEnFrase } from './fechas.js';
 import { contar, escaparHtml as esc, haceCuanto } from './formato.js';
 import {
   actividadesPara, buscarActividades, buscarEscapadas, chollazos, chollosDeVuelos, conPeriodo, crearHash, filtrarVuelos,
@@ -78,7 +79,7 @@ function opcionesCuando(e) {
   const periodo = e.periodo ?? {};
   const rango = !periodo.cuando && periodo.desde && periodo.hasta ? [periodo.desde, periodo.hasta] : null;
   const opciones = [
-    ['finde', 'Este finde', diasExplicitos(actual.viernes, actual.domingo)],
+    ['finde', nombreFinde(e.hoy), diasExplicitos(actual.viernes, actual.domingo)],
     ...(siguiente ? [[siguiente.id, 'El siguiente', etiquetaFinde(siguiente, e.datos.puentes)]] : []),
     // «El puente» y sus días (con la tarde del último laborable para salir).
     ...(e.puente ? [[e.puente.id, 'El puente', diasExplicitos(salidaPuente(e.puente), e.puente.hasta)]] : []),
@@ -235,8 +236,8 @@ export function atajosPortada(e, opcion = null) {
 function grupoEscapadas(e, ctx, vistos) {
   const { ofertas } = buscarEscapadas(e.datos.ofertas, leerFiltrosEscapadas({ cuando: 'finde' }), contextoBusqueda(e));
   const lista = sinVistas(ofertas, vistos, IDEAS_POR_GRUPO);
-  return seccion(conIcono('escapadas', 'Escapadas para este finde'),
-    lista.length ? rejilla(lista, ctx, { mostradas: IDEAS_POR_GRUPO, clave: 'finde-escapadas' }) : estadoVacio('No hay escapadas para este finde.'),
+  return seccion(conIcono('escapadas', `Escapadas para ${nombreFindeEnFrase(e.hoy)}`),
+    lista.length ? rejilla(lista, ctx, { mostradas: IDEAS_POR_GRUPO, clave: 'finde-escapadas' }) : estadoVacio(`No hay escapadas para ${nombreFindeEnFrase(e.hoy)}.`),
     { href: crearHash('escapadas', { cuando: 'finde' }), texto: `Ver las ${ofertas.length}` });
 }
 
@@ -244,7 +245,7 @@ function grupoVuelos(e, ctx, vistos) {
   const [actual] = e.findes;
   if (e.datos.ofertas.some(tieneVuelo)) {
     const vuelos = filtrarVuelos(e.datos.ofertas, { ...leerFiltrosVuelos(), finde: actual.id, orden: 'puntuacion' }, contextoBusqueda(e));
-    return seccion(conIcono('vuelos', `Vuelos este finde <span class="suave">(${esc(actual.etiqueta)})</span>`),
+    return seccion(conIcono('vuelos', `Vuelos ${nombreFindeEnFrase(e.hoy)} <span class="suave">(${esc(actual.etiqueta)})</span>`),
       vuelos.length ? rejilla(sinVistas(vuelos, vistos, IDEAS_POR_GRUPO), ctx, { mostradas: IDEAS_POR_GRUPO, clave: `finde-vuelos-${actual.id}` }) : estadoVacio('Sin vuelos guardados para estas fechas.'),
       { href: crearHash('vuelos', { finde: actual.id }), texto: vuelos.length ? `Ver los ${vuelos.length}` : 'Ver vuelos' });
   }
@@ -258,8 +259,8 @@ function grupoVuelos(e, ctx, vistos) {
 function grupoPlanes(e, ctx, vistos) {
   const [actual] = e.findes;
   const lista = sinVistas(actividadesPara(e.datos.ofertas, periodoFinde(actual), { max: IDEAS_POR_GRUPO * 3, descartadas: ocultas(e) }), vistos, IDEAS_POR_GRUPO);
-  return seccion(conIcono('actividades', 'Planes para este finde'),
-    lista.length ? rejilla(lista, ctx, { mostradas: IDEAS_POR_GRUPO, clave: 'finde-actividades' }) : estadoVacio('No hay planes con fecha para este finde.'),
+  return seccion(conIcono('actividades', `Planes para ${nombreFindeEnFrase(e.hoy)}`),
+    lista.length ? rejilla(lista, ctx, { mostradas: IDEAS_POR_GRUPO, clave: 'finde-actividades' }) : estadoVacio(`No hay planes con fecha para ${nombreFindeEnFrase(e.hoy)}.`),
     { href: crearHash('actividades', {}), texto: 'Ver todos' });
 }
 
@@ -299,7 +300,7 @@ ${atajosPortada(e)}
 ${bloqueSorpresa(e)}
 ${destacado ? `<div class="portada__destacado">${tarjetaSugerencia(destacado, ctx)}</div>` : ''}
 <details class="portada__mas">
-<summary>Más ideas para este finde <span class="suave">(escapadas, vuelos y planes)</span></summary>
+<summary>Más ideas para ${nombreFindeEnFrase(e.hoy)} <span class="suave">(escapadas, vuelos y planes)</span></summary>
 <div class="carruseles">
 ${grupoEscapadas(e, ctx, vistos)}
 ${grupoVuelos(e, ctx, vistos)}

@@ -23,6 +23,7 @@ import { calcularReferencia } from '../enriquecer/referencia.js';
 import { marcarEquivalentes } from '../enriquecer/duplicados.js';
 import { anadirTiempo } from '../enriquecer/tiempo.js';
 import { anadirEventos } from '../enriquecer/eventos.js';
+import { comprobarVigencia } from '../enriquecer/vigencia.js';
 import { anadirFotos } from '../enriquecer/fotos.js';
 import { anadirResumenes } from '../enriquecer/resumenes.js';
 import { precioPorPersonaNoche, puntuar } from '../enriquecer/puntuacion.js';
@@ -56,7 +57,7 @@ const CADUCIDAD_POR_PREFIJO = { 'tiempo:': DIA_MS, 'eventos:': 2 * DIA_MS };
 export const MODULOS = {
   obtenerFestivos, calcularPuentes, asignarFechas, clasificarVueloSinFecha, aplicarClasificacion, aplicarAlojamiento, aplicarZona,
   geolocalizar, calcularCoche, calcularCosteCoche, calcularReferencia, marcarEquivalentes,
-  revisarPrecios, anadirTiempo, anadirEventos, anadirFotos, anadirResumenes, enlacesPara, registrarPrecios, compactar, seriesPara, puntuar,
+  revisarPrecios, anadirTiempo, anadirEventos, comprobarVigencia, anadirFotos, anadirResumenes, enlacesPara, registrarPrecios, compactar, seriesPara, puntuar,
   procesarEmails, crearTransporte, enviarEmail,
 };
 
@@ -312,6 +313,9 @@ export async function escanear({
   for (const { fuente, error } of ejecutadas) {
     if (error) conPrefijo(fuente.id)(`fallo inesperado al ejecutar la fuente: ${error.message}`);
   }
+  // Las webs que dicen en la página de cada oferta si ha terminado (Chollometro) se miran poco
+  // a poco: las terminadas se retiran y las activas cuentan como vistas (ver enriquecer/vigencia.js).
+  await m.comprobarVigencia(estado, crearCtx('vigencia'));
   // Cada web con su ritmo: las que se leen enteras (html, api) retiran antes lo que dejan de
   // publicar; los feeds y el buzón, por días sin verlas (los de la web o los generales).
   const podadas = podar(estado, ahora, {

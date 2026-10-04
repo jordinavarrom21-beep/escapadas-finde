@@ -1,6 +1,6 @@
 /** Vistas de información y de lo tuyo: calendario, puentes, avisos por email, fuentes, ayuda y «Mis cosas». */
 
-import { diasEntre, etiquetaDia, etiquetaRango } from './fechas.js';
+import { diasEntre, etiquetaDia, etiquetaRango, nombreFinde } from './fechas.js';
 import { contar, enumerar, escaparHtml as esc, euros, haceCuanto, urlSegura } from './formato.js';
 import {
   buscarActividades, buscarEscapadas, buscarTexto, chollosDeVuelos, crearHash, describirCriterio, filtrarVuelos,
@@ -27,7 +27,7 @@ export function vistaCalendario(e) {
   // ellos, cuantas más escapadas. El número va siempre escrito (el color solo ayuda a ver).
   const niveles = nivelesCalendario(resumen, hayVuelos);
   const celdas = resumen.map(({ finde, puente, vuelo, vuelos, escapadas }, i) => {
-    const cuando = i === 0 ? 'Este finde' : i === 1 ? 'El siguiente' : `En ${i} semanas`;
+    const cuando = i === 0 ? nombreFinde(e.hoy) : i === 1 ? 'El siguiente' : `En ${i} semanas`;
     // Cada finde, dos caminos claros: sus escapadas y (si hay vuelos con fecha) sus vuelos.
     // Antes la celda entera llevaba a uno solo aunque enseñara los datos de los dos.
     const verEscapadas = `<a class="boton boton--suave boton--mini finde-celda__accion" href="${crearHash('escapadas', { cuando: finde.id })}">${icono('escapadas')}Ver ${contar(escapadas, 'escapada')}</a>`;
@@ -271,7 +271,7 @@ function bloqueAvisos(e) {
       'En Explorar, pon los filtros que quieras y pulsa «Guardar búsqueda». Cuando vuelvas, aquí verás cuántas ofertas nuevas la cumplen.',
       '<a class="boton boton--primario" href="#/escapadas">Ir a Explorar</a>');
   }
-  const contexto = { temas: e.temas, fuentes: e.fuentes, findes: e.findes, puentes: e.datos.puentes };
+  const contexto = { temas: e.temas, fuentes: e.fuentes, findes: e.findes, puentes: e.datos.puentes, hoy: e.hoy };
   return `<div class="avisos">${avisos.map(({ busqueda, lista, nuevas }) => {
     const { vista, params } = leerRuta(busqueda.hash);
     const filtros = filtrosActivos(vista, params, contexto).map((c) => c.texto);

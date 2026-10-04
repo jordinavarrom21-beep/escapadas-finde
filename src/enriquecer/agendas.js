@@ -9,6 +9,11 @@
  *  - Euskadi: Kulturklik (api.euskadi.eus), con tipos (concierto, fiestas, feria…).
  *  - Castilla y León: agenda cultural geolocalizada (Opendatasoft de la Junta).
  *  - Madrid: agenda municipal de los próximos 100 días (datos.madrid.es).
+ *  - Comunitat Valenciana: agenda del Institut Valencià de Cultura (dadesobertes.gva.es):
+ *    teatro, cine y música con coordenadas.
+ *  - Zaragoza: agenda municipal (zaragoza.es, API de datos abiertos), con categorías y sitio.
+ *  - Málaga: agenda municipal del año (datosabiertos.malaga.eu, CSV); sin coordenadas, en el
+ *    centro de la ciudad.
  *  - Toda España: Ticketmaster Discovery (conciertos, festivales, deporte, teatro) si hay
  *    TICKETMASTER_KEY (gratis: developer.ticketmaster.com).
  */
@@ -142,6 +147,142 @@ export const madrid = {
   },
 };
 
+// ── Comunitat Valenciana (Institut Valencià de Cultura) ─────────────────────
+
+const URL_GVA = 'https://dadesobertes.gva.es/dataset/25cc4d21-e1dd-4d05-b057-dbcc44d4338c/resource/15084e00-c416-4b4d-b229-7a06f4bf07b0/download/lista-de-actividades-culturales-programadas-por-el-ivc.json';
+const TIPOS_GVA = { 'Artes escénicas': 'escena', pelicula: 'cine', 'Audiovisuales y Cinematografía': 'cine', 'Música y cultura popular valenciana': 'musica' };
+/** «12/01/2026» → «2026-01-12». */
+const diaEspanol = (v) => (typeof v === 'string' && /^\d{2}\/\d{2}\/\d{4}/.test(v.trim()) ? `${v.trim().slice(6, 10)}-${v.trim().slice(3, 5)}-${v.trim().slice(0, 2)}` : null);
+
+export const valenciana = {
+  id: 'valenciana',
+  nombre: 'Agenda del Institut Valencià de Cultura',
+  zona: enCaja({ latMin: 37.8, latMax: 40.8, lonMin: -1.6, lonMax: 0.6 }),
+  async descargar(ctx, desde, hasta) {
+    const r = await ctx.http.json(URL_GVA);
+    if (!Array.isArray(r?.data)) throw new Error('respuesta inesperada de dadesobertes.gva.es');
+    // Cada campo viene en su propio objeto, uno detrás de otro: un evento empieza en «titulo_evento».
+    const registros = [];
+    for (const campo of r.data) {
+      if (!campo || typeof campo !== 'object') continue;
+      if ('titulo_evento' in campo) registros.push({});
+      if (registros.length) Object.assign(registros.at(-1), campo);
+    }
+    return registros.map((g) => evento({
+      nombre: g.titulo_evento, desde: diaEspanol(g.fecha_inicio), hasta: diaEspanol(g.fecha_fin), lat: g.latitud, lon: g.longitud,
+      municipio: g.municipio?.trim() || null, url: url(g.web), precio: g.precio?.trim() || null,
+      tipo: TIPOS_GVA[g.tipo_evento] ?? tipoEvento(g.titulo_evento, g.tipo_evento),
+    })).filter((e) => e && e.hasta >= desde && e.desde <= hasta);
+  },
+};
+
+// ── Zaragoza (API de datos abiertos del Ayuntamiento) ───────────────────────
+
+const URL_ZARAGOZA = 'https://www.zaragoza.es/sede/servicio/cultura/evento/list.json';
+const TIPOS_ZARAGOZA = {
+  Música: 'musica', 'Teatro y Artes Escénicas': 'escena', Cine: 'cine', 'Imagen y sonido': 'cine', 'Ferias y Fiestas': 'fiestas',
+  Exposiciones: 'exposiciones', 'Artes plásticas': 'exposiciones', Deporte: 'deporte', 'Ocio y Juegos': 'familia',
+  'Actividades vacacionales': 'familia', Gastronomía: 'ferias',
+};
+/** Cursos, formación y empleo no son un plan para una escapada. */
+const NO_SON_PLANES_ZARAGOZA = new Set(['Formación', 'Cursos y Talleres', 'Empleo y Empresa', 'Idiomas', 'Desarrollo personal']);
+const FILAS_ZARAGOZA = 200;
+const MAX_PAGINAS_ZARAGOZA = 12;
+
+export const zaragoza = {
+  id: 'zaragoza',
+  nombre: 'Agenda de Zaragoza',
+  zona: enCaja({ latMin: 41.3, latMax: 42.0, lonMin: -1.4, lonMax: -0.4 }),
+  async descargar(ctx, desde, hasta) {
+    const eventos = [];
+    for (let pagina = 0; pagina < MAX_PAGINAS_ZARAGOZA; pagina += 1) {
+      if (pagina) await ctx.http.esperar(1000);
+      const p = new URLSearchParams({
+        rows: String(FILAS_ZARAGOZA), start: String(pagina * FILAS_ZARAGOZA), srsname: 'wgs84',
+        q: `startDate=le=${hasta}T23:59:59Z;endDate=ge=${desde}T00:00:00Z`,
+      });
+      const r = await ctx.http.json(`${URL_ZARAGOZA}?${p}`);
+      if (!Array.isArray(r?.result)) throw new Error('respuesta inesperada de zaragoza.es');
+      for (const it of r.result) {
+        const categorias = (it.category ?? []).map((c) => c.title);
+        if (categorias.length && categorias.every((c) => NO_SON_PLANES_ZARAGOZA.has(c))) continue;
+        const sitio = (it.subEvent ?? []).map((s) => s.location).find((l) => l?.geometry?.coordinates?.length === 2);
+        const [lon, lat] = sitio?.geometry.coordinates ?? [];
+        const euros = it.price?.[0]?.hasCurrencyValue;
+        const e = evento({
+          nombre: it.title, desde: it.startDate, hasta: it.endDate, lat, lon,
+          municipio: sitio?.addressLocality ?? 'Zaragoza', url: url(it.alt, it.id ? `https://www.zaragoza.es/sede/servicio/cultura/evento/${it.id}` : null),
+          tipo: categorias.map((c) => TIPOS_ZARAGOZA[c]).find(Boolean) ?? tipoEvento(it.title, ...categorias),
+          precio: euros === 0 ? 'Gratis' : euros > 0 ? `${euros} €` : null,
+        });
+        if (e) eventos.push(e);
+      }
+      if ((pagina + 1) * FILAS_ZARAGOZA >= (r.totalCount ?? 0)) break;
+    }
+    return eventos;
+  },
+};
+
+// ── Málaga (agenda municipal en CSV) ────────────────────────────────────────
+
+const URL_MALAGA = (anio) => `https://datosabiertos.malaga.eu/recursos/cultura/agenda/${anio}.csv`;
+/** Centro de Málaga: la agenda municipal no trae coordenadas, solo el distrito o el sitio. */
+const CENTRO_MALAGA = { lat: 36.7202, lon: -4.4203 };
+const TIPOS_MALAGA = {
+  Espectaculos: 'escena', Música: 'musica', 'Fiestas populares': 'fiestas', Deportes: 'deporte', 'Ferias, Exposiciones y Museos': 'exposiciones',
+};
+const NO_SON_PLANES_MALAGA = new Set(['Cursos y talleres']);
+
+/** Filas de un CSV (comillas dobles, comas y saltos de línea dentro de los campos). */
+export function leerCsv(texto) {
+  const filas = [];
+  let fila = [];
+  let campo = '';
+  let entreComillas = false;
+  for (let i = 0; i < texto.length; i += 1) {
+    const c = texto[i];
+    if (entreComillas) {
+      if (c === '"' && texto[i + 1] === '"') { campo += '"'; i += 1; } else if (c === '"') entreComillas = false;
+      else campo += c;
+    } else if (c === '"') entreComillas = true;
+    else if (c === ',') { fila.push(campo); campo = ''; } else if (c === '\n') { fila.push(campo.replace(/\r$/, '')); filas.push(fila); fila = []; campo = ''; } else campo += c;
+  }
+  if (campo || fila.length) filas.push([...fila, campo]);
+  const [cabecera = [], ...resto] = filas;
+  return resto.filter((f) => f.length >= cabecera.length).map((f) => Object.fromEntries(cabecera.map((k, i) => [k, f[i]])));
+}
+
+export const malaga = {
+  id: 'malaga',
+  nombre: 'Agenda de Málaga',
+  zona: enCaja({ latMin: 36.5, latMax: 36.95, lonMin: -4.85, lonMax: -4.1 }),
+  async descargar(ctx, desde, hasta) {
+    const eventos = [];
+    for (const anio of [...new Set([desde.slice(0, 4), hasta.slice(0, 4)])]) {
+      let texto;
+      try {
+        texto = await ctx.http.texto(URL_MALAGA(anio));
+      } catch (error) {
+        // La del año que viene aún puede no existir: con la de este basta.
+        if (anio !== desde.slice(0, 4) && error.estado === 404) continue;
+        throw error;
+      }
+      for (const f of leerCsv(texto)) {
+        if (NO_SON_PLANES_MALAGA.has(f.CATEGORIA)) continue;
+        const web = f.DIRECCION_WEB?.trim();
+        const e = evento({
+          nombre: f.NOMBRE, desde: diaEspanol(f.F_INICIO), hasta: diaEspanol(f.F_FIN), ...CENTRO_MALAGA, municipio: 'Málaga',
+          url: url(web && !/^https?:/.test(web) ? `https://${web}` : web),
+          tipo: TIPOS_MALAGA[f.CATEGORIA] ?? tipoEvento(f.NOMBRE, f.CATEGORIA, f.ESPECIALIDAD),
+          precio: /gratu/i.test(f.PRECIO ?? '') ? 'Gratis' : null,
+        });
+        if (e && e.hasta >= desde && e.desde <= hasta) eventos.push(e);
+      }
+    }
+    return eventos;
+  },
+};
+
 // ── Toda España: Ticketmaster (con clave) ────────────────────────────────────
 
 const TIPOS_TM = { Music: 'musica', 'Arts & Theatre': 'escena', Family: 'familia', Sports: 'deporte', Film: 'cine' };
@@ -194,4 +335,4 @@ export const ticketmaster = {
 };
 
 /** Los proveedores además del de Cataluña (que vive en eventos.js por compatibilidad). */
-export const PROVEEDORES = [euskadi, castillaLeon, madrid, ticketmaster];
+export const PROVEEDORES = [euskadi, castillaLeon, madrid, valenciana, zaragoza, malaga, ticketmaster];

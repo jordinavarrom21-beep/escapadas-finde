@@ -161,7 +161,7 @@ describe('eventos cerca de cada oferta, por zona', () => {
   });
 
   test('Ticketmaster solo se pide con clave', async () => {
-    const valencia = oferta({ lugar: { nombre: 'Valencia', lat: 39.47, lon: -0.38 }, fechas: { salida: '2026-10-01', vuelta: '2026-10-03' } });
+    const valencia = oferta({ lugar: { nombre: 'Cáceres', lat: 39.475, lon: -6.372 }, fechas: { salida: '2026-10-01', vuelta: '2026-10-03' } });
     const sin = contexto(() => ({}));
     await anadirEventos([valencia], sin.ctx);
     assert.equal(sin.peticiones.length, 0);

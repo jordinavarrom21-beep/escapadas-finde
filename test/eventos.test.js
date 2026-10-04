@@ -66,7 +66,7 @@ describe('eventos', () => {
 
   test('no consulta nada en zonas sin agenda, sin coordenadas ni para findes lejanos', async () => {
     const { ctx, peticiones } = contexto();
-    const fuera = oferta({ titulo: 'Hotel en Valencia', lugar: { nombre: 'Valencia', lat: 39.47, lon: -0.38 } });
+    const fuera = oferta({ titulo: 'Hotel en Cáceres', lugar: { nombre: 'Cáceres', lat: 39.475, lon: -6.372 } });
     const sinLugar = oferta({ titulo: 'Descuento general de la web' });
     const lejana = oferta({ lugar: SITGES, fechas: { findeId: FINDES[5].id } });
     await anadirEventos([fuera, sinLugar, lejana], ctx);

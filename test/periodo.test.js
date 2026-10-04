@@ -91,7 +91,7 @@ describe('franja del periodo y Lista / Mapa', async () => {
   const { conmutadorListaMapa, franjaPeriodo, pestanas } = await import('../site/js/vistas-comun.js');
   const e = { findes: [ctx.finde, FINDE], puente: PUENTE, datos: { puentes: [PUENTE] } };
   it('dice el periodo con sus días, igual en todas las pestañas, y ofrece cambiarlo', () => {
-    assert.match(franjaPeriodo(e, 'escapadas', { cuando: 'puente' }), /<strong>Puente<\/strong> · Fiesta Nacional · vie 9 – lun 12 oct[^]*data-cambiar-fechas>Cambiar fechas/);
+    assert.match(franjaPeriodo(e, 'escapadas', { cuando: 'puente' }), /<strong>Puente<\/strong> · Fiesta Nacional · vie 9 – lun 12 oct[^]*data-cambiar-fechas>Cambiar<span class="solo-ancho"> fechas<\/span>/);
     const texto = (html) => html.match(/franja-periodo__texto">(.*?)<\/span>/)[1];
     assert.equal(texto(franjaPeriodo(e, 'vuelos', { finde: '2026-10-10' })), texto(franjaPeriodo(e, 'actividades', { cuando: '2026-10-10' })));
     assert.match(franjaPeriodo(e, 'vuelos', { finde: '2026-10-10', aero: 'BCN' }), /href="#\/vuelos\?aero=BCN" aria-label="Quitar las fechas"/);

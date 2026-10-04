@@ -8,7 +8,7 @@ import {
   contar, duracion, enumerar, escaparHtml as esc, euros, haceCuanto, urlSegura, ETIQUETAS_ALOJAMIENTO, TIPOS_EVENTO,
   ETIQUETAS_REGIMEN, ETIQUETAS_TIPO, ETIQUETAS_TRANSPORTE,
 } from './formato.js';
-import { etiquetaDia } from './fechas.js';
+import { etiquetaDia, nombreFinde } from './fechas.js';
 import {
   ALOJAMIENTOS, ATAJOS_ESCAPADAS, ATAJOS_A_LA_VISTA, ORDENES_ACTIVIDADES, SIN_COCHE, ORDENES_ESCAPADAS, REGIMENES_ORDEN,
   buscarActividades, buscarEscapadas, buscarTexto, chollosDeVuelos, conFaltas, promocionesDeVuelos, crearHash, destinosDe,
@@ -56,7 +56,7 @@ export function vistaVuelos(e, params) {
   if (!e.datos.ofertas.some(tieneVuelo)) return vistaChollosVuelos(e, params, f, paises);
   const chips = [
     `<label class="chip"><input type="radio" name="finde" value=""${marcado(!f.finde && !f.desde && !f.hasta)}> Todos</label>`,
-    ...e.findes.map((finde, i) => `<label class="chip${finde.puenteId ? ' chip--puente' : ''}"><input type="radio" name="finde" value="${esc(finde.id)}"${marcado(f.finde === finde.id)}> ${i === 0 ? 'Este finde · ' : ''}${esc(etiquetaFinde(finde, e.datos.puentes))}</label>`),
+    ...e.findes.map((finde, i) => `<label class="chip${finde.puenteId ? ' chip--puente' : ''}"><input type="radio" name="finde" value="${esc(finde.id)}"${marcado(f.finde === finde.id)}> ${i === 0 ? `${nombreFinde(e.hoy)} · ` : ''}${esc(etiquetaFinde(finde, e.datos.puentes))}</label>`),
     ...e.datos.puentes.map((p) => `<label class="chip chip--puente"><input type="radio" name="finde" value="${esc(p.id)}"${marcado(f.finde === p.id)}> ${etiquetaPuente(p)}</label>`),
   ];
   return `${pestanas('explorar', 'vuelos')}<h1 class="titulo-vista" tabindex="-1">Vuelos</h1>
@@ -169,7 +169,7 @@ function chipsCuando(e, f) {
   const chip = (valor, texto, clase = '') => `<label class="chip${clase}"><input type="radio" name="cuando" value="${esc(valor)}"${marcado(f.cuando === valor)}> ${texto}</label>`;
   return [
     chip('', 'Cualquier fecha'),
-    chip('finde', `Este finde · ${esc(etiquetaFinde(e.findes[0], e.datos.puentes))}`),
+    chip('finde', `${nombreFinde(e.hoy)} · ${esc(etiquetaFinde(e.findes[0], e.datos.puentes))}`),
     ...e.findes.slice(1, 6).map((finde) => chip(finde.id, esc(etiquetaFinde(finde, e.datos.puentes)), finde.puenteId ? ' chip--puente' : '')),
     ...e.datos.puentes.map((p) => chip(p.id, etiquetaPuente(p), ' chip--puente')),
   ].join('');
@@ -251,13 +251,21 @@ function campoEventos(f) {
 export const contarSecundarios = (params = {}) => FILTROS_SECUNDARIOS
   .filter((clave) => params[clave] && !(clave === 'transporte' && params[clave] === 'coche')).length;
 
+/** Cuántos atajos se ven en el móvil sin abrir «Más ideas». */
+const ATAJOS_A_LA_VISTA_MOVIL = 3;
+
 /** Atajos de un clic: enlaces con su hash. */
-function atajosEscapadas(vista) {
-  const enlace = (a) => `<a class="chip chip--atajo" href="${esc(crearHash(vista, a.params))}">${icono(a.icono)}${esc(a.texto)}</a>`;
+function atajosEscapadas(vista, hoy) {
+  // «Este finde» es «El próximo finde» el domingo, como en el resto de la web.
+  const texto = (a) => (a.params.cuando === 'finde' ? nombreFinde(hoy) : a.texto);
+  const enlace = (a, clase = '') => `<a class="chip chip--atajo${clase}" href="${esc(crearHash(vista, a.params))}">${icono(a.icono)}${esc(texto(a))}</a>`;
   const [vistos, mas] = [ATAJOS_ESCAPADAS.slice(0, ATAJOS_A_LA_VISTA), ATAJOS_ESCAPADAS.slice(ATAJOS_A_LA_VISTA)];
-  // En varias filas y sin deslizar de lado: en una sola fila no se notaba que había más.
-  return `<nav class="atajos" aria-label="Atajos de búsqueda"><div class="chips__lista">${vistos.map(enlace).join('')}
-  ${mas.length ? `<details class="atajos__mas"><summary class="chip chip--atajo chip--mas">${icono('nuevo')}Más ideas (${mas.length})</summary><div class="chips__lista">${mas.map(enlace).join('')}</div></details>` : ''}</div></nav>`;
+  // En el móvil, solo los primeros a la vista (los demás, en «Más ideas»): con todos, la lista
+  // empezaba fuera de la primera pantalla. En varias filas y sin deslizar de lado.
+  const enMovil = vistos.slice(ATAJOS_A_LA_VISTA_MOVIL);
+  const cuenta = enMovil.length ? `<span class="solo-ancho">${mas.length}</span><span class="solo-estrecho">${mas.length + enMovil.length}</span>` : mas.length;
+  return `<nav class="atajos" aria-label="Atajos de búsqueda"><div class="chips__lista">${vistos.map((a, i) => enlace(a, i >= ATAJOS_A_LA_VISTA_MOVIL ? ' solo-ancho-flex' : '')).join('')}
+  ${mas.length || enMovil.length ? `<details class="atajos__mas"><summary class="chip chip--atajo chip--mas">${icono('nuevo')}<span>Más ideas (${cuenta})</span></summary><div class="chips__lista">${enMovil.map((a) => enlace(a, ' solo-estrecho-flex')).join('')}${mas.map((a) => enlace(a)).join('')}</div></details>` : ''}</div></nav>`;
 }
 
 /** Icono de cada filtro puesto (por su clave; las temáticas, el de la suya). */
@@ -279,7 +287,7 @@ const CLAVES_PERIODO = ['cuando', 'finde', 'desde', 'hasta'];
 function filaActivos(e, vista, params) {
   const conFranja = ['escapadas', 'vuelos', 'actividades', 'mapa'].includes(vista);
   const chips = filtrosActivos(vista, params, {
-    temas: e.temas, fuentes: e.fuentes, findes: e.findes, puentes: e.datos.puentes,
+    temas: e.temas, fuentes: e.fuentes, findes: e.findes, puentes: e.datos.puentes, hoy: e.hoy,
   }).filter((c) => !conFranja || !CLAVES_PERIODO.includes(c.clave));
   if (!chips.length) return '';
   // Si al quitarlo no queda ninguno, también se olvida la memoria (si no, volvería al entrar).
@@ -391,7 +399,7 @@ function formularioEscapadas(e, params, vista) {
 export function vistaEscapadas(e, params) {
   return `${pestanas('explorar', 'escapadas')}<h1 class="titulo-vista" tabindex="-1">Escapadas</h1>
 ${avisoMemoria(e, 'escapadas')}${avisoViajeCompartido(e, params)}
-${atajosEscapadas('escapadas')}
+${atajosEscapadas('escapadas', e.hoy)}
 <div class="explorar">
   <div class="explorar__filtros">${plegableMovil(e, 'escapadas', params)}${formularioEscapadas(e, params, 'escapadas')}</details></div>
   <div id="resultados" class="explorar__resultados">${resultadosEscapadas(e, params)}</div>
@@ -451,21 +459,40 @@ function tambienCerca(e, f, params, encontradas) {
 }
 
 /**
- * Con unas fechas elegidas, cuántas de la lista tienen de verdad fechas en ellas y cuántas son
- * de fechas flexibles (valen esos días según disponibilidad). Casi todas son flexibles: sin esto,
- * «1046 escapadas para el puente» parecía que eran 1046 viajes de esos días.
+ * Con unas fechas elegidas, la lista en tres partes: primero las que tienen fechas de verdad en
+ * ese finde o puente (o en tus días), después las de fechas cerradas que se salen un poco
+ * (salen antes o vuelven después) y al final las de fechas flexibles, que valen esos días según
+ * disponibilidad. Casi todas son flexibles: mezcladas, las que de verdad caben salían entre la
+ * 25 y la 993. Dentro de cada parte, el orden elegido. null si no hay fechas elegidas o no hay
+ * ninguna con fechas cerradas (entonces, la lista de siempre).
  */
-export function desgloseFechas(f, params, ofertas, rango) {
-  if (!f.cuando && !f.desde && !f.hasta) return '';
-  if (f.soloCerradas || !ofertas.length) return '';
+export function partesPorFechas(f, ofertas, rango) {
+  if ((!f.cuando && !f.desde && !f.hasta) || f.soloCerradas) return null;
   const cerradas = ofertas.filter((o) => o.fechas?.salida);
-  const caben = rango ? cerradas.filter((o) => encajeEnRango(o, rango)?.cabe) : cerradas;
-  const flexibles = ofertas.length - cerradas.length;
-  const enEsas = rango?.tipo === 'puente' ? 'en ese puente' : rango ? 'en ese finde' : 'en esos días';
-  const ver = caben.length
-    ? ` <a href="${esc(crearHash('escapadas', { ...params, cerradas: '1', ...(rango ? { encaje: '1' } : {}) }))}">Ver solo ${caben.length === 1 ? 'esa' : `esas ${caben.length}`}</a>`
-    : '';
-  return `<p class="desglose-fechas">${icono('calendario')}<span><strong>${esc(contar(caben.length, 'escapada'))} con fechas ${enEsas}</strong>${cerradas.length > caben.length ? ` (y ${cerradas.length - caben.length} que salen un poco antes o vuelven después)` : ''} · ${esc(contar(flexibles, 'de fechas flexibles', 'de fechas flexibles'))}: valen esos días según disponibilidad, que confirma su web.${ver}</span></p>`;
+  if (!cerradas.length) return null;
+  const caben = rango ? cerradas.filter((o) => encajeEnRango(o, rango)?.cabe !== false) : cerradas;
+  const alrededor = rango ? cerradas.filter((o) => encajeEnRango(o, rango)?.cabe === false) : [];
+  return { caben, alrededor, flexibles: ofertas.filter((o) => !o.fechas?.salida) };
+}
+
+function listaPorFechas(e, f, params, ofertas, ctx) {
+  const partes = partesPorFechas(f, ofertas, ctx.rango);
+  if (!partes) return rejilla(ofertas, ctx, { mostradas: mostradas(e, 'escapadas'), clave: 'escapadas' });
+  const { caben, alrededor, flexibles } = partes;
+  const enEsas = ctx.rango?.tipo === 'puente' ? 'en ese puente' : ctx.rango ? 'en ese finde' : 'en esos días';
+  const contador = (n, uno, varios) => `<span class="contador">${esc(contar(n, uno, varios))}</span>`;
+  const bloque = (titulo, n, intro, lista, clave, ic = '') => `<section class="seccion seccion--fechas">
+  <div class="seccion__cabeza"><h2>${ic ? icono(ic) : ''}${esc(titulo)}</h2>${contador(n, 'escapada')}</div>
+  ${intro ? `<p class="seccion__intro">${intro}</p>` : ''}
+  ${rejilla(lista, ctx, { mostradas: mostradas(e, clave), clave })}
+</section>`;
+  return [
+    caben.length
+      ? bloque(`Con fechas ${enEsas}`, caben.length, 'Salen y vuelven dentro de esos días: el precio es para esas fechas.', caben, 'escapadas-fechas', 'calendario')
+      : `<p class="desglose-fechas">${icono('calendario')}<span>Ninguna con fechas cerradas que quepa ${enEsas}${alrededor.length ? ': abajo, las que se salen un poco' : ''}.</span></p>`,
+    alrededor.length ? bloque('Salen un poco antes o vuelven después', alrededor.length, 'Cada una dice en qué se sale de esos días.', alrededor, 'escapadas-alrededor') : '',
+    flexibles.length ? bloque('De fechas flexibles', flexibles.length, 'Valen esos días según disponibilidad, que confirma su web (el botón de la oferta la abre con tus fechas cuando se puede).', flexibles, 'escapadas') : '',
+  ].join('\n');
 }
 
 export function resultadosEscapadas(e, params) {
@@ -476,10 +503,10 @@ export function resultadosEscapadas(e, params) {
   const ctx = ctxTarjetas(e, { distancias, desde: f.punto?.nombre ?? nombreSalida(e), rango: rangoDe(f.cuando, contextoBusqueda(e)), conEventos: Boolean(f.evento), tipoEvento: f.evento });
   // En el móvil el «Mapa» ya está en la pastilla flotante: aquí sobra.
   const acciones = conmutadorListaMapa(params, 'escapadas');
-  return `${franjaPeriodo(e, 'escapadas', params)}${filaActivos(e, 'escapadas', params)}${resumenResultados(contar(ofertas.length, 'escapada'), acciones)}${desgloseFechas(f, params, ofertas, ctx.rango)}${aproximado ? avisoAproximado(f.q) : ''}${tambienCerca(e, f, params, ofertas)}
+  return `${franjaPeriodo(e, 'escapadas', params)}${filaActivos(e, 'escapadas', params)}${resumenResultados(contar(ofertas.length, 'escapada'), acciones)}${aproximado ? avisoAproximado(f.q) : ''}${tambienCerca(e, f, params, ofertas)}
 ${ordenRapido('escapadas', params, f.orden)}${explicacionOrden(e, f, costes)}${f.presupuesto ? `<p class="seccion__intro">Presupuesto: viaje completo (oferta y gasolina estimada) de hasta ${esc(euros(f.presupuesto))} ${f.presupuestoPor === 'persona' ? 'por persona' : 'en total'} para ${esc(contar(e.viaje?.viajeros ?? 2, 'persona'))}.${sinTotal ? ` ${esc(contar(sinTotal, 'oferta'))} sin datos suficientes para un total no se pueden comprobar y no salen.` : ''}</p>` : ''}
 ${ofertas.length
-    ? rejilla(ofertas, ctx, { mostradas: mostradas(e, 'escapadas'), clave: 'escapadas' })
+    ? listaPorFechas(e, f, params, ofertas, ctx)
     : periodoPasado(f.cuando, contextoBusqueda(e)) ? vacioPeriodoPasado('escapadas')
       : estadoVacio('Ninguna escapada cumple estos filtros', 'Prueba a quitar alguna temática, ampliar la distancia o subir el precio máximo.', `${buscarFuera(f.q)}${botonLimpiar('escapadas')}`)}`;
 }
@@ -532,7 +559,7 @@ ${lista.length
 export function vistaMapa(e, params) {
   // El mapa es otra forma de ver las escapadas: su pestaña es la de Escapadas.
   return `${pestanas('explorar', 'escapadas')}<h1 class="titulo-vista" tabindex="-1">Escapadas en el mapa</h1>
-${atajosEscapadas('mapa')}<details class="filtros-plegables"><summary>Filtros del mapa</summary>${formularioEscapadas(e, params, 'mapa')}</details>
+${atajosEscapadas('mapa', e.hoy)}<details class="filtros-plegables"><summary>Filtros del mapa</summary>${formularioEscapadas(e, params, 'mapa')}</details>
 <div id="resultados">${resultadosMapa(e, params)}</div>
 <div id="mapa" class="mapa" role="region" aria-label="Mapa de escapadas y destinos de vuelo"><p class="mapa__cargando">Cargando el mapa…</p></div>`;
 }
