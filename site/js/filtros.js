@@ -4,7 +4,7 @@
  */
 
 import { costeViaje } from './coste.js';
-import { diaSemana, diasEntre, etiquetaDia, fechaLocal, quedanNoches, sumarDias } from './fechas.js';
+import { diaSemana, diasEntre, etiquetaDia, fechaLocal, nombreFinde, quedanNoches, sumarDias } from './fechas.js';
 import { distanciaKm, esMismoPunto, minutosEnCoche, radioKmParaMinutos, tieneCoordenadas } from './geo.js';
 import { clavePunto } from './rutas.js';
 import {
@@ -1245,7 +1245,7 @@ function textoFiltro(clave, valor, ctx) {
     return t ? t.nombre : id;
   };
   const periodo = (id) => {
-    if (id === 'finde') return 'Este finde';
+    if (id === 'finde') return nombreFinde(ctx.hoy);
     if (id === 'puente') return 'Próximo puente';
     return ctx.findes?.find((f) => f.id === id)?.etiqueta ?? ctx.puentes?.find((p) => p.id === id)?.nombre ?? TEXTO_PERIODO_PASADO;
   };

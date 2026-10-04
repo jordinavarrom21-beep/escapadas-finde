@@ -110,6 +110,14 @@ export function estadoFinde(ahora = new Date()) {
   return { esFinde: false, faltaMs: ((dias * 1440 + inicio - minutosDia) * 60 - segundo) * 1000 };
 }
 
+/**
+ * Cómo se llama el primer finde que se propone: «Este finde» o, el domingo (cuando el en curso
+ * ya no se propone y el primero es el de la semana que viene), «El próximo finde».
+ */
+export const nombreFinde = (hoy) => (hoy && diaSemana(hoy) === 0 ? 'El próximo finde' : 'Este finde');
+/** Lo mismo dentro de una frase: «para este finde» / «para el próximo finde». */
+export const nombreFindeEnFrase = (hoy) => nombreFinde(hoy).replace(/^E/, 'e');
+
 /** Los próximos `n` findes a los que aún se puede ir: el domingo, el en curso ya no. */
 export function findesConNoches(n, ahora = new Date()) {
   const hoy = fechaLocal(ahora);

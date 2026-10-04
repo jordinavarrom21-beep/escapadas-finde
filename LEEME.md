@@ -379,9 +379,15 @@ del navegador con los datos publicados. Si algo falla, no se fusiona.
   actividades para niños a menos de 25 km del alojamiento en las fechas de la oferta. Salen en
   la tarjeta («Concierto a 3 km»), en la ficha («Qué hay esos días por la zona») y en el filtro
   «¿Algo que hacer cerca esos días?». Fuentes públicas por zona (`src/enriquecer/agendas.js`):
-  Agenda Cultural de Catalunya, Kulturklik (Euskadi y Navarra), agenda de Castilla y León y
-  agenda municipal de Madrid. Cada agenda se descarga solo si hay ofertas en su zona y se guarda
+  Agenda Cultural de Catalunya, Kulturklik (Euskadi y Navarra), agenda de Castilla y León,
+  agendas municipales de Madrid, Zaragoza y Málaga y la del Institut Valencià de Cultura
+  (Comunitat Valenciana). Cada agenda se descarga solo si hay ofertas en su zona y se guarda
   6 horas.
+- **¿Sigue activa?** En cada escaneo se mira, poco a poco (unas 20 páginas, con pausa y
+  respetando robots.txt), la página de las ofertas de las webs que dicen en ella si el chollo ha
+  terminado (hoy, Chollometro): las terminadas se retiran y las activas cuentan como vistas. Las
+  webs que se leen enteras retiran lo que dejan de publicar a los 2 días; las de feed, a los
+  5–10 días sin verlas (`src/enriquecer/vigencia.js`).
 - **Conciertos y festivales de toda España** (opcional, gratis): crea una cuenta en
   [developer.ticketmaster.com](https://developer.ticketmaster.com), copia la «Consumer Key» y
   guárdala como secreto `TICKETMASTER_KEY` en GitHub (*Settings → Secrets and variables →

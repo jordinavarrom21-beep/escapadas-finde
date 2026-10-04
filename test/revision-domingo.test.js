@@ -6,12 +6,15 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { findesConNoches, findesProximos, proximoPuente, quedanNoches } from '../site/js/fechas.js';
+import { findesConNoches, findesProximos, nombreFinde, nombreFindeEnFrase, proximoPuente, quedanNoches } from '../site/js/fechas.js';
+import { filtrosActivos } from '../site/js/filtros.js';
+import { franjaPeriodo } from '../site/js/vistas-comun.js';
+import { buscadorFinde, vistaEscapadas } from '../site/js/vistas.js';
 import {
-  buscarEscapadas, eventosEnBusqueda, filtrarVuelos, leerFiltrosEscapadas, leerFiltrosVuelos, leerRuta, resumenCalendario,
+  buscarEscapadas, eventosEnBusqueda, filtrarVuelos, leerFiltrosEscapadas, leerFiltrosVuelos, leerRuta, rangoDe, resumenCalendario,
 } from '../site/js/filtros.js';
 import { contextoBusqueda } from '../site/js/vistas-comun.js';
-import { desgloseFechas, resultadosEscapadas, vistaCalendario, vistaMis, vistaAyuda } from '../site/js/vistas.js';
+import { partesPorFechas, resultadosEscapadas, vistaCalendario, vistaMis, vistaAyuda } from '../site/js/vistas.js';
 import { insigniaEvento } from '../site/js/plantillas.js';
 import { periodoViaje } from '../src/enriquecer/tiempo.js';
 import { findesProximos as findesEscaner } from '../src/util/fechas.js';
@@ -29,6 +32,20 @@ describe('el domingo, el finde en curso ya no se propone', () => {
     assert.equal(findesConNoches(1, new Date('2026-10-03T20:00:00Z'))[0].id, '2026-10-02', 'sábado: aún queda la noche del sábado');
     // La función común sigue igual que la del escáner (los dos asignan findes a las ofertas).
     assert.deepEqual(findesProximos(2, DOMINGO), findesEscaner(2, DOMINGO));
+  });
+
+  it('el domingo se llama «El próximo finde» en todas partes; el resto de días, «Este finde»', () => {
+    assert.equal(nombreFinde('2026-10-04'), 'El próximo finde');
+    assert.equal(nombreFinde('2026-10-03'), 'Este finde');
+    assert.equal(nombreFinde('2026-10-05'), 'Este finde');
+    assert.equal(nombreFindeEnFrase('2026-10-04'), 'el próximo finde');
+    const e = estadoPanel(DATOS_PANEL, { hoy: '2026-09-20' }); // domingo
+    assert.match(buscadorFinde(e), /<small>El próximo finde<\/small>/);
+    assert.match(franjaPeriodo(e, 'escapadas', { cuando: 'finde' }), /<strong>El próximo finde<\/strong>/);
+    assert.deepEqual(filtrosActivos('escapadas', { cuando: 'finde' }, { hoy: e.hoy }).map((c) => c.texto), ['El próximo finde']);
+    assert.match(vistaEscapadas(e, {}), /El próximo finde ·/);
+    assert.ok(!/Este finde/.test(buscadorFinde(e)));
+    assert.match(buscadorFinde(estadoPanel()), /<small>Este finde<\/small>/, 'el viernes, «Este finde»');
   });
 
   it('el puente tampoco el día que termina', () => {
@@ -61,23 +78,29 @@ describe('Calendario: cada cifra es la de la lista que abre', () => {
   });
 });
 
-describe('Escapadas: cuántas tienen fechas de verdad en el periodo y cuántas son flexibles', () => {
+describe('Escapadas: primero las que tienen fechas del periodo elegido', () => {
   const e = estadoPanel();
-  it('con un finde o un puente, el desglose y un enlace a solo las que caben', () => {
-    const html = resultadosEscapadas(e, { cuando: e.puente.id });
-    const desglose = html.match(/<p class="desglose-fechas">[^]*?<\/p>/)?.[0] ?? '';
-    assert.match(desglose, /con fechas en ese puente/);
-    assert.match(desglose, /de fechas flexibles: valen esos días según disponibilidad/);
-    const total = Number(html.match(/resultados__cuenta">(\d+) escapadas?/)[1]);
-    const caben = Number(desglose.match(/<strong>(\d+) escapadas? con fechas/)[1]);
-    const flexibles = Number(desglose.match(/(\d+) de fechas flexibles/)[1]);
-    const fuera = Number(desglose.match(/y (\d+) que salen/)?.[1] ?? 0);
-    assert.equal(caben + fuera + flexibles, total, 'las tres partes suman la lista');
-    if (caben) assert.match(desglose, /cerradas=1&amp;encaje=1|cerradas=1&encaje=1/);
+  const ctx = contextoBusqueda(e);
+  it('con el puente: las que caben, luego las que se salen un poco y al final las flexibles (y suman la lista)', () => {
+    const params = { cuando: e.puente.id };
+    const { ofertas } = buscarEscapadas(e.datos.ofertas, leerFiltrosEscapadas(params), ctx);
+    const partes = partesPorFechas(leerFiltrosEscapadas(params), ofertas, rangoDe(params.cuando, ctx));
+    assert.ok(partes.caben.length > 0, 'la fixture tiene alguna con fechas del puente');
+    assert.equal(partes.caben.length + partes.alrededor.length + partes.flexibles.length, ofertas.length);
+    assert.ok(partes.caben.every((o) => o.fechas.salida) && partes.flexibles.every((o) => !o.fechas?.salida));
+    const html = resultadosEscapadas(e, params);
+    const primera = html.indexOf('Con fechas en ese puente');
+    assert.ok(primera > 0 && primera < html.indexOf('De fechas flexibles'), 'primero las del puente');
+    // Las tarjetas del primer bloque son las que caben, en el orden elegido.
+    const bloque = html.slice(primera, html.indexOf('De fechas flexibles'));
+    const ids = [...bloque.matchAll(/data-ficha="([^"]+)"/g)].map((m) => m[1]);
+    assert.deepEqual([...new Set(ids)], partes.caben.slice(0, 12).map((o) => o.id));
   });
-  it('sin fechas elegidas (o ya filtrando por fechas cerradas), nada', () => {
-    assert.equal(desgloseFechas(leerFiltrosEscapadas({}), {}, [{}], null), '');
-    assert.equal(desgloseFechas(leerFiltrosEscapadas({ cuando: 'finde', cerradas: '1' }), {}, [{}], null), '');
+  it('sin fechas elegidas, filtrando solo las de fechas cerradas o sin ninguna cerrada: la lista de siempre', () => {
+    assert.equal(partesPorFechas(leerFiltrosEscapadas({}), [{ fechas: { salida: '2026-10-09' } }], null), null);
+    assert.equal(partesPorFechas(leerFiltrosEscapadas({ cuando: 'finde', cerradas: '1' }), [{ fechas: { salida: '2026-10-09' } }], null), null);
+    assert.equal(partesPorFechas(leerFiltrosEscapadas({ cuando: 'finde' }), [{ fechas: {} }], null), null);
+    assert.ok(!/De fechas flexibles/.test(resultadosEscapadas(e, {})));
   });
 });
 

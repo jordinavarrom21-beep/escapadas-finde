@@ -3,7 +3,7 @@
  * las secciones, las pestañas y los campos de los formularios de filtros.
  */
 
-import { etiquetaDia } from './fechas.js';
+import { etiquetaDia, nombreFinde } from './fechas.js';
 import { contar, escaparHtml as esc } from './formato.js';
 import { POR_PAGINA, TEXTO_PERIODO_PASADO, crearHash, destinosDe, resumenFuentes, salidaPuente } from './filtros.js';
 import { NOCHES, VIAJEROS, aeropuertosCercanos } from './viaje.js';
@@ -115,6 +115,7 @@ export function contextoBusqueda(e) {
     distanciasSalida: e.distanciasOrigen ?? null,
     ...datosViaje(e),
     aeropuertos: misAeropuertos(e),
+    hoy: e.hoy,
     finde: e.findes[0],
     puente: e.puente,
     findes: e.findes,
@@ -318,7 +319,7 @@ export function franjaPeriodo(e, vista, params = {}) {
   const puente = (e.datos.puentes ?? []).find((p) => p.id === id);
   const { desde = '', hasta = '' } = params;
   let texto;
-  if (finde) texto = `<strong>${finde.id === e.findes[0]?.id ? 'Este finde' : 'Finde'}</strong> · ${esc(etiquetaFinde(finde, e.datos.puentes))}`;
+  if (finde) texto = `<strong>${finde.id === e.findes[0]?.id ? nombreFinde(e.hoy) : 'Finde'}</strong> · ${esc(etiquetaFinde(finde, e.datos.puentes))}`;
   else if (puente) texto = `<strong>Puente</strong> · ${esc(puente.nombre)} · ${esc(diasExplicitos(salidaPuente(puente), puente.hasta))}`;
   else if (desde && hasta) texto = desde === hasta ? `<strong>El ${esc(etiquetaDia(desde))}</strong>` : `<strong>Fechas</strong> · ${esc(diasExplicitos(desde, hasta))}`;
   else if (desde || hasta) texto = `<strong>${desde ? `Desde el ${esc(etiquetaDia(desde))}` : `Hasta el ${esc(etiquetaDia(hasta))}`}</strong>`;
@@ -328,7 +329,7 @@ export function franjaPeriodo(e, vista, params = {}) {
   const elegido = texto !== '<strong>Cualquier fecha</strong>';
   const sinFechas = Object.fromEntries(Object.entries(params).filter(([clave]) => !['cuando', 'finde', 'desde', 'hasta'].includes(clave)));
   const quitar = elegido ? `<a class="franja-periodo__quitar" href="${esc(crearHash(vista, sinFechas))}" aria-label="Quitar las fechas">${icono('cerrar')}</a>` : '';
-  return `<div class="franja-periodo${!finde && !puente && !desde && !hasta && cuando ? ' franja-periodo--pasado' : ''}">${icono('calendario')}<span class="franja-periodo__texto">${texto}</span><button type="button" class="enlace-boton" data-cambiar-fechas>${elegido ? 'Cambiar fechas' : 'Elegir fechas'}</button>${quitar}</div>`;
+  return `<div class="franja-periodo${!finde && !puente && !desde && !hasta && cuando ? ' franja-periodo--pasado' : ''}">${icono('calendario')}<span class="franja-periodo__texto">${texto}</span><button type="button" class="enlace-boton" data-cambiar-fechas>${elegido ? 'Cambiar<span class="solo-ancho"> fechas</span>' : 'Elegir fechas'}</button>${quitar}</div>`;
 }
 
 /** «Lista | Mapa»: la misma búsqueda (categoría, fechas y filtros) vista de una u otra forma. */
