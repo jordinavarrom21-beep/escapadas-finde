@@ -5,7 +5,7 @@
 
 import { abrirFicha, liberarFicha } from './ficha.js';
 import { fechasDeBusqueda } from './fechas-enlaces.js';
-import { estadoFinde, fechaLocal, findesProximos, proximoPuente } from './fechas.js';
+import { estadoFinde, fechaLocal, findesConNoches, proximoPuente, quedanNoches } from './fechas.js';
 import {
   POR_PAGINA, actividadesCerca, conPeriodo, periodoDeParams, traducirFormulario, buscarTexto, crearHash, criterioVigilado, filtrosVigentes, leerFiltrosActividades,
   leerFiltrosComunes, leerFiltrosEscapadas, leerFiltrosVuelos, leerRuta, medirDistancias, paramsViaje, referenciaNovedades,
@@ -25,7 +25,7 @@ import { estadoVacio } from './plantillas.js';
 import { icono } from './iconos.js';
 import { activarUbicacion } from './ubicacion.js';
 import {
-  VISTAS_HTML, contarSecundarios, totalNovedadesGuardadas, destinoOrganizar, contenidoSorpresa, estadoWebs, textoEnviar, contextoBusqueda, ctxTarjetas, datosMapa, formularioViaje, nombreSalida,
+  VISTAS_HTML, atajosPortada, contarSecundarios, totalNovedadesGuardadas, destinoOrganizar, contenidoSorpresa, estadoWebs, textoEnviar, contextoBusqueda, ctxTarjetas, datosMapa, formularioViaje, nombreSalida,
   misAeropuertos, resultadosMapa, textoViaje,
 } from './vistas.js';
 
@@ -104,7 +104,8 @@ function detectarPropietario() {
 function crearEstado(datos, historial, vigilados) {
   const ahora = new Date();
   const hoy = fechaLocal(ahora);
-  const findes = (datos.findes ?? []).filter((f) => f.domingo >= hoy);
+  // El domingo, el finde en curso ya no se propone: no le queda ninguna noche.
+  const findes = (datos.findes ?? []).filter((f) => quedanNoches(f.domingo, hoy));
   const visitaAnterior = tomarVisitaAnterior(ahora);
   // Tu salida (si no es el origen del escaneo), viajeros y noches: solo en este navegador.
   const salida = salidaEfectiva(validarSalida(cargarSalida()), datos.origen);
@@ -114,7 +115,7 @@ function crearEstado(datos, historial, vigilados) {
     vigilados: vigilados.vigilados ?? [],
     ahora,
     hoy,
-    findes: findes.length ? findes : findesProximos(10, ahora),
+    findes: findes.length ? findes : findesConNoches(10, ahora),
     puente: proximoPuente(datos.puentes ?? [], hoy),
     favoritos: cargarFavoritos(),
     comparar: cargarComparar(),
@@ -309,7 +310,7 @@ function enlacesConMemoria() {
  */
 function anotarBusqueda(vista, params) {
   estado.busqueda = ['escapadas', 'actividades', 'mapa', 'buscar'].includes(vista)
-    ? fechasDeBusqueda(params, { finde: estado.findes[0], puente: estado.puente, findes: estado.findes, puentes: estado.datos.puentes, noches: estado.viaje?.noches })
+    ? fechasDeBusqueda(params, { finde: estado.findes[0], puente: estado.puente, findes: estado.findes, puentes: estado.datos.puentes, noches: estado.viaje?.noches, hoy: estado.hoy })
     : null;
 }
 
@@ -617,6 +618,12 @@ function ocultarTarjetas(id) {
   document.querySelector(`.sugerencia [data-ficha="${CSS.escape(id)}"]`)?.closest('.portada__destacado')?.remove();
 }
 
+const htmlAElemento = (html) => {
+  const plantilla = document.createElement('template');
+  plantilla.innerHTML = html.trim();
+  return plantilla.content.firstElementChild;
+};
+
 /** El botón del buscador de la portada dice qué se va a ver y para cuándo. */
 function pintarEnviarFinde(formulario) {
   if (!formulario) return;
@@ -852,7 +859,12 @@ function conectarEventos() {
     if (enlace) contarClic(enlace);
   });
   principal.addEventListener('input', alCambiarFiltro);
-  principal.addEventListener('change', (evento) => { if (evento.target.closest?.('[data-buscador-finde]')) pintarEnviarFinde(evento.target.form); });
+  principal.addEventListener('change', (evento) => {
+    if (!evento.target.closest?.('[data-buscador-finde]')) return;
+    pintarEnviarFinde(evento.target.form);
+    // Los atajos siguen a las fechas elegidas: sus cifras y enlaces son de ese periodo.
+    if (evento.target.name === 'cuando') principal.querySelector('.portada__atajos')?.replaceWith(htmlAElemento(atajosPortada(estado, evento.target.value)));
+  });
   principal.addEventListener('change', alCambiarFiltro);
   principal.addEventListener('change', (evento) => { if (evento.target.matches?.('[data-importar-guardados]')) cargarGuardados(evento.target); });
   principal.addEventListener('submit', (evento) => {

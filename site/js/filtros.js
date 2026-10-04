@@ -4,7 +4,7 @@
  */
 
 import { costeViaje } from './coste.js';
-import { diaSemana, diasEntre, etiquetaDia, fechaLocal, sumarDias } from './fechas.js';
+import { diaSemana, diasEntre, etiquetaDia, fechaLocal, quedanNoches, sumarDias } from './fechas.js';
 import { distanciaKm, esMismoPunto, minutosEnCoche, radioKmParaMinutos, tieneCoordenadas } from './geo.js';
 import { clavePunto } from './rutas.js';
 import {
@@ -648,6 +648,19 @@ function dentroDelLimite(distancia, f) {
 const cumpleRegimenMinimo = (o, minimo) => !minimo
   || REGIMENES_ORDEN.indexOf(o.regimen) >= REGIMENES_ORDEN.indexOf(minimo);
 
+/**
+ * Los eventos que cuentan para «¿Algo que hacer cerca esos días?»: en una oferta con fechas
+ * cerradas, los suyos; en una flexible, los que caen en las fechas que buscas (los mismos que
+ * enseña su tarjeta). Antes contaban todos y salían ofertas con eventos de otro finde.
+ */
+export function eventosEnBusqueda(o, f, ctx = {}) {
+  const lista = o.eventos ?? [];
+  if (o.fechas?.salida) return lista;
+  const r = rangoDe(f.cuando, ctx);
+  const [desde, hasta] = r ? [r.inicio, r.fin] : [f.desde, f.hasta];
+  return lista.filter((ev) => !ev.fecha || ((!desde || ev.fecha >= desde) && (!hasta || ev.fecha <= hasta)));
+}
+
 function cumpleEscapada(o, f, ctx, distancia) {
   return cumpleComunes(o, f, ctx)
     && (!f.sinCruceros || !esCrucero(o))
@@ -661,7 +674,7 @@ function cumpleEscapada(o, f, ctx, distancia) {
     && (!f.fuente || o.fuente === f.fuente)
     && (!f.tipo || o.tipo === f.tipo)
     && (!f.soloEncajan || encajeEnRango(o, rangoDe(f.cuando, ctx))?.cabe !== false)
-    && (!f.evento || (o.eventos ?? []).some((ev) => f.evento === 'todos' || ev.tipo === f.evento))
+    && (!f.evento || eventosEnBusqueda(o, f, ctx).some((ev) => f.evento === 'todos' || ev.tipo === f.evento))
     && dentroDelLimite(distancia, f);
 }
 
@@ -935,14 +948,22 @@ export function resumenPuentes(ofertas, puentes = [], hoy, { descartadas } = {})
 }
 
 /** Para cada finde: su puente, el vuelo más barato, cuántos vuelos y cuántas escapadas disponibles. */
-export function resumenCalendario(ofertas, findes, puentes = []) {
+/**
+ * Cada finde con su puente, sus vuelos y cuántas escapadas hay. Con `ctx` (el de la búsqueda)
+ * cuenta con las mismas búsquedas que abren sus botones: sin cruceros, duplicadas ni
+ * descartadas, y los vuelos que salen en «Vuelos» con ese finde. Antes la celda decía «1151» y
+ * la lista abría 1140.
+ */
+export function resumenCalendario(ofertas, findes, puentes = [], ctx = null) {
   return findes.map((finde) => {
     const puente = puenteDelFinde(finde, puentes);
-    const vuelos = ofertas.filter((o) => tieneVuelo(o)
-      && (o.fechas?.findeId === finde.id || (puente != null && o.fechas?.puenteId === puente.id)));
+    const vuelos = ctx
+      ? filtrarVuelos(ofertas, leerFiltrosVuelos({ finde: finde.id }), ctx)
+      : ofertas.filter((o) => tieneVuelo(o) && (o.fechas?.findeId === finde.id || (puente != null && o.fechas?.puenteId === puente.id)));
     const vuelo = vuelos.filter((o) => typeof o.precio === 'number').sort(porPrecio)[0] ?? null;
-    const periodo = periodoFinde(finde);
-    const escapadas = ofertas.filter((o) => esEscapada(o) && disponibleEn(o, periodo)).length;
+    const escapadas = ctx
+      ? buscarEscapadas(ofertas, leerFiltrosEscapadas({ cuando: finde.id }), ctx).ofertas.length
+      : ofertas.filter((o) => esEscapada(o) && disponibleEn(o, periodoFinde(finde))).length;
     return { finde, puente, vuelo, vuelos: vuelos.length, escapadas };
   });
 }
@@ -1143,7 +1164,7 @@ export const ATAJOS_A_LA_VISTA = 6;
 export function filtrosVigentes(params = {}, { hoy, findes = [], puentes = [] } = {}) {
   const vigentes = { ...params };
   const periodoVivo = (id) => ['finde', 'puente'].includes(id)
-    || findes.some((f) => f.id === id && f.domingo >= hoy) || puentes.some((p) => p.id === id && p.hasta >= hoy);
+    || findes.some((f) => f.id === id && quedanNoches(f.domingo, hoy)) || puentes.some((p) => p.id === id && quedanNoches(p.hasta, hoy));
   for (const clave of ['cuando', 'finde']) if (vigentes[clave] && !periodoVivo(vigentes[clave])) delete vigentes[clave];
   if (vigentes.hasta && vigentes.hasta < hoy) {
     delete vigentes.desde;

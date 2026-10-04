@@ -77,7 +77,16 @@ export function viernesDe(iso) {
   return sumarDias(iso, { 5: 0, 6: -1, 0: -2 }[dia] ?? 5 - dia);
 }
 
-/** Los próximos `n` findes; si hoy es viernes, sábado o domingo, el primero es el actual. */
+/**
+ * ¿Queda alguna noche de ese finde o puente? El domingo (o el último día del puente) ya no:
+ * no se puede entrar a dormir y volver dentro, así que deja de proponerse.
+ */
+export const quedanNoches = (ultimoDia, hoy) => ultimoDia > hoy;
+
+/**
+ * Los próximos `n` findes; si hoy es viernes, sábado o domingo, el primero es el actual
+ * (igual que el escáner). Lo que se propone a la persona usa `findesConNoches`.
+ */
 export function findesProximos(n, ahora = new Date()) {
   const primero = viernesDe(fechaLocal(ahora));
   return Array.from({ length: n }, (_, i) => {
@@ -101,7 +110,13 @@ export function estadoFinde(ahora = new Date()) {
   return { esFinde: false, faltaMs: ((dias * 1440 + inicio - minutosDia) * 60 - segundo) * 1000 };
 }
 
-/** Primer puente que aún no ha terminado (o null). */
+/** Los próximos `n` findes a los que aún se puede ir: el domingo, el en curso ya no. */
+export function findesConNoches(n, ahora = new Date()) {
+  const hoy = fechaLocal(ahora);
+  return findesProximos(n + 1, ahora).filter((f) => quedanNoches(f.domingo, hoy)).slice(0, n);
+}
+
+/** Primer puente al que aún se puede ir (le queda alguna noche), o null. */
 export function proximoPuente(puentes = [], hoy) {
-  return [...puentes].filter((p) => p.hasta >= hoy).sort((a, b) => a.desde.localeCompare(b.desde))[0] ?? null;
+  return [...puentes].filter((p) => quedanNoches(p.hasta, hoy)).sort((a, b) => a.desde.localeCompare(b.desde))[0] ?? null;
 }

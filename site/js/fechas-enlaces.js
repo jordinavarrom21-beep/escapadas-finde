@@ -14,10 +14,20 @@ const DIA = /^\d{4}-\d{2}-\d{2}$/;
  * Entrada y salida de lo que se busca: un finde o un puente («cuando»), un rango («desde» y
  * «hasta») o un día («desde» = «hasta», o solo «desde»: se suman las noches del viaje).
  * @param {Record<string, string>} params
- * @param {{finde?: object, puente?: object, findes?: object[], puentes?: object[], noches?: number}} ctx
+ * @param {{finde?: object, puente?: object, findes?: object[], puentes?: object[], noches?: number, hoy?: string}} ctx
  * @returns {{entrada: string, salida: string, etiqueta: string}|null}
  */
 export function fechasDeBusqueda(params = {}, ctx = {}) {
+  // Lo que ya ha pasado no se puede reservar: el sábado de un finde (o a mitad de un puente)
+  // se entra hoy, no el viernes; si ya no queda ninguna noche, sin fechas.
+  const desdeHoy = (r) => {
+    if (!r || !ctx.hoy || r.entrada >= ctx.hoy) return r;
+    return r.salida > ctx.hoy ? rango(ctx.hoy, r.salida) : null;
+  };
+  return desdeHoy(fechasSinRecortar(params, ctx));
+}
+
+function fechasSinRecortar(params, ctx) {
   const cuando = params.cuando;
   if (cuando) {
     const finde = cuando === 'finde' ? ctx.finde : (ctx.findes ?? []).find((f) => f.id === cuando);
