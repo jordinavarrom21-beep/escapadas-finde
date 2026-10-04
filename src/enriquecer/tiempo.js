@@ -57,7 +57,8 @@ const clave = ({ lat, lon }, dia) => `tiempo:${lat},${lon}:${dia}`;
 /**
  * Días que ocupa el viaje de una oferta: su puente, su fin de semana, sus propias
  * fechas si las tiene (una estancia entre semana) o, si no tiene fechas, el próximo
- * fin de semana.
+ * fin de semana al que aún se puede ir (el domingo, el siguiente: al en curso no le
+ * queda ninguna noche; igual que el panel).
  * @returns {{desde: string, hasta: string}|null}
  */
 export function periodoViaje(oferta, ctx) {
@@ -67,7 +68,9 @@ export function periodoViaje(oferta, ctx) {
   const finde = findeId && ctx.findes.find((f) => f.id === findeId);
   if (finde) return { desde: finde.viernes, hasta: finde.domingo };
   if (salida) return { desde: salida.slice(0, 10), hasta: (vuelta ?? salida).slice(0, 10) };
-  return ctx.findes[0] ? { desde: ctx.findes[0].viernes, hasta: ctx.findes[0].domingo } : null;
+  const hoy = ctx.ahora ? fechaLocal(ctx.ahora) : '';
+  const proximo = ctx.findes.find((f) => f.domingo > hoy) ?? ctx.findes[0];
+  return proximo ? { desde: proximo.viernes, hasta: proximo.domingo } : null;
 }
 
 /** Día central del periodo: el sábado de un finde, el día de en medio de un puente. */

@@ -26,6 +26,15 @@ describe('fechas que se buscan', () => {
     assert.equal(fechasDeBusqueda({}, ctxFechas), null);
     assert.equal(fechasDeBusqueda({ desde: 'mañana' }, ctxFechas), null);
   });
+
+  it('nunca con una entrada ya pasada: el sábado se entra el sábado; sin noches por delante, sin fechas', () => {
+    const finde = { cuando: '2026-10-16' };
+    assert.equal(fechasDeBusqueda(finde, { ...ctxFechas, hoy: '2026-10-15' }).entrada, '2026-10-16', 'antes del finde, el viernes');
+    assert.deepEqual(fechasDeBusqueda(finde, { ...ctxFechas, hoy: '2026-10-17' }), { entrada: '2026-10-17', salida: '2026-10-18', etiqueta: '17–18 oct' });
+    assert.equal(fechasDeBusqueda(finde, { ...ctxFechas, hoy: '2026-10-18' }), null, 'el domingo ya no queda noche');
+    assert.equal(fechasDeBusqueda({ cuando: 'puente-2026-10-10' }, { ...ctxFechas, hoy: '2026-10-11' }).entrada, '2026-10-11', 'a mitad del puente, desde hoy');
+    assert.equal(fechasDeBusqueda({ desde: '2026-10-01', hasta: '2026-10-20' }, { ...ctxFechas, hoy: '2026-10-04' }).entrada, '2026-10-04');
+  });
 });
 
 describe('enlaces con las fechas buscadas', () => {

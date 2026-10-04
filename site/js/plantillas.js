@@ -258,14 +258,18 @@ export function eventos(o, { conEnlace = false } = {}, ctx = {}) {
  */
 export function insigniaEvento(o, ctx = {}) {
   // Con fechas flexibles los eventos son los del próximo finde, una suposición: a la tarjeta
-  // solo si son los de sus fechas o los de las que buscas (la ficha los enseña avisando).
-  if (!conFechasDeViaje(o) && !busquedaPara(o, ctx)) return '';
+  // solo si son los de sus fechas o los de las que buscas (la ficha los enseña avisando)…
+  // salvo si filtras por eventos: entonces se ven, con su día («si vas el sáb 10»).
+  const supuesto = !conFechasDeViaje(o) && !busquedaPara(o, ctx);
+  if (supuesto && !ctx.conEventos) return '';
   const lista = eventosDe(o, ctx);
-  const ev = lista.find((e) => !['exposiciones', 'otros'].includes(e.tipo)) ?? lista[0];
+  const preferido = (e) => (ctx.tipoEvento && ctx.tipoEvento !== 'todos' ? e.tipo === ctx.tipoEvento : !['exposiciones', 'otros'].includes(e.tipo));
+  const ev = lista.find(preferido) ?? lista[0];
   if (!ev) return '';
   const [tipo, , ic] = TIPOS_EVENTO[ev.tipo] ?? TIPOS_EVENTO.otros;
   const mas = lista.length > 1 ? ` y ${lista.length - 1} más` : '';
-  return `<span class="insignia insignia--evento" title="${esc(`${ev.nombre}${ev.fecha ? ` · ${etiquetaDia(ev.fecha)}` : ''}${mas ? ` · ${lista.length} eventos cerca esos días` : ''}`)}">${icono(ic)}${esc(`${tipo} ${distanciaEvento(ev.km)}`.trim())}${esc(mas)}</span>`;
+  const dia = supuesto && ev.fecha ? ` · si vas el ${etiquetaDia(ev.fecha)}` : '';
+  return `<span class="insignia insignia--evento" title="${esc(`${ev.nombre}${ev.fecha ? ` · ${etiquetaDia(ev.fecha)}` : ''}${mas ? ` · ${lista.length} eventos cerca esos días` : ''}`)}">${icono(ic)}${esc(`${tipo} ${distanciaEvento(ev.km)}`.trim())}${esc(mas)}${esc(dia)}</span>`;
 }
 
 /** Estrella y nota, con el número de opiniones en el título. */

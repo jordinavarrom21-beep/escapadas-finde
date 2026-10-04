@@ -49,7 +49,7 @@ export function contenidoSorpresa(e, params = {}, vistos = null) {
 /** Plegado hasta que se pulsa «Sorpréndeme»: así no empuja la búsqueda ni se calcula de más. */
 function bloqueSorpresa(e) {
   return `<div id="sorpresa-bloque" hidden>${seccion(conIcono('nuevo', 'Sorpréndeme'),
-    `<p class="seccion__intro">Tres planes de temáticas distintas a menos de ${HORAS_SORPRESA} h de ${esc(nombreSalida(e))}, con los filtros que tengas puestos.</p>
+    `<p class="seccion__intro">Tres planes de temáticas distintas a menos de ${HORAS_SORPRESA} h de ${esc(nombreSalida(e))}, de cualquier fecha.</p>
      <p class="enlaces-linea"><button type="button" class="boton boton--tinta" data-sorpresa>${icono('recargar')}Otra ronda</button></p>
      <div id="sorpresa"></div>`)}</div>`;
 }
@@ -68,13 +68,16 @@ export function textoEnviar(que, dias = '') {
  * para cuándo y, si ya lo sabes, dónde. Las fechas son las mismas para las tres; «Afinar la
  * escapada» (qué te apetece, presupuesto y cómo vas) solo sale con Escapadas.
  */
-export function buscadorFinde(e) {
+/**
+ * Las opciones de «¿Cuándo?» y cuál arranca marcada: el periodo elegido en Explorar (y aún
+ * vigente), para que Inicio y Explorar digan lo mismo. Las usan el buscador y los atajos.
+ */
+function opcionesCuando(e) {
   const [actual, siguiente] = e.findes;
   // [valor, rótulo, días]: los días van a la vista y al botón («para vie 2 – dom 4 oct»).
-  // El periodo elegido en Explorar (y aún vigente) arranca marcado: Inicio y Explorar dicen lo mismo.
   const periodo = e.periodo ?? {};
   const rango = !periodo.cuando && periodo.desde && periodo.hasta ? [periodo.desde, periodo.hasta] : null;
-  const cuando = [
+  const opciones = [
     ['finde', 'Este finde', diasExplicitos(actual.viernes, actual.domingo)],
     ...(siguiente ? [[siguiente.id, 'El siguiente', etiquetaFinde(siguiente, e.datos.puentes)]] : []),
     // «El puente» y sus días (con la tarde del último laborable para salir).
@@ -85,7 +88,17 @@ export function buscadorFinde(e) {
   // Sin nada elegido (o ya pasado: filtrosVigentes quita la clave), «Este finde»; «Cualquier
   // fecha» (cuando: '') solo si se eligió a propósito en Explorar.
   const elegido = rango ? 'rango' : periodo.cuando === actual.id ? 'finde' : periodo.cuando === 'puente' ? e.puente?.id : periodo.cuando;
-  const marcadoCuando = elegido !== undefined && cuando.some(([valor]) => valor === elegido) ? elegido : 'finde';
+  const marcada = elegido !== undefined && opciones.some(([valor]) => valor === elegido) ? elegido : 'finde';
+  return { opciones, marcada, rango };
+}
+
+/** El periodo ({cuando, desde, hasta}) de una opción de «¿Cuándo?» («rango»: las fechas de Explorar). */
+export function periodoDeOpcion(valor, rango = null) {
+  return valor === 'rango' && rango ? { cuando: '', desde: rango[0], hasta: rango[1] } : { cuando: valor ?? '', desde: '', hasta: '' };
+}
+
+export function buscadorFinde(e) {
+  const { opciones: cuando, marcada: marcadoCuando, rango } = opcionesCuando(e);
   const opcionCuando = ([valor, texto, dias]) => `<label class="opcion opcion--fecha"><input type="radio" name="cuando" value="${esc(valor)}" data-dias="${esc(dias)}"${marcado(valor === marcadoCuando)}><small>${esc(texto)}</small><span>${esc(dias || 'lo mejor que haya')}</span></label>`;
   const como = [['', 'Como sea'], ['coche', 'En coche'], ['sincoche', 'Sin coche']];
   const opcion = (nombre, [valor, texto], marcada) => `<label class="opcion"><input type="radio" name="${nombre}" value="${esc(valor)}"${marcado(marcada)}> ${esc(texto)}</label>`;
@@ -183,18 +196,32 @@ function lineaConfianza(e) {
  * Atajos rápidos: chollos, planes gratis y con niños (cada uno con su cifra, la misma que
  * la lista a la que lleva) y «Sorpréndeme». Un único acceso por tema.
  */
-function atajosPortada(e) {
+export function atajosPortada(e, opcion = null) {
   const busqueda = contextoBusqueda(e);
-  const cho = buscarEscapadas(e.datos.ofertas, leerFiltrosEscapadas({ cho: '1' }), busqueda).ofertas.length;
-  const gratis = buscarActividades(e.datos.ofertas, leerFiltrosActividades({ cuando: 'finde', gratis: '1' }), busqueda).length;
-  const ninos = buscarEscapadas(e.datos.ofertas, leerFiltrosEscapadas({ ninos: 'ventaja' }), busqueda).ofertas.length;
-  const atajo = (n, texto, href, ic, titulo) => (n
-    ? `<li><a class="atajo" href="${href}" title="${esc(titulo)}">${icono(ic)}<span>${esc(texto)}</span><span class="atajo__cifra">${n.toLocaleString('es-ES')}</span></a></li>`
+  // Las fechas elegidas arriba (al cambiarlas, app.js repinta los atajos): las cifras y los
+  // enlaces son de ese periodo. Antes cada atajo iba con las suyas («Planes gratis», este
+  // finde; los otros, cualquier fecha) y al pulsarlo se perdían las que habías elegido.
+  const { opciones, marcada, rango } = opcionesCuando(e);
+  const valor = opcion ?? marcada;
+  const p = periodoDeOpcion(valor, rango);
+  const conFechas = (vista, params) => conPeriodo(vista, params, p, { finde: e.findes[0], puente: e.puente });
+  const dias = opciones.find(([v]) => v === valor)?.[2];
+  const cuandoTexto = dias ? ` · ${dias}` : ' · cualquier fecha';
+  const cho = conFechas('escapadas', { cho: '1' });
+  const gratis = conFechas('actividades', { gratis: '1' });
+  const ninos = conFechas('escapadas', { ninos: 'ventaja' });
+  const n = {
+    cho: buscarEscapadas(e.datos.ofertas, leerFiltrosEscapadas(cho), busqueda).ofertas.length,
+    gratis: buscarActividades(e.datos.ofertas, leerFiltrosActividades(gratis), busqueda).length,
+    ninos: buscarEscapadas(e.datos.ofertas, leerFiltrosEscapadas(ninos), busqueda).ofertas.length,
+  };
+  const atajo = (cifra, texto, href, ic, titulo) => (cifra
+    ? `<li><a class="atajo" href="${href}" title="${esc(titulo)}">${icono(ic)}<span>${esc(texto)}</span><span class="atajo__cifra">${cifra.toLocaleString('es-ES')}</span></a></li>`
     : '');
   const items = [
-    atajo(cho, 'Chollos', crearHash('escapadas', { cho: '1' }), 'fuego', 'Escapadas muy por debajo de su precio normal'),
-    atajo(gratis, 'Planes gratis', crearHash('actividades', { cuando: 'finde', gratis: '1' }), 'actividades', 'Planes gratis este finde'),
-    atajo(ninos, 'Viajar con niños', crearHash('escapadas', { ninos: 'ventaja' }), 'tema-familia', 'Escapadas con niños gratis o con descuento'),
+    atajo(n.cho, 'Chollos', crearHash('escapadas', cho), 'fuego', `Escapadas muy por debajo de su precio normal${cuandoTexto}`),
+    atajo(n.gratis, 'Planes gratis', crearHash('actividades', gratis), 'actividades', `Planes gratis${cuandoTexto}`),
+    atajo(n.ninos, 'Viajar con niños', crearHash('escapadas', ninos), 'tema-familia', `Escapadas con niños gratis o con descuento${cuandoTexto}`),
     `<li><button type="button" class="atajo" data-sorpresa aria-controls="sorpresa-bloque">${icono('nuevo')}<span>Sorpréndeme</span></button></li>`,
   ].join('');
   return `<section class="seccion portada__atajos" aria-labelledby="atajos-titulo">

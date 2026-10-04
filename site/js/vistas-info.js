@@ -1,6 +1,6 @@
 /** Vistas de información y de lo tuyo: calendario, puentes, avisos por email, fuentes, ayuda y «Mis cosas». */
 
-import { diasEntre, etiquetaDia, etiquetaRango, findesProximos } from './fechas.js';
+import { diasEntre, etiquetaDia, etiquetaRango } from './fechas.js';
 import { contar, enumerar, escaparHtml as esc, euros, haceCuanto, urlSegura } from './formato.js';
 import {
   buscarActividades, buscarEscapadas, buscarTexto, chollosDeVuelos, crearHash, describirCriterio, filtrarVuelos,
@@ -16,10 +16,13 @@ import {
 // ── Calendario ───────────────────────────────────────────────────────────────
 
 export function vistaCalendario(e) {
-  const findes = findesProximos(12, e.ahora);
+  // Los mismos findes que el resto de la web (el domingo, el en curso ya no). Antes eran 12
+  // calculados aparte: los dos o tres últimos no los conocía ninguna lista y abrían «0 escapadas».
+  const findes = e.findes;
   // Sin ninguna fuente de vuelos con fecha, cada finde lleva a sus escapadas y no dice «sin vuelos» doce veces.
   const hayVuelos = e.datos.ofertas.some(tieneVuelo);
-  const resumen = resumenCalendario(e.datos.ofertas, findes, e.datos.puentes);
+  // Cada cifra, la de la lista que abre su botón.
+  const resumen = resumenCalendario(e.datos.ofertas, findes, e.datos.puentes, contextoBusqueda(e));
   // Mapa de calor: con vuelos, más intenso cuanto más barato el mejor vuelo del finde; sin
   // ellos, cuantas más escapadas. El número va siempre escrito (el color solo ayuda a ver).
   const niveles = nivelesCalendario(resumen, hayVuelos);
@@ -41,8 +44,8 @@ export function vistaCalendario(e) {
   });
   return `${pestanas('fechas', 'calendario')}<h1 class="titulo-vista" tabindex="-1">Calendario</h1>
 <p class="seccion__intro">${hayVuelos
-    ? 'Los próximos 12 findes con sus escapadas disponibles (con fecha o flexibles) y el vuelo más barato. Los puentes van resaltados. En cada uno eliges qué ver: escapadas o vuelos.'
-    : 'Los próximos 12 findes con las escapadas disponibles (con fecha o flexibles). Los puentes van resaltados.'}</p>
+    ? `Los próximos ${findes.length} findes con sus escapadas disponibles (con fecha o flexibles) y el vuelo más barato. Los puentes van resaltados. En cada uno eliges qué ver: escapadas o vuelos.`
+    : `Los próximos ${findes.length} findes con las escapadas disponibles (con fecha o flexibles). Los puentes van resaltados.`}</p>
 ${leyendaCalendario(hayVuelos)}
 <ol class="calendario">${celdas.join('')}</ol>`;
 }
@@ -200,6 +203,7 @@ export function vistaAyuda(e) {
     <li>Tus favoritos, búsquedas guardadas, ciudad de salida y preferencias se guardan <strong>solo en este navegador</strong>. No se envían a ningún sitio; se borran borrando los datos del sitio en tu navegador.</li>
     <li>«Mi ubicación» solo se usa si lo pulsas, para medir distancias en tu dispositivo.</li>
     <li>Al buscar un pueblo o ciudad, lo que escribes se consulta en <a href="https://photon.komoot.io" target="_blank" rel="noopener noreferrer">Photon</a>; el mapa carga sus imágenes de <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>.</li>
+    <li>Si eliges una salida distinta de la de serie, los kilómetros por carretera se calculan con <a href="https://project-osrm.org" target="_blank" rel="noopener noreferrer">OSRM</a>: se le envían las coordenadas de tu salida y de los destinos (nada más). El mapa y la gráfica de precios cargan sus librerías desde <a href="https://cdnjs.com" target="_blank" rel="noopener noreferrer">cdnjs</a>.</li>
     <li>Al pulsar «Ver en…» vas a la web de la oferta, con su propia política de privacidad.</li>
   </ul>
 </section>
@@ -291,6 +295,8 @@ const TITULOS_VISTA = { escapadas: 'Escapadas', actividades: 'Planes', vuelos: '
 export function vistaMis(e, params = {}) {
   const ctx = ctxTarjetas(e);
   const favoritos = e.datos.ofertas.filter((o) => e.favoritos.has(o.id));
+  // Los que ya no se publican (terminaron o su web los quitó) no se pueden enseñar: se dice cuántos.
+  const terminados = [...(e.favoritos ?? [])].filter((id) => !e.porId.has(id)).length;
   const marcadas = (estadoMio) => [...(e.misEstados ?? new Map())].filter(([, v]) => v === estadoMio).map(([id]) => e.porId.get(id)).filter(Boolean);
   const reservadas = marcadas('reservada');
   const noDisponibles = marcadas('no-disponible');
@@ -317,6 +323,7 @@ ${copia}`;
   return `${pestanas('mis', 'mis', e)}<h1 class="titulo-vista" tabindex="-1">Favoritos</h1>
 <p class="seccion__intro">Las ofertas que has guardado con el corazón y las que has marcado.${busquedas ? ` Tus ${contar(busquedas, 'búsqueda guardada', 'búsquedas guardadas')} están en <a href="#/mis?ver=busquedas">Búsquedas guardadas</a>.` : ''}${comparar ? ` Tienes ${contar(comparar, 'oferta')} en <a href="#/comparar">Comparar</a>.` : ''}</p>
 ${pasos}
+${terminados ? `<p class="aviso-suave">${icono('alerta')}${esc(contar(terminados, 'favorito'))} ya no ${terminados === 1 ? 'se publica' : 'se publican'}: la oferta terminó o su web la quitó.</p>` : ''}
 ${favoritos.length
     ? rejilla(favoritos, ctx, { mostradas: mostradas(e, 'favoritos'), clave: 'favoritos' })
     : vacio ? '' : estadoVacio('Aún no tienes favoritos', 'Pulsa el corazón de cualquier oferta para guardarla aquí.')}

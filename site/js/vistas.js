@@ -35,7 +35,7 @@ export {
   contextoBusqueda, ctxTarjetas, formularioViaje, misAeropuertos, nombreSalida, ocultas, pestanas, puntoSalida,
   estadoWebs, textoViaje, webConProblemas,
 } from './vistas-comun.js';
-export { buscadorFinde, contenidoSorpresa, destinoOrganizar, paramsBuscadorFinde, resumenViaje, textoEnviar, vistaFinde } from './vistas-portada.js';
+export { atajosPortada, buscadorFinde, contenidoSorpresa, destinoOrganizar, paramsBuscadorFinde, resumenViaje, textoEnviar, vistaFinde } from './vistas-portada.js';
 export {
   avisosDeBusquedas, resultadosDeBusqueda, totalNovedadesGuardadas, vistaAyuda, vistaCalendario, vistaFuentes,
   vistaMis, vistaPuentes, vistaVigilados,
@@ -450,14 +450,33 @@ function tambienCerca(e, f, params, encontradas) {
   return `<p class="aviso-memoria aviso-cerca">${icono('mapa')}<span>Hay ${esc(contar(cerca, 'escapada'))} más a menos de ${KM_CERCA_DE_LO_BUSCADO} km de ${esc(lugar.nombre)} que no lo dicen en el título. <a href="${esc(hash)}">Ver todo lo que hay cerca de ${esc(lugar.nombre)}</a></span></p>`;
 }
 
+/**
+ * Con unas fechas elegidas, cuántas de la lista tienen de verdad fechas en ellas y cuántas son
+ * de fechas flexibles (valen esos días según disponibilidad). Casi todas son flexibles: sin esto,
+ * «1046 escapadas para el puente» parecía que eran 1046 viajes de esos días.
+ */
+export function desgloseFechas(f, params, ofertas, rango) {
+  if (!f.cuando && !f.desde && !f.hasta) return '';
+  if (f.soloCerradas || !ofertas.length) return '';
+  const cerradas = ofertas.filter((o) => o.fechas?.salida);
+  const caben = rango ? cerradas.filter((o) => encajeEnRango(o, rango)?.cabe) : cerradas;
+  const flexibles = ofertas.length - cerradas.length;
+  const enEsas = rango?.tipo === 'puente' ? 'en ese puente' : rango ? 'en ese finde' : 'en esos días';
+  const ver = caben.length
+    ? ` <a href="${esc(crearHash('escapadas', { ...params, cerradas: '1', ...(rango ? { encaje: '1' } : {}) }))}">Ver solo ${caben.length === 1 ? 'esa' : `esas ${caben.length}`}</a>`
+    : '';
+  return `<p class="desglose-fechas">${icono('calendario')}<span><strong>${esc(contar(caben.length, 'escapada'))} con fechas ${enEsas}</strong>${cerradas.length > caben.length ? ` (y ${cerradas.length - caben.length} que salen un poco antes o vuelven después)` : ''} · ${esc(contar(flexibles, 'de fechas flexibles', 'de fechas flexibles'))}: valen esos días según disponibilidad, que confirma su web.${ver}</span></p>`;
+}
+
 export function resultadosEscapadas(e, params) {
   const f = leerFiltrosEscapadas(params);
   const { resultado, aproximado } = conFaltas((g) => buscarEscapadas(e.datos.ofertas, g, contextoBusqueda(e)), f);
   const { ofertas, distancias, costes, sinTotal } = resultado;
-  const ctx = ctxTarjetas(e, { distancias, desde: f.punto?.nombre ?? nombreSalida(e), rango: rangoDe(f.cuando, contextoBusqueda(e)) });
+  // Filtrando por eventos, cada tarjeta enseña el suyo (también en las de fechas flexibles).
+  const ctx = ctxTarjetas(e, { distancias, desde: f.punto?.nombre ?? nombreSalida(e), rango: rangoDe(f.cuando, contextoBusqueda(e)), conEventos: Boolean(f.evento), tipoEvento: f.evento });
   // En el móvil el «Mapa» ya está en la pastilla flotante: aquí sobra.
   const acciones = conmutadorListaMapa(params, 'escapadas');
-  return `${franjaPeriodo(e, 'escapadas', params)}${filaActivos(e, 'escapadas', params)}${resumenResultados(contar(ofertas.length, 'escapada'), acciones)}${aproximado ? avisoAproximado(f.q) : ''}${tambienCerca(e, f, params, ofertas)}
+  return `${franjaPeriodo(e, 'escapadas', params)}${filaActivos(e, 'escapadas', params)}${resumenResultados(contar(ofertas.length, 'escapada'), acciones)}${desgloseFechas(f, params, ofertas, ctx.rango)}${aproximado ? avisoAproximado(f.q) : ''}${tambienCerca(e, f, params, ofertas)}
 ${ordenRapido('escapadas', params, f.orden)}${explicacionOrden(e, f, costes)}${f.presupuesto ? `<p class="seccion__intro">Presupuesto: viaje completo (oferta y gasolina estimada) de hasta ${esc(euros(f.presupuesto))} ${f.presupuestoPor === 'persona' ? 'por persona' : 'en total'} para ${esc(contar(e.viaje?.viajeros ?? 2, 'persona'))}.${sinTotal ? ` ${esc(contar(sinTotal, 'oferta'))} sin datos suficientes para un total no se pueden comprobar y no salen.` : ''}</p>` : ''}
 ${ofertas.length
     ? rejilla(ofertas, ctx, { mostradas: mostradas(e, 'escapadas'), clave: 'escapadas' })

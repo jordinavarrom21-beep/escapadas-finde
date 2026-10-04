@@ -380,7 +380,8 @@ describe('actividades', () => {
     const atajos = portada.match(/<ul class="atajos-portada"[^]*?<\/ul>/)?.[0] ?? '';
     const chollos = atajos.match(/Chollos<\/span><span class="atajo__cifra">(\d+)</)?.[1];
     assert.ok(Number(chollos) > 0, 'dice cuántos chollos hay');
-    assert.match(atajos, /href="#\/escapadas\?cho=1"/);
+    // Con las fechas marcadas arriba («Este finde» por defecto); antes cada atajo iba con las suyas.
+    assert.match(atajos, /href="#\/escapadas\?cho=1&amp;cuando=finde"|href="#\/escapadas\?cho=1&cuando=finde"/);
     assert.match(atajos, /data-sorpresa/);
     assert.ok((atajos.match(/<li>/g) ?? []).length <= 4, 'como mucho cuatro atajos');
     // Una sola vez tu viaje, y el estado de las webs en una línea.
@@ -665,6 +666,30 @@ describe('comparar precios del mismo alojamiento', () => {
     assert.match(resto, />Hoteles en Booking/);
     assert.ok(!resto.includes('Este alojamiento en Booking'));
     assert.ok(html.indexOf('>Ver la oferta') < html.indexOf('class="comparador"'), 'primero el botón de la oferta');
+  });
+});
+
+describe('atajos de Inicio con las fechas elegidas', async () => {
+  const { atajosPortada } = await import('../site/js/vistas.js');
+  const cifras = (html) => Object.fromEntries([...html.matchAll(/href="([^"]+)"[^>]*>[^]*?<span>([^<]+)<\/span><span class="atajo__cifra">(\d+)/g)].map(([, href, texto, n]) => [texto, { href: href.replace(/&amp;/g, '&'), n: Number(n) }]));
+  it('cada cifra es la de la lista que abre, en el periodo elegido; al cambiarlo, cambian', () => {
+    const e = estadoPanel();
+    const finde = cifras(atajosPortada(e));
+    const todo = cifras(atajosPortada(e, ''));
+    const puente = cifras(atajosPortada(e, e.puente.id));
+    assert.equal(finde['Planes gratis'].href, '#/actividades?gratis=1&cuando=finde');
+    assert.equal(todo['Planes gratis'].href, '#/actividades?gratis=1', 'cualquier fecha: sin fechas');
+    assert.equal(puente['Chollos'].href, `#/escapadas?cho=1&cuando=${e.puente.id}`);
+    for (const lista of [finde, todo, puente]) {
+      for (const { href, n } of Object.values(lista)) {
+        const { vista, params } = leerRuta(href);
+        const total = vista === 'actividades'
+          ? buscarActividades(ofertas, leerFiltrosActividades(params), contextoBusqueda(e)).length
+          : buscarEscapadas(ofertas, leerFiltrosEscapadas(params), contextoBusqueda(e)).ofertas.length;
+        assert.equal(n, total, href);
+      }
+    }
+    assert.ok(todo['Planes gratis'].n >= finde['Planes gratis'].n, 'sin fechas, al menos los mismos');
   });
 });
 
