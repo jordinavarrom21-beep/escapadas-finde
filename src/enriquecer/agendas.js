@@ -17,7 +17,7 @@
  *  - Toda España: Ticketmaster Discovery (conciertos, festivales, deporte, teatro) si hay
  *    TICKETMASTER_KEY (gratis: developer.ticketmaster.com).
  */
-import { normalizarTexto } from '../util/xml.js';
+import { normalizarTexto, textoPlano } from '../util/xml.js';
 
 /** Tipos de evento que entiende el panel, con cómo se reconocen en el nombre si la fuente no lo dice. */
 export const TIPOS_EVENTO = ['musica', 'fiestas', 'festivales', 'ferias', 'escena', 'familia', 'exposiciones', 'cine', 'deporte', 'otros'];
@@ -44,14 +44,30 @@ const numero = (v) => (v === '' || v == null ? NaN : Number(v));
 const dia = (v) => (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test(v) ? v.slice(0, 10) : null);
 const url = (...candidatas) => candidatas.map((u) => (typeof u === 'string' ? u.trim() : '')).find((u) => /^https?:\/\//.test(u)) ?? null;
 const cancelado = (nombre) => /^\s*\(?\s*(cancelad|suspendid|aplazad|bertan behera)/i.test(nombre ?? '');
+/**
+ * Lo que publican las agendas y no es un plan para quien va de escapada: abonos de temporada,
+ * entrenamientos y sesiones para profesionales, y funciones o visitas para colegios y escuelas.
+ */
+const NO_ES_UN_PLAN = new RegExp([
+  /^(gran )?(abono|abonos|abonament|abonaments|abonnement)\b/,
+  /\bentrenamientos?\b|\bentrenaments?\b/,
+  /para profesionales|per a professionals/,
+  /para (escuelas|colegios|centros educativos|escolares)|per a (escoles|centres educatius)/,
+  /campana escolar|campanya escolar|(funcion|funciones|sesion|sesiones) escolar(es)?\b/,
+].map((re) => re.source).join('|'));
+export const noEsUnPlan = (nombre) => NO_ES_UN_PLAN.test(normalizarTexto(nombre));
 
-/** Evento propio, o null si le falta lo imprescindible (nombre, fecha y sitio) o está cancelado. */
+/**
+ * Evento propio, o null si le falta lo imprescindible (nombre, fecha y sitio), está cancelado
+ * o no es un plan. El nombre, en texto plano (alguna agenda trae entidades como «&#263;»).
+ */
 export function evento({ nombre, desde, hasta, lat, lon, ...resto }) {
   const [la, lo] = [numero(lat), numero(lon)];
   const inicio = dia(desde);
-  if (!nombre?.trim() || cancelado(nombre) || !inicio || !Number.isFinite(la) || !Number.isFinite(lo)) return null;
+  const limpio = textoPlano(nombre ?? '');
+  if (!limpio || cancelado(limpio) || noEsUnPlan(limpio) || !inicio || !Number.isFinite(la) || !Number.isFinite(lo)) return null;
   const fin = dia(hasta);
-  return { nombre: nombre.trim().replace(/\s+/g, ' '), desde: inicio, hasta: fin && fin >= inicio ? fin : inicio, lat: la, lon: lo, url: null, municipio: null, tipo: 'otros', precio: null, ...resto };
+  return { nombre: limpio, desde: inicio, hasta: fin && fin >= inicio ? fin : inicio, lat: la, lon: lo, url: null, municipio: null, tipo: 'otros', precio: null, ...resto };
 }
 
 // ── Euskadi (Kulturklik) ─────────────────────────────────────────────────────
@@ -156,6 +172,8 @@ const diaEspanol = (v) => (typeof v === 'string' && /^\d{2}\/\d{2}\/\d{4}/.test(
 
 export const valenciana = {
   id: 'valenciana',
+  // 2: sin abonos ni entrenamientos para profesionales (ver `noEsUnPlan`).
+  version: 2,
   nombre: 'Agenda del Institut Valencià de Cultura',
   zona: enCaja({ latMin: 37.8, latMax: 40.8, lonMin: -1.6, lonMax: 0.6 }),
   async descargar(ctx, desde, hasta) {
@@ -254,6 +272,8 @@ export function leerCsv(texto) {
 
 export const malaga = {
   id: 'malaga',
+  // 2: sin visitas para escuelas y con los nombres en texto plano.
+  version: 2,
   nombre: 'Agenda de Málaga',
   zona: enCaja({ latMin: 36.5, latMax: 36.95, lonMin: -4.85, lonMax: -4.1 }),
   async descargar(ctx, desde, hasta) {
