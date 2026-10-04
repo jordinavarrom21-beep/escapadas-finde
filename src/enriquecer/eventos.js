@@ -8,7 +8,7 @@ import { fechaLocal, sumarDias } from '../util/fechas.js';
 import { normalizarTexto } from '../util/xml.js';
 import { distanciaKm } from './geo.js';
 import { periodoViaje } from './tiempo.js';
-import { PROVEEDORES, tipoEvento } from './agendas.js';
+import { PROVEEDORES, noEsUnPlan, tipoEvento } from './agendas.js';
 
 const RECURSO = 'https://analisi.transparenciacatalunya.cat/resource/rhpv-yr4f.json';
 const CAMPOS = 'codi,denominaci,data_inici,data_fi,localitat,municipi,latitud,longitud,urlactivitat,url,enlla_os,tags_categor_es,tags_mbits';
@@ -64,11 +64,11 @@ function enlaceDe(fila) {
   return candidatos.map((url) => url?.trim()).find((url) => url && /^https?:\/\//.test(url)) ?? null;
 }
 
-/** Fila de la agenda → evento propio, o null si le falta lo imprescindible. */
+/** Fila de la agenda → evento propio, o null si le falta lo imprescindible o no es un plan. */
 function normalizar(fila) {
   const lat = Number(fila.latitud);
   const lon = Number(fila.longitud);
-  if (!fila.denominaci || !fila.data_inici || !Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+  if (!fila.denominaci || !fila.data_inici || !Number.isFinite(lat) || !Number.isFinite(lon) || noEsUnPlan(fila.denominaci)) return null;
   return {
     nombre: fila.denominaci.trim(),
     desde: fila.data_inici.slice(0, 10),

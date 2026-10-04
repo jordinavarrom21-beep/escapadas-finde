@@ -6,7 +6,7 @@ import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-import { PROVEEDORES, leerCsv, malaga, valenciana, zaragoza } from '../src/enriquecer/agendas.js';
+import { PROVEEDORES, evento, leerCsv, malaga, noEsUnPlan, valenciana, zaragoza } from '../src/enriquecer/agendas.js';
 import { anadirEventos } from '../src/enriquecer/eventos.js';
 import { findesProximos } from '../src/util/fechas.js';
 import { crearCtx, leerFixtureJson, oferta } from './ayudas.js';
@@ -90,5 +90,29 @@ describe('eventos cerca de cada oferta con las agendas nuevas', () => {
   });
   test('las tres están en la lista de proveedores', () => {
     assert.ok(['valenciana', 'zaragoza', 'malaga'].every((id) => PROVEEDORES.some((p) => p.id === id)));
+  });
+});
+
+describe('lo que publican las agendas y no es un plan', () => {
+  // Nombres reales de las agendas del IVC y de Málaga (4 oct 2026).
+  test('fuera abonos, entrenamientos para profesionales y funciones o visitas para escuelas', () => {
+    for (const nombre of [
+      'ABONAMENT A LA CARTA ARNICHES', 'GRAN ABONAMENT ARNICHES', 'ABONO DE OTOÑO 26', 'ABONO · PROGRAMACIÓN TEATRO RIALTO DE ENERO A ABRIL',
+      'ENTRENAMIENTOS DE CONTEMPORÁNEO APDCV CON DÉBORA RUIZ', 'ENTRENAMIENTOS DE TÉCNICA CLÁSICA PARA PROFESIONALES',
+      'XVII CICLO DE CONCIERTOS DIDÁCTICOS PARA ESCOLARES 2026 "UN VIAJE AL MUSICAL"', 'Visita Dinamizada para Escuelas de Español.',
+      'Campanya escolar de teatre',
+    ]) assert.ok(noEsUnPlan(nombre), nombre);
+  });
+  test('lo demás se queda, aunque hable de abonos o de vacaciones escolares', () => {
+    for (const nombre of [
+      'LOS GOLFOS', 'Concierto de la Banda Municipal', 'Teatro familiar en vacaciones escolares', 'Fiesta del abono verde',
+      'Exposició «La casa ibera»', 'Taller infantil de cerámica',
+    ]) assert.ok(!noEsUnPlan(nombre), nombre);
+  });
+  test('el evento sale con el nombre en texto plano y sin los que no son un plan', () => {
+    const base = { desde: '2026-10-10', lat: 36.72, lon: -4.42 };
+    assert.equal(evento({ ...base, nombre: 'Proyección de Self Portrait de Marina Abramovi&#263;.' }).nombre, 'Proyección de Self Portrait de Marina Abramović.');
+    assert.equal(evento({ ...base, nombre: '<b>  Noche de jazz  </b>' }).nombre, 'Noche de jazz');
+    assert.equal(evento({ ...base, nombre: 'ABONO A LA CARTA RIALTO' }), null);
   });
 });
