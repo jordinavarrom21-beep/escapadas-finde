@@ -1,0 +1,10 @@
+404 robots-t.me.txt 153 bytes text/html 
+302 robots-telegram.me.txt 0 bytes text/html; charset=UTF-8 //telegram.org/
+200 guialowcost.html 167479 bytes text/html; charset=utf-8 
+200 escapadabarata.html 167724 bytes text/html; charset=utf-8 
+200 cazaviajes.html 150149 bytes text/html; charset=utf-8 
+200 exprimeviajes_ofertas.html 125858 bytes text/html; charset=utf-8 
+200 ofertas_viajes.html 146503 bytes text/html; charset=utf-8 
+200 holidayguruES.html 111233 bytes text/html; charset=utf-8 
+200 viajerospiratas.html 126374 bytes text/html; charset=utf-8 
+200 vuelosbaratosviajerospiratas.html 127001 bytes text/html; charset=utf-8 
