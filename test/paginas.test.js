@@ -52,6 +52,22 @@ describe('páginas para buscadores', () => {
     assert.ok(!local.archivos[0].contenido.includes('application/ld+json'), 'sin URL pública, sin datos estructurados (necesitan direcciones absolutas)');
   });
 
+  it('las guías con texto propio lo publican (consejos y preguntas) y escapado', () => {
+    const html = pagina('escapadas');
+    assert.match(html, /<section class="texto-guia">/);
+    assert.match(html, /<h2>Preguntas frecuentes<\/h2>/);
+    assert.match(html, /<h3>Consejos<\/h3>/);
+    assert.ok(html.indexOf('lista-guia') < html.indexOf('texto-guia'), 'el texto va después de las ofertas');
+  });
+
+  it('lastmod del sitemap: el día de la oferta más reciente de cada guía, no el del escaneo', () => {
+    const sitemap = archivos.find((a) => a.ruta === 'sitemap.xml').contenido;
+    const viejo = { ...datos, generado: '2027-01-01T00:00:00.000Z' };
+    const otro = generarPaginas(viejo, { base: BASE }).archivos.find((a) => a.ruta === 'sitemap.xml').contenido;
+    assert.ok(!otro.includes('2027-01-01'), 'un escaneo sin ofertas nuevas no cambia lastmod');
+    for (const m of sitemap.matchAll(/<lastmod>([^<]+)<\/lastmod>/g)) assert.match(m[1], /^\d{4}-\d{2}-\d{2}$/);
+  });
+
   it('robots.txt deja leer los datos (el panel los necesita para pintarse) y apunta al sitemap', () => {
     const robots = archivos.find((a) => a.ruta === 'robots.txt').contenido;
     assert.doesNotMatch(robots, /Disallow/);
