@@ -33,17 +33,18 @@ permissions:
   id-token: write   # requerido por deploy-pages
   actions: write    # mantener activo el cron
 
-concurrency:
-  group: vigilar
-  cancel-in-progress: false
-
 jobs:
   vigilar:
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    environment:
-      name: github-pages
-      url: ${{ steps.despliegue.outputs.page_url }}
+    # Nunca dos escaneos a la vez (van en cola). Sin entorno: si GitHub Pages se atasca, el
+    # escaneo, los datos, los emails y la web de tu hosting siguen funcionando (Pages va aparte).
+    concurrency:
+      group: vigilar
+      cancel-in-progress: false
+    outputs:
+      # Solo se copia a Pages una web que lleva datos (si no, sería un panel vacío).
+      con_datos: ${{ steps.artefacto.outcome == 'success' }}
     # Los secretos NO van aquí (a nivel de job los verían npm ci, los tests y las acciones
     # de terceros): solo en los dos pasos que envían o leen correo.
     steps:
@@ -149,18 +150,15 @@ jobs:
           base="${PANEL_URL:-$(node -p "require('./config/ajustes.json').panelUrl || ''")}"
           node scripts/preparar-web.js --dir site --base "${base:-$PAGES_URL}" --version "${GITHUB_SHA::12}" --htaccess
 
-      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5
+      - id: artefacto
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5
         if: ${{ !cancelled() && steps.escaneo.conclusion != 'skipped' && hashFiles('site/data/ofertas.json') != '' }}
         with:
           path: site
 
-      - id: despliegue
-        if: ${{ !cancelled() && steps.escaneo.conclusion != 'skipped' && hashFiles('site/data/ofertas.json') != '' }}
-        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5
-
       # La web lista para tu hosting (Hostinger…) en la rama «web-hosting», sin historial: tu
-      # hosting la despliega sola con cada push (despliegue desde Git). Lee los datos de esta
-      # web de Pages, así que siempre enseña las ofertas del momento. Con la variable
+      # hosting la despliega sola con cada push (despliegue desde Git) y lleva sus propios datos
+      # (--sin-datos-remotos): no depende de que GitHub Pages esté al día. Con la variable
       # HOSTING_URL (tu dominio), además su dirección canónica, sitemap y un solo dominio.
       - name: Web para tu hosting (rama web-hosting)
         if: ${{ !cancelled() && steps.escaneo.conclusion != 'skipped' && hashFiles('site/data/ofertas.json') != '' }}
@@ -169,7 +167,7 @@ jobs:
           HOSTING_URL: ${{ vars.HOSTING_URL }}
         run: |
           dominio="${HOSTING_URL:-$(node -p "require('./config/ajustes.json').panelUrl || ''")}"
-          node scripts/empaquetar.js --sin-zip --dominio "$dominio"
+          node scripts/empaquetar.js --sin-zip --sin-datos-remotos --dominio "$dominio"
           cd dist/escapadas-finde-web
           git init -q -b web-hosting
           git config user.name "github-actions[bot]"
@@ -202,3 +200,21 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh api -X PUT "repos/${GITHUB_REPOSITORY}/actions/workflows/vigilar.yml/enable"
+
+  # Copia en GitHub Pages, en su propio trabajo: si el entorno «github-pages» se queda
+  # esperando, solo se retrasa esta copia; el siguiente escaneo no espera por ella.
+  pages:
+    needs: vigilar
+    # Exige que exista site/data/ofertas.json: el artefacto solo se sube si hashFiles('site/data/ofertas.json') != ''.
+    if: ${{ !cancelled() && needs.vigilar.outputs.con_datos == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: pages
+      cancel-in-progress: true
+    environment:
+      name: github-pages
+      url: ${{ steps.despliegue.outputs.page_url }}
+    steps:
+      - id: despliegue
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5
