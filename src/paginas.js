@@ -13,6 +13,7 @@
 import { costeDesdeOrigen } from './vigilados.js';
 import { escaparHtml as esc, euros, normalizar, urlSegura } from '../site/js/formato.js';
 import { etiquetaDia, fechaLocal } from './util/fechas.js';
+import { TEXTOS_GUIAS } from './textos-guias.js';
 
 /** Menos de esto es una página casi vacía: no se publica (ni entra en el sitemap). */
 export const MINIMO_OFERTAS = 5;
@@ -240,6 +241,21 @@ export function enlacesGuias(guias, raiz, actual = null) {
   }).join('');
 }
 
+/** El texto propio de la guía (src/textos-guias.js): guía, consejos y preguntas frecuentes. */
+export function bloqueTexto(t) {
+  if (!t) return '';
+  const consejos = t.consejos?.length ? `<h3>Consejos</h3>\n<ul>${t.consejos.map((c) => `<li>${esc(c)}</li>`).join('')}</ul>` : '';
+  const preguntas = t.preguntas?.length
+    ? `<h2>Preguntas frecuentes</h2>\n${t.preguntas.map(({ p, r }) => `<h3>${esc(p)}</h3>\n<p>${esc(r)}</p>`).join('\n')}`
+    : '';
+  return `<section class="texto-guia">
+<h2>${esc(t.titulo)}</h2>
+${(t.parrafos ?? []).map((x) => `<p>${esc(x)}</p>`).join('\n')}
+${consejos}
+${preguntas}
+</section>`;
+}
+
 /**
  * HTML completo de una página. `raiz` es el camino relativo hasta site/ («../» o «../../»);
  * `base`, la dirección pública (sin ella no hay canónica, imagen para compartir ni JSON-LD,
@@ -308,6 +324,7 @@ ${cabeza}
 <p><a class="boton boton--primario" href="${esc(raiz + d.panel)}">Abrir en el panel (con mapa, filtros y comparación)</a></p>
 <h2>${esc(cuantas)}</h2>
 <ol class="lista-guia">${ofertas.map((o) => filaOferta(o, nombres)).join('')}</ol>
+${bloqueTexto(TEXTOS_GUIAS[d.ruta])}
 </main>
 <footer class="pie contenedor">
 <nav class="guias" aria-label="Más guías">${enlacesGuias(todas, raiz, d.ruta)}</nav>
@@ -360,8 +377,13 @@ export function generarPaginas(datos, { base = null } = {}) {
   });
   const rutas = candidatas.map(({ d }) => d.ruta);
   if (base) {
-    const dia = datos.generado.slice(0, 10);
-    const urls = ['', ...rutas.map((r) => `${r}/`)].map((r) => `  <url><loc>${esc(base + r)}</loc><lastmod>${dia}</lastmod></url>`);
+    // lastmod: el día en que entró la oferta más reciente de la guía (cuando su contenido
+    // cambió de verdad), no el del escaneo, que es siempre hoy y Google acaba ignorando.
+    const hoy = datos.generado.slice(0, 10);
+    const diaDe = (lista) => lista.map((o) => o.vistaPrimera?.slice(0, 10)).filter(Boolean).sort().pop() ?? hoy;
+    const dias = new Map(candidatas.map(({ d, lista }) => [`${d.ruta}/`, diaDe(lista.slice(0, MAXIMO_POR_PAGINA))]));
+    dias.set('', [...dias.values()].sort().pop() ?? hoy);
+    const urls = ['', ...rutas.map((r) => `${r}/`)].map((r) => `  <url><loc>${esc(base + r)}</loc><lastmod>${dias.get(r)}</lastmod></url>`);
     archivos.push({ ruta: 'sitemap.xml', contenido: `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>\n` });
   }
   // Los buscadores pueden leerlo todo, también data/: el panel la necesita para pintarse y un
