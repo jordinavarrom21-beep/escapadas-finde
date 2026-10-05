@@ -6,6 +6,11 @@
 import { cargarJson } from './almacen.js';
 
 const esTexto = (valor) => typeof valor === 'string' && valor.trim() !== '';
+/**
+ * Redes de afiliación (Awin, TradeTracker…) que no añaden un parámetro sino que envuelven el
+ * enlace en el suyo: «https://www.awin1.com/cread.php?awinmid=…&awinaffid=…&ued={url}».
+ */
+const esEnvoltura = (valor) => esTexto(valor) && /^https:\/\/[^\s]+\{url\}/.test(valor.trim());
 
 /**
  * Proveedores que de verdad pueden marcar enlaces: activos, aprobados y con todos sus
@@ -16,12 +21,16 @@ export function proveedoresActivos(config = {}, log = () => {}) {
   for (const [id, p] of Object.entries(config.proveedores ?? {})) {
     if (!p?.activo) continue;
     const parametros = Object.entries(p.parametros ?? {});
+    const envoltura = p.envoltura != null && p.envoltura !== '';
     const falta = [
       !p.aprobado && 'aprobado: true (la cuenta de afiliado aprobada)',
       !(p.dominios ?? []).length && 'dominios',
-      (!parametros.length || parametros.some(([, v]) => !esTexto(v))) && 'los valores de parametros',
+      envoltura
+        ? !esEnvoltura(p.envoltura) && 'una envoltura https con {url}'
+        : (!parametros.length || parametros.some(([, v]) => !esTexto(v))) && 'los valores de parametros',
     ].filter(Boolean);
     if (falta.length) log(`Afiliación de ${id} activa pero sin ${falta.join(', ')}: sus enlaces quedan normales`);
+    else if (envoltura) activos.push({ id, dominios: p.dominios, envoltura: p.envoltura.trim() });
     else activos.push({ id, dominios: p.dominios, parametros: Object.fromEntries(parametros) });
   }
   return activos;
@@ -53,6 +62,7 @@ const deDominio = (url, dominios) => {
 export function conAfiliacion(url, activos) {
   const proveedor = activos.find((p) => deDominio(url, p.dominios));
   if (!proveedor) return { url, afiliado: null };
+  if (proveedor.envoltura) return { url: proveedor.envoltura.replace('{url}', encodeURIComponent(url)), afiliado: proveedor.id };
   const nueva = new URL(url);
   for (const [clave, valor] of Object.entries(proveedor.parametros)) nueva.searchParams.set(clave, valor);
   return { url: nueva.href, afiliado: proveedor.id };

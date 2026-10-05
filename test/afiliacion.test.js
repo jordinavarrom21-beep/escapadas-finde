@@ -111,3 +111,22 @@ describe('vigilados en el panel: los avisos solo se dan por activos si se entreg
     assert.match(html, /#\/mis\?ver=busquedas/);
   });
 });
+
+describe('afiliación con envoltura (Awin, TradeTracker…)', () => {
+  it('envuelve la URL de la oferta, codificada, en el enlace de la red', () => {
+    const activos = proveedoresActivos({ proveedores: { atrapalo: { activo: true, aprobado: true, dominios: ['atrapalo.com'], envoltura: 'https://www.awin1.com/cread.php?awinmid=1&awinaffid=2&ued={url}' } } });
+    const r = conAfiliacion('https://www.atrapalo.com/hoteles/x?a=1&b=2', activos);
+    assert.equal(r.afiliado, 'atrapalo');
+    assert.equal(r.url, 'https://www.awin1.com/cread.php?awinmid=1&awinaffid=2&ued=https%3A%2F%2Fwww.atrapalo.com%2Fhoteles%2Fx%3Fa%3D1%26b%3D2');
+  });
+  it('una envoltura sin {url} o sin https no se activa, y se avisa', () => {
+    const avisos = [];
+    const activos = proveedoresActivos({ proveedores: { x: { activo: true, aprobado: true, dominios: ['x.com'], envoltura: 'http://red.com/?u=' } } }, (m) => avisos.push(m));
+    assert.deepEqual(activos, []);
+    assert.match(avisos[0], /envoltura https con \{url\}/);
+  });
+  it('la configuración del repositorio trae todas las webs desactivadas', () => {
+    assert.ok(Object.keys(CONFIG.proveedores).length >= 15);
+    assert.deepEqual(proveedoresActivos(CONFIG), []);
+  });
+});
