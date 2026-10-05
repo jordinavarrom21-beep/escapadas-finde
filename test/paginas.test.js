@@ -54,10 +54,12 @@ describe('páginas para buscadores', () => {
 
   it('las guías con texto propio lo publican (consejos y preguntas) y escapado', () => {
     const html = pagina('escapadas');
-    assert.match(html, /<section class="texto-guia">/);
+    assert.match(html, /<section class="guia-texto" aria-label="Sobre esta guía">\n<h2>Cómo elegir una escapada de fin de semana desde Barcelona<\/h2>/);
     assert.match(html, /<h2>Preguntas frecuentes<\/h2>/);
     assert.match(html, /<h3>Consejos<\/h3>/);
-    assert.ok(html.indexOf('lista-guia') < html.indexOf('texto-guia'), 'el texto va después de las ofertas');
+    assert.ok(html.indexOf('lista-guia') < html.indexOf('guia-texto'), 'el texto va después de las ofertas');
+    // Una guía sin título propio usa el de su enlace.
+    assert.match(pagina('escapadas/playa'), /<h2>[^<]+: qué tener en cuenta<\/h2>/);
   });
 
   it('lastmod del sitemap: el día de la oferta más reciente de cada guía, no el del escaneo', () => {
@@ -82,6 +84,8 @@ describe('páginas para buscadores', () => {
     const girona = pagina('escapadas/girona');
     assert.match(girona, /<h1>Escapadas en Girona desde Barcelona<\/h1>/);
     assert.match(girona, /href="\.\.\/\.\.\/#\/escapadas\?region=Girona&amp;orden=total"/, 'la misma búsqueda en el panel');
+    // La guía general no repite el título de la portada (competirían por la misma búsqueda).
+    assert.doesNotMatch(pagina('escapadas'), /<title>Escapadas de fin de semana desde/);
     assert.match(pagina('escapadas/puente'), /<title>Escapadas para el puente del [^<]+ desde Barcelona · Escapadas Finde<\/title>/);
     for (const ruta of rutas) {
       const titulo = pagina(ruta).match(/<title>([^<]+)<\/title>/)[1];
@@ -93,7 +97,13 @@ describe('páginas para buscadores', () => {
     const html = pagina('escapadas/spa');
     const [json] = [...html.matchAll(/<script type="application\/ld\+json">([^]*?)<\/script>/g)].map((m) => JSON.parse(m[1]));
     const tipos = json['@graph'].map((n) => n['@type']);
-    assert.deepEqual(tipos, ['WebSite', 'Organization', 'CollectionPage', 'BreadcrumbList']);
+    assert.deepEqual(tipos, ['WebSite', 'Organization', 'CollectionPage', 'BreadcrumbList', 'FAQPage']);
+    // Texto propio debajo de la lista, con las mismas preguntas que el FAQPage y la ciudad de origen puesta.
+    const faq = json['@graph'].find((n) => n['@type'] === 'FAQPage').mainEntity;
+    assert.ok(faq.length >= 1);
+    for (const p of faq) assert.ok(html.includes(`<h3>${p.name}</h3>`), p.name);
+    assert.match(html, /<section class="guia-texto" aria-label="Sobre esta guía">/);
+    assert.ok(!html.includes('{desde}'));
     const migas = json['@graph'].find((n) => n['@type'] === 'BreadcrumbList').itemListElement;
     assert.deepEqual(migas.map((m) => m.item), [BASE, `${BASE}escapadas/`, `${BASE}escapadas/spa/`]);
     assert.match(html, /<nav class="migas" aria-label="Estás en"><ol><li><a href="\.\.\/\.\.\/">Inicio<\/a><\/li><li><a href="\.\.\/\.\.\/escapadas\/">Escapadas<\/a><\/li><li aria-current="page">/);
