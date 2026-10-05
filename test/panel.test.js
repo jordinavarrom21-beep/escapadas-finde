@@ -384,9 +384,10 @@ describe('actividades', () => {
     assert.match(atajos, /href="#\/escapadas\?cho=1&amp;cuando=finde"|href="#\/escapadas\?cho=1&cuando=finde"/);
     assert.match(atajos, /data-sorpresa/);
     assert.ok((atajos.match(/<li>/g) ?? []).length <= 4, 'como mucho cuatro atajos');
-    // Una sola vez tu viaje, y el estado de las webs en una línea.
+    // Una sola vez tu viaje; el estado de las webs, solo para quien administra la web.
     assert.equal((portada.match(/data-mi-viaje/g) ?? []).length, 1);
-    assert.match(portada, /class="portada__confianza[^"]*"[^]*?href="#\/fuentes"/);
+    assert.doesNotMatch(portada, /href="#\/fuentes"/);
+    assert.match(vistaFinde({ ...estadoPanel(), propietario: true }, {}), /class="portada__confianza[^"]*"[^]*?href="#\/fuentes"/);
 
     const conActividades = contenidoFicha(escapadaGirona, { ...ctxFicha, actividades: actividadesCerca(ofertas, escapadaGirona) });
     assert.match(conActividades, /Qué hacer allí/);
@@ -524,7 +525,8 @@ describe('búsqueda, novedades y resúmenes', () => {
 
   it('estado de las fuentes: las bloqueadas y desactivadas no cuentan como fallo y se muestra el motivo', () => {
     assert.deepEqual(resumenFuentes(datos.fuentes), { activas: 9, ok: 8, conError: 1, conAviso: 0, inactivas: 2 });
-    const html = vistaFuentes(estadoPanel());
+    assert.doesNotMatch(vistaFuentes(estadoPanel()), /nomolesten|robots/i, 'a un visitante no se le enseña qué webs se leen');
+    const html = vistaFuentes({ ...estadoPanel(), propietario: true });
     assert.match(html, /Bloqueada<\/span><\/td>\s*<td data-etiqueta="Detalle">Su robots\.txt prohíbe \/api/);
     assert.match(html, /HTTP 403 en www\.nomolesten\.com/);
   });

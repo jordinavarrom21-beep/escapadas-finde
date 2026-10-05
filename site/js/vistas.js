@@ -85,7 +85,7 @@ ${plegableMovil(e, 'vuelos', params)}<form class="filtros" data-filtros="vuelos"
 function vistaChollosVuelos(e, params, f, paises) {
   return `${pestanas('explorar', 'vuelos')}<h1 class="titulo-vista" tabindex="-1">Chollos de vuelos</h1>
 ${avisoMemoria(e, 'vuelos')}${avisoViajeCompartido(e, params)}
-<p class="seccion__intro">Vuelos baratos que publican blogs y comunidades, con <strong>fechas flexibles</strong>: el precio es el mínimo para unos días que no dicen, así que revisa en cada oferta cuándo hay plazas y desde qué aeropuerto sale. Los vuelos con día y hora concretos llegarán cuando haya una fuente que los dé (<a href="#/fuentes">estado de las webs</a>).</p>
+<p class="seccion__intro">Vuelos baratos que publican blogs y comunidades, con <strong>fechas flexibles</strong>: el precio es el mínimo para unos días que no dicen, así que revisa en cada oferta cuándo hay plazas y desde qué aeropuerto sale. </p>
 <div class="explorar">
 <div class="explorar__filtros">${plegableMovil(e, 'vuelos', params)}<form class="filtros" data-filtros="vuelos" aria-label="Filtros de chollos de vuelos">
   <div class="filtros__fila">${campoTexto(f)}</div>

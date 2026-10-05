@@ -115,6 +115,7 @@ function crearEstado(datos, historial, vigilados) {
     datos: { ...datos, puentes: datos.puentes ?? [], fuentes: datos.fuentes ?? [], temas: datos.temas ?? [] },
     historial,
     vigilados: vigilados.vigilados ?? [],
+    vigiladosPrivados: Boolean(vigilados.privados),
     googleAds: GOOGLE_ADS,
     ahora,
     hoy,
@@ -186,9 +187,12 @@ function pintarCabecera() {
   pintarReloj();
   pintarAvisoComercial();
   pintarBotonViaje();
-  // El estado de las webs va en el pie, con la misma frase que la portada.
-  const webs = estadoWebs(estado.datos.fuentes, new Date());
+  // El estado de las webs va en el pie, con la misma frase que la portada; solo lo ve quien
+  // administra la web (qué webs se leen no es cosa de los visitantes).
   const enlace = $('#estado-fuentes');
+  enlace.hidden = !estado.propietario;
+  if (!estado.propietario) return;
+  const webs = estadoWebs(estado.datos.fuentes, new Date());
   enlace.classList.toggle('estado-fuentes--error', webs.error);
   enlace.querySelector('.estado-fuentes__texto').textContent = `${webs.texto} · ver el estado`;
 }

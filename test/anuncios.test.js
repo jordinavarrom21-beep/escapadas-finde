@@ -144,3 +144,23 @@ describe('aviso legal (LSSI) y responsable de la privacidad', () => {
     assert.match(INDICE, /href="#\/ayuda\?seccion=aviso-legal">Aviso legal</);
   });
 });
+
+describe('lo que se publica no lleva datos privados ni dice qué webs se leen', () => {
+  it('vigilados.json sale vacío y el .htaccess no sirve las instrucciones del zip', async () => {
+    const { htaccess } = await import('../scripts/preparar-web.js');
+    const dir = mkdtempSync(path.join(tmpdir(), 'privado-'));
+    try {
+      cpSync(new URL('../site/index.html', import.meta.url), path.join(dir, 'index.html'));
+      cpSync(new URL('../site/sw.js', import.meta.url), path.join(dir, 'sw.js'));
+      cpSync(new URL('./fixtures/panel/vigilados.json', import.meta.url), path.join(dir, 'data', 'vigilados.json'), { recursive: true });
+      assert.ok(prepararWeb({ dir }).includes('avisos por email sin publicar'));
+      assert.deepEqual(JSON.parse(readFileSync(path.join(dir, 'data', 'vigilados.json'), 'utf8')), { vigilados: [], privados: true });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+    assert.match(htaccess('https://escapadasfinde.com/'), /RewriteRule \^LEEME-HOSTINGER\\\.txt\$ - \[F,L\]/);
+  });
+  it('el pie no enlaza al estado de las webs salvo en modo propietario', () => {
+    assert.match(INDICE, /id="estado-fuentes"[^>]*hidden/);
+  });
+});
