@@ -189,7 +189,7 @@ function lineaConfianza(e) {
   const nombres = webs.problemas.map((f) => f.nombre).join(', ');
   return `<p class="portada__confianza${webs.error ? ' portada__confianza--aviso' : ''}"><span class="punto" aria-hidden="true"></span>
   <span>${esc(e.datos.ofertas.length.toLocaleString('es-ES'))} ofertas · revisadas ${esc(haceCuanto(e.datos.generado, e.ahora))}</span>
-  <a href="#/fuentes"${nombres ? ` title="${esc(nombres)}"` : ''}>${webs.error ? icono('alerta') : ''}${esc(webs.texto)}</a>
+  ${e.propietario ? `<a href="#/fuentes"${nombres ? ` title="${esc(nombres)}"` : ''}>${webs.error ? icono('alerta') : ''}${esc(webs.texto)}</a>` : ''}
   <a href="#/ayuda">Cómo funciona</a></p>`;
 }
 

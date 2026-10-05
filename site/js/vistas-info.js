@@ -157,7 +157,9 @@ ${estadoVacio('Esta web no envía emails', 'Para enterarte de lo nuevo, guarda u
     : '<code>config/vigilados.json</code> en tu repositorio de GitHub';
   return `${pestanas('mis', 'vigilados', e)}<h1 class="titulo-vista" tabindex="-1">Avisos por email</h1>
 ${estadoAvisos(e)}
-${criterios.join('') || estadoVacio('Aún no vigilas nada', 'Añade criterios como se explica abajo.')}
+${criterios.join('') || (e.vigiladosPrivados
+    ? estadoVacio('Tus criterios no se publican', `Por privacidad, la web pública no lleva tu lista de avisos: está en ${enlace}, y los emails te llegan igual.`)
+    : estadoVacio('Aún no vigilas nada', 'Añade criterios como se explica abajo.'))}
 <section class="ayuda-caja">
   <h2>Cómo añadir o cambiar vigilados</h2>
   <ol>
@@ -196,7 +198,7 @@ export function vistaAyuda(e) {
 </section>
 <section class="seccion">
   <h2 class="subtitulo">Preguntas frecuentes</h2>
-  ${pregunta('¿De dónde salen las ofertas?', `<p>De webs de viajes públicas: ${esc(enumerar(webs))}. Solo se leen las páginas que esas webs permiten leer. Si una oferta lleva días sin aparecer en su web, se avisa con «Puede haber terminado».</p><p><a href="#/fuentes">Estado de cada web</a></p>`)}
+  ${pregunta('¿De dónde salen las ofertas?', `<p>De webs de viajes y comunidades de chollos públicas. Solo se leen las páginas que esas webs permiten leer. Cada oferta dice en qué web está publicada; si lleva días sin aparecer en ella, se avisa con «Puede haber terminado».</p>${e.propietario ? `<p>${esc(enumerar(webs))}. <a href="#/fuentes">Estado de cada web</a></p>` : ''}`)}
   ${pregunta('¿Qué es el «Valor» de cada oferta?', `<p>Un valor de 0 a 100 de lo buena que es la oferta como chollo (no es la opinión de los clientes, que va de 0 a 10). ${esc(nota)}. Un <strong>Chollazo</strong> está muy por debajo de lo normal para ofertas parecidas.</p>`)}
   ${pregunta('¿Qué significan las estrellas y las opiniones?', '<p>«★ 8,2 Muy bien · 266 opiniones» es la valoración de otros clientes en la web de la oferta, de 0 a 10. Las estrellas (4★) son la categoría del hotel.</p>')}
   ${pregunta('¿Por qué hay precios «por persona», «por noche» o «en total»?', '<p>Cada web publica el precio a su manera. Por eso cada oferta dice a qué corresponde y, cuando se puede, se pasa a <strong>por persona y noche</strong> para compararlas, y se calcula <strong>el viaje completo</strong> para tus viajeros, con la gasolina estimada si vas en coche.</p>')}
@@ -244,6 +246,11 @@ function seccionAvisoLegal(e) {
 }
 
 export function vistaFuentes(e) {
+  // Qué webs se leen y cómo están es cosa de quien administra la web.
+  if (!e.propietario) {
+    return `<h1 class="titulo-vista" tabindex="-1">Ofertas</h1>
+${estadoVacio('Esta página no está disponible', 'Las ofertas se revisan cada 15 minutos.', `<p><a class="boton boton--primario" href="#/escapadas">Ver las escapadas${icono('flecha')}</a></p>`)}`;
+  }
   const r = resumenFuentes(e.datos.fuentes);
   const filas = e.datos.fuentes.map((f) => {
     const web = urlSegura(f.web);

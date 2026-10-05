@@ -44,6 +44,17 @@ export function normalizarBase(base) {
   }
 }
 
+/**
+ * Lo que se publica no lleva tus criterios de avisos por email (config/vigilados.json): son
+ * tuyos y la web es pública. La rama «datos» sí los guarda enteros.
+ */
+function sinVigilados(dir) {
+  const ruta = path.join(dir, 'data', 'vigilados.json');
+  if (!existsSync(ruta)) return false;
+  writeFileSync(ruta, `${JSON.stringify({ vigilados: [], privados: true })}\n`);
+  return true;
+}
+
 function quitarCopias(dir) {
   const datos = path.join(dir, 'data');
   if (!existsSync(datos)) return [];
@@ -195,6 +206,8 @@ AddType image/svg+xml .svg
   RewriteRule ^ https://${destino}%{REQUEST_URI} [R=301,L]
 ${unDominio}  # Las copias de seguridad de datos y la carpeta .git (despliegue desde Git) nunca se sirven.
   RewriteRule \\.(bak|tmp)$ - [F,L]
+  # Las instrucciones de instalación del zip no son para los visitantes.
+  RewriteRule ^LEEME-HOSTINGER\\.txt$ - [F,L]
   RewriteRule (^|/)\\.git(/|$) - [F,L]
 </IfModule>
 
@@ -242,6 +255,7 @@ export function prepararWeb({ dir = 'site', base = null, version = null, conHtac
   const hecho = [];
   const quitadas = quitarCopias(dir);
   if (quitadas.length) hecho.push(`quitadas ${quitadas.length} copias de datos`);
+  if (sinVigilados(dir)) hecho.push('avisos por email sin publicar');
   if (version) {
     versionar(dir, version);
     hecho.push(`caché versión ${version}`);
