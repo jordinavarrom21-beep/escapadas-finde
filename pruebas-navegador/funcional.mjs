@@ -276,7 +276,8 @@ await p.waitForTimeout(800);
 const marcadores = await p.locator('.marcador-precio').count();
 ok(marcadores > 0, `mapa: destinos de vuelo con precio (${marcadores})`);
 if (marcadores) {
-  await p.locator('.marcador-precio').first().click({ force: true });
+  // Sin force: con muchos destinos un marcador tapa a otro y el clic caía en el de encima.
+  await p.locator('.marcador-precio').first().dispatchEvent('click');
   await p.waitForSelector('.leaflet-popup .tarjeta, .leaflet-popup .billete', { timeout: 5000 }).catch(() => {});
   ok((await p.locator('.leaflet-popup .tarjeta, .leaflet-popup .billete').count()) === 1, 'mapa: la ventana enseña la tarjeta');
 }

@@ -1182,7 +1182,7 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 .barra-comparar .boton { min-height: 44px; white-space: nowrap; }
 .barra-comparar .boton--suave { background: var(--banda-2); color: var(--banda-texto) !important; border-color: transparent; }
 .barra-comparar .boton--primario { background: var(--banda-texto); border-color: var(--banda-texto); color: var(--banda) !important; }
-.barra-comparar:not([hidden]) ~ .aviso-flotante { bottom: calc(84px + var(--barra-movil)); }
+.barra-comparar:not([hidden]) ~ .aviso-flotante { bottom: calc(84px + var(--barra-movil) + var(--alto-cookies, 0px)); }
 .comparar__caja { position: relative; overflow-x: auto; border-radius: var(--radio); border: 1px solid var(--borde); background: var(--superficie); }
 .comparar { border-collapse: collapse; min-width: 640px; width: 100%; font-size: 0.92rem; }
 .comparar th, .comparar td { text-align: left; vertical-align: top; padding: 12px; border-bottom: 1px solid var(--borde); }
@@ -1208,7 +1208,7 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 /* ── Avisos flotantes y pie ───────────────────────────────────────────────── */
 
 .aviso-flotante {
-  position: fixed; left: 50%; bottom: calc(16px + var(--barra-movil)); transform: translateX(-50%); z-index: 60;
+  position: fixed; left: 50%; bottom: calc(16px + var(--barra-movil) + var(--alto-cookies, 0px)); transform: translateX(-50%); z-index: 60;
   max-width: min(520px, calc(100% - 24px)); padding: 12px 18px; border-radius: var(--radio-medio);
   background: var(--tinta); color: var(--tinta-texto); font-size: 0.9rem; font-weight: 650;
   box-shadow: var(--sombra-alta); text-align: center;
@@ -1218,7 +1218,18 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 .aviso-flotante--datos[hidden] { display: none; }
 .aviso-flotante--datos .boton { flex: none; min-height: 36px; padding: 6px 14px; }
 /* Si también hay un aviso corto, el de datos nuevos sube para no taparlo. */
-.aviso-flotante--datos:not([hidden]) ~ .aviso-flotante:not(:empty) { bottom: calc(76px + var(--barra-movil)); }
+.aviso-flotante--datos:not([hidden]) ~ .aviso-flotante:not(:empty) { bottom: calc(76px + var(--barra-movil) + var(--alto-cookies, 0px)); }
+
+/* Aviso de cookies (anuncios.js, solo con Google Ads): «Rechazar» y «Aceptar» igual de visibles. */
+.aviso-cookies {
+  position: fixed; left: 50%; bottom: calc(12px + var(--barra-movil)); transform: translateX(-50%); z-index: 70;
+  width: min(620px, calc(100% - 24px)); padding: 14px 16px; display: grid; gap: 10px;
+  border-radius: var(--radio-medio); border: 1px solid var(--borde-fuerte);
+  background: var(--superficie); color: var(--texto); box-shadow: var(--sombra-alta); font-size: 0.9rem; line-height: 1.5;
+}
+.aviso-cookies p { margin: 0; }
+.aviso-cookies__botones { display: flex; gap: 10px; justify-content: flex-end; }
+.aviso-cookies__botones .boton { flex: 1 1 0; max-width: 180px; justify-content: center; }
 
 .pie {
   display: grid; gap: 10px; margin-top: 12px; padding-block: 0 40px;

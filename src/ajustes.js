@@ -3,6 +3,8 @@
  * fallar pronto y con un mensaje claro, en vez de romperse a mitad del escaneo.
  * El significado de cada campo está en LEEME.md y docs/CONTRATOS.md.
  */
+import { problemasGoogleAds } from './google-ads.js';
+import { problemasLegal } from './legal.js';
 import { cargarJson } from './almacen.js';
 
 const esObjeto = (valor) => typeof valor === 'object' && valor !== null && !Array.isArray(valor);
@@ -157,6 +159,8 @@ export function validarAjustes(ajustes) {
     `viajeros debe ser un número entero de personas mayor o igual que 1 (ahora: ${ajustes.viajeros})`);
   exigir(ajustes.panelUrl == null || /^https?:\/\//.test(ajustes.panelUrl), 'panelUrl debe ser una URL http(s) o null');
   problemas.push(...problemasPreferencias(ajustes.preferencias));
+  problemas.push(...problemasGoogleAds(ajustes.googleAds));
+  problemas.push(...problemasLegal(ajustes.legal));
   return problemas;
 }
 

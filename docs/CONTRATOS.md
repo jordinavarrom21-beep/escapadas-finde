@@ -327,6 +327,8 @@ Otros archivos de `data/`: `cache.json` (Cache), `historial.json`.
   viajeros: 2,
   coche: { consumoL100km, precioLitro, carburante }, // precioLitro: el medio del Ministerio de hoy, o el de los ajustes
   afiliacion: { proveedores: ['civitatis'], medicion: null }, // proveedores que marcan enlaces y dónde contar clics
+  avisos: { email: false },  // si los vigilados avisan de verdad por email
+  legal: { titular, nif, domicilio, email } | null, // aviso legal (config/ajustes.json → legal); null sin titular o email
   temas: TEMAS,
   findes: Finde[],        // {id, viernes, sabado, domingo, etiqueta, puenteId}
   puentes: Puente[],

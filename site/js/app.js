@@ -66,6 +66,8 @@ let origenFicha = null;
  * esa web no responde, se usa la copia que lleva el propio hosting.
  */
 const DATOS_REMOTOS = document.querySelector('meta[name="escapadas-datos"]')?.content || null;
+/** Con Google Ads configurado (ver anuncios.js), la privacidad lo explica. */
+const GOOGLE_ADS = Boolean(document.querySelector('meta[name="escapadas-google-ads"]'));
 
 async function pedirJson(url) {
   const respuesta = await fetch(url, { cache: 'no-cache' });
@@ -113,6 +115,7 @@ function crearEstado(datos, historial, vigilados) {
     datos: { ...datos, puentes: datos.puentes ?? [], fuentes: datos.fuentes ?? [], temas: datos.temas ?? [] },
     historial,
     vigilados: vigilados.vigilados ?? [],
+    googleAds: GOOGLE_ADS,
     ahora,
     hoy,
     findes: findes.length ? findes : findesConNoches(10, ahora),
@@ -318,6 +321,8 @@ function render({ enfocar = true } = {}) {
   const { vista, params } = rutaActual();
   anotarBusqueda(vista, params);
   const cambiaVista = vista !== vistaActual;
+  // En el móvil, los filtros siguen como estaban si no se cambia de vista (un atajo no los abre).
+  const filtrosAbiertos = !cambiaVista && Boolean(principal.querySelector('[data-plegable-movil]')?.open);
   if (cambiaVista) estado.paginas.clear();
   if (dialogo.open) dialogo.close();
   cerrarMenuMas();
@@ -343,7 +348,7 @@ function render({ enfocar = true } = {}) {
   principal.querySelectorAll('form[data-filtros]').forEach((form) => activarUbicacion(form, estado.datos.origen, { salida: estado.salida }));
   if (vista === 'mapa') prepararMapa(params);
   // En el móvil los filtros empiezan plegados: primero las ofertas.
-  if (cambiaVista && esMovil()) principal.querySelectorAll('[data-plegable-movil]').forEach((d) => { d.open = false; });
+  if (esMovil()) principal.querySelectorAll('[data-plegable-movil]').forEach((d) => { d.open = filtrosAbiertos; });
   sincronizarMasFiltros(params);
   sincronizarModoLista();
   pintarAvisoMis();
