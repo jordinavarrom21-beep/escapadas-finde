@@ -5,6 +5,12 @@
     "lon": 2.1686
   },
   "panelUrl": "https://escapadasfinde.com/",
+  "legal": {
+    "titular": "",
+    "nif": "",
+    "domicilio": "",
+    "email": ""
+  },
   "googleAds": {
     "id": "",
     "conversion": ""

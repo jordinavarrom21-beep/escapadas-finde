@@ -321,6 +321,8 @@ function render({ enfocar = true } = {}) {
   const { vista, params } = rutaActual();
   anotarBusqueda(vista, params);
   const cambiaVista = vista !== vistaActual;
+  // En el móvil, los filtros siguen como estaban si no se cambia de vista (un atajo no los abre).
+  const filtrosAbiertos = !cambiaVista && Boolean(principal.querySelector('[data-plegable-movil]')?.open);
   if (cambiaVista) estado.paginas.clear();
   if (dialogo.open) dialogo.close();
   cerrarMenuMas();
@@ -346,7 +348,7 @@ function render({ enfocar = true } = {}) {
   principal.querySelectorAll('form[data-filtros]').forEach((form) => activarUbicacion(form, estado.datos.origen, { salida: estado.salida }));
   if (vista === 'mapa') prepararMapa(params);
   // En el móvil los filtros empiezan plegados: primero las ofertas.
-  if (cambiaVista && esMovil()) principal.querySelectorAll('[data-plegable-movil]').forEach((d) => { d.open = false; });
+  if (esMovil()) principal.querySelectorAll('[data-plegable-movil]').forEach((d) => { d.open = filtrosAbiertos; });
   sincronizarMasFiltros(params);
   sincronizarModoLista();
   pintarAvisoMis();

@@ -123,3 +123,24 @@ describe('aviso de cookies (anuncios.js)', () => {
     assert.match(conAds, /data-abrir-cookies/);
   });
 });
+
+describe('aviso legal (LSSI) y responsable de la privacidad', () => {
+  it('con los datos del dueño: titular, NIF, domicilio y contacto; sin ellos, no se enseña la identidad de nadie', async () => {
+    const { legalParaPanel, problemasLegal } = await import('../src/legal.js');
+    const legal = legalParaPanel({ titular: ' Ana Pérez ', nif: '12345678Z', domicilio: '', email: 'hola@escapadasfinde.com' });
+    assert.deepEqual(legal, { titular: 'Ana Pérez', nif: '12345678Z', email: 'hola@escapadasfinde.com' });
+    assert.equal(legalParaPanel({ titular: 'Ana', email: '' }), null);
+    assert.equal(legalParaPanel(undefined), null);
+    assert.equal(problemasLegal({ email: 'no-es-un-email' }).length, 1);
+    const conDatos = vistaAyuda({ ...estadoPanel(), datos: { ...estadoPanel().datos, legal } });
+    assert.match(conDatos, /id="aviso-legal"[^]*Ana Pérez<\/strong> · NIF 12345678Z[^]*mailto:hola@escapadasfinde\.com/);
+    assert.match(conDatos, /Responsable: Ana Pérez/);
+    const sinDatos = vistaAyuda(estadoPanel());
+    assert.match(sinDatos, /id="aviso-legal"[^]*No vende viajes/);
+    assert.doesNotMatch(sinDatos, /Titular:|Faltan tus datos/);
+    assert.match(vistaAyuda({ ...estadoPanel(), propietario: true }), /Faltan tus datos/);
+  });
+  it('el pie enlaza al aviso legal', () => {
+    assert.match(INDICE, /href="#\/ayuda\?seccion=aviso-legal">Aviso legal</);
+  });
+});

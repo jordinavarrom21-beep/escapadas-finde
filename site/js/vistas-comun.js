@@ -153,7 +153,7 @@ export const PESTANAS = {
 export function pestanas(apartado, activa, e = null) {
   const [nombre, todas] = PESTANAS[apartado];
   // «Avisos por email» es de quien administra la web (se configuran en GitHub): solo en modo propietario.
-  const lista = todas.filter(([vista]) => vista !== 'vigilados' || e?.propietario || activa === 'vigilados');
+  const lista = todas.filter(([vista]) => vista !== 'vigilados' || e?.propietario);
   // En el móvil, el nombre corto (si lo hay) para que quepan todas sin deslizar.
   const texto = (largo, corto) => (corto ? `<span class="solo-ancho">${largo}</span><span class="solo-estrecho">${corto}</span>` : `<span>${largo}</span>`);
   // `ruta` puede llevar parámetros («mis?ver=busquedas»): la vista es lo de antes del «?».

@@ -4,6 +4,7 @@
  * El orden y los formatos están en docs/CONTRATOS.md.
  */
 import { performance } from 'node:perf_hooks';
+import { legalParaPanel } from '../legal.js';
 import { Cache } from '../cache.js';
 import { estadoInicial, fusionar, podar } from '../almacen.js';
 import { FUENTES } from '../fuentes/index.js';
@@ -371,6 +372,8 @@ export async function escanear({
       afiliacion: { proveedores: afiliados.map((p) => p.id), medicion: afiliacion.medicion?.url || null },
       // Si los vigilados avisan de verdad por email (sin decir a qué dirección).
       avisos: { email: !opciones.sinEmails && configuracionEnvio(env).estado === 'lista' },
+      // Quién está detrás de la web (aviso legal y privacidad), de config/ajustes.json → «legal».
+      legal: legalParaPanel(ajustes.legal),
       // `precioMedio`: el litro es la media de hoy en las gasolineras de la provincia de salida
       // (Ministerio); si no se pudo consultar, es el precio fijo de los ajustes.
       coche: {

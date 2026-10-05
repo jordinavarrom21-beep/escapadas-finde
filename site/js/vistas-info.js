@@ -136,6 +136,12 @@ function estadoAvisos(e) {
 }
 
 export function vistaVigilados(e) {
+  // Los avisos por email son de quien administra la web (se configuran en GitHub): a cualquier
+  // otro visitante no se le enseñan sus criterios ni cómo está montado el correo.
+  if (!e.propietario) {
+    return `${pestanas('mis', 'vigilados', e)}<h1 class="titulo-vista" tabindex="-1">Avisos</h1>
+${estadoVacio('Esta web no envía emails', 'Para enterarte de lo nuevo, guarda una búsqueda: al volver, Guardados te dice cuántas ofertas nuevas la cumplen.', `<p><a class="boton boton--primario" href="#/mis?ver=busquedas">Ver mis búsquedas guardadas${icono('flecha')}</a></p>`)}`;
+  }
   const criterios = e.vigilados.map((c) => {
     const coincidencias = (c.coincidencias ?? []).map((id) => e.porId.get(id)).filter(Boolean);
     const condiciones = describirCriterio(c, { temas: e.datos.temas, origen: e.datos.origen });
@@ -173,6 +179,7 @@ ${criterios.join('') || estadoVacio('Aún no vigilas nada', 'Añade criterios co
  * qué se guarda de ti. Para cualquier visitante, sin tecnicismos.
  */
 export function vistaAyuda(e) {
+  const legal = e.datos.legal;
   const webs = (e.datos.fuentes ?? []).filter((f) => f.estado === 'ok').map((f) => f.nombre);
   const pregunta = (titulo, cuerpo) => `<details class="ayuda-pregunta"><summary>${titulo}</summary><div>${cuerpo}</div></details>`;
   const nota = QUE_MIDE_LA_NOTA.replace(/^Lo bueno que es como chollo: /, 'Cuenta ').replace(/\.$/, '');
@@ -207,9 +214,33 @@ export function vistaAyuda(e) {
     <li>Al buscar un pueblo o ciudad, lo que escribes se consulta en <a href="https://photon.komoot.io" target="_blank" rel="noopener noreferrer">Photon</a>; el mapa carga sus imágenes de <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>.</li>
     <li>Si eliges una salida distinta de la de serie, los kilómetros por carretera se calculan con <a href="https://project-osrm.org" target="_blank" rel="noopener noreferrer">OSRM</a>: se le envían las coordenadas de tu salida y de los destinos (nada más). El mapa y la gráfica de precios cargan sus librerías desde <a href="https://cdnjs.com" target="_blank" rel="noopener noreferrer">cdnjs</a>.</li>
     <li>Al pulsar «Ver en…» vas a la web de la oferta, con su propia política de privacidad.</li>
+    ${legal ? `<li>Responsable: ${esc(legal.titular)}. Para cualquier duda o para ejercer tus derechos (acceso, rectificación, supresión…): <a href="mailto:${esc(legal.email)}">${esc(legal.email)}</a>. También puedes reclamar ante la <a href="https://www.aepd.es" target="_blank" rel="noopener noreferrer">AEPD</a>.</li>` : ''}
   </ul>
 </section>
+${seccionAvisoLegal(e)}
 </div>`;
+}
+
+/**
+ * Aviso legal (LSSI, art. 10): quién está detrás, a qué se dedica la web y de qué responde.
+ * Los datos salen de config/ajustes.json → «legal»; sin ellos no se enseña la identidad de
+ * nadie (y quien administra la web ve qué falta).
+ */
+function seccionAvisoLegal(e) {
+  const legal = e.datos.legal;
+  const datos = legal
+    ? `<ul class="ayuda-lista">
+    <li>Titular: <strong>${esc(legal.titular)}</strong>${legal.nif ? ` · NIF ${esc(legal.nif)}` : ''}</li>
+    ${legal.domicilio ? `<li>Domicilio: ${esc(legal.domicilio)}</li>` : ''}
+    <li>Contacto: <a href="mailto:${esc(legal.email)}">${esc(legal.email)}</a></li>
+  </ul>`
+    : e.propietario ? '<p class="aviso-suave">Faltan tus datos: rellena «legal» (titular, NIF, domicilio y email) en <code>config/ajustes.json</code>. Una web con enlaces de afiliado o anuncios tiene que decir quién está detrás.</p>' : '';
+  return `<section class="seccion" id="aviso-legal">
+  <h2 class="subtitulo">Aviso legal</h2>
+  ${datos}
+  <p>Escapadas Finde es un buscador de ofertas de viaje publicadas por otras webs. No vende viajes ni hace reservas: el precio, la disponibilidad y las condiciones los fija y los confirma siempre la web de cada oferta. Algunos enlaces son de afiliado y, si reservas por ellos, esa web puede pagarnos una comisión; no cambia tu precio ni el orden de las ofertas.</p>
+  <p>Las ofertas, fotos y marcas son de sus webs y dueños. Se revisan cada 15 minutos, pero pueden cambiar o terminar antes: comprueba siempre la oferta antes de reservar.</p>
+</section>`;
 }
 
 export function vistaFuentes(e) {

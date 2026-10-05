@@ -262,6 +262,11 @@ para cualquier visitante:
 - **Primera visita**: una bienvenida de una línea (qué es y cómo se usa) que se cierra con
   «Entendido»; **Cómo funciona** (`#/ayuda`), enlazada desde el pie, con preguntas frecuentes
   y la **privacidad** (sin cuentas, cookies ni seguimiento; lo guardado vive en su navegador).
+- **Aviso legal**: «Cómo funciona» → Aviso legal, enlazado desde el pie. Quién está detrás sale de
+  `"legal": {"titular", "nif", "domicilio", "email"}` en `config/ajustes.json` (obligatorio en
+  España para una web con enlaces de afiliado o anuncios, LSSI art. 10). Sin titular o email no se
+  enseña la identidad de nadie; en modo propietario se avisa de que faltan.
+- **Avisos por email**: son de quien administra la web; a los visitantes no se les enseñan.
 - **Google Ads (opcional)**: con `"googleAds": {"id": "AW-…", "conversion": "AW-…/etiqueta"}` en
   `config/ajustes.json`, el despliegue añade un aviso de cookies con «Aceptar» y «Rechazar».
   Nada de Google se carga hasta aceptar (modo de consentimiento v2), cada clic en una oferta

@@ -96,11 +96,18 @@ describe('vigilados: fechas y presupuesto del viaje completo', async () => {
 
 describe('vigilados en el panel: los avisos solo se dan por activos si se entregan', async () => {
   const { vistaVigilados } = await import('../site/js/vistas.js');
-  const base = { vigilados: [], porId: new Map(), ubicacion: {}, datos: { temas: [], origen: { nombre: 'Barcelona', lat: 41.39, lon: 2.17 } } };
+  const base = { propietario: true, vigilados: [], porId: new Map(), ubicacion: {}, datos: { temas: [], origen: { nombre: 'Barcelona', lat: 41.39, lon: 2.17 } } };
   it('dice si el email está configurado, si no lo está o si aún no se sabe', () => {
     assert.match(vistaVigilados({ ...base, datos: { ...base.datos, avisos: { email: true } } }), /Avisos por email activos/);
     assert.match(vistaVigilados({ ...base, datos: { ...base.datos, avisos: { email: false } } }), /no están configurados[^]*no te llegará ningún aviso/);
     assert.match(vistaVigilados(base), /tras la próxima revisión/);
     assert.match(vistaVigilados(base), /"activo": false/);
+  });
+  it('a un visitante no le enseña los criterios del dueño ni cómo está montado el correo', () => {
+    const visitante = { ...base, propietario: false, vigilados: [{ nombre: 'Oporto en avión', coincidencias: [] }], datos: { ...base.datos, avisos: { email: false } } };
+    const html = vistaVigilados(visitante);
+    assert.doesNotMatch(html, /Oporto|secretos|GitHub|vigilados\.json/);
+    assert.match(html, /Esta web no envía emails/);
+    assert.match(html, /#\/mis\?ver=busquedas/);
   });
 });
