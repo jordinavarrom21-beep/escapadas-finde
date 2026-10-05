@@ -13,7 +13,7 @@
 import { costeDesdeOrigen } from './vigilados.js';
 import { escaparHtml as esc, euros, normalizar, urlSegura } from '../site/js/formato.js';
 import { etiquetaDia, fechaLocal } from './util/fechas.js';
-import { TEXTOS_GUIAS } from './textos-guias.js';
+import { textoGuia } from './textos-guias.js';
 
 /** Menos de esto es una página casi vacía: no se publica (ni entra en el sitemap). */
 export const MINIMO_OFERTAS = 5;
@@ -118,7 +118,9 @@ export function definiciones({ origen, findes = [], puentes = [], ofertas = [], 
   const coste = `el coste del viaje completo para ${VIAJEROS} personas desde ${desde}: la oferta y, si se va en coche, la gasolina estimada (sin peajes)`;
   const fijas = [
     {
-      ruta: 'escapadas', grupo: 'general', enlace: 'Todas las escapadas', titulo: `Escapadas de fin de semana desde ${desde}`,
+      ruta: 'escapadas', grupo: 'general', enlace: 'Todas las escapadas',
+      // Distinto del de la portada («Escapadas de fin de semana desde…»): si no, compiten por la misma búsqueda.
+      titulo: `Todas las escapadas desde ${desde}, por precio`,
       intro: `Las escapadas más baratas que hemos encontrado, ordenadas por ${coste}.`,
       elegir: (o) => esEscapada(o) && conTotal(o), orden: porTotal, panel: '#/escapadas?orden=total',
     },
@@ -241,27 +243,12 @@ export function enlacesGuias(guias, raiz, actual = null) {
   }).join('');
 }
 
-/** El texto propio de la guía (src/textos-guias.js): guía, consejos y preguntas frecuentes. */
-export function bloqueTexto(t) {
-  if (!t) return '';
-  const consejos = t.consejos?.length ? `<h3>Consejos</h3>\n<ul>${t.consejos.map((c) => `<li>${esc(c)}</li>`).join('')}</ul>` : '';
-  const preguntas = t.preguntas?.length
-    ? `<h2>Preguntas frecuentes</h2>\n${t.preguntas.map(({ p, r }) => `<h3>${esc(p)}</h3>\n<p>${esc(r)}</p>`).join('\n')}`
-    : '';
-  return `<section class="texto-guia">
-<h2>${esc(t.titulo)}</h2>
-${(t.parrafos ?? []).map((x) => `<p>${esc(x)}</p>`).join('\n')}
-${consejos}
-${preguntas}
-</section>`;
-}
-
 /**
  * HTML completo de una página. `raiz` es el camino relativo hasta site/ («../» o «../../»);
  * `base`, la dirección pública (sin ella no hay canónica, imagen para compartir ni JSON-LD,
  * que necesitan direcciones absolutas); `todas`, las guías que se publican.
  */
-export function htmlPagina(d, ofertas, { raiz, base = null, generado, total, todas = [d], nombres = new Map() }) {
+export function htmlPagina(d, ofertas, { raiz, base = null, generado, total, todas = [d], nombres = new Map(), texto = null }) {
   const canonical = base ? `${base}${d.ruta}/` : null;
   const descripcion = `${d.titulo}: ${total} ofertas comparadas por el coste del viaje completo. Actualizado el ${etiquetaDia(generado)}.`;
   const lasMigas = migas(d, todas);
@@ -281,6 +268,10 @@ export function htmlPagina(d, ofertas, { raiz, base = null, generado, total, tod
         '@type': 'BreadcrumbList', '@id': `${canonical}#migas`,
         itemListElement: lasMigas.map((m, i) => ({ '@type': 'ListItem', position: i + 1, name: m.nombre, item: `${base}${m.ruta}` })),
       },
+      ...(texto?.preguntas.length ? [{
+        '@type': 'FAQPage', '@id': `${canonical}#preguntas`,
+        mainEntity: texto.preguntas.map(([pregunta, respuesta]) => ({ '@type': 'Question', name: pregunta, acceptedAnswer: { '@type': 'Answer', text: respuesta } })),
+      }] : []),
     ],
   });
   const cabeza = [
@@ -324,14 +315,30 @@ ${cabeza}
 <p><a class="boton boton--primario" href="${esc(raiz + d.panel)}">Abrir en el panel (con mapa, filtros y comparación)</a></p>
 <h2>${esc(cuantas)}</h2>
 <ol class="lista-guia">${ofertas.map((o) => filaOferta(o, nombres)).join('')}</ol>
-${bloqueTexto(TEXTOS_GUIAS[d.ruta])}
-</main>
+${bloqueTexto(d, texto)}</main>
 <footer class="pie contenedor">
 <nav class="guias" aria-label="Más guías">${enlacesGuias(todas, raiz, d.ruta)}</nav>
 <p><a href="${raiz}">${NOMBRE_WEB}</a> reúne ofertas de más de 20 webs de viajes y las revisa cada 15 minutos. No vendemos nada: el precio y las condiciones los confirma la web de cada oferta. · <a href="${raiz}#/ayuda">Cómo funciona</a></p>
 </footer>
 </body>
 </html>
+`;
+}
+
+/**
+ * El texto propio de la guía (src/textos-guias.js), debajo de la lista: título, párrafos,
+ * consejos y preguntas frecuentes (las mismas que van como FAQPage en el JSON-LD).
+ */
+function bloqueTexto(d, texto) {
+  if (!texto) return '';
+  const consejos = texto.consejos.length ? `\n<h3>Consejos</h3>\n<ul>${texto.consejos.map((c) => `<li>${esc(c)}</li>`).join('')}</ul>` : '';
+  const preguntas = texto.preguntas.length
+    ? `\n<h2>Preguntas frecuentes</h2>\n${texto.preguntas.map(([p, r]) => `<h3>${esc(p)}</h3>\n<p>${esc(r)}</p>`).join('\n')}`
+    : '';
+  return `<section class="guia-texto" aria-label="Sobre esta guía">
+<h2>${esc(texto.titulo ?? `${d.enlace ?? d.titulo}: qué tener en cuenta`)}</h2>
+${texto.parrafos.map((p) => `<p>${esc(p)}</p>`).join('\n')}${consejos}${preguntas}
+</section>
 `;
 }
 
@@ -372,7 +379,9 @@ export function generarPaginas(datos, { base = null } = {}) {
     const raiz = '../'.repeat(d.ruta.split('/').length);
     return {
       ruta: `${d.ruta}/index.html`,
-      contenido: htmlPagina(d, lista.slice(0, MAXIMO_POR_PAGINA), { raiz, base, generado: datos.generado, total: lista.length, todas, nombres }),
+      contenido: htmlPagina(d, lista.slice(0, MAXIMO_POR_PAGINA), {
+        raiz, base, generado: datos.generado, total: lista.length, todas, nombres, texto: textoGuia(d.ruta, datos.origen.nombre),
+      }),
     };
   });
   const rutas = candidatas.map(({ d }) => d.ruta);
