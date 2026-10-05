@@ -14,14 +14,18 @@
 (() => {
   const etiqueta = document.querySelector('meta[name="escapadas-google-ads"]');
   const id = etiqueta?.content?.trim();
-  if (!id || !/^AW-\d+$/.test(id)) return;
+  // El despliegue solo la pone con un ID válido (src/google-ads.js).
+  if (!id) return;
   const conversion = etiqueta.dataset.conversion?.trim() || null;
   const CLAVE = 'escapadas-cookies';
 
+  // Sin almacenamiento (bloqueado o lleno), la decisión vale al menos mientras dure la visita.
+  let decisionVisita = null;
   const leer = () => {
-    try { return JSON.parse(localStorage.getItem(CLAVE))?.decision ?? null; } catch { return null; }
+    try { return JSON.parse(localStorage.getItem(CLAVE))?.decision ?? decisionVisita; } catch { return decisionVisita; }
   };
   const guardar = (decision) => {
+    decisionVisita = decision;
     try { localStorage.setItem(CLAVE, JSON.stringify({ decision, fecha: new Date().toISOString() })); } catch { /* modo privado */ }
   };
 
@@ -52,6 +56,30 @@
     }
   }
 
+  /**
+   * Con una ficha abierta (diálogo modal), el resto de la página no se puede pulsar: el aviso
+   * va dentro del diálogo abierto, y vuelve a la página al cerrarlo.
+   */
+  function colocar(caja) {
+    const modal = () => {
+      try { return document.querySelector('dialog:modal'); } catch { return document.querySelector('dialog[open]'); }
+    };
+    const sitio = modal() ?? document.body;
+    if (caja.parentElement !== sitio) sitio.append(caja);
+    // Los avisos flotantes («Hay datos nuevos»…) suben para que el de cookies no los tape.
+    document.body.style.setProperty('--alto-cookies', `${caja.offsetHeight + 12}px`);
+  }
+  const vigilarDialogos = new MutationObserver(() => {
+    const caja = document.querySelector('.aviso-cookies');
+    if (caja) colocar(caja);
+  });
+
+  function cerrarAviso(caja) {
+    caja.remove();
+    vigilarDialogos.disconnect();
+    document.body.style.removeProperty('--alto-cookies');
+  }
+
   function aviso() {
     document.querySelector('.aviso-cookies')?.remove();
     const caja = document.createElement('section');
@@ -68,9 +96,10 @@
       if (!decision) return;
       guardar(decision);
       if (decision === 'si') activar(); else desactivar();
-      caja.remove();
+      cerrarAviso(caja);
     });
-    document.body.append(caja);
+    colocar(caja);
+    vigilarDialogos.observe(document.body, { subtree: true, attributes: true, attributeFilter: ['open'] });
   }
 
   function arrancar() {

@@ -16,6 +16,7 @@ import { existsSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'no
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { normalizarGoogleAds, problemasGoogleAds } from '../src/google-ads.js';
 import { estructuradosPortada, generarPaginas } from '../src/paginas.js';
 
 /** «--base=x» o «--base x» → {base: 'x'}; «--htaccess» → {htaccess: true}. */
@@ -95,20 +96,15 @@ export function ponerDatosRemotos(html, datos) {
 /**
  * Lo que necesita Google Ads (ver site/js/anuncios.js) en la CSP: su script, sus llamadas
  * y el iframe de las conversiones. Lista de Google: developers.google.com/tag-platform/security/guides/csp
+ * Google usa también el dominio de cada país (google.<país>): van los de quien nos visita.
+ * Estos orígenes son solo de Google Ads: sin ID se quitan todos.
  */
+const GOOGLE_PAISES = ['es', 'ad', 'fr', 'pt', 'it', 'de', 'co.uk', 'nl', 'be', 'ch'].map((tld) => `https://www.google.${tld}`);
 const CSP_GOOGLE_ADS = {
   'script-src': ['https://www.googletagmanager.com', 'https://www.googleadservices.com', 'https://googleads.g.doubleclick.net', 'https://www.google.com'],
-  'connect-src': ['https://www.googletagmanager.com', 'https://www.google.com', 'https://www.google.es', 'https://googleads.g.doubleclick.net', 'https://www.googleadservices.com', 'https://pagead2.googlesyndication.com'],
+  'connect-src': ['https://www.googletagmanager.com', 'https://www.google.com', ...GOOGLE_PAISES, 'https://googleads.g.doubleclick.net', 'https://www.googleadservices.com', 'https://pagead2.googlesyndication.com'],
   'frame-src': ['https://td.doubleclick.net', 'https://bid.g.doubleclick.net', 'https://www.googletagmanager.com'],
 };
-
-/** {id: 'AW-123', conversion: 'AW-123/abc'} válido, o null (sin Google Ads). */
-export function normalizarGoogleAds(googleAds) {
-  const id = String(googleAds?.id ?? '').trim();
-  if (!/^AW-\d+$/.test(id)) return null;
-  const conversion = String(googleAds?.conversion ?? '').trim();
-  return { id, conversion: conversion.startsWith(`${id}/`) && /^AW-\d+\/[\w-]+$/.test(conversion) ? conversion : null };
-}
 
 /**
  * Google Ads con aviso de cookies: la etiqueta que lee anuncios.js y la CSP abierta a Google.
@@ -123,12 +119,14 @@ export function ponerGoogleAds(html, googleAds) {
       let directiva = directivas.find(([n]) => n === nombre);
       if (!directiva && ads) {
         directiva = [nombre, "'self'"];
-        directivas.splice(directivas.findIndex(([n]) => n === 'object-src'), 0, directiva);
+        const antes = directivas.findIndex(([n]) => n === 'object-src');
+        directivas.splice(antes < 0 ? directivas.length : antes, 0, directiva);
       }
       if (!directiva) continue;
       const resto = directiva.slice(1).filter((f) => !fuentes.includes(f));
       directiva.splice(1, Infinity, ...resto, ...(ads ? fuentes : []));
     }
+    // El frame-src que se puso para Google, si ya no lleva nada más que 'self'.
     const limpias = directivas.filter((d) => !(d[0] === 'frame-src' && d.length === 2 && d[1] === "'self'" && !ads));
     return `${abre}${limpias.map((d) => d.join(' ')).join('; ')}${cierra}`;
   });
@@ -137,13 +135,16 @@ export function ponerGoogleAds(html, googleAds) {
   return nuevo.replace(/(<meta http-equiv="Content-Security-Policy"[^>]*>)/, `$1\n  ${etiqueta}`);
 }
 
-/** «googleAds» de config/ajustes.json (null si no está o no se puede leer). */
+/**
+ * «googleAds» de config/ajustes.json: null si no está o el ID está vacío. Si está mal escrito,
+ * error (mejor que publicar sin medir y no enterarse).
+ */
 export function googleAdsDeAjustes(ruta = fileURLToPath(new URL('../config/ajustes.json', import.meta.url))) {
-  try {
-    return normalizarGoogleAds(JSON.parse(readFileSync(ruta, 'utf8')).googleAds);
-  } catch {
-    return null;
-  }
+  if (!existsSync(ruta)) return null;
+  const { googleAds } = JSON.parse(readFileSync(ruta, 'utf8'));
+  const problemas = problemasGoogleAds(googleAds);
+  if (problemas.length) throw new Error(`config/ajustes.json: ${problemas.join('; ')}`);
+  return normalizarGoogleAds(googleAds);
 }
 
 /** Cambia lo que hay entre «<!-- marca: … -->» y «<!-- /marca -->» (se puede repetir). */
@@ -257,11 +258,12 @@ export function prepararWeb({ dir = 'site', base = null, version = null, conHtac
     writeFileSync(indice, ponerDatosRemotos(readFileSync(indice, 'utf8'), datos));
     hecho.push(`datos de ${datos}`);
   }
-  const ads = normalizarGoogleAds(googleAds);
-  if (ads) {
-    const indice = path.join(dir, 'index.html');
-    writeFileSync(indice, ponerGoogleAds(readFileSync(indice, 'utf8'), ads));
-    hecho.push(`Google Ads ${ads.id}${ads.conversion ? ' con conversión' : ''}`);
+  // Siempre: sin ID también quita lo que hubiera de un despliegue anterior en la misma carpeta.
+  const indiceAds = path.join(dir, 'index.html');
+  if (existsSync(indiceAds)) {
+    const ads = normalizarGoogleAds(googleAds);
+    writeFileSync(indiceAds, ponerGoogleAds(readFileSync(indiceAds, 'utf8'), ads));
+    if (ads) hecho.push(`Google Ads ${ads.id} ${ads.conversion ? 'con conversión' : 'SIN conversión (falta googleAds.conversion)'}`);
   }
   const rutaOfertas = path.join(dir, 'data', 'ofertas.json');
   const datosPanel = existsSync(rutaOfertas) ? JSON.parse(readFileSync(rutaOfertas, 'utf8')) : null;

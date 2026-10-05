@@ -5,11 +5,12 @@
  */
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { cpSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import { googleAdsDeAjustes, normalizarGoogleAds, ponerGoogleAds, prepararWeb } from '../scripts/preparar-web.js';
+import { googleAdsDeAjustes, ponerGoogleAds, prepararWeb } from '../scripts/preparar-web.js';
+import { normalizarGoogleAds } from '../src/google-ads.js';
 import { validarAjustes } from '../src/ajustes.js';
 import { vistaAyuda } from '../site/js/vistas.js';
 import { estadoPanel } from './ayudas-panel.js';
@@ -46,23 +47,44 @@ describe('Google Ads en la web publicada', () => {
     assert.equal(ponerGoogleAds(una, null), INDICE);
   });
 
-  it('una conversión de otra cuenta no se usa (solo el ID)', () => {
-    assert.deepEqual(normalizarGoogleAds({ id: 'AW-1', conversion: 'AW-2/x' }), { id: 'AW-1', conversion: null });
-    assert.doesNotMatch(ponerGoogleAds(INDICE, { id: 'AW-1', conversion: 'AW-2/x' }), /data-conversion/);
+  it('los espacios sobran; sin conversión vale (sin medir) y con la de otra cuenta, no', () => {
+    assert.deepEqual(normalizarGoogleAds({ id: ' AW-1 ', conversion: ' AW-1/x ' }), { id: 'AW-1', conversion: 'AW-1/x' });
+    assert.deepEqual(normalizarGoogleAds({ id: 'AW-1', conversion: '' }), { id: 'AW-1', conversion: null });
+    assert.equal(normalizarGoogleAds({ id: 'AW-1', conversion: 'AW-2/x' }), null);
+    assert.equal(normalizarGoogleAds({ id: 'AW-1', conversion: 123 }), null);
   });
 
-  it('prepararWeb la pone en index.html; config/ajustes.json trae «googleAds» vacío (sin Google Ads)', () => {
+  it('prepararWeb la pone en index.html y, sin ID, la quita de un despliegue anterior en la misma carpeta', () => {
     const dir = mkdtempSync(path.join(tmpdir(), 'ads-'));
     try {
       cpSync(new URL('../site/index.html', import.meta.url), path.join(dir, 'index.html'));
       cpSync(new URL('../site/sw.js', import.meta.url), path.join(dir, 'sw.js'));
-      const hecho = prepararWeb({ dir, googleAds: ADS });
-      assert.ok(hecho.includes('Google Ads AW-123456789 con conversión'));
+      assert.ok(prepararWeb({ dir, googleAds: ADS }).includes('Google Ads AW-123456789 con conversión'));
       assert.match(readFileSync(path.join(dir, 'index.html'), 'utf8'), /escapadas-google-ads/);
+      assert.ok(prepararWeb({ dir, googleAds: { id: 'AW-123456789' } }).some((h) => /SIN conversión/.test(h)));
+      prepararWeb({ dir, googleAds: null });
+      assert.equal(readFileSync(path.join(dir, 'index.html'), 'utf8'), INDICE);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
-    assert.equal(googleAdsDeAjustes(), null);
+  });
+
+  it('googleAdsDeAjustes: vacío o sin el campo, null; bien, el objeto; mal escrito, error claro', () => {
+    const dir = mkdtempSync(path.join(tmpdir(), 'ajustes-'));
+    const ruta = path.join(dir, 'ajustes.json');
+    try {
+      for (const [googleAds, esperado] of [[undefined, null], [{ id: '', conversion: '' }, null], [ADS, ADS]]) {
+        writeFileSync(ruta, JSON.stringify({ googleAds }));
+        assert.deepEqual(googleAdsDeAjustes(ruta), esperado);
+      }
+      writeFileSync(ruta, JSON.stringify({ googleAds: { id: 'AW-1', conversion: 'AW-2/x' } }));
+      assert.throws(() => googleAdsDeAjustes(ruta), /googleAds\.conversion/);
+      writeFileSync(ruta, '{ roto');
+      assert.throws(() => googleAdsDeAjustes(ruta));
+      assert.equal(googleAdsDeAjustes(path.join(dir, 'no-existe.json')), null);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   it('la configuración valida el ID y que la conversión sea de esa cuenta', () => {
@@ -70,6 +92,8 @@ describe('Google Ads en la web publicada', () => {
     assert.deepEqual(validarAjustes({ ...ajustes, googleAds: ADS }), []);
     assert.equal(validarAjustes({ ...ajustes, googleAds: { id: 'G-1', conversion: '' } }).length, 1);
     assert.equal(validarAjustes({ ...ajustes, googleAds: { id: 'AW-1', conversion: 'AW-2/x' } }).length, 1);
+    assert.equal(validarAjustes({ ...ajustes, googleAds: { id: 'AW-1', conversion: 123 } }).length, 1);
+    assert.deepEqual(validarAjustes({ ...ajustes, googleAds: { id: ' AW-1 ', conversion: '' } }), []);
   });
 });
 
@@ -84,6 +108,8 @@ describe('aviso de cookies (anuncios.js)', () => {
     assert.match(ANUNCIOS, /data-cookies="no">Rechazar</);
     assert.match(ANUNCIOS, /data-cookies="si">Aceptar</);
     assert.match(ANUNCIOS, /conversion && cargado && leer\(\) === 'si'/);
+    // Sin localStorage, la decisión vale durante la visita.
+    assert.match(ANUNCIOS, /decisionVisita = decision/);
   });
   it('la página lo carga y el pie tiene dónde poner «Cookies»', () => {
     assert.match(INDICE, /<script src="js\/anuncios\.js" defer><\/script>/);

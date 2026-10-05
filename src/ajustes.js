@@ -3,6 +3,7 @@
  * fallar pronto y con un mensaje claro, en vez de romperse a mitad del escaneo.
  * El significado de cada campo está en LEEME.md y docs/CONTRATOS.md.
  */
+import { problemasGoogleAds } from './google-ads.js';
 import { cargarJson } from './almacen.js';
 
 const esObjeto = (valor) => typeof valor === 'object' && valor !== null && !Array.isArray(valor);
@@ -134,18 +135,6 @@ function problemasPreferencias(preferencias) {
   return ['temasFavoritos', 'evitarTemas', 'evitarDestinos']
     .filter((campo) => preferencias[campo] !== undefined && !esListaDeTextos(preferencias[campo]))
     .map((campo) => `preferencias.${campo} debe ser una lista de textos`);
-}
-
-/** Google Ads (opcional): {id: 'AW-123…' o '', conversion: 'AW-123…/etiqueta' o ''}. Vacío, sin Google Ads. */
-function problemasGoogleAds(googleAds) {
-  if (googleAds == null) return [];
-  if (!esObjeto(googleAds)) return ['googleAds debe ser un objeto {id, conversion}'];
-  const { problemas, exigir } = lista();
-  const { id = '', conversion = '' } = googleAds;
-  exigir(id === '' || /^AW-\d+$/.test(id), `googleAds.id debe ser el ID de Google Ads («AW-» y números) o "" (ahora: ${id})`);
-  exigir(conversion === '' || (id !== '' && conversion.startsWith(`${id}/`) && /^AW-\d+\/[\w-]+$/.test(conversion)),
-    `googleAds.conversion debe ser «${id || 'AW-…'}/etiqueta» (la de la acción de conversión) o "" (ahora: ${conversion})`);
-  return problemas;
 }
 
 /**
