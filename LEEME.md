@@ -13,7 +13,7 @@ Funciona gratis en GitHub Actions, así que **no hace falta tener el PC encendid
 GitHub Actions: «Revisión continua» lanza un escaneo cada 15 min (ver «Revisión continua»)
   └─ npm run escanear
        ├─ fuentes      Buscounchollo, Viajeros Piratas, Holidayguru, Nomolesten,
-       │               Chollometro, Fly4free… (comprobando antes su robots.txt)
+       │               Chollometro, Fly4free, canales de Telegram… (comprobando antes su robots.txt)
        ├─ enriquecer   temáticas · festivos y puentes · geolocalización · tiempo en coche
        │               · enlaces a Booking/Trivago/Google Flights… · puntuación de chollo
        ├─ historial    evolución de precios (mínimo diario)
@@ -189,8 +189,8 @@ se deduce de lo que cada web deja de publicar.
   revisión (html y api), las que llevan **8 revisiones buenas seguidas** sin aparecer (y al
   menos 2 días): una web que se revisa cada 6 h las retira a los 2 días; una de cada 12 h, a los
   4. Se cuenta hasta la última lectura buena, así que si una web falla varios días sus ofertas
-  no se pierden. Los blogs y foros (Viajeros Piratas, Chollometro, Fly4free) solo publican lo
-  último: sus ofertas se guardan `fuentes.<id>.retencionDias` (5) días; el resto, como mucho
+  no se pierden. Los blogs, foros y canales de Telegram (Viajeros Piratas, Chollometro, Fly4free,
+  Exprime Viajes, Escapada Barata) solo publican lo último: sus ofertas se guardan `fuentes.<id>.retencionDias` (5) días; el resto, como mucho
   `retencionDias` (10).
 - **En el panel**, las que su web lleva más de 24 h (o 3 revisiones) sin publicar dicen «Sin
   comprobar…», van **al final** de las listas y no salen en el destacado, la sorpresa ni las
@@ -347,6 +347,12 @@ casi 6 horas lanzando «Vigilar ofertas» cada 15 minutos y, antes de terminar, 
 sí mismo; un cron cada 2 h lo rearranca si la cadena se corta. En un repositorio público es
 gratis.
 
+- **Canales de Telegram** (`src/fuentes/telegram.js`): se lee la vista pública de cada canal
+  (`t.me/s/<canal>`, sin cuenta; t.me no tiene robots.txt). Cada mensaje con precio y enlace
+  es una oferta; sorteos, tarjetas, «#clip» y anuncios de otros canales se descartan. Hoy:
+  **Exprime Viajes** (vuelos, hoteles y paquetes, cada 30 min) y **Escapada Barata** (hoteles
+  en España con fechas cerradas, cada hora). Para añadir otro canal: una línea con
+  `canalTelegram({...})` en ese archivo, su entrada en `FUENTES` y en `config/ajustes.json`.
 - **Sin solapes ni duplicados**: nunca corren dos escaneos a la vez (van en cola), cada web
   se consulta solo cuando le toca por su `intervaloMin` (Chollómetro cada 15 min, Viajeros
   Piratas cada 20, BuscoUnChollo, Holidayguru y Fly4free cada 30…) y las ofertas repetidas

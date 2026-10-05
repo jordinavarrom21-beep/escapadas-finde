@@ -96,6 +96,16 @@
       "intervaloMin": 30,
       "retencionDias": 5
     },
+    "exprimeviajes": {
+      "activa": true,
+      "intervaloMin": 30,
+      "retencionDias": 5
+    },
+    "escapadabarata": {
+      "activa": true,
+      "intervaloMin": 60,
+      "retencionDias": 7
+    },
     "chollometro": {
       "activa": true,
       "intervaloMin": 15,

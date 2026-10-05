@@ -22,6 +22,7 @@ import paradores from './paradores.js';
 import renfe from './renfe.js';
 import rusticae from './rusticae.js';
 import sandaya from './sandaya.js';
+import { escapadabarata, exprimeviajes } from './telegram.js';
 import ryanair from './ryanair.js';
 import wizzair from './wizzair.js';
 import tuscasasrurales from './tuscasasrurales.js';
@@ -42,4 +43,6 @@ export const FUENTES = [
   wizzair, volotea, ouigo, flixbus, ferryhopper, renfe, ryanair,
   // Comunidades y alertas
   chollometro, fly4free, buzon,
+  // Canales públicos de Telegram
+  exprimeviajes, escapadabarata,
 ];
