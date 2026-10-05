@@ -199,7 +199,9 @@ export function vistaAyuda(e) {
 <section class="seccion" id="privacidad">
   <h2 class="subtitulo">Privacidad</h2>
   <ul class="ayuda-lista">
-    <li><strong>Sin cuentas, sin cookies, sin publicidad y sin seguimiento.</strong></li>
+    ${e.googleAds
+    ? '<li><strong>Sin cuentas y sin publicidad en la web.</strong></li>\n    <li><strong>Cookies de Google Ads, solo si las aceptas</strong> en el aviso: sirven para saber si quien llega por un anuncio nuestro entra en alguna oferta. Si las rechazas no se carga nada de Google y la web funciona igual. <a href="#" data-abrir-cookies>Cambiar tu elección</a></li>'
+    : '<li><strong>Sin cuentas, sin cookies, sin publicidad y sin seguimiento.</strong></li>'}
     <li>Tus favoritos, búsquedas guardadas, ciudad de salida y preferencias se guardan <strong>solo en este navegador</strong>. No se envían a ningún sitio; se borran borrando los datos del sitio en tu navegador.</li>
     <li>«Mi ubicación» solo se usa si lo pulsas, para medir distancias en tu dispositivo.</li>
     <li>Al buscar un pueblo o ciudad, lo que escribes se consulta en <a href="https://photon.komoot.io" target="_blank" rel="noopener noreferrer">Photon</a>; el mapa carga sus imágenes de <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>.</li>

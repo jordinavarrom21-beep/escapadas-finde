@@ -1220,6 +1220,17 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 /* Si también hay un aviso corto, el de datos nuevos sube para no taparlo. */
 .aviso-flotante--datos:not([hidden]) ~ .aviso-flotante:not(:empty) { bottom: calc(76px + var(--barra-movil)); }
 
+/* Aviso de cookies (anuncios.js, solo con Google Ads): «Rechazar» y «Aceptar» igual de visibles. */
+.aviso-cookies {
+  position: fixed; left: 50%; bottom: calc(12px + var(--barra-movil)); transform: translateX(-50%); z-index: 70;
+  width: min(620px, calc(100% - 24px)); padding: 14px 16px; display: grid; gap: 10px;
+  border-radius: var(--radio-medio); border: 1px solid var(--borde-fuerte);
+  background: var(--superficie); color: var(--texto); box-shadow: var(--sombra-alta); font-size: 0.9rem; line-height: 1.5;
+}
+.aviso-cookies p { margin: 0; }
+.aviso-cookies__botones { display: flex; gap: 10px; justify-content: flex-end; }
+.aviso-cookies__botones .boton { flex: 1 1 0; max-width: 180px; justify-content: center; }
+
 .pie {
   display: grid; gap: 10px; margin-top: 12px; padding-block: 0 40px;
   color: var(--texto-suave); font-size: 0.84rem; line-height: 1.6;

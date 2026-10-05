@@ -136,6 +136,18 @@ function problemasPreferencias(preferencias) {
     .map((campo) => `preferencias.${campo} debe ser una lista de textos`);
 }
 
+/** Google Ads (opcional): {id: 'AW-123…' o '', conversion: 'AW-123…/etiqueta' o ''}. Vacío, sin Google Ads. */
+function problemasGoogleAds(googleAds) {
+  if (googleAds == null) return [];
+  if (!esObjeto(googleAds)) return ['googleAds debe ser un objeto {id, conversion}'];
+  const { problemas, exigir } = lista();
+  const { id = '', conversion = '' } = googleAds;
+  exigir(id === '' || /^AW-\d+$/.test(id), `googleAds.id debe ser el ID de Google Ads («AW-» y números) o "" (ahora: ${id})`);
+  exigir(conversion === '' || (id !== '' && conversion.startsWith(`${id}/`) && /^AW-\d+\/[\w-]+$/.test(conversion)),
+    `googleAds.conversion debe ser «${id || 'AW-…'}/etiqueta» (la de la acción de conversión) o "" (ahora: ${conversion})`);
+  return problemas;
+}
+
 /**
  * Lista de problemas de la configuración (vacía si es válida). Comprueba lo que el
  * resto del código da por hecho; los campos opcionales solo se miran si están.
@@ -157,6 +169,7 @@ export function validarAjustes(ajustes) {
     `viajeros debe ser un número entero de personas mayor o igual que 1 (ahora: ${ajustes.viajeros})`);
   exigir(ajustes.panelUrl == null || /^https?:\/\//.test(ajustes.panelUrl), 'panelUrl debe ser una URL http(s) o null');
   problemas.push(...problemasPreferencias(ajustes.preferencias));
+  problemas.push(...problemasGoogleAds(ajustes.googleAds));
   return problemas;
 }
 

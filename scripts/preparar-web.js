@@ -6,6 +6,7 @@
  *    compartir, la URL canónica y el enlace de inicio de la página 404;
  *  - con los datos en data/: la portada para buscadores en index.html (qué es la web, lo
  *    mejor de ahora y las guías) y, con la dirección, sus datos estructurados (JSON-LD);
+ *  - con «googleAds» en config/ajustes.json: el aviso de cookies y Google Ads (anuncios.js);
  *  - con --htaccess: el .htaccess para Apache/LiteSpeed (Hostinger): HTTPS, dominio
  *    único, 404, compresión, cabeceras de seguridad y caché.
  *
@@ -89,6 +90,60 @@ export function ponerDatosRemotos(html, datos) {
   // «preconnect»: la conexión a esa web se abre mientras se baja el resto, no al pedir los datos.
   const conEtiqueta = sinEtiqueta.replace(/(<meta http-equiv="Content-Security-Policy"[^>]*>)/, `$1\n  <meta name="escapadas-datos" content="${datos}">\n  <link rel="preconnect" href="${origin}" crossorigin data-datos>`);
   return conEtiqueta.replace(/connect-src 'self'([^;"]*)/, (todo, resto) => (resto.includes(origin) ? todo : `connect-src 'self' ${origin}${resto}`));
+}
+
+/**
+ * Lo que necesita Google Ads (ver site/js/anuncios.js) en la CSP: su script, sus llamadas
+ * y el iframe de las conversiones. Lista de Google: developers.google.com/tag-platform/security/guides/csp
+ */
+const CSP_GOOGLE_ADS = {
+  'script-src': ['https://www.googletagmanager.com', 'https://www.googleadservices.com', 'https://googleads.g.doubleclick.net', 'https://www.google.com'],
+  'connect-src': ['https://www.googletagmanager.com', 'https://www.google.com', 'https://www.google.es', 'https://googleads.g.doubleclick.net', 'https://www.googleadservices.com', 'https://pagead2.googlesyndication.com'],
+  'frame-src': ['https://td.doubleclick.net', 'https://bid.g.doubleclick.net', 'https://www.googletagmanager.com'],
+};
+
+/** {id: 'AW-123', conversion: 'AW-123/abc'} válido, o null (sin Google Ads). */
+export function normalizarGoogleAds(googleAds) {
+  const id = String(googleAds?.id ?? '').trim();
+  if (!/^AW-\d+$/.test(id)) return null;
+  const conversion = String(googleAds?.conversion ?? '').trim();
+  return { id, conversion: conversion.startsWith(`${id}/`) && /^AW-\d+\/[\w-]+$/.test(conversion) ? conversion : null };
+}
+
+/**
+ * Google Ads con aviso de cookies: la etiqueta que lee anuncios.js y la CSP abierta a Google.
+ * Sin `googleAds` válido, quita lo que hubiera (la web vuelve a «sin cookies»). Se puede repetir.
+ */
+export function ponerGoogleAds(html, googleAds) {
+  const ads = normalizarGoogleAds(googleAds);
+  let nuevo = html.replace(/\s*<meta name="escapadas-google-ads"[^>]*>/, '');
+  nuevo = nuevo.replace(/(<meta http-equiv="Content-Security-Policy" content=")([^"]*)(")/, (todo, abre, csp, cierra) => {
+    const directivas = csp.split(';').map((d) => d.trim()).filter(Boolean).map((d) => d.split(/\s+/));
+    for (const [nombre, fuentes] of Object.entries(CSP_GOOGLE_ADS)) {
+      let directiva = directivas.find(([n]) => n === nombre);
+      if (!directiva && ads) {
+        directiva = [nombre, "'self'"];
+        directivas.splice(directivas.findIndex(([n]) => n === 'object-src'), 0, directiva);
+      }
+      if (!directiva) continue;
+      const resto = directiva.slice(1).filter((f) => !fuentes.includes(f));
+      directiva.splice(1, Infinity, ...resto, ...(ads ? fuentes : []));
+    }
+    const limpias = directivas.filter((d) => !(d[0] === 'frame-src' && d.length === 2 && d[1] === "'self'" && !ads));
+    return `${abre}${limpias.map((d) => d.join(' ')).join('; ')}${cierra}`;
+  });
+  if (!ads) return nuevo;
+  const etiqueta = `<meta name="escapadas-google-ads" content="${ads.id}"${ads.conversion ? ` data-conversion="${ads.conversion}"` : ''}>`;
+  return nuevo.replace(/(<meta http-equiv="Content-Security-Policy"[^>]*>)/, `$1\n  ${etiqueta}`);
+}
+
+/** «googleAds» de config/ajustes.json (null si no está o no se puede leer). */
+export function googleAdsDeAjustes(ruta = fileURLToPath(new URL('../config/ajustes.json', import.meta.url))) {
+  try {
+    return normalizarGoogleAds(JSON.parse(readFileSync(ruta, 'utf8')).googleAds);
+  } catch {
+    return null;
+  }
 }
 
 /** Cambia lo que hay entre «<!-- marca: … -->» y «<!-- /marca -->» (se puede repetir). */
@@ -182,7 +237,7 @@ ${unDominio}  # Las copias de seguridad de datos y la carpeta .git (despliegue d
 }
 
 /** Aplica todo a `dir`. Devuelve lo que ha hecho, para el registro. */
-export function prepararWeb({ dir = 'site', base = null, version = null, conHtaccess = false, datos = null } = {}) {
+export function prepararWeb({ dir = 'site', base = null, version = null, conHtaccess = false, datos = null, googleAds = null } = {}) {
   const hecho = [];
   const quitadas = quitarCopias(dir);
   if (quitadas.length) hecho.push(`quitadas ${quitadas.length} copias de datos`);
@@ -201,6 +256,12 @@ export function prepararWeb({ dir = 'site', base = null, version = null, conHtac
     const indice = path.join(dir, 'index.html');
     writeFileSync(indice, ponerDatosRemotos(readFileSync(indice, 'utf8'), datos));
     hecho.push(`datos de ${datos}`);
+  }
+  const ads = normalizarGoogleAds(googleAds);
+  if (ads) {
+    const indice = path.join(dir, 'index.html');
+    writeFileSync(indice, ponerGoogleAds(readFileSync(indice, 'utf8'), ads));
+    hecho.push(`Google Ads ${ads.id}${ads.conversion ? ' con conversión' : ''}`);
   }
   const rutaOfertas = path.join(dir, 'data', 'ofertas.json');
   const datosPanel = existsSync(rutaOfertas) ? JSON.parse(readFileSync(rutaOfertas, 'utf8')) : null;
@@ -224,6 +285,6 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     console.error(`«${opciones.base}» no es una dirección válida`);
     process.exit(2);
   }
-  const hecho = prepararWeb({ dir: opciones.dir ?? 'site', base, version: opciones.version ?? null, conHtaccess: Boolean(opciones.htaccess) });
+  const hecho = prepararWeb({ dir: opciones.dir ?? 'site', base, version: opciones.version ?? null, conHtaccess: Boolean(opciones.htaccess), googleAds: googleAdsDeAjustes() });
   console.log(`Web preparada: ${hecho.join(' · ') || 'nada que hacer'}`);
 }

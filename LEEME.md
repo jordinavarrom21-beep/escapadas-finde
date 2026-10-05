@@ -262,6 +262,10 @@ para cualquier visitante:
 - **Primera visita**: una bienvenida de una línea (qué es y cómo se usa) que se cierra con
   «Entendido»; **Cómo funciona** (`#/ayuda`), enlazada desde el pie, con preguntas frecuentes
   y la **privacidad** (sin cuentas, cookies ni seguimiento; lo guardado vive en su navegador).
+- **Google Ads (opcional)**: con `"googleAds": {"id": "AW-…", "conversion": "AW-…/etiqueta"}` en
+  `config/ajustes.json`, el despliegue añade un aviso de cookies con «Aceptar» y «Rechazar».
+  Nada de Google se carga hasta aceptar (modo de consentimiento v2), cada clic en una oferta
+  cuenta como conversión y la privacidad lo explica. Con `id` vacío, la web sigue sin cookies.
 - **Al compartir el enlace** (WhatsApp, redes): título, descripción e imagen `site/og.png`.
   El despliegue pone la dirección absoluta que exigen las redes.
 - **Enlaces rotos**: `site/404.html`, con un botón a la portada.
