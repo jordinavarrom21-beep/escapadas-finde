@@ -22,12 +22,17 @@ describe('auditoría: el workflow no despliega un panel sin datos', () => {
   const workflow = readFileSync(new URL('../.github/workflows/vigilar.yml', import.meta.url), 'utf8');
 
   it('versionar, configurar, subir y desplegar Pages exigen que exista site/data/ofertas.json', () => {
-    for (const paso of ['Preparar la web', 'actions/configure-pages', 'actions/upload-pages-artifact', 'actions/deploy-pages']) {
+    for (const paso of ['Preparar la web', 'actions/configure-pages', 'actions/upload-pages-artifact']) {
       const i = workflow.indexOf(paso);
       assert.ok(i > 0, paso);
       const bloque = workflow.slice(Math.max(0, i - 200), i + 300);
       assert.match(bloque, /hashFiles\('site\/data\/ofertas\.json'\) != ''/, paso);
     }
+    // Pages va en su propio trabajo: solo si el escaneo subió una web con datos.
+    const pages = workflow.slice(workflow.indexOf('\n  pages:'));
+    assert.match(pages, /needs\.vigilar\.outputs\.con_datos == 'true'/);
+    assert.match(pages, /actions\/deploy-pages/);
+    assert.match(workflow, /con_datos: \$\{\{ steps\.artefacto\.outcome == 'success' \}\}/);
   });
 
   it('revisión continua: lanza «Vigilar ofertas» a menudo, se relanza y nunca solapa dos escaneos', () => {

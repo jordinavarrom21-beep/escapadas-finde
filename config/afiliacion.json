@@ -5,31 +5,155 @@
     "Los parámetros se añaden a los enlaces de sus dominios conservando los que ya traiga la URL. Se ven en el enlace: no son secretos (las claves de API sí lo serían y no van aquí).",
     "Un clic no es una venta: las comisiones solo las confirma el panel del proveedor.",
     "'patrocinadas': ofertas por las que un anunciante paga. Se marcan como «Patrocinado», llevan rel=sponsored y NO suben en el orden normal.",
-    "'medicion.url': dirección que recibe los clics (sin datos personales). Vacía = no se mide nada. Si pones una, añade su dominio a connect-src en site/index.html."
+    "'medicion.url': dirección que recibe los clics (sin datos personales). Vacía = no se mide nada. Si pones una, añade su dominio a connect-src en site/index.html.",
+    "Dos formas: 'parametros' (se añaden a la URL, p. ej. Civitatis aid=…) o 'envoltura' para redes como Awin o TradeTracker: su enlace con {url} donde va la oferta, p. ej. https://www.awin1.com/cread.php?awinmid=MERCHANT&awinaffid=TU_ID&ued={url}. Con 'envoltura' rellena, 'parametros' no hace falta."
   ],
   "proveedores": {
     "civitatis": {
       "activo": false,
       "aprobado": false,
-      "dominios": ["civitatis.com"],
-      "parametros": { "aid": "" },
+      "dominios": [
+        "civitatis.com"
+      ],
+      "parametros": {
+        "aid": ""
+      },
       "condiciones": "https://www.civitatis.com/es/afiliados/"
     },
     "booking": {
       "activo": false,
       "aprobado": false,
-      "dominios": ["booking.com"],
-      "parametros": { "aid": "" },
+      "dominios": [
+        "booking.com"
+      ],
+      "parametros": {
+        "aid": ""
+      },
       "condiciones": "https://www.booking.com/affiliate-program/v2/index.html"
     },
     "getyourguide": {
       "activo": false,
       "aprobado": false,
-      "dominios": ["getyourguide.es", "getyourguide.com"],
-      "parametros": { "partner_id": "" },
+      "dominios": [
+        "getyourguide.es",
+        "getyourguide.com"
+      ],
+      "parametros": {
+        "partner_id": ""
+      },
       "condiciones": "https://partner.getyourguide.com/"
+    },
+    "atrapalo": {
+      "activo": false,
+      "aprobado": false,
+      "dominios": [
+        "atrapalo.com"
+      ],
+      "envoltura": "",
+      "como": "Busca «Atrápalo» en las redes de afiliación (Awin, TradeTracker…) y copia aquí su enlace con {url}."
+    },
+    "weekendesk": {
+      "activo": false,
+      "aprobado": false,
+      "dominios": [
+        "weekendesk.es"
+      ],
+      "envoltura": "",
+      "como": "Busca «Weekendesk» en Awin o TradeTracker y copia aquí su enlace con {url}."
+    },
+    "holidu": {
+      "activo": false,
+      "aprobado": false,
+      "dominios": [
+        "holidu.es"
+      ],
+      "envoltura": "",
+      "como": "Holidu tiene programa de partners: pide el enlace de afiliado y cópialo aquí con {url}."
+    },
+    "escapadarural": {
+      "activo": false,
+      "aprobado": false,
+      "dominios": [
+        "escapadarural.com"
+      ],
+      "envoltura": "",
+      "como": "Pregunta a Escapada Rural por su programa de afiliados (o búscalo en Awin) y copia aquí su enlace con {url}."
+    },
+    "tuscasasrurales": {
+      "activo": false,
+      "aprobado": false,
+      "dominios": [
+        "tuscasasrurales.com"
+      ],
+      "envoltura": "",
+      "como": "Busca «Tus Casas Rurales» en Awin o pregúntales por afiliación."
+    },
+    "nomolesten": {
+      "activo": false,
+      "aprobado": false,
+      "dominios": [
+        "nomolesten.com"
+      ],
+      "envoltura": "",
+      "como": "Busca «Nomolesten» en Awin o TradeTracker."
+    },
+    "muchoviaje": {
+      "activo": false,
+      "aprobado": false,
+      "dominios": [
+        "muchoviaje.com"
+      ],
+      "envoltura": "",
+      "como": "Busca «Muchoviaje» en Awin o TradeTracker."
+    },
+    "rusticae": {
+      "activo": false,
+      "aprobado": false,
+      "dominios": [
+        "rusticae.es"
+      ],
+      "envoltura": "",
+      "como": "Pregunta a Rusticae por su programa de afiliados."
+    },
+    "ferryhopper": {
+      "activo": false,
+      "aprobado": false,
+      "dominios": [
+        "ferryhopper.com"
+      ],
+      "envoltura": "",
+      "como": "Ferryhopper tiene programa de afiliados propio (y en Travelpayouts)."
+    },
+    "flixbus": {
+      "activo": false,
+      "aprobado": false,
+      "dominios": [
+        "flixbus.es"
+      ],
+      "envoltura": "",
+      "como": "FlixBus tiene programa de afiliados (Awin)."
+    },
+    "renfe": {
+      "activo": false,
+      "aprobado": false,
+      "dominios": [
+        "renfe.com"
+      ],
+      "envoltura": "",
+      "como": "Busca «Renfe» en Awin."
+    },
+    "volotea": {
+      "activo": false,
+      "aprobado": false,
+      "dominios": [
+        "volotea.com"
+      ],
+      "envoltura": "",
+      "como": "Busca «Volotea» en Awin o TradeTracker."
     }
   },
   "patrocinadas": [],
-  "medicion": { "url": "" }
+  "medicion": {
+    "url": ""
+  }
 }

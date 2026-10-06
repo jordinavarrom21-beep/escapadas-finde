@@ -309,7 +309,7 @@ Nada más: cada escaneo publica en tu dominio. No hace falta el zip.
 ### B · La web en el hosting de Hostinger
 
 Cada escaneo deja la web lista para tu hosting en la rama **`web-hosting`** de GitHub (con su
-`.htaccess`), y esa web lee las ofertas de la de GitHub Pages: siempre enseña las del momento.
+`.htaccess`), y lleva sus propios datos, que se renuevan en cada escaneo: no depende de GitHub Pages.
 Hostinger la despliega sola con cada cambio:
 
 1. hPanel → *Sitios web* → *Administrar* → *Avanzado* → **Git**: conecta tu cuenta de GitHub
