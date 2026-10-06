@@ -31,8 +31,10 @@ const p = await pagina(c);
 
 // ── Portada ──
 await ir(p, 'finde');
-const hayDestacado = await p.locator('.portada__destacado .sugerencia').count() === 1;
-ok(hayDestacado || !datos.ofertas.some((o) => o.chollazo), 'portada: hay sugerencia de hoy (si hay chollazos)');
+// Sin «Sugerencia de hoy»: la primera escapada de «Lo mejor para este finde» hace sus veces en las pruebas.
+const primeraIdea = '.ideas__columna:first-child .idea:not(.idea--evento) .enlace-ficha';
+const hayDestacado = await p.locator(primeraIdea).count() > 0;
+ok(!(await p.locator('.portada__destacado, .sugerencia').count()), 'portada: sin «Sugerencia de hoy»');
 ok((await p.locator('.buscador-finde input[name="cuando"]').count()) >= 3, 'portada: opciones de «¿Cuándo?»');
 ok((await p.locator('.organizar input[name="que"]').count()) === 3, 'portada: «¿Qué buscas?» con escapadas, vuelos y planes');
 ok((await p.locator('.viaje-resumen').count()) === 1 && !(await p.locator('#boton-viaje').isVisible()) && !(await p.locator('#buscador').isVisible()), 'portada: tu viaje y el destino, una sola vez');
@@ -66,19 +68,20 @@ await p.locator('label:has(input[name="cuando"][value="rango"])').click();
 ok(await p.locator('[data-fechas-propias]').isVisible(), 'otras fechas: el calendario se abre');
 await p.locator('label:has(input[name="cuando"][value="finde"])').click();
 if (hayDestacado) {
-  // Sugerencia: su ficha guarda el favorito y descartar desde ella la quita
-  const idDestacado = await p.locator('.sugerencia .enlace-ficha').getAttribute('data-ficha');
-  await p.locator('.sugerencia__accion').click();
+  // La primera idea: su ficha guarda el favorito y descartar desde ella la quita
+  const idDestacado = await p.locator(primeraIdea).first().getAttribute('data-ficha');
+  await p.locator(primeraIdea).first().click();
   await p.waitForSelector('#ficha[open]');
   await p.locator('#ficha .boton-fav').click();
   ok((await p.locator('#ficha .boton-fav').getAttribute('aria-pressed')) === 'true', 'ficha: favorito marcado');
   await p.locator('#ficha [data-descartar]').click();
   await p.waitForTimeout(300);
   ok(!(await p.locator('#ficha[open]').count()), 'descartar desde la ficha la cierra');
-  ok(!(await p.locator(`.sugerencia [data-ficha="${idDestacado}"]`).count()), 'descartar quita la sugerencia');
+  // (Las filas de eventos enlazan a la escapada de al lado: no son esa oferta en la lista.)
+  ok(!(await p.locator(`.idea:not(.idea--evento) [data-ficha="${idDestacado}"]`).count()), 'descartar la quita de «Lo mejor para este finde»');
   // La descartada no vuelve al recargar
   await p.reload(); await p.waitForSelector('.portada');
-  ok(!(await p.locator(`.sugerencia [data-ficha="${idDestacado}"]`).count()), 'la descartada no vuelve a ser la sugerencia tras recargar');
+  ok(!(await p.locator(`.idea:not(.idea--evento) [data-ficha="${idDestacado}"]`).count()), 'la descartada no vuelve tras recargar');
   // Recomendado aparece al tener favoritos
   ok((await p.locator('text=Por tus').count()) > 0 || (await p.locator('.seccion:has-text("Recomendado para ti") .rejilla').count()) > 0, 'recomendado: aparece con favoritos');
 }
@@ -216,10 +219,10 @@ ok((await p.evaluate(() => location.hash)).includes('lugar=Tu'), 'usar mi ubicac
 // ── Vuelos, actividades, calendario, puentes, vigilados, fuentes, buscar ──
 await ir(p, 'vuelos');
 const nVuelos = await p.locator('#resultados .resultados__cuenta').textContent();
-// Con vuelos con fecha, «Vuelos» con filtro de finde; sin ellos, «Chollos de vuelos» sin él.
+// Con vuelos con fecha, «Vuelos y trenes» con filtro de finde; sin ellos, «Chollos de vuelos» sin él.
 const tituloVuelos = (await p.locator('.titulo-vista').textContent()).trim();
 const filtroFinde = await p.locator('input[name="finde"]').count();
-ok(conVuelosConFecha ? tituloVuelos === 'Vuelos' && filtroFinde > 0 : tituloVuelos === 'Chollos de vuelos' && filtroFinde === 0, `vuelos: título y filtro de finde según los datos («${tituloVuelos}»)`);
+ok(conVuelosConFecha ? tituloVuelos === 'Vuelos y trenes' && filtroFinde > 0 : tituloVuelos === 'Chollos de vuelos' && filtroFinde === 0, `vuelos: título y filtro de finde según los datos («${tituloVuelos}»)`);
 await p.locator('.filtros input[name="mios"]').check();
 await p.waitForTimeout(400);
 ok((await p.evaluate(() => location.hash)).includes('mios=1'), 'vuelos: «Solo desde mis aeropuertos»');

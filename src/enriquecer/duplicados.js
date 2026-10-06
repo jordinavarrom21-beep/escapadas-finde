@@ -174,12 +174,44 @@ function marcarCopias(ofertas) {
   }
 }
 
+/** Un reenvío y su original: mismo sitio a menos de esto. */
+const REENVIO_KM = 5;
+/** …y precios parecidos: el «desde» del reenvío puede ser de otra fecha o habitación. */
+const REENVIO_DIFERENCIA = 0.2;
+
+/**
+ * La oferta original de un reenvío: Chollometro o un canal que publican «Hotel 3* en La
+ * Massana desde 15 €» de BuscoUnChollo (lo dicen en sus etiquetas), cuando esa misma web
+ * también se lee directamente. Solo si la web nombrada tiene una oferta en el mismo sitio,
+ * con la misma unidad, precio parecido y, si las dos lo dicen, las mismas estrellas y
+ * noches. Ante la duda, nada: los títulos de unos y otros no se parecen.
+ */
+function originalDe(oferta, porFuente, webs) {
+  const nombradas = new Set((oferta.etiquetas ?? []).map((e) => webs.get(normalizarTexto(e).trim())).filter((f) => f && f !== oferta.fuente));
+  if (!nombradas.size || oferta.tipo === 'actividad' || oferta.tipo === 'vuelo' || !(oferta.precio > 0)) return null;
+  const localidad = localidadDe(oferta);
+  const cerca = (o) => (tieneCoordenadas(oferta.lugar) && tieneCoordenadas(o.lugar)
+    ? distanciaKm(oferta.lugar, o.lugar) <= REENVIO_KM
+    : Boolean(localidad) && localidadDe(o) === localidad);
+  const iguales = (a, b) => a == null || b == null || a === b;
+  const diferencia = (o) => Math.abs(o.precio - oferta.precio) / Math.min(o.precio, oferta.precio);
+  const candidatas = [...nombradas].flatMap((fuente) => porFuente.get(fuente) ?? [])
+    .filter((o) => o.tipo !== 'actividad' && o.tipo !== 'vuelo' && o.precio > 0 && o.unidad === oferta.unidad
+      && iguales(o.estrellas, oferta.estrellas) && iguales(o.noches, oferta.noches) && cerca(o)
+      && diferencia(o) <= REENVIO_DIFERENCIA);
+  // Si hay varias del mismo sitio, no se sabe cuál es: mejor no juntar.
+  return candidatas.length === 1 ? candidatas[0] : null;
+}
+
 /**
  * Rellena `equivalentes` (y la etiqueta «duplicada» en las repetidas) en todas las
- * ofertas. Es idempotente: cada ejecución parte de cero.
+ * ofertas. Es idempotente: cada ejecución parte de cero. Con `webs` (nombre de cada web
+ * en minúsculas → su id), los reenvíos de otra web que también se lee se juntan con su
+ * original, que es la que queda a la vista (enlaza a la reserva).
  * @param {import('../modelo.js').Oferta[]} ofertas
+ * @param {{webs?: Map<string, string>}} [opciones]
  */
-export function marcarEquivalentes(ofertas) {
+export function marcarEquivalentes(ofertas, { webs = new Map() } = {}) {
   for (const oferta of ofertas) {
     oferta.equivalentes = [];
     oferta.etiquetas = oferta.etiquetas.filter((etiqueta) => etiqueta !== ETIQUETA_DUPLICADA);
@@ -197,6 +229,24 @@ export function marcarEquivalentes(ofertas) {
       oferta.equivalentes = comparadas.filter((otra) => otra.fuente !== oferta.fuente).map(resumir);
     }
     for (const oferta of repetidas) oferta.etiquetas.push(ETIQUETA_DUPLICADA);
+  }
+  if (webs.size) {
+    const porFuente = new Map();
+    for (const oferta of ofertas) {
+      if (oferta.etiquetas.includes(ETIQUETA_DUPLICADA) || oferta.equivalentes.length) continue;
+      if (!porFuente.has(oferta.fuente)) porFuente.set(oferta.fuente, []);
+      porFuente.get(oferta.fuente).push(oferta);
+    }
+    const usadas = new Set();
+    for (const oferta of ofertas) {
+      if (oferta.etiquetas.includes(ETIQUETA_DUPLICADA) || oferta.equivalentes.length) continue;
+      const original = originalDe(oferta, porFuente, webs);
+      if (!original || usadas.has(original.id)) continue;
+      usadas.add(original.id);
+      original.equivalentes = [resumir(oferta)];
+      oferta.equivalentes = [resumir(original)];
+      oferta.etiquetas.push(ETIQUETA_DUPLICADA);
+    }
   }
   marcarCopias(ofertas.filter((oferta) => !oferta.etiquetas.includes(ETIQUETA_DUPLICADA)));
   return ofertas;

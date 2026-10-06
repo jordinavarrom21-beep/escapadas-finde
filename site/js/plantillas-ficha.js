@@ -343,10 +343,10 @@ export function contenidoFicha(o, ctx) {
   <ul class="ficha__enlaces">${enlaces[0] ?? ''}</ul>
   ${notaFechasOferta(o, ctx)}
   ${comparadorFicha(o, ctx)}
-  ${enlaces.length > 1 ? `<section class="ficha__mas-enlaces" aria-labelledby="ficha-enlaces-titulo">
-    <h3 id="ficha-enlaces-titulo">${icono('enlace')}Organiza el viaje${busquedaPara(o, ctx) ? ` <span class="suave">(${esc(busquedaPara(o, ctx).etiqueta)})</span>` : ''}</h3>
+  ${enlaces.length > 1 ? `<details class="ficha__mas-enlaces">
+    <summary><h3 id="ficha-enlaces-titulo">${icono('enlace')}Organiza el viaje <span class="suave">(hotel, actividades, cómo llegar${busquedaPara(o, ctx) ? ` · ${esc(busquedaPara(o, ctx).etiqueta)}` : ''})</span></h3></summary>
     <ul class="ficha__enlaces ficha__enlaces--resto">${enlaces.slice(1).join('')}</ul>
-  </section>` : ''}
+  </details>` : ''}
   ${avisoPagoFicha(o, ctx)}
   ${costeFicha(o, ctx)}
   <section class="ficha__historial" aria-labelledby="ficha-historial-titulo">

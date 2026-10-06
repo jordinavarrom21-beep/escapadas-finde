@@ -192,3 +192,35 @@ describe('duplicados: la misma oferta publicada dos veces en la misma web', () =
     for (const o of [base, ...otras]) assert.ok(!o.etiquetas.includes('duplicada'), o.id);
   });
 });
+
+describe('reenvíos: Chollometro publica una oferta de otra web que también se lee', () => {
+  const webs = new Map([['buscounchollo', 'buscounchollo'], ['atrapalo', 'atrapalo']]);
+  const massana = { nombre: 'La Massana', lat: 42.5442, lon: 1.5164, codigoPais: 'AD' };
+  const original = () => oferta({ fuente: 'buscounchollo', tipo: 'escapada', titulo: '¡Escapada a la vista en Andorra! Tu estancia en la montaña en hotel 3*', precio: 17, unidad: 'pp', estrellas: 3, noches: 1, lugar: { ...massana, lat: 42.5443, lon: 1.5224 } });
+  const reenvio = (campos = {}) => oferta({ fuente: 'chollometro', tipo: 'hotel', titulo: 'Hotel 3* + desayuno en LA MASSANA, ANDORRA desde 15€ pp. Octubre', precio: 15, unidad: 'pp', estrellas: 3, lugar: massana, etiquetas: ['Viajes', 'BuscoUnChollo'], ...campos });
+
+  it('el reenvío se junta con la original, que queda a la vista con «También en Chollometro»', () => {
+    const [a, b] = [original(), reenvio()];
+    marcarEquivalentes([a, b], { webs });
+    assert.ok(b.etiquetas.includes('duplicada'));
+    assert.ok(!a.etiquetas.includes('duplicada'));
+    assert.deepEqual(a.equivalentes.map((e) => e.fuente), ['chollometro']);
+    assert.deepEqual(b.equivalentes.map((e) => e.fuente), ['buscounchollo']);
+  });
+
+  it('sin decir la web, con otra unidad, otro precio, otras estrellas, lejos o dudando entre dos: nada', () => {
+    for (const campos of [{ etiquetas: ['Viajes'] }, { unidad: 'noche' }, { precio: 30 }, { estrellas: 4 }, { lugar: { nombre: 'Andorra la Vella', lat: 42.3, lon: 1.2 } }]) {
+      const [a, b] = [original(), reenvio(campos)];
+      marcarEquivalentes([a, b], { webs });
+      assert.ok(!b.etiquetas.includes('duplicada'), JSON.stringify(campos));
+      assert.deepEqual(a.equivalentes, []);
+    }
+    const [a, a2, b] = [original(), original(), reenvio()];
+    marcarEquivalentes([a, a2, b], { webs });
+    assert.ok(!b.etiquetas.includes('duplicada'), 'dos posibles originales: no se sabe cuál');
+    // Sin la lista de webs (como antes), tampoco.
+    const [c, d] = [original(), reenvio()];
+    marcarEquivalentes([c, d]);
+    assert.ok(!d.etiquetas.includes('duplicada'));
+  });
+});

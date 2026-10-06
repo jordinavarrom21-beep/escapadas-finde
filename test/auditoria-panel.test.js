@@ -46,12 +46,11 @@ describe('auditoría: descartadas', () => {
     assert.deepEqual(filtrosActivos('escapadas', { sindesc: '1' }), []);
   });
 
-  it('en «Este finde» tampoco vuelven (antes salían en Chollazos)', () => {
-    const chollazo = datos.ofertas.find((o) => o.chollazo);
-    assert.ok(chollazo, 'la fixture tiene algún chollazo');
-    const html = vistaFinde(estado({ descartadas: new Set([chollazo.id]) }));
-    assert.ok(!html.includes(`data-ficha="${chollazo.id}"`));
-    assert.ok(vistaFinde(estado()).includes(`data-ficha="${chollazo.id}"`));
+  it('en el Inicio tampoco vuelven (antes salían en Chollazos)', () => {
+    const id = vistaFinde(estado()).match(/<li class="idea"><button type="button" class="enlace-ficha" data-ficha="([^"]+)"/)?.[1];
+    assert.ok(id, 'el Inicio enseña alguna escapada');
+    const html = vistaFinde(estado({ descartadas: new Set([id]) }));
+    assert.ok(!html.includes(`<li class="idea"><button type="button" class="enlace-ficha" data-ficha="${id}"`));
   });
 });
 

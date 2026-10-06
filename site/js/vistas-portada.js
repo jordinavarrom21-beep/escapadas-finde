@@ -1,17 +1,17 @@
 /**
  * Portada: primero buscar, después inspirarse. Tu viaje (una sola vez), ¿cuándo?, ¿qué
  * buscas?, destino opcional y un botón; debajo, una línea de estado, unos pocos atajos, la
- * sugerencia de hoy en corto y «Lo mejor para este finde» en tres listas cortas.
+ * «Lo mejor para este finde» en tres listas cortas.
  */
 
 import { etiquetaDia, nombreFinde, nombreFindeEnFrase } from './fechas.js';
 import { TIPOS_EVENTO, contar, duracion, escaparHtml as esc, euros, haceCuanto, normalizar } from './formato.js';
 import {
-  actividadesPara, buscarActividades, buscarEscapadas, chollazos, chollosDeVuelos, conPeriodo, crearHash, filtrarVuelos,
+  actividadesPara, buscarActividades, buscarEscapadas, chollosDeVuelos, conPeriodo, crearHash, filtrarVuelos,
   leerFiltrosActividades, leerFiltrosEscapadas, leerFiltrosVuelos, perfilFavoritos, periodoFinde, planesSorpresa,
   rangoDe, recomendadas, salidaPuente, sinComprobar, tieneVuelo,
 } from './filtros.js';
-import { estadoVacio, tarjeta, tarjetaConMotivo, tarjetaSugerencia, textoFechas } from './plantillas.js';
+import { estadoVacio, tarjeta, tarjetaConMotivo, textoFechas } from './plantillas.js';
 import { icono } from './iconos.js';
 import {
   HORAS_SORPRESA, conIcono, contextoBusqueda, ctxTarjetas, diasExplicitos, estadoWebs, etiquetaFinde, marcado, nombreSalida,
@@ -395,13 +395,9 @@ function grupoRecomendado(e, params, vistos) {
 }
 
 export function vistaFinde(e, params = {}) {
-  const ctx = ctxTarjetas(e);
-  const busqueda = contextoBusqueda(e);
-  // Las descartadas con ✕ no vuelven a salir, tampoco aquí; ni las que su web lleva días sin publicar.
-  const ocultasFinde = ocultas(e);
-  const destacado = chollazos(e.datos.ofertas).find((o) => !ocultasFinde.has(o.id) && !sinComprobar(o, busqueda)) ?? null;
-  // Cada bloque de abajo no repite lo que ya ha salido (tampoco la sugerencia).
-  const vistos = new Set(destacado ? [destacado.id] : []);
+  // Cada bloque de abajo no repite lo que ya ha salido. Sin «Sugerencia de hoy»: era un
+  // cuarto bloque de ideas y a menudo la misma oferta que la primera de la lista, desde otra web.
+  const vistos = new Set();
   return `<section class="portada">
   ${resumenViaje(e)}
   <h1 class="titulo-vista" tabindex="-1">¿Qué quieres <em>organizar</em>?</h1>
@@ -411,7 +407,6 @@ export function vistaFinde(e, params = {}) {
 </section>
 ${atajosPortada(e)}
 ${bloqueSorpresa(e)}
-${destacado ? `<div class="portada__destacado">${tarjetaSugerencia(destacado, ctx)}</div>` : ''}
 ${ideasFinde(e, vistos)}
 ${grupoRecomendado(e, params, vistos)}`;
 }

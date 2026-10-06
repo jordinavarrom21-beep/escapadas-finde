@@ -625,8 +625,6 @@ function ocultarTarjetas(id) {
     .forEach((boton) => boton.closest('.con-motivo, .tarjeta, .billete')?.remove());
   // Y su fila en «Lo mejor para este finde» (las de eventos no: llevan a la escapada de al lado).
   document.querySelectorAll(`.idea:not(.idea--evento) [data-ficha="${CSS.escape(id)}"]`).forEach((boton) => boton.closest('.idea')?.remove());
-  // La sugerencia de la portada no lleva ✕, pero se puede descartar desde su ficha.
-  document.querySelector(`.sugerencia [data-ficha="${CSS.escape(id)}"]`)?.closest('.portada__destacado')?.remove();
 }
 
 const htmlAElemento = (html) => {

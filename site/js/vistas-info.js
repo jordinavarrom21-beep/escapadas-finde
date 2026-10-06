@@ -26,11 +26,13 @@ export function vistaCalendario(e) {
   // Mapa de calor: con vuelos, más intenso cuanto más barato el mejor vuelo del finde; sin
   // ellos, cuantas más escapadas. El número va siempre escrito (el color solo ayuda a ver).
   const niveles = nivelesCalendario(resumen, hayVuelos);
-  const celdas = resumen.map(({ finde, puente, vuelo, vuelos, escapadas }, i) => {
+  const celdas = resumen.map(({ finde, puente, vuelo, vuelos, escapadas, conFecha }, i) => {
     const cuando = i === 0 ? nombreFinde(e.hoy) : i === 1 ? 'El siguiente' : `En ${i} semanas`;
     // Cada finde, dos caminos claros: sus escapadas y (si hay vuelos con fecha) sus vuelos.
     // Antes la celda entera llevaba a uno solo aunque enseñara los datos de los dos.
-    const verEscapadas = `<a class="boton boton--suave boton--mini finde-celda__accion" href="${crearHash('escapadas', { cuando: finde.id })}">${icono('escapadas')}Ver ${contar(escapadas, 'escapada')}</a>`;
+    const verEscapadas = `<a class="boton boton--suave boton--mini finde-celda__accion" href="${crearHash('escapadas', { cuando: finde.id })}">${icono('escapadas')}${conFecha
+      ? `<span>${contar(conFecha, 'escapada')} con fecha <small class="suave">+ ${escapadas - conFecha} flexibles</small></span>`
+      : `<span>Ver ${contar(escapadas, 'escapada')} flexibles</span>`}</a>`;
     const verVuelos = !hayVuelos ? ''
       : vuelo
         ? `<a class="boton boton--suave boton--mini finde-celda__accion" href="${crearHash('vuelos', { finde: finde.id })}">${icono('vuelos')}Ver ${contar(vuelos, 'vuelo')} · desde ${euros(vuelo.precio)}</a>`
@@ -44,8 +46,8 @@ export function vistaCalendario(e) {
   });
   return `${pestanas('fechas', 'calendario')}<h1 class="titulo-vista" tabindex="-1">Calendario</h1>
 <p class="seccion__intro">${hayVuelos
-    ? `Los próximos ${findes.length} findes con sus escapadas disponibles (con fecha o flexibles) y el vuelo más barato. Los puentes van resaltados. En cada uno eliges qué ver: escapadas o vuelos.`
-    : `Los próximos ${findes.length} findes con las escapadas disponibles (con fecha o flexibles). Los puentes van resaltados.`}</p>
+    ? `Los próximos ${findes.length} findes con las escapadas que tienen fecha ese finde (las flexibles valen para todos) y el vuelo más barato. Los puentes van resaltados.`
+    : `Los próximos ${findes.length} findes con las escapadas que tienen fecha ese finde (las flexibles valen para todos). Los puentes van resaltados.`}</p>
 ${leyendaCalendario(hayVuelos)}
 <ol class="calendario">${celdas.join('')}</ol>`;
 }
@@ -55,7 +57,7 @@ ${leyendaCalendario(hayVuelos)}
  * escapadas), por cuartiles de los findes que tienen dato; 0 si no tiene.
  */
 export function nivelesCalendario(resumen, hayVuelos) {
-  const valor = (r) => (hayVuelos ? r.vuelo?.precio ?? null : r.escapadas || null);
+  const valor = (r) => (hayVuelos ? r.vuelo?.precio ?? null : r.conFecha || null);
   const valores = resumen.map(valor).filter((v) => v != null).sort((a, b) => a - b);
   if (valores.length < 2) return resumen.map(() => 0);
   return resumen.map((r) => {
@@ -80,6 +82,9 @@ function textoPedir(pedir) {
   return `Pide ${pedir.length === 1 ? 'el día' : 'los días'} ${pedir.map(etiquetaDia).join(' y ')} y tendrás el puente entero.`;
 }
 
+/** Nota «Buena» o mejor (plantillas.js → nivelNota). */
+const buenaOferta = (o) => o.chollazo || (o.puntuacion ?? 0) >= 40;
+
 export function vistaPuentes(e) {
   const resumen = resumenPuentes(e.datos.ofertas, e.datos.puentes, e.hoy, { descartadas: ocultas(e) });
   if (!resumen.length) {
@@ -90,7 +95,9 @@ ${estadoVacio('No hay ningún puente a la vista', 'Se miran los próximos cuatro
   const bloques = resumen.map(({ puente, dias, pedir, festivos, vuelos, escapadas }) => {
     const faltan = diasEntre(e.hoy, puente.desde);
     const cuando = faltan <= 0 ? 'ya ha empezado' : faltan === 1 ? 'empieza mañana' : `empieza en ${faltan} días`;
-    const lista = [...vuelos.slice(0, 3), ...escapadas.slice(0, 6 - Math.min(vuelos.length, 3))];
+    // Solo las que merecen la pena (nota «Buena» o más): un vuelo «normal» no es una idea para el puente.
+    const buenos = vuelos.filter(buenaOferta);
+    const lista = [...buenos.slice(0, 3), ...escapadas.filter(buenaOferta).slice(0, 6 - Math.min(buenos.length, 3))];
     const dia = (d) => {
       const festivo = festivos.find((f) => f.fecha === d);
       const clase = festivo ? ' dia--festivo' : pedir.includes(d) ? ' dia--pedir' : '';
@@ -102,7 +109,7 @@ ${estadoVacio('No hay ningún puente a la vista', 'Se miran los próximos cuatro
   <p class="seccion__intro">${contar(dias.length, 'día')} libres seguidos. ${esc(textoPedir(pedir))}</p>
   <ol class="dias">${dias.map(dia).join('')}</ol>
   <p class="enlaces-linea">${vuelos.length ? `<a class="chip chip--atajo" href="${crearHash('vuelos', { finde: puente.id })}">${icono('vuelos')}${contar(vuelos.length, 'vuelo')}</a> ` : ''}<a class="chip chip--atajo" href="${crearHash('escapadas', { cuando: puente.id })}">${icono('escapadas')}${contar(escapadas.length, 'escapada')}</a></p>
-  ${lista.length ? rejilla(lista, ctx, { mostradas: 6, clave: `puente-${puente.id}` }) : estadoVacio('Aún no hay ofertas para este puente.')}
+  ${lista.length ? rejilla(lista, ctx, { mostradas: 6, clave: `puente-${puente.id}` }) : estadoVacio(vuelos.length || escapadas.length ? 'Aún no hay ofertas destacables para este puente.' : 'Aún no hay ofertas para este puente.', vuelos.length || escapadas.length ? 'Arriba tienes todas las que hay.' : '')}
 </section>`;
   });
   return `${pestanas('fechas', 'puentes')}<h1 class="titulo-vista" tabindex="-1">Puentes</h1>

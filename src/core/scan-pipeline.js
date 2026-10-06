@@ -9,6 +9,7 @@ import { Cache } from '../cache.js';
 import { estadoInicial, fusionar, podar } from '../almacen.js';
 import { FUENTES } from '../fuentes/index.js';
 import { TEMAS, completarOferta } from '../modelo.js';
+import { normalizarTexto } from '../util/xml.js';
 import { aplicarClasificacion } from '../enriquecer/temas.js';
 import { aplicarAlojamiento } from '../enriquecer/alojamiento.js';
 import { aplicarNinos } from '../enriquecer/ninos.js';
@@ -16,6 +17,7 @@ import { aplicarCategoria } from '../enriquecer/categoria.js';
 import { aplicarZona } from '../enriquecer/zona.js';
 import { clasificarVueloSinFecha } from '../enriquecer/vuelos.js';
 import { aplicarAfiliacion, proveedoresActivos } from '../afiliacion.js';
+import { conProgramasAwin, programasAwin } from '../awin.js';
 import { enlacesPara } from '../enriquecer/enlaces.js';
 import { asignarFechas, calcularPuentes, obtenerFestivos } from '../enriquecer/festivos.js';
 import { calcularCoche, calcularCosteCoche, geolocalizar } from '../enriquecer/geo.js';
@@ -347,14 +349,16 @@ export async function escanear({
   const dudosos = m.revisarPrecios(ofertas, conPrefijo('precios'));
   if (dudosos) conPrefijo('precios')(`${dudosos} ofertas con un precio no creíble: se muestran sin precio`);
   m.calcularReferencia(ofertas);
-  m.marcarEquivalentes(ofertas);
+  m.marcarEquivalentes(ofertas, { webs: new Map(FUENTES.map((f) => [normalizarTexto(f.nombre).trim(), f.id])) });
   await m.anadirTiempo(ofertas, { ...crearCtx('tiempo'), findes, puentes });
   await m.anadirEventos(ofertas, { ...crearCtx('eventos'), findes, puentes });
   await m.anadirFotos(ofertas, crearCtx('fotos'));
   await m.anadirResumenes(ofertas, crearCtx('resumenes'));
   for (const oferta of ofertas) oferta.enlaces = m.enlacesPara(oferta, { origen: ajustes.origen, ahora });
   // Después de los enlaces (también se marcan) y sin tocar la puntuación ni el orden.
-  const afiliados = proveedoresActivos(afiliacion, conPrefijo('afiliacion'));
+  // Con la clave de Awin (secreto AWIN_API_TOKEN), los programas en los que te han aceptado se activan solos.
+  const programas = await programasAwin({ ...ctxBase, log: conPrefijo('afiliacion') }, afiliacion.redes?.awin?.afiliado);
+  const afiliados = proveedoresActivos(conProgramasAwin(afiliacion, programas, conPrefijo('afiliacion')), conPrefijo('afiliacion'));
   for (const oferta of ofertas) aplicarAfiliacion(oferta, { activos: afiliados, patrocinadas: afiliacion.patrocinadas ?? [], ahora });
   m.registrarPrecios(historial, ofertas, ahora);
   m.compactar(historial, ahora, { idsVivos: ofertas.flatMap((o) => [o.id, claveSerie(o)]) });

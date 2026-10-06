@@ -322,8 +322,11 @@ export function botonComparar(o, ctx) {
 /** «La he reservado» y «Ya no está disponible»: se guardan en este navegador. */
 export function botonesMiEstado(o, ctx) {
   const actual = ctx.misEstados.get(o.id);
-  const boton = (estado, nombre, texto) => `<button type="button" class="boton boton--suave boton--mini" data-mi-estado="${estado}" data-oferta="${esc(o.id)}" aria-pressed="${actual === estado}">${icono(nombre)}${texto}</button>`;
-  return `<p class="acciones mi-estado">${boton('reservada', 'check', 'La he reservado')}${boton('no-disponible', 'prohibido', 'Ya no está disponible')}</p>`;
+  const boton = (estado, nombre, texto, ayuda) => `<button type="button" class="boton boton--suave boton--mini" data-mi-estado="${estado}" data-oferta="${esc(o.id)}" aria-pressed="${actual === estado}" title="${esc(ayuda)}">${icono(nombre)}${texto}</button>`;
+  // Antes eran dos botones sin explicar: no se sabía para qué servían ni a quién avisaban.
+  return `<div class="mi-estado"><p class="suave">Solo para ti, en este navegador (nadie más lo ve):</p><p class="acciones">${
+    boton('reservada', 'check', 'La he reservado', 'Queda marcada como reservada en Guardados')}${
+    boton('no-disponible', 'prohibido', 'Ya no está disponible', 'Se oculta de tus listas; puedes verla con «Con las descartadas y las no disponibles»')}</p></div>`;
 }
 
 /** ✕ para ocultar la oferta en este navegador. */
@@ -656,29 +659,6 @@ function avisoTarjeta(o, ctx) {
     f?.desactualizada && `<span class="insignia insignia--alerta comprobada--antigua" title="Sin comprobar en ${web} desde ${esc(f.texto)}: puede haber cambiado o terminado. Visto por última vez el ${esc(f.cuando)}">${icono('alerta')}Puede haber terminado</span>`,
     o.afiliado && `<span class="insignia aviso-afiliado" title="${esc(TEXTO_AFILIADO)}">${icono('enlace')}Enlace de afiliado</span>`,
   ].filter(Boolean).join('');
-}
-
-/**
- * La sugerencia de hoy en la portada, en corto y por debajo del buscador: foto, qué es, el
- * precio de la oferta y el viaje completo en una línea. El desglose, en su ficha.
- */
-export function tarjetaSugerencia(o, ctx) {
-  const c = costeDe(o, ctx);
-  const total = c.total != null
-    ? `${c.estimado ? '≈ ' : ''}${euros(Math.round(c.total))} el viaje completo para ${contar(c.viajeros, 'persona')}${ctx.desde ? ` desde ${ctx.desde}` : ''}`
-    : '';
-  const lugar = textoLugar(o);
-  return `<article class="sugerencia" style="--color-tema:${colorTema(o)}">
-  <div class="sugerencia__media">${mediaOferta(o)}</div>
-  <div class="sugerencia__cuerpo">
-    <p class="sugerencia__ceja">${icono('fuego')}Sugerencia de hoy</p>
-    <h2 class="sugerencia__titulo"><button type="button" class="enlace-ficha" data-ficha="${esc(o.id)}">${esc(tituloLegible(o.titulo))}</button></h2>
-    ${lugar ? `<p class="sugerencia__lugar">${lugar}</p>` : ''}
-    ${precio(o)}
-    ${total ? `<p class="sugerencia__total">${esc(total)}</p>` : ''}
-  </div>
-  <button type="button" class="boton boton--suave sugerencia__accion" data-ficha="${esc(o.id)}">Ver desglose y oferta${icono('flecha')}</button>
-</article>`;
 }
 
 /**

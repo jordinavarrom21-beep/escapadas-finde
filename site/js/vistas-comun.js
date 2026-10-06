@@ -145,7 +145,7 @@ export const selectorModo = `<div class="selector-modo" role="group" aria-label=
 /** Las pestañas de cada apartado del menú: Explorar, Fechas y Mis cosas. */
 export const PESTANAS = {
   // El Mapa no es otra categoría: es otra forma de ver las escapadas (conmutador Lista / Mapa).
-  explorar: ['Explorar', [['escapadas', 'Escapadas', 'escapadas'], ['vuelos', 'Vuelos', 'vuelos'], ['actividades', 'Planes', 'actividades']]],
+  explorar: ['Explorar', [['escapadas', 'Escapadas', 'escapadas'], ['vuelos', 'Vuelos y trenes', 'vuelos', 'Vuelos'], ['actividades', 'Planes', 'actividades']]],
   fechas: ['Fechas', [['calendario', 'Calendario', 'calendario'], ['puentes', 'Puentes', 'puentes']]],
   // Tres cosas distintas, cada una en su pestaña: lo que guardas, lo que buscas y lo que comparas.
   mis: ['Guardados', [['mis', 'Favoritos', 'corazon'], ['mis?ver=busquedas', 'Búsquedas guardadas', 'guardar', 'Búsquedas'], ['comparar', 'Comparar lado a lado', 'comparar', 'Comparar'], ['vigilados', 'Avisos por email', 'vigilados', 'Por email']]],

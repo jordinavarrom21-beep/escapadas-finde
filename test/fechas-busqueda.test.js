@@ -83,7 +83,7 @@ describe('ofertas de fechas flexibles y de fechas cerradas', () => {
     const html = contenidoFicha(flexible, ctx);
     assert.match(html, /checkin=2026-10-16&amp;checkout=2026-10-18&amp;group_adults=3/);
     assert.doesNotMatch(html, /checkin=2026-10-02/, 'ni en «Organiza el viaje» ni en «Comparar precios»');
-    assert.match(html, /Organiza el viaje <span class="suave">\(16–18 oct\)<\/span>/);
+    assert.match(html, /Organiza el viaje <span class="suave">\(hotel, actividades, cómo llegar · 16–18 oct\)<\/span>/);
     assert.match(html, /Los buscadores de abajo ya abren tus fechas \(16–18 oct\)/);
     assert.match(html, /href="https:\/\/ejemplo\.es\/oferta"/, 'la web de la oferta no se toca');
   });
