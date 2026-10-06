@@ -11,7 +11,7 @@ import {
 import { etiquetaDia, nombreFinde } from './fechas.js';
 import {
   ALOJAMIENTOS, ATAJOS_ESCAPADAS, ATAJOS_A_LA_VISTA, ORDENES_ACTIVIDADES, SIN_COCHE, ORDENES_ESCAPADAS, REGIMENES_ORDEN,
-  buscarActividades, buscarEscapadas, buscarTexto, chollosDeVuelos, conFaltas, promocionesDeVuelos, crearHash, destinosDe,
+  buscarActividades, buscarEscapadas, buscarTexto, chollosDeVuelos, conFaltas, promocionesDeVuelos, crearHash, destinosDe, transporteSuelto,
   destinosDeVuelo, esActividad, esEscapada, filtrarVuelos, filtrosActivos, leerFiltrosActividades, zonasDe,
   leerFiltrosComunes, leerFiltrosEscapadas, leerFiltrosVuelos, radioBusquedaKm, viajeDeParams, tieneVuelo,
   valoresUnicos, vuelosParaMapa, KM_CERCA_DE_LO_BUSCADO, lugarDeConsulta, encajeEnRango, periodoPasado, rangoDe,
@@ -59,7 +59,7 @@ export function vistaVuelos(e, params) {
     ...e.findes.map((finde, i) => `<label class="chip${finde.puenteId ? ' chip--puente' : ''}"><input type="radio" name="finde" value="${esc(finde.id)}"${marcado(f.finde === finde.id)}> ${i === 0 ? `${nombreFinde(e.hoy)} · ` : ''}${esc(etiquetaFinde(finde, e.datos.puentes))}</label>`),
     ...e.datos.puentes.map((p) => `<label class="chip chip--puente"><input type="radio" name="finde" value="${esc(p.id)}"${marcado(f.finde === p.id)}> ${etiquetaPuente(p)}</label>`),
   ];
-  return `${pestanas('explorar', 'vuelos')}<h1 class="titulo-vista" tabindex="-1">Vuelos</h1>
+  return `${pestanas('explorar', 'vuelos')}<h1 class="titulo-vista" tabindex="-1">Vuelos y trenes</h1>
 ${avisoMemoria(e, 'vuelos')}${avisoViajeCompartido(e, params)}
 ${plegableMovil(e, 'vuelos', params)}<form class="filtros" data-filtros="vuelos" aria-label="Filtros de vuelos">
   <fieldset class="chips chips--desplazables" data-campo-fechas><legend>Finde o puente</legend><div class="chips__lista">${chips.join('')}</div></fieldset>
@@ -107,6 +107,45 @@ ${avisoMemoria(e, 'vuelos')}${avisoViajeCompartido(e, params)}
 /** «BCN, GRO o REU». */
 const listaAeropuertos = (e) => enumerar(misAeropuertos(e), 'o') || `aeropuertos cerca de ${nombreSalida(e)}`;
 
+/**
+ * Un apartado secundario plegado («Billetes sin fecha», «Promociones», «Tren, bus y ferry»),
+ * con cuántos hay a la vista: lo primero son los vuelos de las fechas elegidas.
+ */
+function apartadoPlegado(titulo, cuantos, intro, contenido, { abierto = false, ic = '' } = {}) {
+  return `<details class="seccion seccion-plegable"${abierto ? ' open' : ''}>
+  <summary><h2>${ic ? icono(ic) : ''}${titulo}</h2><span class="contador">${esc(String(cuantos))}</span></summary>
+  ${intro ? `<p class="seccion__intro">${intro}</p>` : ''}${contenido}
+</details>`;
+}
+
+/** Tren, bus y ferry: billetes sueltos que antes salían como escapadas. */
+function apartadoTransporte(e, f, ctx, contexto, abierto = false) {
+  const lista = transporteSuelto(e.datos.ofertas, f, contexto);
+  if (!lista.length) return '';
+  return apartadoPlegado('Tren, bus y ferry', lista.length,
+    'Billetes y promociones de tren, autobús y barco desde tu zona: solo el viaje, sin alojamiento.',
+    rejilla(lista, ctx, { mostradas: mostradas(e, 'transporte'), clave: 'transporte' }), { abierto, ic: 'tren' });
+}
+
+/**
+ * Sin finde ni puente elegido, lo primero es elegir cuándo: cada finde y puente con cuántos
+ * vuelos hay y desde cuánto (un toque los filtra).
+ */
+function vuelosPorFechas(e, params, contexto) {
+  const periodos = [...e.findes.slice(0, 4), ...e.datos.puentes.slice(0, 2)];
+  const items = periodos.map((p, i) => {
+    // Los mismos que cuenta el Calendario y abre el enlace (dentro y alrededor de esas fechas).
+    const lista = filtrarVuelos(e.datos.ofertas, { ...leerFiltrosVuelos({ ...params, finde: p.id }), orden: 'precio' }, contexto);
+    if (!lista.length) return '';
+    const nombre = p.viernes ? `${i === 0 ? `${nombreFinde(e.hoy)} · ` : ''}${etiquetaFinde(p, e.datos.puentes)}` : etiquetaPuente(p);
+    return `<li><a class="atajo" href="${crearHash('vuelos', { ...params, finde: p.id })}"><span>${nombre}</span><span class="atajo__cifra">${lista.length} · desde ${esc(euros(lista[0].precio))}</span></a></li>`;
+  }).filter(Boolean);
+  return items.length ? `<section class="seccion vuelos-por-fechas" aria-labelledby="vuelos-fechas-titulo">
+  <div class="seccion__cabeza"><h2 id="vuelos-fechas-titulo">¿Para cuándo?</h2></div>
+  <ul class="atajos-portada">${items.join('')}</ul>
+</section>` : '';
+}
+
 export function resultadosVuelos(e, params) {
   const f = leerFiltrosVuelos(params);
   const contexto = contextoBusqueda(e);
@@ -125,7 +164,8 @@ ${promociones.length ? `<section class="seccion">
   <div class="seccion__cabeza"><h2>Promociones y descuentos de aerolíneas</h2></div>
   <p class="seccion__intro">Códigos, rebajas y selecciones de «muchos destinos»: no son un billete, sino una forma de pagar menos en la web de la aerolínea.</p>
   ${rejilla(promociones, ctx, { mostradas: mostradas(e, 'promociones'), clave: 'promociones' })}
-</section>` : ''}`;
+</section>` : ''}
+${apartadoTransporte(e, f, ctx, contexto)}`;
   }
   // Con un finde o un puente elegido: primero los que salen y vuelven dentro de esos días;
   // aparte, los que se solapan (salen antes o vuelven después), diciendo en qué.
@@ -142,19 +182,16 @@ ${promociones.length ? `<section class="seccion">
   <p class="seccion__intro">No caben enteros en el ${esc(dias)}: cada uno dice si sale antes o vuelve después.</p>
   ${rejilla(alrededor, ctx, { mostradas: mostradas(e, 'vuelos-alrededor'), clave: 'vuelos-alrededor' })}
 </section>` : ''}`;
-  const resumen = `${contar(dentro.length, 'vuelo')} con fecha${alrededor.length ? ` (y ${alrededor.length} alrededor)` : ''}, ${contar(chollos.length, 'billete')} sin fecha y ${contar(promociones.length, 'promoción', 'promociones')}`;
-  return `${franjaPeriodo(e, 'vuelos', params)}${filaActivos(e, 'vuelos', params)}${resumenResultados(resumen)}${parecido}
+  const resumen = `${contar(dentro.length, 'vuelo')} con fecha${alrededor.length ? ` (y ${alrededor.length} alrededor)` : ''}`;
+  return `${franjaPeriodo(e, 'vuelos', params)}${filaActivos(e, 'vuelos', params)}${rango ? '' : vuelosPorFechas(e, params, contexto)}${resumenResultados(resumen)}${parecido}
 <h2 class="subtitulo">Vuelos con fecha y hora</h2>${conFecha}
-<section class="seccion">
-  <div class="seccion__cabeza"><h2>Billetes sin fecha concreta, de blogs y comunidades</h2></div>
-  <p class="seccion__intro">El precio es el mínimo que publican para unas fechas que no dicen: revisa en cada oferta qué días hay plazas y desde qué aeropuerto sale. Aquí no se aplican el finde ni el horario.</p>
-  ${chollos.length ? rejilla(chollos, ctx, { mostradas: mostradas(e, 'chollos'), clave: 'chollos' }) : estadoVacio('No hay billetes sin fecha con estos filtros.', f.mios ? `Prueba a quitar «Solo desde ${esc(listaAeropuertos(e))}».` : '')}
-</section>
-${promociones.length ? `<section class="seccion">
-  <div class="seccion__cabeza"><h2>Promociones y descuentos de aerolíneas</h2></div>
-  <p class="seccion__intro">Códigos, rebajas y selecciones de «muchos destinos»: no son un billete, sino una forma de pagar menos en la web de la aerolínea.</p>
-  ${rejilla(promociones, ctx, { mostradas: mostradas(e, 'promociones'), clave: 'promociones' })}
-</section>` : ''}`;
+${apartadoPlegado('Billetes sin fecha concreta', chollos.length,
+    'De blogs y comunidades. El precio es el mínimo para unas fechas que no dicen: revisa en cada oferta qué días hay plazas y desde qué aeropuerto sale. Aquí no se aplican el finde ni el horario.',
+    chollos.length ? rejilla(chollos, ctx, { mostradas: mostradas(e, 'chollos'), clave: 'chollos' }) : estadoVacio('No hay billetes sin fecha con estos filtros.', f.mios ? `Prueba a quitar «Solo desde ${esc(listaAeropuertos(e))}».` : ''))}
+${promociones.length ? apartadoPlegado('Promociones de aerolíneas', promociones.length,
+    'Códigos, rebajas y selecciones de «muchos destinos»: no son un billete, sino una forma de pagar menos en la web de la aerolínea.',
+    rejilla(promociones, ctx, { mostradas: mostradas(e, 'promociones'), clave: 'promociones' })) : ''}
+${apartadoTransporte(e, f, ctx, contexto)}`;
 }
 
 // ── Escapadas y mapa ─────────────────────────────────────────────────────────

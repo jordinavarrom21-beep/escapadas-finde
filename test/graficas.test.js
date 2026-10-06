@@ -10,8 +10,8 @@ describe('gráficas: calendario de calor e historial', () => {
     assert.deepEqual(nivelesCalendario(resumen, true), [2, 4, 0, 1, 3]);
   });
 
-  it('sin vuelos, más escapadas es más intenso', () => {
-    const resumen = [5, 20, 0, 10].map((escapadas) => ({ vuelo: null, escapadas }));
+  it('sin vuelos, más escapadas con fecha ese finde es más intenso (las flexibles valen para todos)', () => {
+    const resumen = [5, 20, 0, 10].map((conFecha) => ({ vuelo: null, escapadas: 500 + conFecha, conFecha }));
     assert.deepEqual(nivelesCalendario(resumen, false), [1, 4, 0, 3]);
   });
 

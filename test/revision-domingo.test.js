@@ -66,11 +66,15 @@ describe('Calendario: cada cifra es la de la lista que abre', () => {
   const ctx = contextoBusqueda(e);
   it('cuenta con las mismas búsquedas (sin cruceros, duplicadas ni descartadas) y solo los findes que la web conoce', () => {
     const html = vistaCalendario(e);
-    const celdas = [...html.matchAll(/href="(#\/escapadas\?cuando=[^"]+)"[^>]*>[^]*?Ver ([\d.]+) escapada/g)];
+    // «3 escapadas con fecha + 40 flexibles» o, sin ninguna con fecha, «Ver 40 escapadas flexibles».
+    const celdas = [...html.matchAll(/href="(#\/escapadas\?cuando=[^"]+)"[^>]*>(?:<svg[^]*?<\/svg>)?<span>(?:([\d.]+) escapadas? con fecha <small class="suave">\+ ([\d.]+) flexibles|Ver ([\d.]+) escapadas? flexibles)/g)];
     assert.equal(celdas.length, e.findes.length, 'ni un finde más de los que conocen las listas');
-    for (const [, href, n] of celdas) {
+    const numero = (n) => Number((n ?? '0').replace('.', ''));
+    for (const [, href, conFecha, flexibles, solo] of celdas) {
       const { params } = leerRuta(href);
-      assert.equal(Number(n.replace('.', '')), buscarEscapadas(e.datos.ofertas, leerFiltrosEscapadas(params), ctx).ofertas.length, href);
+      const lista = buscarEscapadas(e.datos.ofertas, leerFiltrosEscapadas(params), ctx).ofertas;
+      assert.equal(numero(conFecha) + numero(flexibles) + numero(solo), lista.length, href);
+      assert.equal(numero(conFecha), lista.filter((o) => o.fechas?.salida).length, href);
     }
     const resumen = resumenCalendario(e.datos.ofertas, e.findes, e.datos.puentes, ctx);
     for (const r of resumen) assert.equal(r.vuelos, filtrarVuelos(e.datos.ofertas, leerFiltrosVuelos({ finde: r.finde.id }), ctx).length);

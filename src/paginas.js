@@ -34,7 +34,9 @@ const UNIDADES = {
   noche: 'por alojamiento y noche', trayecto: 'por persona y trayecto',
 };
 
-const esEscapada = (o) => !['vuelo', 'actividad'].includes(o.tipo) && !o.etiquetas.includes('duplicada');
+// Los billetes sueltos de tren, bus o ferry no son escapadas (lo mismo que esTransporte del panel).
+const esTransporte = (o) => ['bus', 'tren', 'ferry'].includes(o.transporte) && !o.alojamiento && !o.noches && (o.unidad == null || o.unidad === 'trayecto');
+const esEscapada = (o) => !['vuelo', 'actividad'].includes(o.tipo) && !o.etiquetas.includes('duplicada') && !esTransporte(o);
 const conTotal = (o) => costeDesdeOrigen(o, VIAJEROS).total != null;
 const porTotal = (a, b) => costeDesdeOrigen(a, VIAJEROS).total - costeDesdeOrigen(b, VIAJEROS).total;
 const porPrecio = (a, b) => (a.precio ?? Infinity) - (b.precio ?? Infinity);

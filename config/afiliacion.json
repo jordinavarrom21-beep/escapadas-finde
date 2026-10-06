@@ -7,7 +7,8 @@
     "'patrocinadas': ofertas por las que un anunciante paga. Se marcan como «Patrocinado», llevan rel=sponsored y NO suben en el orden normal.",
     "'medicion.url': dirección que recibe los clics (sin datos personales). Vacía = no se mide nada. Si pones una, añade su dominio a connect-src en site/index.html.",
     "Dos formas: 'parametros' (se añaden a la URL, p. ej. Civitatis aid=…) o 'envoltura' para redes como Awin o TradeTracker: su enlace con {url} donde va la oferta, p. ej. https://www.awin1.com/cread.php?awinmid=MERCHANT&awinaffid=TU_ID&ued={url}. Con 'envoltura' rellena, 'parametros' no hace falta.",
-    "Awin: tu número de afiliado va en redes.awin.afiliado. Para cada anunciante de Awin en el que te acepten, pon su número (el «Advertiser ID» de Awin) en 'awinmid', aprobado: true y activo: true: el enlace profundo se arma solo."
+    "Awin: tu número de afiliado va en redes.awin.afiliado. Para cada anunciante de Awin en el que te acepten, pon su número (el «Advertiser ID» de Awin) en 'awinmid', aprobado: true y activo: true: el enlace profundo se arma solo.",
+    "Automático: con el secreto AWIN_API_TOKEN en GitHub (Settings → Secrets → Actions), cada escaneo pregunta a Awin en qué programas te han aceptado y activa solos los que coinciden por dominio (y añade los que falten). Lo escrito aquí a mano con 'parametros' o 'envoltura' no se toca."
   ],
   "redes": {
     "awin": {

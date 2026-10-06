@@ -240,8 +240,16 @@ export const tieneVuelo = (o) => esVuelo(o) && o.vuelo != null;
 /** Entradas, visitas y free tours: tienen su propia vista, no se mezclan con las escapadas. */
 export const esActividad = (o) => o.tipo === 'actividad';
 export const esCrucero = (o) => o.tipo === 'crucero';
-/** Lo que se lista como escapada: todo menos los vuelos y las actividades. */
-export const esEscapada = (o) => !esVuelo(o) && !esActividad(o);
+/** Medios de un billete suelto: sin alojamiento no es una escapada, es cómo llegar. */
+const TRANSPORTE_SUELTO = ['bus', 'tren', 'ferry'];
+/**
+ * Billetes de tren, bus o ferry sin alojamiento ni noches («Bus Barcelona – Perpiñán 10,99 €»,
+ * promociones de Renfe u OUIGO): van con los vuelos, no entre las escapadas.
+ */
+export const esTransporte = (o) => !esVuelo(o) && !esActividad(o) && TRANSPORTE_SUELTO.includes(o.transporte)
+  && !o.alojamiento && !o.noches && (o.unidad == null || o.unidad === 'trayecto');
+/** Lo que se lista como escapada: todo menos los vuelos, las actividades y los billetes sueltos. */
+export const esEscapada = (o) => !esVuelo(o) && !esActividad(o) && !esTransporte(o);
 /** La misma oferta ya aparece en otra web con mejor precio (la marca duplicados.js). */
 export const esDuplicada = (o) => (o.etiquetas ?? []).includes('duplicada');
 
@@ -590,6 +598,15 @@ export function chollosDeVuelos(ofertas, f, ctx = {}) {
   return alFinalSinComprobar(ofertas
     .filter((o) => !esPromocion(o) && cumpleChollo(o, f, ctx))
     .sort(f.orden === 'precio' ? porPrecio : porPuntuacion), ctx);
+}
+
+/**
+ * Billetes de tren, bus y ferry con los filtros de Vuelos que les valen (texto, precio, país,
+ * finde o puente), del más barato al más caro.
+ */
+export function transporteSuelto(ofertas, f, ctx = {}) {
+  const g = { ...f, cuando: f.finde ?? '' };
+  return alFinalSinComprobar(ofertas.filter((o) => esTransporte(o) && cumpleComunes(o, g, ctx)).sort(porPrecio), ctx);
 }
 
 /** Promociones de aerolíneas (descuentos, códigos, rebajas): aparte, porque no son billetes. */
@@ -961,10 +978,13 @@ export function resumenCalendario(ofertas, findes, puentes = [], ctx = null) {
       ? filtrarVuelos(ofertas, leerFiltrosVuelos({ finde: finde.id }), ctx)
       : ofertas.filter((o) => tieneVuelo(o) && (o.fechas?.findeId === finde.id || (puente != null && o.fechas?.puenteId === puente.id)));
     const vuelo = vuelos.filter((o) => typeof o.precio === 'number').sort(porPrecio)[0] ?? null;
-    const escapadas = ctx
-      ? buscarEscapadas(ofertas, leerFiltrosEscapadas({ cuando: finde.id }), ctx).ofertas.length
-      : ofertas.filter((o) => esEscapada(o) && disponibleEn(o, periodoFinde(finde))).length;
-    return { finde, puente, vuelo, vuelos: vuelos.length, escapadas };
+    const lista = ctx
+      ? buscarEscapadas(ofertas, leerFiltrosEscapadas({ cuando: finde.id }), ctx).ofertas
+      : ofertas.filter((o) => esEscapada(o) && disponibleEn(o, periodoFinde(finde)));
+    // Las flexibles valen para cualquier finde (por eso el total casi no cambia de uno a otro):
+    // lo que distingue a cada finde son las que tienen fechas cerradas en él.
+    const conFecha = lista.filter((o) => o.fechas?.salida).length;
+    return { finde, puente, vuelo, vuelos: vuelos.length, escapadas: lista.length, conFecha };
   });
 }
 
@@ -1136,7 +1156,7 @@ export function urlEditarVigilados({ hostname = '', pathname = '/' } = {}) {
 export const ATAJOS_ESCAPADAS = [
   // Las situaciones que se reconocen de un vistazo van primero y siempre a la vista; el resto,
   // en «Más ideas» (ATAJOS_A_LA_VISTA).
-  { texto: 'Este finde', icono: 'finde', params: { cuando: 'finde', orden: 'total' } },
+  // «Este finde» no va aquí: ya está en «¿Cuándo?», justo debajo (eran dos controles para lo mismo).
   { texto: 'A menos de 2 h', icono: 'coche', params: { h: '2', orden: 'total' } },
   { texto: 'Spa', icono: 'tema-spa', params: { temas: 'spa', orden: 'total' } },
   { texto: 'Con niños', icono: 'tema-familia', params: { ninos: 'apto' } },
