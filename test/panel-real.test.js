@@ -171,7 +171,8 @@ describe('panel con datos reales: la portada no repite ofertas', () => {
     const e = estadoPanel();
     e.favoritos = new Set(datos.ofertas.filter((o) => o.chollazo).slice(0, 2).map((o) => o.id));
     const html = VISTAS_HTML.finde.html(e, {});
-    const ids = [...html.matchAll(/data-descartar="([^"]+)"/g)].map((m) => m[1]);
+    // Las tarjetas y las filas de «Lo mejor para este finde» (los eventos enlazan a la escapada de al lado: no cuentan).
+    const ids = [...html.matchAll(/data-descartar="([^"]+)"|<li class="idea"><button type="button" class="enlace-ficha" data-ficha="([^"]+)"/g)].map((m) => m[1] ?? m[2]);
     assert.ok(ids.length > 5, 'la portada tiene ofertas');
     const repetidas = ids.filter((id, i) => ids.indexOf(id) !== i);
     assert.deepEqual(repetidas, []);

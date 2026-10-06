@@ -46,6 +46,19 @@ const clavePunto = ({ lat, lon }) => `${lat.toFixed(3)},${lon.toFixed(3)}`;
 // Las mismas islas que usa el panel para no estimar coche cruzando el mar.
 export { enIsla } from '../../site/js/geo.js';
 
+/**
+ * Andorra: «La Massana» y «Andorra» a secas se buscaban primero en España y salían una
+ * urbanización junto a Castelldefels (a 40 min de Barcelona) y Andorra (Teruel). Las
+ * parroquias y las estaciones de esquí andorranas van a su país; «Andorra» sola, también,
+ * salvo que la oferta diga Teruel.
+ */
+const LUGARES_ANDORRA = new Set(['andorra', 'andorra la vella', 'la massana', 'massana', 'canillo', 'encamp', 'ordino',
+  'sant julia de loria', 'escaldes engordany', 'escaldes', 'pas de la casa', 'soldeu', 'arinsal', 'grandvalira', 'vallnord', 'pal arinsal', 'el tarter']);
+export function esDeAndorra(lugar) {
+  if (!lugar?.nombre || /teruel|aragon/.test(normalizarTexto(`${lugar.region ?? ''} ${lugar.provincia ?? ''} ${lugar.comunidad ?? ''}`))) return false;
+  return LUGARES_ANDORRA.has(normalizarTexto(lugar.nombre).replace(/[^a-z0-9]+/g, ' ').trim());
+}
+
 /** País de un lugar en ISO-3166 (minúsculas), si se sabe. */
 const codigoPais = (lugar) => (lugar.codigoPais ?? (normalizarTexto(lugar.pais ?? '') === 'espana' ? 'ES' : ''))?.toLowerCase() || '';
 /** España con Canarias: un punto de «España» fuera de esta caja es otro sitio con el mismo nombre. */
@@ -127,6 +140,10 @@ export async function geolocalizar(ofertas, ctx, { maxNuevas = 40 } = {}) {
   let aplazadas = 0;
   for (const { lugar } of ofertas) {
     if (!lugar?.nombre) continue;
+    // Un sitio de Andorra que se situó en España se vuelve a buscar, ya en Andorra.
+    if (esDeAndorra(lugar) && lugar.codigoPais !== 'AD') {
+      Object.assign(lugar, { pais: 'Andorra', codigoPais: 'AD', lat: null, lon: null, provincia: null, comunidad: null });
+    }
     const pais = codigoPais(lugar);
     const consulta = [lugar.nombre, lugar.region, lugar.pais].filter(Boolean).join(', ');
     if (tieneCoordenadas(lugar) && puntoCreible(lugar, lugar) && (pais || !deBusquedaAntigua(lugar, ctx.cache, consulta))) continue;

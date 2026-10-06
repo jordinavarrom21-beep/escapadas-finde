@@ -620,24 +620,29 @@ export function fiabilidadOpiniones(n) {
 
 /**
  * «★ 8,2 Muy bien · 266 opiniones en Holidu»: lo que opinan otros clientes, a la vista.
- * Sin nota, se dice que la web no publica opiniones (para no confundirlo con «malas»).
+ * Sin nota, la línea queda en blanco (solo los lectores de pantalla oyen que la web no las
+ * publica): «X no publica opiniones» en cada tarjeta era ruido.
  */
 function opinionesTarjeta(o, web) {
   const v = o.valoracion;
   if (!(v?.nota >= 0)) {
     return o.tipo === 'vuelo' ? '<p class="tarjeta__opiniones tarjeta__opiniones--sin" aria-hidden="true"></p>'
-      : `<p class="tarjeta__opiniones tarjeta__opiniones--sin">${icono('estrella')}<span>${esc(web)} no publica opiniones</span></p>`;
+      : `<p class="tarjeta__opiniones tarjeta__opiniones--sin"><span class="sr">${esc(web)} no publica opiniones</span></p>`;
   }
   const f = fiabilidadOpiniones(v.n);
   const cuantas = v.n ? ` · ${contar(v.n, 'opinión', 'opiniones')}` : '';
   return `<p class="tarjeta__opiniones" title="Valoración de los clientes en ${esc(web)}. ${esc(f.larga)}">${icono('estrella')}<strong>${nota(v.nota)}<span class="tarjeta__opiniones-max">/10</span></strong><span class="tarjeta__opiniones-texto">${adjetivoNota(v.nota)}${cuantas}${f.corta ? ` · <span class="aviso-suave">${f.corta}</span>` : ''}</span></p>`;
 }
 
-/** «Por qué 66: más barata que 180 de 206 escapadas parecidas · ha bajado 12 €». */
+/**
+ * El motivo principal de la nota, entero y en dos líneas como mucho («Más barata que 180 de
+ * 206 escapadas parecidas»): antes iban dos motivos en una línea y se cortaba a media frase.
+ * El desglose completo, en la ficha.
+ */
 function motivoTarjeta(o, ctx) {
-  const motivo = motivoPrincipal(o, ctx.ahora);
+  const motivo = motivoPrincipal(o, ctx.ahora, { corto: true });
   if (!motivo) return '<p class="tarjeta__motivo" aria-hidden="true"></p>';
-  return `<p class="tarjeta__motivo" title="${esc(`Por qué tiene un ${o.puntuacion}: ${motivo}`)}"><span class="tarjeta__motivo-nota">Por qué ${o.puntuacion}:</span> ${esc(motivo.replace(/^./, (l) => l.toLowerCase()))}</p>`;
+  return `<p class="tarjeta__motivo" title="${esc(`Por qué tiene un ${o.puntuacion}: ${motivoPrincipal(o, ctx.ahora)}`)}">${esc(motivo)}</p>`;
 }
 
 /**

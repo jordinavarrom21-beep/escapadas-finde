@@ -78,7 +78,7 @@ export function motivosNota(o, ahora = new Date()) {
  * El motivo principal en una línea para la tarjeta: el precio si destaca y, si no, lo que
  * más puntos da. Con desglose y sin nada que destacar, lo dice.
  */
-export function motivoPrincipal(o, ahora = new Date()) {
+export function motivoPrincipal(o, ahora = new Date(), { corto = false } = {}) {
   const d = o.notaDetalle;
   if (!d) return null;
   if (d.evitada) return 'Al fondo: es de algo que pides evitar';
@@ -87,5 +87,5 @@ export function motivoPrincipal(o, ahora = new Date()) {
   const precio = motivos.find((m) => m.clave === 'precio');
   const [primero] = precio && precio.puntos >= MAXIMOS.precio / 2 ? [precio] : motivos;
   const segundo = motivos.find((m) => m !== primero && m.puntos >= 3);
-  return segundo ? `${primero.texto} · ${segundo.texto.replace(/^./, (l) => l.toLowerCase())}` : primero.texto;
+  return segundo && !corto ? `${primero.texto} · ${segundo.texto.replace(/^./, (l) => l.toLowerCase())}` : primero.texto;
 }

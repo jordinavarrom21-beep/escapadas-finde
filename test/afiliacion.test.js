@@ -125,6 +125,17 @@ describe('afiliación con envoltura (Awin, TradeTracker…)', () => {
     assert.deepEqual(activos, []);
     assert.match(avisos[0], /envoltura https con \{url\}/);
   });
+  it('Awin: con el número del anunciante (awinmid) y el tuyo (redes.awin.afiliado) se arma el enlace profundo', () => {
+    const config = { redes: { awin: { afiliado: '3115639' } }, proveedores: { edreams: { activo: true, aprobado: true, dominios: ['edreams.es'], awinmid: ' 1234 ', envoltura: '' } } };
+    const r = conAfiliacion('https://www.edreams.es/vuelos?a=1', proveedoresActivos(config));
+    assert.equal(r.afiliado, 'edreams');
+    assert.equal(r.url, 'https://www.awin1.com/cread.php?awinmid=1234&awinaffid=3115639&ued=https%3A%2F%2Fwww.edreams.es%2Fvuelos%3Fa%3D1');
+    const avisos = [];
+    assert.deepEqual(proveedoresActivos({ ...config, redes: {} }, (m) => avisos.push(m)), []);
+    assert.deepEqual(proveedoresActivos({ ...config, proveedores: { edreams: { ...config.proveedores.edreams, awinmid: 'abc' } } }, (m) => avisos.push(m)), []);
+    assert.match(avisos[0], /awinmid/);
+    assert.equal(CONFIG.redes.awin.afiliado, '3115639');
+  });
   it('la configuración del repositorio trae todas las webs desactivadas', () => {
     assert.ok(Object.keys(CONFIG.proveedores).length >= 15);
     assert.deepEqual(proveedoresActivos(CONFIG), []);

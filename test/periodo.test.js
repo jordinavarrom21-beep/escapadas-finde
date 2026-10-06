@@ -184,12 +184,23 @@ describe('Inicio arranca con el periodo elegido en Explorar', async () => {
   it('un rango elegido en Explorar aparece como «Tus fechas» y vuelve a Explorar como desde/hasta', () => {
     const html = buscadorFinde({ ...e, periodo: { cuando: '', desde: '2026-10-16', hasta: '2026-10-18' } });
     assert.equal(marcado(html), 'rango');
-    assert.match(html, /<small>Tus fechas<\/small><span>vie 16 – dom 18 oct<\/span>/);
-    assert.match(html, /name="desde" value="2026-10-16"/);
+    assert.match(html, /<small>Tus fechas<\/small><span data-dias-propios>vie 16 – dom 18 oct<\/span>/);
+    assert.match(html, /type="date" name="desde" min="[^"]+" value="2026-10-16"/);
+    assert.doesNotMatch(html, /data-fechas-propias hidden/, 'el calendario a la vista');
     assert.match(html, /data-enviar-para>para vie 16 – dom 18 oct</);
     const ids = { finde: e.findes[0], puente: e.puente };
     assert.equal(destinoOrganizar('vuelos', { cuando: 'rango', desde: '2026-10-16', hasta: '2026-10-18' }, ids), '#/vuelos?desde=2026-10-16&hasta=2026-10-18');
     assert.equal(destinoOrganizar('actividades', { cuando: 'rango', desde: '2026-10-16', hasta: '2026-10-18' }, ids), '#/actividades?desde=2026-10-16&hasta=2026-10-18');
     assert.deepEqual(paramsBuscadorFinde({ cuando: 'rango', desde: '2026-10-16', hasta: '2026-10-18' }), { desde: '2026-10-16', hasta: '2026-10-18', temas: '', orden: 'total' });
+  });
+
+  it('«Otras fechas» con calendario siempre: plegado hasta elegirla; sin vuelta, un día; sin ida, cualquier fecha', () => {
+    const html = buscadorFinde({ ...e, periodo: null });
+    assert.match(html, /value="rango"[^>]*><small>Otras fechas<\/small><span data-dias-propios>elige en el calendario<\/span>/);
+    assert.match(html, /data-fechas-propias hidden>[^]*type="date" name="desde"[^]*type="date" name="hasta"/);
+    const ids = { finde: e.findes[0], puente: e.puente };
+    assert.equal(destinoOrganizar('escapadas', { cuando: 'rango', desde: '2026-10-24', hasta: '' }, ids), '#/escapadas?desde=2026-10-24&hasta=2026-10-24&orden=total');
+    assert.equal(destinoOrganizar('vuelos', { cuando: 'rango', desde: '2026-10-24', hasta: '2026-10-20' }, ids), '#/vuelos?desde=2026-10-24&hasta=2026-10-24');
+    assert.equal(destinoOrganizar('escapadas', { cuando: 'rango', desde: '', hasta: '' }, ids), '#/escapadas?orden=total');
   });
 });

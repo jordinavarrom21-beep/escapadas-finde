@@ -12,21 +12,36 @@ const esTexto = (valor) => typeof valor === 'string' && valor.trim() !== '';
  */
 const esEnvoltura = (valor) => esTexto(valor) && /^https:\/\/[^\s]+\{url\}/.test(valor.trim());
 
+const esNumero = (valor) => /^\d+$/.test(String(valor ?? '').trim());
+
+/**
+ * Con Awin basta con el número de cada anunciante («awinmid»): el enlace profundo se arma
+ * con tu número de afiliado de «redes.awin.afiliado». Si falta alguno, null.
+ */
+export function envolturaAwin(config, p) {
+  const afiliado = config.redes?.awin?.afiliado;
+  if (!esNumero(p?.awinmid) || !esNumero(afiliado)) return null;
+  return `https://www.awin1.com/cread.php?awinmid=${String(p.awinmid).trim()}&awinaffid=${String(afiliado).trim()}&ued={url}`;
+}
+
 /**
  * Proveedores que de verdad pueden marcar enlaces: activos, aprobados y con todos sus
  * parámetros. Avisa (log) de los que están a medias, para no creer que funcionan.
  */
 export function proveedoresActivos(config = {}, log = () => {}) {
   const activos = [];
-  for (const [id, p] of Object.entries(config.proveedores ?? {})) {
-    if (!p?.activo) continue;
+  for (const [id, original] of Object.entries(config.proveedores ?? {})) {
+    if (!original?.activo) continue;
+    // Un anunciante de Awin con su «awinmid» (y sin envoltura escrita a mano): la de Awin.
+    const awin = !esTexto(original.envoltura) && original.awinmid != null && original.awinmid !== '';
+    const p = awin ? { ...original, envoltura: envolturaAwin(config, original) ?? 'falta-awin' } : original;
     const parametros = Object.entries(p.parametros ?? {});
     const envoltura = p.envoltura != null && p.envoltura !== '';
     const falta = [
       !p.aprobado && 'aprobado: true (la cuenta de afiliado aprobada)',
       !(p.dominios ?? []).length && 'dominios',
       envoltura
-        ? !esEnvoltura(p.envoltura) && 'una envoltura https con {url}'
+        ? !esEnvoltura(p.envoltura) && (awin ? 'el número de anunciante (awinmid) y tu número de afiliado (redes.awin.afiliado)' : 'una envoltura https con {url}')
         : (!parametros.length || parametros.some(([, v]) => !esTexto(v))) && 'los valores de parametros',
     ].filter(Boolean);
     if (falta.length) log(`Afiliación de ${id} activa pero sin ${falta.join(', ')}: sus enlaces quedan normales`);
