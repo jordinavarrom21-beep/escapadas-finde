@@ -59,14 +59,30 @@ describe('Awin automático', () => {
     });
     assert.equal(await programasAwin(ctx({}), '3115639'), null);
     assert.equal(peticiones.length, 0);
-    const c = ctx({ AWIN_API_TOKEN: 'clave-de-prueba' });
+    const logs = [];
+    const c = { ...ctx({ AWIN_API_TOKEN: 'clave-de-prueba' }), log: (m) => logs.push(m) };
     const programas = await programasAwin(c, '3115639');
     assert.equal(programas.length, 2);
     assert.equal(peticiones[0].url, 'https://api.awin.com/publishers/3115639/programmes?relationship=joined');
     assert.equal(peticiones[0].opciones.cabeceras.Authorization, 'Bearer clave-de-prueba');
     assert.doesNotMatch(peticiones[0].url, /clave-de-prueba/);
+    assert.match(logs[0], /Awin: 2 programas aceptados \(eDreams ES, Web nueva\)/);
     await programasAwin(c, '3115639');
     assert.equal(peticiones.length, 1, 'la segunda vez, de la caché');
+  });
+
+  it('con la clave bien pero sin programas aceptados, lo dice', async () => {
+    const logs = [];
+    const ctx = { env: { AWIN_API_TOKEN: 'x' }, ahora: new Date(), cache: new Cache(), log: (m) => logs.push(m), http: { json: async () => [] } };
+    assert.deepEqual(await programasAwin(ctx, '3115639'), []);
+    assert.match(logs[0], /Awin: 0 programas aceptados todavía/);
+    // Sin ninguno aceptado, se vuelve a preguntar a la hora (no a las 12 h).
+    let veces = 1;
+    ctx.http.json = async () => { veces++; return []; };
+    await programasAwin(ctx, '3115639');
+    assert.equal(veces, 1, 'dentro de la hora, de la caché');
+    await programasAwin({ ...ctx, ahora: new Date(ctx.ahora.getTime() + 61 * 60 * 1000) }, '3115639');
+    assert.equal(veces, 2, 'pasada la hora, se pregunta otra vez');
   });
 
   it('si Awin falla se avisa sin la clave y se sigue', async () => {

@@ -8,7 +8,9 @@
 
 /** Se pregunta como mucho cada tantas horas: los programas aceptados cambian poco. */
 const CADUCIDAD_MS = 12 * 60 * 60 * 1000;
-const CLAVE_CACHE = 'awin:programas';
+/** Sin ninguno aceptado todavía, cada hora: el primero que te acepten se activa pronto. */
+const CADUCIDAD_VACIA_MS = 60 * 60 * 1000;
+const CLAVE_CACHE = 'awin:programas:v2';
 
 const dominioLimpio = (texto) => {
   if (typeof texto !== 'string' || !texto.trim()) return null;
@@ -43,12 +45,16 @@ export async function programasAwin(ctx, afiliado) {
   if (!token || !/^\d+$/.test(String(afiliado ?? ''))) return null;
   const ahora = ctx.ahora.getTime();
   const guardados = ctx.cache?.obtener(CLAVE_CACHE, CADUCIDAD_MS, ahora);
-  if (guardados) return guardados;
+  if (guardados?.length || (guardados && ctx.cache.obtener(CLAVE_CACHE, CADUCIDAD_VACIA_MS, ahora))) return guardados;
   try {
     const respuesta = await ctx.http.json(`https://api.awin.com/publishers/${afiliado}/programmes?relationship=joined`, {
       cabeceras: { Authorization: `Bearer ${token}`, Accept: 'application/json' }, reintentos: 1,
     });
     const programas = programasDeRespuesta(respuesta);
+    // Que se vea en el registro que la clave funciona, aunque aún no te hayan aceptado en ninguno.
+    ctx.log(Array.isArray(respuesta)
+      ? `Awin: ${programas.length} programas aceptados${programas.length ? ` (${programas.map((p) => p.nombre).join(', ')})` : ' todavía: únete a programas en Awin y se activarán solos'}`
+      : 'Awin respondió algo que no es la lista de programas: la afiliación queda como en la configuración');
     ctx.cache?.guardar(CLAVE_CACHE, programas, ahora);
     return programas;
   } catch (error) {
