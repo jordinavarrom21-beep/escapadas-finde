@@ -3,6 +3,7 @@
  * fallar pronto y con un mensaje claro, en vez de romperse a mitad del escaneo.
  * El significado de cada campo está en LEEME.md y docs/CONTRATOS.md.
  */
+import { problemasDrive } from './drive.js';
 import { problemasGoogleAds } from './google-ads.js';
 import { problemasLegal } from './legal.js';
 import { cargarJson } from './almacen.js';
@@ -160,6 +161,7 @@ export function validarAjustes(ajustes) {
   exigir(ajustes.panelUrl == null || /^https?:\/\//.test(ajustes.panelUrl), 'panelUrl debe ser una URL http(s) o null');
   problemas.push(...problemasPreferencias(ajustes.preferencias));
   problemas.push(...problemasGoogleAds(ajustes.googleAds));
+  problemas.push(...problemasDrive(ajustes.travelpayoutsDrive));
   problemas.push(...problemasLegal(ajustes.legal));
   return problemas;
 }
