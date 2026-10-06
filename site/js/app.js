@@ -5,7 +5,7 @@
 
 import { abrirFicha, liberarFicha } from './ficha.js';
 import { fechasDeBusqueda } from './fechas-enlaces.js';
-import { estadoFinde, fechaLocal, findesConNoches, proximoPuente, quedanNoches } from './fechas.js';
+import { estadoFinde, fechaLocal, findesConNoches, proximoPuente, quedanNoches, sumarDias } from './fechas.js';
 import {
   POR_PAGINA, actividadesCerca, conPeriodo, periodoDeParams, traducirFormulario, buscarTexto, crearHash, criterioVigilado, filtrosVigentes, leerFiltrosActividades,
   leerFiltrosComunes, leerFiltrosEscapadas, leerFiltrosVuelos, leerRuta, medirDistancias, paramsViaje, referenciaNovedades,
@@ -25,7 +25,7 @@ import { estadoVacio } from './plantillas.js';
 import { icono } from './iconos.js';
 import { activarUbicacion } from './ubicacion.js';
 import {
-  VISTAS_HTML, atajosPortada, contarSecundarios, totalNovedadesGuardadas, destinoOrganizar, contenidoSorpresa, estadoWebs, textoEnviar, contextoBusqueda, ctxTarjetas, datosMapa, formularioViaje, nombreSalida,
+  VISTAS_HTML, atajosPortada, diasDeFechas, contarSecundarios, totalNovedadesGuardadas, destinoOrganizar, contenidoSorpresa, estadoWebs, textoEnviar, contextoBusqueda, ctxTarjetas, datosMapa, formularioViaje, nombreSalida,
   misAeropuertos, resultadosMapa, textoViaje,
 } from './vistas.js';
 
@@ -623,6 +623,8 @@ function vaciarComparar() {
 function ocultarTarjetas(id) {
   document.querySelectorAll(`[data-descartar="${CSS.escape(id)}"]`)
     .forEach((boton) => boton.closest('.con-motivo, .tarjeta, .billete')?.remove());
+  // Y su fila en «Lo mejor para este finde» (las de eventos no: llevan a la escapada de al lado).
+  document.querySelectorAll(`.idea:not(.idea--evento) [data-ficha="${CSS.escape(id)}"]`).forEach((boton) => boton.closest('.idea')?.remove());
   // La sugerencia de la portada no lleva ✕, pero se puede descartar desde su ficha.
   document.querySelector(`.sugerencia [data-ficha="${CSS.escape(id)}"]`)?.closest('.portada__destacado')?.remove();
 }
@@ -639,6 +641,28 @@ function pintarEnviarFinde(formulario) {
   const { accion, para } = textoEnviar(formulario.elements.que?.value, formulario.querySelector('input[name="cuando"]:checked')?.dataset.dias);
   formulario.querySelector('[data-enviar-accion]').textContent = accion;
   formulario.querySelector('[data-enviar-para]').textContent = para;
+}
+
+/**
+ * «Otras fechas» del buscador: el calendario se abre al elegirla y, al cambiar la ida, la
+ * vuelta no puede quedar antes (si falta o queda antes, la ida más las noches de tu viaje).
+ */
+function fechasPropias(formulario, campo) {
+  const caja = formulario.querySelector('[data-fechas-propias]');
+  const { desde, hasta } = formulario.elements;
+  if (!caja || !desde || !hasta) return;
+  const propias = formulario.querySelector('input[name="cuando"]:checked')?.value === 'rango';
+  caja.hidden = !propias;
+  if (campo.name === 'cuando' && propias && !desde.value) desde.focus();
+  if (campo.name === 'desde' && desde.value) {
+    hasta.min = desde.value;
+    if (!hasta.value || hasta.value < desde.value) hasta.value = sumarDias(desde.value, estado.viaje?.noches ?? 2);
+  }
+  const radio = formulario.querySelector('input[name="cuando"][value="rango"]');
+  const dias = diasDeFechas(desde.value, hasta.value);
+  radio.dataset.dias = dias;
+  const texto = formulario.querySelector('[data-dias-propios]');
+  if (texto) texto.textContent = dias || 'elige en el calendario';
 }
 
 /** La primera vez que se descarta algo se activa el filtro, para que no vuelva a aparecer. */
@@ -870,9 +894,16 @@ function conectarEventos() {
   principal.addEventListener('input', alCambiarFiltro);
   principal.addEventListener('change', (evento) => {
     if (!evento.target.closest?.('[data-buscador-finde]')) return;
-    pintarEnviarFinde(evento.target.form);
+    const formulario = evento.target.form;
+    const { name } = evento.target;
+    if (name === 'cuando' || name === 'desde' || name === 'hasta') fechasPropias(formulario, evento.target);
+    pintarEnviarFinde(formulario);
     // Los atajos siguen a las fechas elegidas: sus cifras y enlaces son de ese periodo.
-    if (evento.target.name === 'cuando') principal.querySelector('.portada__atajos')?.replaceWith(htmlAElemento(atajosPortada(estado, evento.target.value)));
+    if (name === 'cuando' || name === 'desde' || name === 'hasta') {
+      const cuando = formulario.querySelector('input[name="cuando"]:checked')?.value ?? '';
+      const fechas = [formulario.elements.desde?.value, formulario.elements.hasta?.value];
+      principal.querySelector('.portada__atajos')?.replaceWith(htmlAElemento(atajosPortada(estado, cuando, fechas)));
+    }
   });
   principal.addEventListener('change', alCambiarFiltro);
   principal.addEventListener('change', (evento) => { if (evento.target.matches?.('[data-importar-guardados]')) cargarGuardados(evento.target); });
@@ -881,6 +912,12 @@ function conectarEventos() {
     if (evento.target.matches('[data-buscador-finde]')) {
       // Escapadas, vuelos o planes: lo marcado en «¿Qué buscas?».
       const campos = Object.fromEntries(new FormData(evento.target));
+      // «Otras fechas» sin ida: se pide en el calendario en vez de buscar de cualquier fecha.
+      if (campos.cuando === 'rango' && !campos.desde) {
+        evento.target.elements.desde?.focus();
+        evento.target.elements.desde?.showPicker?.();
+        return;
+      }
       location.hash = destinoOrganizar(campos.que ?? 'escapadas', campos, { finde: estado.findes[0], puente: estado.puente });
     }
   });

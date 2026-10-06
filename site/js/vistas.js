@@ -27,7 +27,7 @@ import {
   interruptorDefecto, marcado, misAeropuertos, mostradas, nombreSalida, numero, opciones, pestanas, puntoSalida,
   resumenResultados,
 } from './vistas-comun.js';
-import { vistaFinde } from './vistas-portada.js';
+import { eventosCerca, filaEvento, vistaFinde } from './vistas-portada.js';
 import { vistaAyuda, vistaCalendario, vistaFuentes, vistaMis, vistaPuentes, vistaVigilados } from './vistas-info.js';
 
 // Lo que el resto de la web importa de aquí, esté donde esté.
@@ -35,7 +35,7 @@ export {
   contextoBusqueda, ctxTarjetas, formularioViaje, misAeropuertos, nombreSalida, ocultas, pestanas, puntoSalida,
   estadoWebs, textoViaje, webConProblemas,
 } from './vistas-comun.js';
-export { atajosPortada, buscadorFinde, contenidoSorpresa, destinoOrganizar, paramsBuscadorFinde, resumenViaje, textoEnviar, vistaFinde } from './vistas-portada.js';
+export { atajosPortada, buscadorFinde, contenidoSorpresa, destinoOrganizar, diasDeFechas, eventosCerca, paramsBuscadorFinde, resumenViaje, textoEnviar, vistaFinde } from './vistas-portada.js';
 export {
   avisosDeBusquedas, resultadosDeBusqueda, totalNovedadesGuardadas, vistaAyuda, vistaCalendario, vistaFuentes,
   vistaMis, vistaPuentes, vistaVigilados,
@@ -544,12 +544,28 @@ ${avisoMemoria(e, 'actividades')}${avisoViajeCompartido(e, params)}
 </div>`;
 }
 
+/**
+ * Conciertos, festivales y fiestas en Planes: no son entradas que vendan estas webs, sino lo
+ * que pasa junto a las escapadas esas fechas (cada uno abre la escapada de al lado). Sin
+ * fechas elegidas, los de este finde; con un lugar o un texto buscado, no se enseñan.
+ */
+function eventosEnPlanes(e, f) {
+  if (f.q || f.dest || f.gratis || f.temas.length || periodoPasado(f.cuando, contextoBusqueda(e))) return '';
+  const { eventos, fechas } = eventosCerca(e, f, { max: 6 });
+  if (!eventos.length) return '';
+  return `<section class="planes-eventos" aria-labelledby="planes-eventos-titulo">
+  <h2 id="planes-eventos-titulo">${icono('tema-eventos')}Conciertos, festivales y fiestas <span class="suave">${f.cuando || f.desde ? 'esas fechas' : 'este finde'}</span></h2>
+  <ul class="ideas__lista planes-eventos__lista">${eventos.map(filaEvento).join('')}</ul>
+  <a class="ideas__mas" href="${crearHash('escapadas', { ...fechas, evtipo: 'todos' })}">Ver escapadas con eventos cerca${icono('flecha')}</a>
+</section>`;
+}
+
 export function resultadosActividades(e, params) {
   const f = leerFiltrosActividades(params);
   const { resultado: lista, aproximado } = conFaltas((g) => buscarActividades(e.datos.ofertas, g, contextoBusqueda(e)), f);
   const gratis = lista.filter((o) => o.precio === 0).length;
   const resumen = `${contar(lista.length, 'plan', 'planes')}${gratis ? ` · ${gratis} ${gratis === 1 ? 'gratis' : 'gratis'}` : ''}`;
-  return `${franjaPeriodo(e, 'actividades', params)}${filaActivos(e, 'actividades', params)}${resumenResultados(resumen)}${aproximado ? avisoAproximado(f.q) : ''}
+  return `${franjaPeriodo(e, 'actividades', params)}${filaActivos(e, 'actividades', params)}${eventosEnPlanes(e, f)}${resumenResultados(resumen)}${aproximado ? avisoAproximado(f.q) : ''}
 ${lista.length
     ? rejilla(lista, ctxTarjetas(e), { mostradas: mostradas(e, 'actividades'), clave: 'actividades' })
     : periodoPasado(f.cuando, contextoBusqueda(e)) ? vacioPeriodoPasado('actividades')

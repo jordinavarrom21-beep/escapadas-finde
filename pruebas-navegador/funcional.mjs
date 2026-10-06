@@ -56,10 +56,15 @@ await p.locator('#sorpresa-bloque [data-sorpresa]').click();
 await p.waitForTimeout(200);
 ok((await p.locator('#sorpresa').innerHTML()) !== antes, 'sorpresa: «Otra ronda» cambia los planes');
 ok((await aviso(p)).includes('Tres planes nuevos'), 'sorpresa: se anuncia');
-// Más ideas: pocas por apartado, cada uno con su «Ver…».
-await p.locator('.portada__mas > summary').click();
-ok((await p.locator('.portada__mas .seccion').count()) >= 3, 'más ideas: escapadas, vuelos y planes');
-ok((await p.locator('.portada__mas .rejilla').evaluateAll((rs) => rs.every((r) => r.children.length <= 3))), 'más ideas: como mucho tres por apartado');
+// Lo mejor para este finde: tres listas cortas a la vista, cada una con su «Ver…».
+ok((await p.locator('.portada__ideas .ideas__columna').count()) === 3 && await p.locator('.portada__ideas').isVisible(), 'lo mejor del finde: tres columnas a la vista');
+ok((await p.locator('.ideas__lista').evaluateAll((ls) => ls.every((l) => l.children.length <= 4))), 'lo mejor del finde: como mucho cuatro por lista');
+ok((await p.locator('.ideas__columna .ideas__mas').count()) === 3, 'lo mejor del finde: cada lista con su «Ver…»');
+// Otras fechas: el calendario sale al elegirla y lleva a Escapadas con esas fechas.
+ok(await p.locator('[data-fechas-propias]').isHidden(), 'otras fechas: calendario plegado de entrada');
+await p.locator('label:has(input[name="cuando"][value="rango"])').click();
+ok(await p.locator('[data-fechas-propias]').isVisible(), 'otras fechas: el calendario se abre');
+await p.locator('label:has(input[name="cuando"][value="finde"])').click();
 if (hayDestacado) {
   // Sugerencia: su ficha guarda el favorito y descartar desde ella la quita
   const idDestacado = await p.locator('.sugerencia .enlace-ficha').getAttribute('data-ficha');
@@ -75,7 +80,6 @@ if (hayDestacado) {
   await p.reload(); await p.waitForSelector('.portada');
   ok(!(await p.locator(`.sugerencia [data-ficha="${idDestacado}"]`).count()), 'la descartada no vuelve a ser la sugerencia tras recargar');
   // Recomendado aparece al tener favoritos
-  await p.locator('.portada__mas > summary').click();
   ok((await p.locator('text=Por tus').count()) > 0 || (await p.locator('.seccion:has-text("Recomendado para ti") .rejilla').count()) > 0, 'recomendado: aparece con favoritos');
 }
 

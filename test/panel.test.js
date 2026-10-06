@@ -16,7 +16,7 @@ import { parsearPhoton, urlPhoton } from '../site/js/geo.js';
 import { contenidoFicha, tarjeta } from '../site/js/plantillas.js';
 import {
   avisosDeBusquedas, contenidoSorpresa, contextoBusqueda, ocultas, resultadosBuscar, resultadosEscapadas, resultadosDeBusqueda, resultadosVuelos, totalNovedadesGuardadas, vistaMis, vistaVuelos, vistaActividades, vistaCalendario, vistaEscapadas, vistaFinde,
-  vistaFuentes, vistaPuentes,
+  vistaFuentes, vistaPuentes, resultadosActividades,
 } from '../site/js/vistas.js';
 import { crearServidor, rutaArchivo } from '../scripts/servir.js';
 
@@ -374,8 +374,16 @@ describe('actividades', () => {
 
   it('la portada las propone y la ficha enseña qué hacer allí', () => {
     const portada = vistaFinde(estadoPanel(), {});
-    assert.match(portada, /Planes para este finde/);
-    assert.match(portada, /href="#\/actividades"/);
+    // «Lo mejor para este finde»: escapadas cerca, vuelos y lo que pasa allí, en filas cortas y a la vista.
+    assert.match(portada, /<h2 id="ideas-titulo">Lo mejor para este finde/);
+    assert.doesNotMatch(portada, /<details class="portada__mas"/);
+    assert.match(portada, /href="#\/escapadas\?cuando=finde&h=3&orden=total">Ver las \d+/);
+    assert.match(portada, /Conciertos y fiestas<\/span><\/h3>[^]*?Mercat medieval de Besalú/);
+    assert.match(portada, /href="#\/escapadas\?cuando=finde&evtipo=todos"/);
+    // Planes también enseña los conciertos y fiestas de esas fechas (no con un lugar o texto buscado).
+    const planes = resultadosActividades(estadoPanel(), {});
+    assert.match(planes, /Conciertos, festivales y fiestas[^]*Mercat medieval de Besalú/);
+    assert.doesNotMatch(resultadosActividades(estadoPanel(), { q: 'Girona' }), /planes-eventos/);
     // Atajos rápidos: cada cifra es la de la lista a la que lleva; «Sorpréndeme» siempre.
     const atajos = portada.match(/<ul class="atajos-portada"[^]*?<\/ul>/)?.[0] ?? '';
     const chollos = atajos.match(/Chollos<\/span><span class="atajo__cifra">(\d+)</)?.[1];

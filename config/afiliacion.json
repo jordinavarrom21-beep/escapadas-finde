@@ -6,8 +6,14 @@
     "Un clic no es una venta: las comisiones solo las confirma el panel del proveedor.",
     "'patrocinadas': ofertas por las que un anunciante paga. Se marcan como «Patrocinado», llevan rel=sponsored y NO suben en el orden normal.",
     "'medicion.url': dirección que recibe los clics (sin datos personales). Vacía = no se mide nada. Si pones una, añade su dominio a connect-src en site/index.html.",
-    "Dos formas: 'parametros' (se añaden a la URL, p. ej. Civitatis aid=…) o 'envoltura' para redes como Awin o TradeTracker: su enlace con {url} donde va la oferta, p. ej. https://www.awin1.com/cread.php?awinmid=MERCHANT&awinaffid=TU_ID&ued={url}. Con 'envoltura' rellena, 'parametros' no hace falta."
+    "Dos formas: 'parametros' (se añaden a la URL, p. ej. Civitatis aid=…) o 'envoltura' para redes como Awin o TradeTracker: su enlace con {url} donde va la oferta, p. ej. https://www.awin1.com/cread.php?awinmid=MERCHANT&awinaffid=TU_ID&ued={url}. Con 'envoltura' rellena, 'parametros' no hace falta.",
+    "Awin: tu número de afiliado va en redes.awin.afiliado. Para cada anunciante de Awin en el que te acepten, pon su número (el «Advertiser ID» de Awin) en 'awinmid', aprobado: true y activo: true: el enlace profundo se arma solo."
   ],
+  "redes": {
+    "awin": {
+      "afiliado": "3115639"
+    }
+  },
   "proveedores": {
     "civitatis": {
       "activo": false,
@@ -150,6 +156,58 @@
       ],
       "envoltura": "",
       "como": "Busca «Volotea» en Awin o TradeTracker."
+    },
+    "logitravel": {
+      "activo": false,
+      "aprobado": false,
+      "dominios": [
+        "logitravel.com",
+        "logitravel.es"
+      ],
+      "awinmid": "",
+      "envoltura": "",
+      "como": "Logitravel ES (hoteles, paquetes y cruceros): en Awin, únete a su programa y, cuando te acepten, pon su «Advertiser ID» en awinmid."
+    },
+    "lastminute": {
+      "activo": false,
+      "aprobado": false,
+      "dominios": [
+        "lastminute.com"
+      ],
+      "awinmid": "",
+      "envoltura": "",
+      "como": "lastminute.com ES (vuelo + hotel): en Awin, únete a su programa y, cuando te acepten, pon su «Advertiser ID» en awinmid."
+    },
+    "rumbo": {
+      "activo": false,
+      "aprobado": false,
+      "dominios": [
+        "rumbo.es"
+      ],
+      "awinmid": "",
+      "envoltura": "",
+      "como": "Rumbo ES (vuelo + hotel): en Awin, únete a su programa y, cuando te acepten, pon su «Advertiser ID» en awinmid."
+    },
+    "edreams": {
+      "activo": false,
+      "aprobado": false,
+      "dominios": [
+        "edreams.es",
+        "edreams.com"
+      ],
+      "awinmid": "",
+      "envoltura": "",
+      "como": "eDreams ES (vuelos, 2–6 %): en Awin, únete a su programa y, cuando te acepten, pon su «Advertiser ID» en awinmid."
+    },
+    "hotelinfo": {
+      "activo": false,
+      "aprobado": false,
+      "dominios": [
+        "hotel.info"
+      ],
+      "awinmid": "",
+      "envoltura": "",
+      "como": "Hotel.info ES (hoteles, 5 %): en Awin, únete a su programa y, cuando te acepten, pon su «Advertiser ID» en awinmid."
     }
   },
   "patrocinadas": [],

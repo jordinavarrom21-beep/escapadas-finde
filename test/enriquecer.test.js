@@ -183,6 +183,21 @@ describe('geo', () => {
     assert.deepEqual([granada.lugar.lat, granada.lugar.lon, granada.lugar.provincia, granada.lugar.comunidad], [37.1773, -3.5986, 'Granada', 'Andalucía']);
   });
 
+  test('Andorra: «La Massana» situada junto a Barcelona y «Andorra» en Teruel se vuelven a buscar en Andorra', async () => {
+    const massana = { lat: '42.545', lon: '1.516', category: 'boundary', name: 'La Massana', address: { country_code: 'ad' } };
+    const { ctx, peticiones } = crearCtx({ respuestas: (url) => (url.includes('countrycodes=ad') ? [massana] : []) });
+    const o = oferta({ lugar: { nombre: 'La Massana', provincia: null, comunidad: null, lat: 41.2898772, lon: 1.9133055, codigoPais: 'ES' } });
+    await geolocalizar([o], ctx);
+    assert.deepEqual([o.lugar.lat, o.lugar.lon, o.lugar.codigoPais, o.lugar.pais], [42.545, 1.516, 'AD', 'Andorra']);
+    assert.match(peticiones[0], /La%20Massana%2C%20Andorra.*countrycodes=ad/);
+    // Ya en Andorra, no se repite; y la de Teruel se queda donde está.
+    await geolocalizar([o], ctx);
+    assert.equal(peticiones.length, 1);
+    const teruel = oferta({ lugar: { nombre: 'Andorra', provincia: 'Teruel', comunidad: 'Aragón', lat: 40.97, lon: -0.44, codigoPais: 'ES' } });
+    await geolocalizar([teruel], ctx);
+    assert.deepEqual([teruel.lugar.lat, teruel.lugar.codigoPais], [40.97, 'ES']);
+  });
+
   test('sin país, lo de fuera se busca en el mundo; una calle con ese nombre en España no vale', async () => {
     const calle = { lat: '40.4', lon: '-3.7', category: 'highway', name: 'Calle de Dublín', address: { country_code: 'es' } };
     const dublin = { lat: '53.35', lon: '-6.26', category: 'boundary', name: 'Dublín', address: { country_code: 'ie' } };
