@@ -18,6 +18,7 @@ import { fileURLToPath } from 'node:url';
 
 import { normalizarGoogleAds, problemasGoogleAds } from '../src/google-ads.js';
 import { normalizarDrive, problemasDrive } from '../src/travelpayouts-drive.js';
+import { escaparHtml } from '../site/js/formato.js';
 import { estructuradosPortada, generarPaginas } from '../src/paginas.js';
 
 /** «--base=x» o «--base x» → {base: 'x'}; «--htaccess» → {htaccess: true}. */
@@ -149,7 +150,6 @@ export function ponerGoogleAds(html, googleAds) {
 
 /** Directivas de la CSP que necesita Travelpayouts Drive: su script, sus llamadas y su píxel. */
 const CSP_DRIVE = ['script-src', 'connect-src', 'img-src'];
-const atributo = (valor) => String(valor).replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
 
 /**
  * Travelpayouts Drive (ver site/js/anuncios.js): la etiqueta con su script, que solo se carga
@@ -158,19 +158,26 @@ const atributo = (valor) => String(valor).replaceAll('&', '&amp;').replaceAll('"
  */
 export function ponerDrive(html, travelpayoutsDrive) {
   const drive = normalizarDrive(travelpayoutsDrive);
-  const anterior = /<meta name="escapadas-drive"[^>]*data-csp="([^"]*)"[^>]*>/.exec(html)?.[1]?.split(' ').filter(Boolean) ?? [];
+  // data-csp apunta cada origen añadido con su directiva («connect-src=https://…»): uno que la
+  // CSP ya traía en esa directiva (p. ej. photon.komoot.io en connect-src) no se apunta ni se quita.
+  const anterior = (/<meta name="escapadas-drive"[^>]*data-csp="([^"]*)"[^>]*>/.exec(html)?.[1] ?? '').split(' ').filter(Boolean);
   let nuevo = html.replace(/\s*<meta name="escapadas-drive"[^>]*>/, '');
+  const anadidos = [];
   nuevo = nuevo.replace(/(<meta http-equiv="Content-Security-Policy" content=")([^"]*)(")/, (todo, abre, csp, cierra) => {
     const directivas = csp.split(';').map((d) => d.trim()).filter(Boolean).map((d) => d.split(/\s+/));
     for (const directiva of directivas) {
-      if (!CSP_DRIVE.includes(directiva[0])) continue;
-      const resto = directiva.slice(1).filter((f) => !anterior.includes(f));
-      directiva.splice(1, Infinity, ...resto, ...(drive ? drive.origenes.filter((o) => !resto.includes(o)) : []));
+      const [nombre] = directiva;
+      if (!CSP_DRIVE.includes(nombre)) continue;
+      const resto = directiva.slice(1).filter((f) => !anterior.includes(`${nombre}=${f}`));
+      // Con «https:» en la directiva (img-src) ya vale cualquier origen https.
+      const nuevos = drive && !resto.includes('https:') ? drive.origenes.filter((o) => !resto.includes(o)) : [];
+      anadidos.push(...nuevos.map((o) => `${nombre}=${o}`));
+      directiva.splice(1, Infinity, ...resto, ...nuevos);
     }
     return `${abre}${directivas.map((d) => d.join(' ')).join('; ')}${cierra}`;
   });
   if (!drive) return nuevo;
-  const etiqueta = `<meta name="escapadas-drive" content="${atributo(new URL(drive.script).href)}" data-csp="${atributo(drive.origenes.join(' '))}">`;
+  const etiqueta = `<meta name="escapadas-drive" content="${escaparHtml(new URL(drive.script).href)}" data-csp="${escaparHtml(anadidos.join(' '))}">`;
   return nuevo.replace(/(<meta http-equiv="Content-Security-Policy"[^>]*>)/, `$1\n  ${etiqueta}`);
 }
 

@@ -115,7 +115,7 @@ describe('obtenerTexto', () => {
     );
 
     assert.ok(error instanceof ErrorHttp);
-    assert.equal(error.message, 'HTTP 500 en www.viajerospiratas.es');
+    assert.equal(error.message, 'HTTP 500 (error de la web) en www.viajerospiratas.es');
     assert.equal(error.estado, 500);
     assert.equal(error.url, URL_FEED);
     assert.equal(error.dominio, 'www.viajerospiratas.es');

@@ -95,13 +95,21 @@ function objetoDesde(texto, inicio) {
  * el resto del lector no cambie; si un día vuelve el formato anterior, sigue funcionando.
  */
 function datosAppRouter(html) {
-  const texto = [...html.matchAll(TROZO_NEXT)].map((m) => {
-    try { return JSON.parse(m[1]); } catch { return ''; }
+  const trozos = [...html.matchAll(TROZO_NEXT)];
+  if (!trozos.length) return null;
+  // Un trozo que no se puede leer dejaría un hueco en medio de los datos: mejor un error claro.
+  const texto = trozos.map((m, i) => {
+    try { return JSON.parse(m[1]); } catch { throw new Error(`el trozo ${i + 1} de los datos de Next.js no se puede leer (¿ha cambiado la web?)`); }
   }).join('');
-  if (!texto) return null;
-  const inicio = texto.search(/\{"value":\{[^{}]*?"breadcrumb"/);
-  const valor = inicio >= 0 ? objetoDesde(texto, inicio)?.value : null;
-  if (!Array.isArray(valor?.hotels)) throw new Error('los datos de la página no traen hoteles (¿ha cambiado la web?)');
+  // El objeto de la búsqueda es el que trae «hotels»: se prueba cada {"value":{…}} hasta dar con él
+  // (no se da por hecho que «breadcrumb» vaya primero ni que sea el único).
+  let valor = null;
+  for (const m of texto.matchAll(/\{"value":\{/g)) {
+    let candidato = null;
+    try { candidato = objetoDesde(texto, m.index)?.value; } catch { continue; }
+    if (Array.isArray(candidato?.hotels)) { valor = candidato; break; }
+  }
+  if (!valor) throw new Error('los datos de la página no traen hoteles (¿ha cambiado la web?)');
   const adultos = valor.searchDetails?.adult ?? 2;
   const euros = (centimos) => (Number.isFinite(centimos) ? centimos / 100 : null);
   const resultados = valor.hotels.flatMap((hotel) => (hotel.weekend ?? []).map((plan) => ({
@@ -113,6 +121,7 @@ function datosAppRouter(html) {
     nights: plan.price?.nights ?? null,
     participants: plan.price?.target === 'PER_PERSON' ? 1 : adultos,
     imageUrl: plan.imageUrl ?? null,
+    images: plan.images,
     programIntro: plan.programIntro ?? [],
     headwords: (plan.headwords ?? []).map((h) => (typeof h === 'string' ? h : h?.label)).filter(Boolean),
     topTheme: plan.topTheme ?? [],
@@ -123,7 +132,9 @@ function datosAppRouter(html) {
     cancellationPolicy: plan.cancellationPolicy,
     hotel: { label: hotel.label, stars: Number(hotel.star?.value ?? hotel.star) || null, review: hotel.review, location: { label: hotel.location?.label } },
   })));
-  return { resultados, total: valor.searchDetails?.totalCount ?? valor.resultsCount ?? valor.hotels.length };
+  // Weekendesk cuenta hoteles (no planes): se compara con los hoteles que trae la página. Sin
+  // el total, la página no cuenta como entera (así no se borra lo guardado por error).
+  return { resultados, total: valor.searchDetails?.totalCount ?? valor.resultsCount ?? Infinity, mostrados: valor.hotels.length };
 }
 
 /**
@@ -133,9 +144,8 @@ function datosAppRouter(html) {
  * @param {{log?: (mensaje: string) => void}} [ctx]
  * @param {string[]} [etiquetasPagina] etiquetas que se añaden a todas las ofertas
  */
-export function parsear(html, ctx = {}, etiquetasPagina = []) {
+export function parsear(html, ctx = {}, etiquetasPagina = [], datos = datosDePagina(html)) {
   const log = ctx.log ?? (() => {});
-  const datos = datosDePagina(html);
   if (!datos) return [];
   return datos.resultados
     .filter((resultado) => !resultado.expiration?.expired && Number.isFinite(resultado.sellPrice))
@@ -249,11 +259,11 @@ function leerPagina(html, pagina, ctx) {
     if (DESAFIO.test(html)) throw Object.assign(new Error('Weekendesk ha devuelto un desafío anti-bot (AWS WAF)'), { bloqueo: true });
     throw new Error('la página no trae datos de ofertas, ni __NEXT_DATA__ ni los de Next.js App Router (¿ha cambiado la web?)');
   }
-  const ofertas = parsear(html, ctx, [pagina.etiqueta]);
+  const ofertas = parsear(html, ctx, [pagina.etiqueta], datos);
   if (!ofertas.length && datos.total > 0) throw new Error('hay resultados pero ninguna oferta válida (¿ha cambiado el formato?)');
   // Vacía no cuenta como «entera»: puede ser un bloqueo disfrazado (le pasó a Atrápalo) y
   // borraría todo lo guardado con su etiqueta; si de verdad ya no hay nada, caduca solo.
-  return { ofertas, completa: datos.resultados.length > 0 && datos.total <= datos.resultados.length };
+  return { ofertas, completa: datos.resultados.length > 0 && datos.total <= (datos.mostrados ?? datos.resultados.length) };
 }
 
 const esBloqueo = (error) => error.bloqueo || [403, 405, 429].includes(error.estado);

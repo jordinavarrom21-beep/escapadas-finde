@@ -35,11 +35,28 @@ describe('Travelpayouts Drive', () => {
   it('sin script la página no cambia; con él, la etiqueta (escapada) y la CSP con sus orígenes', () => {
     assert.equal(ponerDrive(INDICE, null), INDICE);
     const html = ponerDrive(INDICE, DRIVE);
-    assert.match(html, /<meta name="escapadas-drive" content="https:\/\/emrldtp\.example\.com\/NDU5\.js\?t=459609&amp;x=1" data-csp="https:\/\/emrldtp\.example\.com https:\/\/tp\.media">/);
+    assert.match(html, /<meta name="escapadas-drive" content="https:\/\/emrldtp\.example\.com\/NDU5\.js\?t=459609&amp;x=1" data-csp="script-src=https:\/\/emrldtp\.example\.com script-src=https:\/\/tp\.media connect-src=https:\/\/emrldtp\.example\.com connect-src=https:\/\/tp\.media">/);
     const d = csp(html);
-    for (const directiva of ['script-src', 'connect-src', 'img-src']) assert.ok(d[directiva].includes('https://emrldtp.example.com'), directiva);
+    for (const directiva of ['script-src', 'connect-src']) assert.ok(d[directiva].includes('https://emrldtp.example.com'), directiva);
+    assert.ok(d['img-src'].includes('https:') && !d['img-src'].includes('https://emrldtp.example.com'), 'img-src ya admite cualquier https');
     assert.ok(!d['frame-src']?.includes('https://tp.media'));
     assert.deepEqual(d['object-src'], ["'none'"]);
+  });
+
+  it('un origen que la CSP ya traía no se apunta como de Drive ni se quita al desactivarlo', () => {
+    const conPhoton = ponerDrive(INDICE, { ...DRIVE, dominiosExtra: ['https://photon.komoot.io'] });
+    assert.doesNotMatch(conPhoton.match(/data-csp="([^"]*)"/)[1], /connect-src=https:\/\/photon/);
+    assert.equal(ponerDrive(conPhoton, null), INDICE);
+    assert.ok(csp(ponerDrive(conPhoton, null))['connect-src'].includes('https://photon.komoot.io'));
+  });
+
+  it('el permiso dice qué cubre: quien aceptó solo Google Ads vuelve a ver el aviso con Drive', () => {
+    assert.match(ANUNCIOS, /const alcance = \[id && 'google-ads', scriptDrive && 'travelpayouts-drive'\]/);
+    assert.match(ANUNCIOS, /guardada\.alcance \?\? \['google-ads'\]/);
+    assert.match(ANUNCIOS, /JSON\.stringify\(\{ decision, alcance,/);
+    // Al rechazar se borran las cookies del dominio (la web no pone ninguna propia).
+    const desactivar = ANUNCIOS.slice(ANUNCIOS.indexOf('function desactivar()'), ANUNCIOS.indexOf('function colocar('));
+    assert.match(desactivar, /filter\(Boolean\)\)/);
   });
 
   it('se puede repetir y quitar, también junto a Google Ads', () => {

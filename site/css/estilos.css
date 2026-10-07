@@ -1670,7 +1670,7 @@ body:has([data-plegable-movil][open]) .barra-comparar [data-abrir-filtros] { dis
 .planes-eventos { margin: 0 0 16px; padding: 14px 16px; border: 1px solid var(--borde); border-radius: var(--radio-medio); background: var(--superficie); }
 .planes-eventos h2 { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin: 0 0 4px; font-size: 1.05rem; }
 .planes-eventos__lista { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); column-gap: 20px; }
-.planes-eventos__lista { padding: 0; gap: 4px; }
+.planes-eventos__lista { padding: 0; row-gap: 4px; }
 .ideas__mas {
   display: flex; align-items: center; justify-content: center; gap: 6px; margin: 8px; min-height: 44px; border-radius: var(--radio-medio);
   background: var(--superficie-2); color: var(--texto); font-weight: 700; text-decoration: none;

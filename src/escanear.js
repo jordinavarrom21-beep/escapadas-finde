@@ -161,7 +161,8 @@ async function principal() {
     console.log(`Diagnóstico de la configuración\n  ${lineas.join('\n  ')}${avisos.length ? `\n\nPara arreglar:\n  - ${avisos.join('\n  - ')}` : '\n\nTodo lo necesario está configurado.'}`);
     return;
   }
-  for (const aviso of avisos) console.warn(`⚠️  ${aviso}`);
+  // El del email a medias ya lo da el envío de emails: aquí, el resto.
+  for (const aviso of avisos.filter((a) => !a.startsWith('Emails'))) console.warn(`⚠️  ${aviso}`);
   const resultado = await escanear({
     ajustes,
     vigilados,

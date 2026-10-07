@@ -21,14 +21,33 @@
   const conversion = etiqueta?.dataset.conversion?.trim() || null;
   const CLAVE = 'escapadas-cookies';
 
-  // Sin almacenamiento (bloqueado o lleno), la decisión vale al menos mientras dure la visita.
+  // Qué se pide aceptar: lo que está instalado. Una decisión guardada solo vale si cubría todo
+  // esto: quien aceptó Google Ads no ha aceptado Drive (se le vuelve a preguntar al añadirlo).
+  const alcance = [id && 'google-ads', scriptDrive && 'travelpayouts-drive'].filter(Boolean);
+  // Sin localStorage (bloqueado o lleno), sessionStorage: así la decisión sobrevive a la recarga
+  // que hace falta para quitar Drive; sin ninguno, vale mientras dure la página.
   let decisionVisita = null;
+  const almacenes = () => [globalThis.localStorage, globalThis.sessionStorage];
   const leer = () => {
-    try { return JSON.parse(localStorage.getItem(CLAVE))?.decision ?? decisionVisita; } catch { return decisionVisita; }
+    for (const almacen of almacenes()) {
+      try {
+        const guardada = JSON.parse(almacen.getItem(CLAVE));
+        if (!guardada?.decision) continue;
+        // Una de antes sin alcance era solo de Google Ads.
+        const cubre = guardada.alcance ?? ['google-ads'];
+        // Rechazar vale siempre; aceptar, solo para lo que se preguntó.
+        if (guardada.decision === 'no' || alcance.every((a) => cubre.includes(a))) return guardada.decision;
+        return null;
+      } catch { /* bloqueado: el siguiente */ }
+    }
+    return decisionVisita;
   };
   const guardar = (decision) => {
     decisionVisita = decision;
-    try { localStorage.setItem(CLAVE, JSON.stringify({ decision, fecha: new Date().toISOString() })); } catch { /* modo privado */ }
+    const valor = JSON.stringify({ decision, alcance, fecha: new Date().toISOString() });
+    for (const almacen of almacenes()) {
+      try { almacen.setItem(CLAVE, valor); return; } catch { /* modo privado: el siguiente */ }
+    }
   };
 
   window.dataLayer = window.dataLayer || [];
@@ -59,16 +78,16 @@
     document.head.append(script);
   }
   function desactivar() {
-    // Drive ya cargado no se puede descargar: deja de estar al recargar la página.
-    if (driveCargado) setTimeout(() => location.reload(), 300);
-    if (!id) return;
-    gtag('consent', 'update', { ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied' });
-    // Las cookies de Google Ads que ya hubiera en este dominio.
+    if (id) gtag('consent', 'update', { ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied' });
+    // Esta web no pone cookies propias (lo suyo va en localStorage): las que haya en este
+    // dominio son de Google Ads o de Drive, y al rechazar se borran todas.
     const dominio = location.hostname.replace(/^www\./, '');
-    for (const nombre of document.cookie.split(';').map((c) => c.split('=')[0].trim()).filter((n) => /^(_gcl_|_ga)/.test(n))) {
+    for (const nombre of document.cookie.split(';').map((c) => c.split('=')[0].trim()).filter(Boolean)) {
       document.cookie = `${nombre}=; Max-Age=0; path=/; domain=.${dominio}`;
       document.cookie = `${nombre}=; Max-Age=0; path=/`;
     }
+    // Drive ya cargado no se puede descargar: deja de estar al recargar la página.
+    if (driveCargado) setTimeout(() => location.reload(), 300);
   }
 
   /**

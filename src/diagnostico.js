@@ -19,7 +19,8 @@ const OPCIONALES = [
 export function diagnostico({ ajustes, vigilados = [], afiliacion = {}, fuentes = [], env = {} }) {
   const lineas = [];
   const avisos = [];
-  const puesto = (nombre) => Boolean(env[nombre]?.trim?.());
+  // Igual que el escaneo (scan-pipeline.js y configuracionEnvio): puesto es que tenga valor.
+  const puesto = (nombre) => Boolean(env[nombre]);
 
   lineas.push(`Salida: ${ajustes.origen.nombre} (${ajustes.origen.lat}, ${ajustes.origen.lon}) · ${ajustes.viajeros} viajeros`);
   lineas.push(`Web: ${env.PANEL_URL || ajustes.panelUrl || '(sin dirección: el sitemap y los emails no tendrán enlaces)'}`);
@@ -33,6 +34,7 @@ export function diagnostico({ ajustes, vigilados = [], afiliacion = {}, fuentes 
 
   const envio = configuracionEnvio(env);
   if (envio.estado === 'lista') lineas.push(`Emails: listos (${envio.opciones.service === 'gmail' ? 'Gmail' : 'SMTP'})`);
+  // El escaneo ya avisa del email a medias (crearTransporte): aquí solo en el diagnóstico.
   else if (envio.estado === 'incompleta') { lineas.push(envio.motivo); avisos.push(envio.motivo); }
   else lineas.push('Emails: sin configurar (opcional: GMAIL_USER, GMAIL_APP_PASSWORD y EMAIL_TO)');
   lineas.push(`Avisos por email (config/vigilados.json): ${vigilados.length}`);
@@ -41,6 +43,6 @@ export function diagnostico({ ajustes, vigilados = [], afiliacion = {}, fuentes 
 
   const activos = proveedoresActivos(afiliacion);
   lineas.push(`Afiliación activa: ${activos.length ? activos.map((p) => p.id).join(', ') : 'ninguna'}`
-    + `${afiliacion.redes?.awin?.afiliado ? ` · Awin ${afiliacion.redes.awin.afiliado}` : ''}`);
+    + `${afiliacion.redes?.awin?.afiliado ? ` · Awin ${afiliacion.redes.awin.afiliado}${puesto('AWIN_API_TOKEN') ? ' (y los programas que te acepten, que se activan solos al escanear)' : ''}` : ''}`);
   return { lineas, avisos };
 }

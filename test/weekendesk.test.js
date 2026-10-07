@@ -92,6 +92,7 @@ describe('el formato nuevo de Weekendesk (Next.js App Router, desde el 7/10/2026
   it('lee los planes de cada hotel con el precio pasado de céntimos a euros', () => {
     const datos = datosDePagina(html);
     assert.equal(datos.resultados.length, 14);
+    assert.deepEqual([datos.total, datos.mostrados], [14, 14], 'el total de Weekendesk cuenta hoteles, no planes');
     const ofertas = parsear(html, {}, ['Venta flash']);
     assert.equal(ofertas.length, 14);
     for (const o of ofertas) assert.deepEqual(validarOferta(o), [], o.id);
@@ -106,6 +107,13 @@ describe('el formato nuevo de Weekendesk (Next.js App Router, desde el 7/10/2026
     const vacia = '<script>self.__next_f.push([1,"{\\"value\\":{\\"breadcrumb\\":[]}}"])</script>';
     assert.throws(() => datosDePagina(vacia), /no traen hoteles/);
     assert.equal(datosDePagina('<html>nada</html>'), null);
+    // El objeto con los hoteles no tiene por qué ser el primero ni empezar por «breadcrumb».
+    const otro = JSON.stringify(JSON.stringify({ value: { alternates: { a: 1 }, hotels: [{ label: 'H', weekend: [{ id: 1, uri: '/x', label: 'Plan', price: { sellPrice: 5000, nights: 1 } }] }] } }));
+    const antes = JSON.stringify(JSON.stringify({ value: { breadcrumb: [], nada: true } }));
+    const pagina = `<script>self.__next_f.push([1,${antes}])</script><script>self.__next_f.push([1,${otro}])</script>`;
+    const d = datosDePagina(pagina);
+    assert.deepEqual([d.resultados[0].sellPrice, d.total, d.mostrados], [50, Infinity, 1], 'sin total, la página no cuenta como entera');
+    assert.throws(() => datosDePagina('<script>self.__next_f.push([1,"\\x"])</script>'), /no se puede leer/);
   });
 });
 

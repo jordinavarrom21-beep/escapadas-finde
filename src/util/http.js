@@ -30,6 +30,12 @@ const dominioDe = (url) => {
 
 const conCausa = (causa) => (causa === undefined ? undefined : { cause: causa });
 
+/** Qué ha pasado, dicho para quien lee el registro: no es lo mismo un bloqueo que una caída. */
+const SIGNIFICADO_HTTP = {
+  403: 'bloqueo de la web', 404: 'página que ya no existe', 408: 'la web tardó demasiado', 429: 'demasiadas peticiones seguidas',
+  500: 'error de la web', 502: 'web caída', 503: 'web caída o en mantenimiento', 504: 'la web tardó demasiado',
+};
+
 export class ErrorHttp extends Error {
   /**
    * @param {number} estado
@@ -37,7 +43,8 @@ export class ErrorHttp extends Error {
    * @param {{intento?: number, duracionMs?: number, cause?: unknown}} [contexto]
    */
   constructor(estado, url, { intento = 0, duracionMs = 0, cause } = {}) {
-    super(`HTTP ${estado} en ${dominioDe(url)}`, conCausa(cause));
+    // El significado va en el mensaje: es lo que sale en la columna «Detalle» del informe y en el panel.
+    super(`HTTP ${estado}${SIGNIFICADO_HTTP[estado] ? ` (${SIGNIFICADO_HTTP[estado]})` : ''} en ${dominioDe(url)}`, conCausa(cause));
     this.name = 'ErrorHttp';
     this.estado = estado;
     this.url = url;
@@ -165,12 +172,7 @@ const esReintentable = (error) => !(error instanceof ErrorHttp) || REINTENTABLES
 
 const enSegundos = (ms) => `${(ms / 1000).toFixed(ms % 1000 ? 1 : 0).replace('.', ',')} s`;
 
-/** Qué ha pasado, dicho para quien lee el registro: no es lo mismo un bloqueo que una caída. */
-const SIGNIFICADO_HTTP = {
-  403: 'bloqueo de la web', 404: 'página que ya no existe', 408: 'la web tardó demasiado', 429: 'demasiadas peticiones seguidas',
-  500: 'error de la web', 502: 'web caída', 503: 'web caída o en mantenimiento', 504: 'la web tardó demasiado',
-};
-export const motivoDe = (error) => (error instanceof ErrorHttp
+const motivoDe = (error) => (error instanceof ErrorHttp
   ? `HTTP ${error.estado}${SIGNIFICADO_HTTP[error.estado] ? ` (${SIGNIFICADO_HTTP[error.estado]})` : ''}`
   : (MOTIVOS_RED[error.motivo] ?? error.message ?? 'error').toLowerCase());
 

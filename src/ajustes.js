@@ -70,6 +70,8 @@ function problemasVuelos(vuelos) {
     exigir(esObjeto(horario) && esHora(horario.salidaDesde) && esHora(horario.vueltaDesde)
       && esListaDeTextos(horario.aeropuertos ?? []),
     'vuelos.horarioIdeal debe ser {salidaDesde: "HH:MM", vueltaDesde: "HH:MM", aeropuertos: [...]}');
+    const noIataHorario = (Array.isArray(horario?.aeropuertos) ? horario.aeropuertos : []).filter((a) => typeof a === 'string' && !/^[A-Z]{3}$/.test(a));
+    exigir(!noIataHorario.length, `vuelos.horarioIdeal.aeropuertos: «${noIataHorario.join('», «')}» no son códigos IATA (tres letras en mayúsculas)`);
   }
   return problemas;
 }

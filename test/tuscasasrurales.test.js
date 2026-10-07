@@ -283,7 +283,7 @@ describe('tuscasasrurales: obtener', () => {
     const { ofertas } = await fuente.obtener(ctx);
     assert.deepEqual(peticiones, fuente.urls);
     assert.equal(esperas.length, 5);
-    assert.deepEqual(logs, [`${URL_GIRONA}: HTTP 500 en www.tuscasasrurales.com`]);
+    assert.deepEqual(logs, [`${URL_GIRONA}: HTTP 500 (error de la web) en www.tuscasasrurales.com`]);
     // Barcelona (20) + las 8 del Pirineo que no están en Barcelona (4 de Girona y 4 nuevas).
     assert.equal(ofertas.length, 28);
     assert.equal(porId(ofertas, '11102'), undefined, 'Mas Ca l`Estrada solo sale en Girona');
@@ -323,7 +323,7 @@ describe('tuscasasrurales: obtener', () => {
 
   it('un 429 en la primera página: no pide más y lanza un error claro', async () => {
     const { ctx, peticiones } = crearCtx({ respuestas: red([new ErrorHttp(429, URL_BARCELONA), ...TODAS.slice(1)]) });
-    await assert.rejects(fuente.obtener(ctx), /^Error: No se ha podido leer ninguna página de Tus Casas Rurales \(último error: HTTP 429 en www\.tuscasasrurales\.com\)$/);
+    await assert.rejects(fuente.obtener(ctx), /^Error: No se ha podido leer ninguna página de Tus Casas Rurales \(último error: HTTP 429 \(demasiadas peticiones seguidas\) en www\.tuscasasrurales\.com\)$/);
     assert.equal(peticiones.length, 1);
   });
 
