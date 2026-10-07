@@ -66,8 +66,9 @@ let origenFicha = null;
  * esa web no responde, se usa la copia que lleva el propio hosting.
  */
 const DATOS_REMOTOS = document.querySelector('meta[name="escapadas-datos"]')?.content || null;
-/** Con Google Ads configurado (ver anuncios.js), la privacidad lo explica. */
+/** Con Google Ads o Travelpayouts Drive configurados (ver anuncios.js), la privacidad lo explica. */
 const GOOGLE_ADS = Boolean(document.querySelector('meta[name="escapadas-google-ads"]'));
+const DRIVE = Boolean(document.querySelector('meta[name="escapadas-drive"]'));
 
 async function pedirJson(url) {
   const respuesta = await fetch(url, { cache: 'no-cache' });
@@ -117,6 +118,7 @@ function crearEstado(datos, historial, vigilados) {
     vigilados: vigilados.vigilados ?? [],
     vigiladosPrivados: Boolean(vigilados.privados),
     googleAds: GOOGLE_ADS,
+    drive: DRIVE,
     ahora,
     hoy,
     findes: findes.length ? findes : findesConNoches(10, ahora),
@@ -167,8 +169,11 @@ function pintarAvisoComercial() {
   const proveedores = estado.datos.afiliacion?.proveedores ?? [];
   const patrocinadas = estado.datos.ofertas.some((o) => o.patrocinada);
   const nombres = proveedores.map((id) => estado.fuentes.get(id) ?? id.charAt(0).toUpperCase() + id.slice(1));
-  $('#aviso-comercial').textContent = proveedores.length || patrocinadas
-    ? `${proveedores.length ? `Los enlaces a ${nombres.join(', ')} son de afiliado («Enlace de afiliado»): si reservas, la web puede pagarnos una comisión. ` : ''}${patrocinadas ? 'Las ofertas patrocinadas llevan «Patrocinado». ' : ''}Nada de esto cambia tu precio ni el orden de las ofertas, que depende solo de precio, fechas y calidad.`
+  // Con Drive, si se aceptan las cookies, los enlaces a webs de su red pasan a ser de afiliado:
+  // decir «ningún enlace es de afiliado» sería falso.
+  const drive = DRIVE ? 'Si aceptas las cookies, los enlaces a webs de la red de Travelpayouts (Booking.com, Trip.com, Omio…) pasan a ser de afiliado. ' : '';
+  $('#aviso-comercial').textContent = proveedores.length || patrocinadas || drive
+    ? `${proveedores.length ? `Los enlaces a ${nombres.join(', ')} son de afiliado («Enlace de afiliado»): si reservas, la web puede pagarnos una comisión. ` : ''}${drive}${patrocinadas ? 'Las ofertas patrocinadas llevan «Patrocinado». ' : ''}Nada de esto cambia tu precio ni el orden de las ofertas, que depende solo de precio, fechas y calidad.`
     : 'Ahora mismo ningún enlace es de afiliado y no hay ofertas patrocinadas: el orden depende solo de precio, fechas y calidad.';
 }
 
