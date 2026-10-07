@@ -103,10 +103,12 @@ function datosAppRouter(html) {
   }).join('');
   // El objeto de la búsqueda es el que trae «hotels»: se prueba cada {"value":{…}} hasta dar con él
   // (no se da por hecho que «breadcrumb» vaya primero ni que sea el único).
+  const leerValor = (inicio) => {
+    try { return objetoDesde(texto, inicio)?.value ?? null; } catch { return null; }
+  };
   let valor = null;
   for (const m of texto.matchAll(/\{"value":\{/g)) {
-    let candidato = null;
-    try { candidato = objetoDesde(texto, m.index)?.value; } catch { continue; }
+    const candidato = leerValor(m.index);
     if (Array.isArray(candidato?.hotels)) { valor = candidato; break; }
   }
   if (!valor) throw new Error('los datos de la página no traen hoteles (¿ha cambiado la web?)');
