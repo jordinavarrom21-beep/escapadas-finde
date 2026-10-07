@@ -153,7 +153,7 @@ export function parsearOfertas(html, ctx = {}) {
   return ofertas;
 }
 
-const esBloqueo = (error) => [403, 429].includes(error.estado);
+const esBloqueo = (error) => error.bloqueo || [403, 429].includes(error.estado);
 
 async function pedir(ctx, url) {
   try {

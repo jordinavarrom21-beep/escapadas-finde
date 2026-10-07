@@ -134,6 +134,16 @@ describe('obtenerTexto', () => {
     assert.equal(limitadas.length, 1);
   });
 
+  test('un 405 (captcha de AWS WAF) no se reintenta, dice qué es y va marcado como bloqueo', async () => {
+    const peticiones = simularRed([respuesta(405, '<html>captcha</html>')]);
+    await assert.rejects(obtenerTexto(URL_FEED), (error) => error.bloqueo === true
+      && error.message === 'HTTP 405 (bloqueo anti-bot o captcha) en www.viajerospiratas.es');
+    assert.equal(peticiones.length, 1);
+    assert.equal(new ErrorHttp(403, URL_FEED).bloqueo, true);
+    assert.equal(new ErrorHttp(429, URL_FEED).bloqueo, true);
+    assert.equal(new ErrorHttp(503, URL_FEED).bloqueo, false, 'una caída no es un bloqueo: se reintenta');
+  });
+
   test('un fallo de red (TypeError) se convierte en ErrorRed con la causa original', async () => {
     const caida = new TypeError('fetch failed');
     simularRed([caida]);

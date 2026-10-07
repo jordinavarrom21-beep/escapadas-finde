@@ -113,6 +113,12 @@ describe('holidu: obtener', () => {
     await assert.rejects(fuente.obtener(todas), /ninguna página de Holidu.*desafío anti-bot/);
   });
 
+  it('el captcha de AWS WAF (405) también es un bloqueo: no sigue pidiendo las demás páginas', async () => {
+    const { ctx, peticiones } = crearCtx({ respuestas: () => { throw new ErrorHttp(405, fuente.urls[0]); } });
+    await assert.rejects(fuente.obtener(ctx), /ninguna página de Holidu.*HTTP 405 \(bloqueo anti-bot o captcha\)/);
+    assert.equal(peticiones.length, 1, 'una sola petición, no las seis');
+  });
+
   it('usa la fecha de ctx.ahora para las fechas sin año', async () => {
     const { ctx } = crearCtx({ respuestas: respuestas(), ahora: AHORA });
     const { ofertas } = await fuente.obtener(ctx);
