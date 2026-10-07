@@ -24,7 +24,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.130.0",
     "cheerio": "^1.2.0",
-    "fast-xml-parser": "^5.11.1",
+    "fast-xml-parser": "^5.11.2",
     "imapflow": "^2.1.2",
     "mailparser": "^3.9.29",
     "nodemailer": "^10.0.13"
