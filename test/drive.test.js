@@ -179,3 +179,13 @@ describe('aviso de cookies con Drive (anuncios.js)', () => {
     assert.equal(las2.match(/data-abrir-cookies/g).length, 1);
   });
 });
+
+describe('Drive y el aviso de enlaces de afiliado del pie', () => {
+  it('con Drive, el pie no dice «ningún enlace es de afiliado»: dice qué enlaces pueden serlo', () => {
+    const app = readFileSync(new URL('../site/js/app.js', import.meta.url), 'utf8');
+    const pie = app.slice(app.indexOf('function pintarAvisoComercial()'), app.indexOf('\n}\n', app.indexOf('function pintarAvisoComercial()')));
+    assert.match(pie, /const drive = DRIVE \?/);
+    assert.match(pie, /proveedores\.length \|\| patrocinadas \|\| drive/);
+    assert.match(pie, /red de Travelpayouts/);
+  });
+});
