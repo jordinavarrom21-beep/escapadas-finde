@@ -165,6 +165,8 @@ export function validarAjustes(ajustes) {
   if (!esObjeto(ajustes)) return ['la configuración no es un objeto'];
   const { problemas, exigir } = lista();
   problemas.push(...problemasOrigen(ajustes.origen));
+  exigir(ajustes.panelUrl == null || !/^https?:\/\//.test(ajustes.panelUrl) || esUrlPublica(ajustes.panelUrl),
+    `panelUrl debe ser la dirección completa de la web, p. ej. "https://escapadasfinde.com/", o null (ahora: ${ajustes.panelUrl})`);
   exigir(esPositivo(ajustes.retencionDias),
     `retencionDias debe ser un número de días mayor que 0 (ahora: ${ajustes.retencionDias})`);
   problemas.push(...problemasVuelos(ajustes.vuelos));
@@ -174,8 +176,7 @@ export function validarAjustes(ajustes) {
   problemas.push(...problemasEmails(ajustes.emails));
   exigir(esEnteroDesde(ajustes.viajeros, 1),
     `viajeros debe ser un número entero de personas mayor o igual que 1 (ahora: ${ajustes.viajeros})`);
-  exigir(ajustes.panelUrl == null || esUrlPublica(ajustes.panelUrl),
-    `panelUrl debe ser la dirección completa de la web, p. ej. "https://escapadasfinde.com/", o null (ahora: ${ajustes.panelUrl})`);
+  exigir(ajustes.panelUrl == null || /^https?:\/\//.test(ajustes.panelUrl), 'panelUrl debe ser una URL http(s) o null');
   problemas.push(...problemasPreferencias(ajustes.preferencias));
   problemas.push(...problemasGoogleAds(ajustes.googleAds));
   problemas.push(...problemasLegal(ajustes.legal));
