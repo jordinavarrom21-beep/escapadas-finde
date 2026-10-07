@@ -5,14 +5,14 @@
  */
 
 import { etiquetaDia, nombreFinde, nombreFindeEnFrase } from './fechas.js';
-import { TIPOS_EVENTO, contar, duracion, escaparHtml as esc, euros, haceCuanto, normalizar } from './formato.js';
+import { TIPOS_EVENTO, contar, duracion, escaparHtml as esc, euros, haceCuanto, normalizar, urlSegura } from './formato.js';
 import {
   actividadesPara, buscarActividades, buscarEscapadas, chollosDeVuelos, conPeriodo, crearHash, filtrarVuelos,
   leerFiltrosActividades, leerFiltrosEscapadas, leerFiltrosVuelos, perfilFavoritos, periodoFinde, planesSorpresa,
   rangoDe, recomendadas, salidaPuente, sinComprobar, tieneVuelo,
 } from './filtros.js';
-import { estadoVacio, tarjeta, tarjetaConMotivo, textoFechas } from './plantillas.js';
-import { icono } from './iconos.js';
+import { colorTema, estadoVacio, tarjeta, tarjetaConMotivo, textoFechas } from './plantillas.js';
+import { escena, icono, tipoEscena } from './iconos.js';
 import {
   HORAS_SORPRESA, conIcono, contextoBusqueda, ctxTarjetas, diasExplicitos, estadoWebs, etiquetaFinde, marcado, nombreSalida,
   ocultas, seccion,
@@ -258,16 +258,33 @@ const UNIDAD_CORTA = { pp: '/pers.', 'pp/noche': '/pers. y noche', total: 'en to
 
 const precioCorto = (o) => (o.precio === 0 ? 'Gratis' : `${euros(o.precio)}${UNIDAD_CORTA[o.unidad] ? ` <small>${UNIDAD_CORTA[o.unidad]}</small>` : ''}`);
 
-/** Una fila: título (abre la ficha), precio y un dato que ayuda a decidir. */
-function filaIdea(o, detalle) {
-  return `<li class="idea"><button type="button" class="enlace-ficha" data-ficha="${esc(o.id)}">${esc(o.titulo)}</button>
-  <span class="idea__precio">${precioCorto(o)}</span>${detalle ? `<span class="idea__detalle">${detalle}</span>` : ''}</li>`;
+/** La miniatura de una escapada: su foto o, sin ella, la ilustración de su tipo con su color. */
+function miniatura(o) {
+  const imagen = urlSegura(o.imagen);
+  return `<span class="idea__foto" aria-hidden="true">${escena(tipoEscena(o))}${imagen ? `<img src="${esc(imagen)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">` : ''}</span>`;
 }
 
-function columnaIdeas(ic, titulo, filas, vacio, enlace) {
-  return `<section class="ideas__columna" aria-label="${esc(titulo.replace(/<[^>]+>/g, ''))}">
-  <h3>${icono(ic)}<span>${titulo}</span></h3>
-  ${filas.length ? `<ul class="ideas__lista">${filas.join('')}</ul>` : `<p class="suave">${vacio}</p>`}
+/** Vuelos: la ruta («BCN → LTN») en vez de una foto, sobre el cielo de su escena. */
+function miniaturaVuelo(o) {
+  const [de, a] = [o.vuelo?.origen, o.vuelo?.destino];
+  return `<span class="idea__foto idea__foto--vuelo" aria-hidden="true">${escena('cielo')}${de && a ? `<span class="idea__ruta">${esc(de)}<span>→</span>${esc(a)}</span>` : ''}</span>`;
+}
+
+/**
+ * Una mini tarjeta: miniatura, título (abre la ficha; toda la tarjeta es pulsable), un dato
+ * que ayuda a decidir y el precio. Toma el color de la temática, como las tarjetas grandes.
+ */
+function filaIdea(o, detalle, foto = miniatura(o)) {
+  return `<li class="idea" style="--color-tema:${colorTema(o)}">${foto}
+  <span class="idea__cuerpo"><button type="button" class="enlace-ficha" data-ficha="${esc(o.id)}">${esc(o.titulo)}</button>${detalle ? `<span class="idea__detalle">${detalle}</span>` : ''}</span>
+  <span class="idea__precio">${precioCorto(o)}</span></li>`;
+}
+
+/** Una columna: cabecera con su icono de color y «Ver…» arriba, y sus mini tarjetas. */
+function columnaIdeas(ic, titulo, filas, vacio, enlace, clase) {
+  return `<section class="ideas__columna ideas__columna--${clase}" aria-label="${esc(titulo.replace(/<[^>]+>/g, ''))}">
+  <header class="ideas__cabeza"><span class="ideas__icono" aria-hidden="true">${icono(ic)}</span><h3>${titulo}</h3></header>
+  ${filas.length ? `<ul class="ideas__lista">${filas.join('')}</ul>` : `<p class="suave ideas__vacio">${vacio}</p>`}
   <a class="ideas__mas" href="${enlace.href}">${esc(enlace.texto)}${icono('flecha')}</a></section>`;
 }
 
@@ -284,7 +301,7 @@ function columnaEscapadas(e, vistos) {
   return columnaIdeas('escapadas', `Escapadas a menos de ${HORAS_IDEAS} h`,
     lista.map((o) => filaIdea(o, textoDistancia(distancias.get(o.id)))),
     `Nada a menos de ${HORAS_IDEAS} h de ${esc(nombreSalida(e))} para estas fechas.`,
-    { href: crearHash('escapadas', params), texto: ofertas.length ? `Ver las ${ofertas.length}` : 'Ver escapadas' });
+    { href: crearHash('escapadas', params), texto: ofertas.length ? `Ver las ${ofertas.length}` : 'Ver escapadas' }, 'escapadas');
 }
 
 function columnaVuelos(e, vistos) {
@@ -297,14 +314,14 @@ function columnaVuelos(e, vistos) {
     // Un vuelo por destino (el más barato): cuatro a Londres no ayudan a decidir.
     const destinos = new Set();
     const variados = vuelos.filter((o) => { const d = o.lugar?.nombre ?? o.titulo; if (destinos.has(d)) return false; destinos.add(d); return true; });
-    return columnaIdeas('vuelos', 'Vuelos', sinVistas(variados, vistos, FILAS_IDEAS).map((o) => filaIdea(o, esc(textoFechas(o)))), '',
-      { href: crearHash('vuelos', { finde: actual.id }), texto: `Ver los ${vuelos.length}` });
+    return columnaIdeas('vuelos', 'Vuelos', sinVistas(variados, vistos, FILAS_IDEAS).map((o) => filaIdea(o, esc(textoFechas(o)), miniaturaVuelo(o))), '',
+      { href: crearHash('vuelos', { finde: actual.id }), texto: `Ver los ${vuelos.length}` }, 'vuelos');
   }
   // Sin vuelos con esas fechas, los chollos desde tus aeropuertos (de cualquier fecha, y lo dice).
   const chollos = sinVistas(chollosDeVuelos(e.datos.ofertas, leerFiltrosVuelos({ mios: '1' }), busqueda), vistos, FILAS_IDEAS);
   return columnaIdeas('vuelos', 'Chollos de vuelos <small class="suave">(otras fechas)</small>',
-    chollos.map((o) => filaIdea(o, esc(textoFechas(o)))), 'Sin vuelos baratos desde tus aeropuertos ahora mismo.',
-    { href: crearHash('vuelos', { mios: '1' }), texto: 'Ver vuelos' });
+    chollos.map((o) => filaIdea(o, esc(textoFechas(o)), miniaturaVuelo(o))), 'Sin vuelos baratos desde tus aeropuertos ahora mismo.',
+    { href: crearHash('vuelos', { mios: '1' }), texto: 'Ver vuelos' }, 'vuelos');
 }
 
 /**
@@ -348,12 +365,18 @@ export function eventosCerca(e, periodo = {}, { max = FILAS_IDEAS, horas = HORAS
   return { eventos: cercanos.length >= Math.min(2, max) ? cercanos : elegir(cerca(null)), fechas };
 }
 
-/** Una fila de evento: nombre (abre la escapada de al lado), tipo, día y pueblo. */
+/**
+ * Una fila de evento: el día como una hoja de calendario, el nombre (abre la escapada más
+ * barata de al lado), qué es y dónde, y desde cuánto se puede dormir allí.
+ */
 export function filaEvento(ev) {
   const tipo = TIPOS_EVENTO[ev.tipo]?.[0] ?? 'Evento';
   const donde = ev.oferta.lugar?.nombre ? ` · ${esc(ev.oferta.lugar.nombre)}` : '';
-  return `<li class="idea idea--evento"><button type="button" class="enlace-ficha" data-ficha="${esc(ev.oferta.id)}" title="Ver la escapada más barata al lado">${esc(ev.nombre)}</button>
-  <span class="idea__detalle">${esc(tipo)} · ${esc(etiquetaDia(ev.fecha))}${donde}</span></li>`;
+  const [dia, numero, mes] = etiquetaDia(ev.fecha).split(' ');
+  const dormir = typeof ev.oferta.precio === 'number' && ev.oferta.precio > 0 ? `<span class="idea__precio idea__precio--dormir"><small>dormir desde</small>${precioCorto(ev.oferta)}</span>` : '';
+  return `<li class="idea idea--evento"><span class="idea__foto idea__fecha" aria-hidden="true"><small>${esc(dia)}</small><strong>${esc(numero)}</strong><small>${esc(mes)}</small></span>
+  <span class="idea__cuerpo"><button type="button" class="enlace-ficha" data-ficha="${esc(ev.oferta.id)}" title="Ver la escapada más barata al lado">${esc(ev.nombre)}</button><span class="idea__detalle">${esc(tipo)} · ${esc(etiquetaDia(ev.fecha))}${donde}</span></span>
+  ${dormir}</li>`;
 }
 
 function columnaEventos(e, vistos) {
@@ -361,11 +384,11 @@ function columnaEventos(e, vistos) {
   const { eventos } = eventosCerca(e);
   if (eventos.length) {
     return columnaIdeas('tema-eventos', 'Conciertos y fiestas', eventos.map(filaEvento), '',
-      { href: crearHash('escapadas', { cuando: 'finde', evtipo: 'todos' }), texto: 'Escapadas con eventos cerca' });
+      { href: crearHash('escapadas', { cuando: 'finde', evtipo: 'todos' }), texto: 'Escapadas con eventos cerca' }, 'eventos');
   }
   const planes = sinVistas(actividadesPara(e.datos.ofertas, periodoFinde(actual), { max: FILAS_IDEAS * 3, descartadas: ocultas(e) }), vistos, FILAS_IDEAS);
   return columnaIdeas('actividades', 'Planes', planes.map((o) => filaIdea(o, '')), `No hay planes con fecha para ${nombreFindeEnFrase(e.hoy)}.`,
-    { href: crearHash('actividades', {}), texto: 'Ver planes' });
+    { href: crearHash('actividades', {}), texto: 'Ver planes' }, 'eventos');
 }
 
 /** Lo mejor para este finde, a la vista: tres listas cortas que se leen de un vistazo. */

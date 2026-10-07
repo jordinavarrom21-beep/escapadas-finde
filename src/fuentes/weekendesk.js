@@ -62,11 +62,68 @@ const TEMAS_POR_TEMATICA = [
  */
 export function datosDePagina(html) {
   const bloque = NEXT_DATA.exec(html)?.[1];
-  if (!bloque) return null;
+  if (!bloque) return datosAppRouter(html);
   const busqueda = JSON.parse(bloque).props?.pageProps?.initialState?.search;
   if (!Array.isArray(busqueda?.exactMatches)) throw new Error('__NEXT_DATA__ sin resultados de búsqueda (¿ha cambiado la página?)');
   const resultados = busqueda.exactMatches;
   return { resultados, total: busqueda.searchDetails?.totalCount ?? busqueda.resultsCount ?? resultados.length };
+}
+
+/** Trozos de datos que manda Next.js con el App Router: `self.__next_f.push([1, "…"])`. */
+const TROZO_NEXT = /self\.__next_f\.push\(\[1,("(?:[^"\\]|\\.)*")\]\)/g;
+
+/** El objeto JSON que empieza en `inicio` (cuenta llaves fuera de las cadenas). */
+function objetoDesde(texto, inicio) {
+  let profundidad = 0;
+  let enCadena = false;
+  for (let i = inicio; i < texto.length; i++) {
+    const c = texto[i];
+    if (enCadena) {
+      if (c === '\\') i++;
+      else if (c === '"') enCadena = false;
+    } else if (c === '"') enCadena = true;
+    else if (c === '{') profundidad++;
+    else if (c === '}' && --profundidad === 0) return JSON.parse(texto.slice(inicio, i + 1));
+  }
+  return null;
+}
+
+/**
+ * Desde el 7 de octubre de 2026 Weekendesk usa el App Router de Next.js: ya no hay
+ * `__NEXT_DATA__`, sino trozos `self.__next_f.push`, y los resultados van por hotel
+ * («hotels[].weekend[]»), con el precio en céntimos. Se pasan a la forma de antes para que
+ * el resto del lector no cambie; si un día vuelve el formato anterior, sigue funcionando.
+ */
+function datosAppRouter(html) {
+  const texto = [...html.matchAll(TROZO_NEXT)].map((m) => {
+    try { return JSON.parse(m[1]); } catch { return ''; }
+  }).join('');
+  if (!texto) return null;
+  const inicio = texto.search(/\{"value":\{[^{}]*?"breadcrumb"/);
+  const valor = inicio >= 0 ? objetoDesde(texto, inicio)?.value : null;
+  if (!Array.isArray(valor?.hotels)) throw new Error('los datos de la página no traen hoteles (¿ha cambiado la web?)');
+  const adultos = valor.searchDetails?.adult ?? 2;
+  const euros = (centimos) => (Number.isFinite(centimos) ? centimos / 100 : null);
+  const resultados = valor.hotels.flatMap((hotel) => (hotel.weekend ?? []).map((plan) => ({
+    id: plan.id,
+    uri: plan.uri,
+    label: plan.label,
+    sellPrice: euros(plan.price?.sellPrice),
+    refPrice: euros(plan.price?.refPrice),
+    nights: plan.price?.nights ?? null,
+    participants: plan.price?.target === 'PER_PERSON' ? 1 : adultos,
+    imageUrl: plan.imageUrl ?? null,
+    programIntro: plan.programIntro ?? [],
+    headwords: (plan.headwords ?? []).map((h) => (typeof h === 'string' ? h : h?.label)).filter(Boolean),
+    topTheme: plan.topTheme ?? [],
+    expiration: plan.expiration,
+    flashDeal: plan.flashDeal,
+    lastMinute: plan.lastMinute,
+    hasExtraNightDiscount: plan.price?.showExtraNightDiscountLabel,
+    cancellationPolicy: plan.cancellationPolicy,
+    hotel: { label: hotel.label, stars: Number(hotel.star?.value ?? hotel.star) || null, review: hotel.review, location: { label: hotel.location?.label } },
+  })));
+  return { resultados, total: valor.searchDetails?.totalCount ?? valor.resultsCount ?? valor.hotels.length };
 }
 
 /**
@@ -190,7 +247,7 @@ function leerPagina(html, pagina, ctx) {
   const datos = datosDePagina(html);
   if (!datos) {
     if (DESAFIO.test(html)) throw Object.assign(new Error('Weekendesk ha devuelto un desafío anti-bot (AWS WAF)'), { bloqueo: true });
-    throw new Error('la página no trae __NEXT_DATA__ (¿ha cambiado la web?)');
+    throw new Error('la página no trae datos de ofertas, ni __NEXT_DATA__ ni los de Next.js App Router (¿ha cambiado la web?)');
   }
   const ofertas = parsear(html, ctx, [pagina.etiqueta]);
   if (!ofertas.length && datos.total > 0) throw new Error('hay resultados pero ninguna oferta válida (¿ha cambiado el formato?)');

@@ -3,7 +3,7 @@
  * CLI del escaneo: lee la configuración y los datos, llama al núcleo
  * (src/core/scan-pipeline.js), guarda los archivos e imprime el resumen.
  *
- * Uso: node src/escanear.js [--forzar] [--solo=<fuente>] [--sin-emails]
+ * Uso: node src/escanear.js [--forzar] [--solo=<fuente>] [--sin-emails] [--diagnostico]
  */
 import path from 'node:path';
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
@@ -17,6 +17,7 @@ import { cargarAfiliacion } from './afiliacion.js';
 import { MODULOS, escanear, urlPanel } from './core/scan-pipeline.js';
 import { FUENTES } from './fuentes/index.js';
 import { separarDatosPanel } from './panel-datos.js';
+import { diagnostico } from './diagnostico.js';
 
 // Se reexportan para quien importaba el núcleo desde aquí.
 export { MODULOS, escanear, urlPanel };
@@ -36,7 +37,7 @@ const RUTAS = {
   panelVigilados: 'site/data/vigilados.json',
 };
 
-const USO = 'Uso: node src/escanear.js [--forzar] [--solo=<fuente>] [--sin-emails]';
+const USO = 'Uso: node src/escanear.js [--forzar] [--solo=<fuente>] [--sin-emails] [--diagnostico]';
 
 /**
  * Opciones de la línea de órdenes. Un argumento que no se entiende detiene el escaneo: si
@@ -45,11 +46,11 @@ const USO = 'Uso: node src/escanear.js [--forzar] [--solo=<fuente>] [--sin-email
  * @param {string[]} [ids] fuentes que existen, para comprobar la de «--solo»
  */
 export function leerOpciones(argumentos, ids = null) {
-  const desconocidos = argumentos.filter((a) => !['--forzar', '--sin-emails'].includes(a) && !/^--solo=[a-z0-9-]+$/.test(a));
+  const desconocidos = argumentos.filter((a) => !['--forzar', '--sin-emails', '--diagnostico'].includes(a) && !/^--solo=[a-z0-9-]+$/.test(a));
   if (desconocidos.length) throw new Error(`Argumento no válido: ${desconocidos.join(' ')}. ${USO}`);
   const solo = argumentos.find((a) => a.startsWith('--solo='))?.slice('--solo='.length) ?? null;
   if (solo && ids && !ids.includes(solo)) throw new Error(`No hay ninguna fuente «${solo}». Las fuentes son: ${ids.join(', ')}`);
-  return { forzar: argumentos.includes('--forzar'), sinEmails: argumentos.includes('--sin-emails'), solo };
+  return { forzar: argumentos.includes('--forzar'), sinEmails: argumentos.includes('--sin-emails'), diagnostico: argumentos.includes('--diagnostico'), solo };
 }
 
 // Los datos corruptos no deben parar el vigilante: se prueba con la copia de la
@@ -151,10 +152,20 @@ async function principal() {
   const opciones = leerOpciones(process.argv.slice(2), FUENTES.map((f) => f.id));
   // Se valida al arrancar: sin «retencionDias», por ejemplo, la poda no quitaría nada.
   const ajustes = cargarAjustes(ruta('ajustes'));
+  const vigilados = cargarVigilados(ruta('vigilados'));
+  const afiliacion = cargarAfiliacion(ruta('afiliacion'));
+  // Qué está configurado y qué falta, al principio del registro de cada escaneo (sin valores
+  // de secretos). Con --diagnostico, solo eso: no se escanea nada.
+  const { lineas, avisos } = diagnostico({ ajustes, vigilados, afiliacion, fuentes: FUENTES, env: process.env });
+  if (opciones.diagnostico) {
+    console.log(`Diagnóstico de la configuración\n  ${lineas.join('\n  ')}${avisos.length ? `\n\nPara arreglar:\n  - ${avisos.join('\n  - ')}` : '\n\nTodo lo necesario está configurado.'}`);
+    return;
+  }
+  for (const aviso of avisos) console.warn(`⚠️  ${aviso}`);
   const resultado = await escanear({
     ajustes,
-    vigilados: cargarVigilados(ruta('vigilados')),
-    afiliacion: cargarAfiliacion(ruta('afiliacion')),
+    vigilados,
+    afiliacion,
     // cargarEstado migra, valida y, si hace falta, recupera la copia anterior.
     estado: cargarEstado(ruta('estado')),
     cache: new Cache(leerDatos(ruta('cache'), {})),

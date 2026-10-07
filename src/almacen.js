@@ -2,7 +2,7 @@
  * Estado persistente entre ejecuciones (data/estado.json): ofertas vistas, estado
  * de cada fuente y control de emails enviados. Formato y campos en docs/CONTRATOS.md.
  */
-import { copyFileSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { fechaLocal } from './util/fechas.js';
 
@@ -158,9 +158,16 @@ function respaldar(ruta) {
 export function guardarJson(ruta, datos, { legible = false } = {}) {
   mkdirSync(dirname(ruta), { recursive: true });
   const temporal = `${ruta}.tmp`;
-  writeFileSync(temporal, `${JSON.stringify(datos, null, legible ? 2 : 0)}\n`);
-  respaldar(ruta);
-  renameSync(temporal, ruta);
+  // Si algo falla a medias (disco lleno, datos que no se pueden pasar a JSON), el archivo
+  // bueno de antes no se toca y no queda un .tmp a medio escribir.
+  try {
+    writeFileSync(temporal, `${JSON.stringify(datos, null, legible ? 2 : 0)}\n`);
+    respaldar(ruta);
+    renameSync(temporal, ruta);
+  } catch (error) {
+    rmSync(temporal, { force: true });
+    throw error;
+  }
 }
 
 /**

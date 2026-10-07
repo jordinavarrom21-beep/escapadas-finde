@@ -165,8 +165,14 @@ const esReintentable = (error) => !(error instanceof ErrorHttp) || REINTENTABLES
 
 const enSegundos = (ms) => `${(ms / 1000).toFixed(ms % 1000 ? 1 : 0).replace('.', ',')} s`;
 
-const motivoDe = (error) =>
-  error instanceof ErrorHttp ? `HTTP ${error.estado}` : MOTIVOS_RED[error.motivo].toLowerCase();
+/** Qué ha pasado, dicho para quien lee el registro: no es lo mismo un bloqueo que una caída. */
+const SIGNIFICADO_HTTP = {
+  403: 'bloqueo de la web', 404: 'página que ya no existe', 408: 'la web tardó demasiado', 429: 'demasiadas peticiones seguidas',
+  500: 'error de la web', 502: 'web caída', 503: 'web caída o en mantenimiento', 504: 'la web tardó demasiado',
+};
+export const motivoDe = (error) => (error instanceof ErrorHttp
+  ? `HTTP ${error.estado}${SIGNIFICADO_HTTP[error.estado] ? ` (${SIGNIFICADO_HTTP[error.estado]})` : ''}`
+  : (MOTIVOS_RED[error.motivo] ?? error.message ?? 'error').toLowerCase());
 
 function avisarReintento(log, { etiqueta, error, intento, reintentos, esperaMs }) {
   if (!log) return;

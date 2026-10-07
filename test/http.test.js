@@ -77,7 +77,7 @@ describe('obtenerTexto', () => {
 
     assert.equal(texto, 'ofertas');
     assert.deepEqual(esperas, [12_000, 12_000]);
-    assert.equal(logs[1], 'viajerospiratas: reintento 2/3 tras HTTP 429, esperando 12 s');
+    assert.equal(logs[1], 'viajerospiratas: reintento 2/3 tras HTTP 429 (demasiadas peticiones seguidas), esperando 12 s');
     assert.deepEqual(contadores('www.viajerospiratas.es'), { peticiones: 3, errores: 2, reintentos: 2 });
   });
 
@@ -102,7 +102,7 @@ describe('obtenerTexto', () => {
     assert.equal(await obtenerTexto(URL_FEED, { log, dormir }), 'ok');
     assert.equal(esperas.length, 1);
     assert.ok(esperas[0] >= 800 && esperas[0] <= 1200, `esperó ${esperas[0]} ms`);
-    assert.match(logs[0], /^reintento 1\/2 tras HTTP 503, esperando [\d,]+ s$/);
+    assert.match(logs[0], /^reintento 1\/2 tras HTTP 503 \(web caída o en mantenimiento\), esperando [\d,]+ s$/);
   });
 
   test('un 500 agota los reintentos y lanza ErrorHttp con contexto', async () => {

@@ -1,8 +1,9 @@
 /**
- * Google Ads, solo con permiso: el despliegue (scripts/preparar-web.js) pone la etiqueta
- * <meta name="escapadas-google-ads"> con el ID de la cuenta (AW-…) y la conversión
- * (AW-…/etiqueta) si están en config/ajustes.json («googleAds»). Sin ella, este archivo no
- * hace nada: ni aviso de cookies ni nada de Google.
+ * Google Ads y Travelpayouts Drive, solo con permiso: el despliegue (scripts/preparar-web.js)
+ * pone <meta name="escapadas-google-ads"> con el ID de la cuenta (AW-…) y la conversión
+ * (AW-…/etiqueta) si están en config/ajustes.json («googleAds»), y <meta name="escapadas-drive">
+ * con el script de Drive («travelpayoutsDrive»). Sin ninguna, este archivo no hace nada: ni
+ * aviso de cookies ni nada de terceros.
  *
  * Con ella:
  *  - un aviso con «Aceptar» y «Rechazar» igual de fáciles (como pide la AEPD);
@@ -13,10 +14,11 @@
  */
 (() => {
   const etiqueta = document.querySelector('meta[name="escapadas-google-ads"]');
-  const id = etiqueta?.content?.trim();
-  // El despliegue solo la pone con un ID válido (src/google-ads.js).
-  if (!id) return;
-  const conversion = etiqueta.dataset.conversion?.trim() || null;
+  // El despliegue solo las pone con datos válidos (src/google-ads.js, src/travelpayouts-drive.js).
+  const id = etiqueta?.content?.trim() || null;
+  const scriptDrive = document.querySelector('meta[name="escapadas-drive"]')?.content?.trim() || null;
+  if (!id && !scriptDrive) return;
+  const conversion = etiqueta?.dataset.conversion?.trim() || null;
   const CLAVE = 'escapadas-cookies';
 
   // Sin almacenamiento (bloqueado o lleno), la decisión vale al menos mientras dure la visita.
@@ -35,7 +37,17 @@
   gtag('consent', 'default', { ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied', analytics_storage: 'denied' });
 
   let cargado = false;
+  let driveCargado = false;
   function activar() {
+    // Drive: un solo script, el de su panel; convierte en enlaces de afiliado los de sus webs al pulsarlos.
+    if (scriptDrive && !driveCargado && /^https:\/\//.test(scriptDrive)) {
+      driveCargado = true;
+      const drive = document.createElement('script');
+      drive.async = true;
+      drive.src = scriptDrive;
+      document.head.append(drive);
+    }
+    if (!id) return;
     gtag('consent', 'update', { ad_storage: 'granted', ad_user_data: 'granted', ad_personalization: 'granted' });
     if (cargado) return;
     cargado = true;
@@ -47,6 +59,9 @@
     document.head.append(script);
   }
   function desactivar() {
+    // Drive ya cargado no se puede descargar: deja de estar al recargar la página.
+    if (driveCargado) setTimeout(() => location.reload(), 300);
+    if (!id) return;
     gtag('consent', 'update', { ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied' });
     // Las cookies de Google Ads que ya hubiera en este dominio.
     const dominio = location.hostname.replace(/^www\./, '');
@@ -85,8 +100,13 @@
     const caja = document.createElement('section');
     caja.className = 'aviso-cookies';
     caja.setAttribute('aria-label', 'Cookies');
-    caja.innerHTML = `<p><strong>¿Aceptas cookies de Google Ads?</strong> Solo sirven para saber si alguien llegó por un anuncio
-      nuestro y entró en una oferta. Sin ellas la web funciona igual. <a href="#/ayuda?seccion=privacidad">Más información</a></p>
+    // Qué se acepta, dicho para cada caso: solo lo que de verdad está instalado.
+    const para = [
+      id && 'saber si alguien llegó por un anuncio nuestro y entró en una oferta (Google Ads)',
+      scriptDrive && 'que algunos enlaces a webs de viajes sean de afiliado, sin cambiar tu precio (Travelpayouts)',
+    ].filter(Boolean).join(' y ');
+    caja.innerHTML = `<p><strong>¿Aceptas cookies de ${id && scriptDrive ? 'publicidad y afiliación' : id ? 'Google Ads' : 'afiliación'}?</strong> Solo sirven para ${para}.
+      Sin ellas la web funciona igual. <a href="#/ayuda?seccion=privacidad">Más información</a></p>
       <div class="aviso-cookies__botones">
         <button type="button" class="boton" data-cookies="no">Rechazar</button>
         <button type="button" class="boton boton--tinta" data-cookies="si">Aceptar</button>

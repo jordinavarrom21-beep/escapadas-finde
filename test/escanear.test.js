@@ -45,8 +45,9 @@ describe('escanear (CLI)', () => {
 
 describe('escanear (CLI): argumentos, datos y código de salida', () => {
   test('lee las opciones y rechaza lo que no entiende en vez de escanearlo todo', () => {
-    assert.deepEqual(leerOpciones([]), { forzar: false, sinEmails: false, solo: null });
-    assert.deepEqual(leerOpciones(['--forzar', '--sin-emails', '--solo=ryanair'], ['ryanair']), { forzar: true, sinEmails: true, solo: 'ryanair' });
+    assert.deepEqual(leerOpciones([]), { forzar: false, sinEmails: false, diagnostico: false, solo: null });
+    assert.equal(leerOpciones(['--diagnostico']).diagnostico, true);
+    assert.deepEqual(leerOpciones(['--forzar', '--sin-emails', '--solo=ryanair'], ['ryanair']), { forzar: true, sinEmails: true, diagnostico: false, solo: 'ryanair' });
     assert.throws(() => leerOpciones(['--solo', 'ryanair']), /Argumento no válido: --solo ryanair/);
     assert.throws(() => leerOpciones(['--forzr']), /Argumento no válido: --forzr/);
     assert.throws(() => leerOpciones(['--solo=rynair'], ['ryanair', 'volotea']), /No hay ninguna fuente «rynair»/);
