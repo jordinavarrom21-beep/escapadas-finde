@@ -7,17 +7,20 @@
  *  - con los datos en data/: la portada para buscadores en index.html (qué es la web, lo
  *    mejor de ahora y las guías) y, con la dirección, sus datos estructurados (JSON-LD);
  *  - con «googleAds» en config/ajustes.json: el aviso de cookies y Google Ads (anuncios.js);
+ *  - con «travelpayoutsDrive»: Travelpayouts Drive en el mismo aviso (solo con permiso), en
+ *    index.html y en las guías para buscadores;
  *  - con --htaccess: el .htaccess para Apache/LiteSpeed (Hostinger): HTTPS, dominio
  *    único, 404, compresión, cabeceras de seguridad y caché.
  *
  * Uso: node scripts/preparar-web.js [--dir site] [--base https://tudominio.es/] [--version abc123] [--htaccess]
  */
-import { existsSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { normalizarDrive, problemasDrive } from '../src/drive.js';
 import { normalizarGoogleAds, problemasGoogleAds } from '../src/google-ads.js';
-import { estructuradosPortada, generarPaginas } from '../src/paginas.js';
+import { CARPETAS, estructuradosPortada, generarPaginas } from '../src/paginas.js';
 
 /** «--base=x» o «--base x» → {base: 'x'}; «--htaccess» → {htaccess: true}. */
 export function leerArgumentos(argv) {
@@ -117,33 +120,104 @@ const CSP_GOOGLE_ADS = {
   'frame-src': ['https://td.doubleclick.net', 'https://bid.g.doubleclick.net', 'https://www.googletagmanager.com'],
 };
 
+const META_CSP = /(<meta http-equiv="Content-Security-Policy"[^>]*>)/;
+
 /**
- * Google Ads con aviso de cookies: la etiqueta que lee anuncios.js y la CSP abierta a Google.
- * Sin `googleAds` válido, quita lo que hubiera (la web vuelve a «sin cookies»). Se puede repetir.
+ * Abre (activo) o cierra la CSP a unos orígenes: `{directiva: [orígenes]}`. Abriendo, una
+ * directiva que no está se crea con 'self' (antes de object-src); cerrando, se quitan esos
+ * orígenes y las directivas de `vaciables` que se queden solo con 'self'. Se puede repetir.
  */
-export function ponerGoogleAds(html, googleAds) {
-  const ads = normalizarGoogleAds(googleAds);
-  let nuevo = html.replace(/\s*<meta name="escapadas-google-ads"[^>]*>/, '');
-  nuevo = nuevo.replace(/(<meta http-equiv="Content-Security-Policy" content=")([^"]*)(")/, (todo, abre, csp, cierra) => {
+function ajustarCsp(html, fuentesPorDirectiva, activo, { vaciables = [] } = {}) {
+  return html.replace(/(<meta http-equiv="Content-Security-Policy" content=")([^"]*)(")/, (todo, abre, csp, cierra) => {
     const directivas = csp.split(';').map((d) => d.trim()).filter(Boolean).map((d) => d.split(/\s+/));
-    for (const [nombre, fuentes] of Object.entries(CSP_GOOGLE_ADS)) {
+    for (const [nombre, fuentes] of Object.entries(fuentesPorDirectiva)) {
       let directiva = directivas.find(([n]) => n === nombre);
-      if (!directiva && ads) {
+      if (!directiva && activo) {
         directiva = [nombre, "'self'"];
         const antes = directivas.findIndex(([n]) => n === 'object-src');
         directivas.splice(antes < 0 ? directivas.length : antes, 0, directiva);
       }
       if (!directiva) continue;
       const resto = directiva.slice(1).filter((f) => !fuentes.includes(f));
-      directiva.splice(1, Infinity, ...resto, ...(ads ? fuentes : []));
+      directiva.splice(1, Infinity, ...resto, ...(activo ? fuentes : []));
     }
-    // El frame-src que se puso para Google, si ya no lleva nada más que 'self'.
-    const limpias = directivas.filter((d) => !(d[0] === 'frame-src' && d.length === 2 && d[1] === "'self'" && !ads));
+    const limpias = directivas.filter((d) => !(vaciables.includes(d[0]) && d.length === 2 && d[1] === "'self'" && !activo));
     return `${abre}${limpias.map((d) => d.join(' ')).join('; ')}${cierra}`;
   });
+}
+
+/**
+ * Google Ads con aviso de cookies: la etiqueta que lee anuncios.js y la CSP abierta a Google.
+ * Sin `googleAds` válido, quita lo que hubiera (la web vuelve a «sin cookies»). Se puede repetir.
+ */
+export function ponerGoogleAds(html, googleAds) {
+  const ads = normalizarGoogleAds(googleAds);
+  // El frame-src que se puso para Google, si ya no lleva nada más que 'self'.
+  const nuevo = ajustarCsp(html.replace(/\s*<meta name="escapadas-google-ads"[^>]*>/, ''), CSP_GOOGLE_ADS, Boolean(ads), { vaciables: ['frame-src'] });
   if (!ads) return nuevo;
   const etiqueta = `<meta name="escapadas-google-ads" content="${ads.id}"${ads.conversion ? ` data-conversion="${ads.conversion}"` : ''}>`;
-  return nuevo.replace(/(<meta http-equiv="Content-Security-Policy"[^>]*>)/, `$1\n  ${etiqueta}`);
+  return nuevo.replace(META_CSP, `$1\n  ${etiqueta}`);
+}
+
+/**
+ * Lo que necesita Travelpayouts Drive en la CSP. Su script (el de `travelpayoutsDrive`) carga
+ * el resto de su código del mismo sitio y le pide allí su configuración y qué enlaces cambiar;
+ * mn-tz.com y emrld.cc son sus comprobaciones de bloqueadores (están en su código). Los
+ * enlaces que cambia llevan a sus dominios de redirección: es navegar, no hace falta abrir nada.
+ * Si un día pide otro dominio, la consola del navegador lo dice («Refused to connect…»).
+ */
+const DRIVE_CONEXIONES = ['https://mn-tz.com', 'https://emrld.cc'];
+function cspDrive(url) {
+  const { origin } = new URL(url);
+  return { 'script-src': [origin], 'connect-src': [origin, ...DRIVE_CONEXIONES] };
+}
+
+/**
+ * Travelpayouts Drive en index.html: la etiqueta que lee anuncios.js (lo carga solo si el
+ * visitante acepta las cookies) y la CSP abierta a Drive. Sin `drive` válido, quita lo que
+ * hubiera. Se puede repetir sin duplicar nada.
+ */
+export function ponerDrive(html, drive) {
+  const url = normalizarDrive(drive);
+  const anterior = html.match(/<meta name="escapadas-drive" content="([^"]*)">/)?.[1];
+  let nuevo = html.replace(/\s*<meta name="escapadas-drive"[^>]*>/, '');
+  if (normalizarDrive(anterior)) nuevo = ajustarCsp(nuevo, cspDrive(anterior), false);
+  if (!url) return nuevo;
+  nuevo = ajustarCsp(nuevo, cspDrive(url), true);
+  return nuevo.replace(META_CSP, `$1\n  <meta name="escapadas-drive" content="${url}">`);
+}
+
+/**
+ * Drive en una guía para buscadores (src/paginas.js, sin JavaScript de serie): la CSP deja
+ * cargar anuncios.js (el aviso de cookies) y Drive, la etiqueta, el script y «Cookies» en el
+ * pie para cambiar de opinión. Las guías se generan de nuevo en cada escaneo; aquí solo se
+ * añade (y se puede repetir sin duplicar nada).
+ */
+export function ponerDriveGuia(html, drive) {
+  const url = normalizarDrive(drive);
+  if (!url || html.includes('<meta name="escapadas-drive"')) return html;
+  // La guía enlaza sus estilos con la ruta relativa a la raíz: la misma vale para js/.
+  const raiz = html.match(/<link rel="stylesheet" href="([^"]*)css\/estilos\.css">/)?.[1];
+  if (raiz == null) return html;
+  const conScripts = html.replace(/(<meta http-equiv="Content-Security-Policy" content="[^"]*?)script-src 'none'/, "$1script-src 'self'");
+  return ajustarCsp(conScripts, cspDrive(url), true)
+    .replace(META_CSP, `$1\n<meta name="escapadas-drive" content="${url}">`)
+    .replace('</head>', `<script src="${raiz}js/anuncios.js" defer></script>\n</head>`)
+    .replace(/(<footer class="pie[^>]*>[^]*?)(<\/p>\s*<\/footer>)/, '$1 · <a href="#" data-abrir-cookies>Cookies</a>$2');
+}
+
+/** Las guías para buscadores que haya en `dir` (escapadas/, vuelos/, actividades/). */
+function guias(dir) {
+  const encontradas = [];
+  const recorrer = (carpeta) => {
+    for (const nombre of readdirSync(carpeta)) {
+      const ruta = path.join(carpeta, nombre);
+      if (statSync(ruta).isDirectory()) recorrer(ruta);
+      else if (nombre.endsWith('.html')) encontradas.push(ruta);
+    }
+  };
+  for (const carpeta of CARPETAS) if (existsSync(path.join(dir, carpeta))) recorrer(path.join(dir, carpeta));
+  return encontradas;
 }
 
 /**
@@ -156,6 +230,18 @@ export function googleAdsDeAjustes(ruta = fileURLToPath(new URL('../config/ajust
   const problemas = problemasGoogleAds(googleAds);
   if (problemas.length) throw new Error(`config/ajustes.json: ${problemas.join('; ')}`);
   return normalizarGoogleAds(googleAds);
+}
+
+/**
+ * «travelpayoutsDrive» de config/ajustes.json: null si no está o está vacío. Si está mal
+ * escrito, error (mejor que publicar sin Drive y no enterarse).
+ */
+export function driveDeAjustes(ruta = fileURLToPath(new URL('../config/ajustes.json', import.meta.url))) {
+  if (!existsSync(ruta)) return null;
+  const { travelpayoutsDrive } = JSON.parse(readFileSync(ruta, 'utf8'));
+  const problemas = problemasDrive(travelpayoutsDrive);
+  if (problemas.length) throw new Error(`config/ajustes.json: ${problemas.join('; ')}`);
+  return normalizarDrive(travelpayoutsDrive);
 }
 
 /** Cambia lo que hay entre «<!-- marca: … -->» y «<!-- /marca -->» (se puede repetir). */
@@ -251,7 +337,7 @@ ${unDominio}  # Las copias de seguridad de datos y la carpeta .git (despliegue d
 }
 
 /** Aplica todo a `dir`. Devuelve lo que ha hecho, para el registro. */
-export function prepararWeb({ dir = 'site', base = null, version = null, conHtaccess = false, datos = null, googleAds = null } = {}) {
+export function prepararWeb({ dir = 'site', base = null, version = null, conHtaccess = false, datos = null, googleAds = null, drive = null } = {}) {
   const hecho = [];
   const quitadas = quitarCopias(dir);
   if (quitadas.length) hecho.push(`quitadas ${quitadas.length} copias de datos`);
@@ -278,6 +364,14 @@ export function prepararWeb({ dir = 'site', base = null, version = null, conHtac
     const ads = normalizarGoogleAds(googleAds);
     writeFileSync(indiceAds, ponerGoogleAds(readFileSync(indiceAds, 'utf8'), ads));
     if (ads) hecho.push(`Google Ads ${ads.id} ${ads.conversion ? 'con conversión' : 'SIN conversión (falta googleAds.conversion)'}`);
+    // Igual que Google Ads: sin dirección quita lo que hubiera.
+    const urlDrive = normalizarDrive(drive);
+    writeFileSync(indiceAds, ponerDrive(readFileSync(indiceAds, 'utf8'), urlDrive));
+    if (urlDrive) {
+      const enGuias = guias(dir);
+      for (const ruta of enGuias) writeFileSync(ruta, ponerDriveGuia(readFileSync(ruta, 'utf8'), urlDrive));
+      hecho.push(`Travelpayouts Drive con permiso (portada y ${enGuias.length} guías)`);
+    }
   }
   const rutaOfertas = path.join(dir, 'data', 'ofertas.json');
   const datosPanel = existsSync(rutaOfertas) ? JSON.parse(readFileSync(rutaOfertas, 'utf8')) : null;
@@ -301,6 +395,6 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     console.error(`«${opciones.base}» no es una dirección válida`);
     process.exit(2);
   }
-  const hecho = prepararWeb({ dir: opciones.dir ?? 'site', base, version: opciones.version ?? null, conHtaccess: Boolean(opciones.htaccess), googleAds: googleAdsDeAjustes() });
+  const hecho = prepararWeb({ dir: opciones.dir ?? 'site', base, version: opciones.version ?? null, conHtaccess: Boolean(opciones.htaccess), googleAds: googleAdsDeAjustes(), drive: driveDeAjustes() });
   console.log(`Web preparada: ${hecho.join(' · ') || 'nada que hacer'}`);
 }
