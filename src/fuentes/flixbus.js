@@ -135,7 +135,7 @@ export function ofertaDestino(respuesta, destino, viernes) {
   });
 }
 
-const esBloqueo = (error) => error.estado === 403 || error.estado === 429 || error instanceof SyntaxError;
+const esBloqueo = (error) => error.bloqueo || error.estado === 403 || error.estado === 429 || error instanceof SyntaxError;
 
 // El viernes del primer finde cuya salida no haya pasado ya (hoy puede ser sábado o domingo).
 function proximoViernes(ctx) {

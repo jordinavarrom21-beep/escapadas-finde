@@ -99,7 +99,7 @@ export function parsear(html, urlPagina, ctx = {}) {
   });
 }
 
-const esBloqueo = (error) => [403, 429].includes(error.estado);
+const esBloqueo = (error) => error.bloqueo || [403, 429].includes(error.estado);
 
 async function obtener(ctx) {
   const porId = new Map();

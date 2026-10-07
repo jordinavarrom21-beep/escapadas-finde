@@ -220,7 +220,7 @@ async function obtenerAeropuertos(ctx, pedir) {
 }
 
 // Un 403/429 o una respuesta que no es JSON (desafío anti-bot): no se insiste más.
-const esBloqueo = (error) => error.estado === 403 || error.estado === 429 || error instanceof SyntaxError;
+const esBloqueo = (error) => error.bloqueo || error.estado === 403 || error.estado === 429 || error instanceof SyntaxError;
 
 async function obtener(ctx) {
   const consultas = generarConsultas(ctx);

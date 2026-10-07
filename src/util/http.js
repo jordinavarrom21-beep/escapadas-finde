@@ -32,9 +32,17 @@ const conCausa = (causa) => (causa === undefined ? undefined : { cause: causa })
 
 /** Qué ha pasado, dicho para quien lee el registro: no es lo mismo un bloqueo que una caída. */
 const SIGNIFICADO_HTTP = {
-  403: 'bloqueo de la web', 404: 'página que ya no existe', 408: 'la web tardó demasiado', 429: 'demasiadas peticiones seguidas',
-  500: 'error de la web', 502: 'web caída', 503: 'web caída o en mantenimiento', 504: 'la web tardó demasiado',
+  403: 'bloqueo de la web', 404: 'página que ya no existe', 405: 'bloqueo anti-bot o captcha', 408: 'la web tardó demasiado',
+  429: 'demasiadas peticiones seguidas', 500: 'error de la web', 502: 'web caída', 503: 'web caída o en mantenimiento',
+  504: 'la web tardó demasiado',
 };
+
+/**
+ * Estados con los que la web dice «no sigas»: las fuentes dejan de pedirle páginas en esa
+ * ejecución. El 405 a una página normal (GET) es el captcha de AWS WAF (Holidu y Clubrural,
+ * desde el 7/10/2026).
+ */
+const ESTADOS_BLOQUEO = new Set([403, 405, 429]);
 
 export class ErrorHttp extends Error {
   /**
@@ -51,6 +59,8 @@ export class ErrorHttp extends Error {
     this.dominio = dominioDe(url);
     this.intento = intento;
     this.duracionMs = duracionMs;
+    /** La web ha bloqueado o limitado las peticiones: no tiene sentido pedirle más ahora. */
+    this.bloqueo = ESTADOS_BLOQUEO.has(estado);
     /** Espera que pide la web en «Retry-After» (ms), cuando la pide y la respetamos. */
     this.esperaSugeridaMs = null;
   }
