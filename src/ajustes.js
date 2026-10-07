@@ -5,7 +5,6 @@
  */
 import { problemasGoogleAds } from './google-ads.js';
 import { problemasLegal } from './legal.js';
-import { problemasDrive } from './travelpayouts-drive.js';
 import { cargarJson } from './almacen.js';
 
 const esObjeto = (valor) => typeof valor === 'object' && valor !== null && !Array.isArray(valor);
@@ -180,7 +179,6 @@ export function validarAjustes(ajustes) {
   problemas.push(...problemasPreferencias(ajustes.preferencias));
   problemas.push(...problemasGoogleAds(ajustes.googleAds));
   problemas.push(...problemasLegal(ajustes.legal));
-  problemas.push(...problemasDrive(ajustes.travelpayoutsDrive));
   return problemas;
 }
 

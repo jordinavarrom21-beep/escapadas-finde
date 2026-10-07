@@ -17,8 +17,6 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { normalizarGoogleAds, problemasGoogleAds } from '../src/google-ads.js';
-import { normalizarDrive, problemasDrive } from '../src/travelpayouts-drive.js';
-import { escaparHtml } from '../site/js/formato.js';
 import { estructuradosPortada, generarPaginas } from '../src/paginas.js';
 
 /** «--base=x» o «--base x» → {base: 'x'}; «--htaccess» → {htaccess: true}. */
@@ -148,48 +146,6 @@ export function ponerGoogleAds(html, googleAds) {
   return nuevo.replace(/(<meta http-equiv="Content-Security-Policy"[^>]*>)/, `$1\n  ${etiqueta}`);
 }
 
-/** Directivas de la CSP que necesita Travelpayouts Drive: su script, sus llamadas y su píxel. */
-const CSP_DRIVE = ['script-src', 'connect-src', 'img-src'];
-
-/**
- * Travelpayouts Drive (ver site/js/anuncios.js): la etiqueta con su script, que solo se carga
- * si se aceptan las cookies, y la CSP abierta a sus orígenes. Los orígenes que se añadieron
- * van en la propia etiqueta (data-csp) para poder quitarlos si se desactiva. Se puede repetir.
- */
-export function ponerDrive(html, travelpayoutsDrive) {
-  const drive = normalizarDrive(travelpayoutsDrive);
-  // data-csp apunta cada origen añadido con su directiva («connect-src=https://…»): uno que la
-  // CSP ya traía en esa directiva (p. ej. photon.komoot.io en connect-src) no se apunta ni se quita.
-  const anterior = (/<meta name="escapadas-drive"[^>]*data-csp="([^"]*)"[^>]*>/.exec(html)?.[1] ?? '').split(' ').filter(Boolean);
-  let nuevo = html.replace(/\s*<meta name="escapadas-drive"[^>]*>/, '');
-  const anadidos = [];
-  nuevo = nuevo.replace(/(<meta http-equiv="Content-Security-Policy" content=")([^"]*)(")/, (todo, abre, csp, cierra) => {
-    const directivas = csp.split(';').map((d) => d.trim()).filter(Boolean).map((d) => d.split(/\s+/));
-    for (const directiva of directivas) {
-      const [nombre] = directiva;
-      if (!CSP_DRIVE.includes(nombre)) continue;
-      const resto = directiva.slice(1).filter((f) => !anterior.includes(`${nombre}=${f}`));
-      // Con «https:» en la directiva (img-src) ya vale cualquier origen https.
-      const nuevos = drive && !resto.includes('https:') ? drive.origenes.filter((o) => !resto.includes(o)) : [];
-      anadidos.push(...nuevos.map((o) => `${nombre}=${o}`));
-      directiva.splice(1, Infinity, ...resto, ...nuevos);
-    }
-    return `${abre}${directivas.map((d) => d.join(' ')).join('; ')}${cierra}`;
-  });
-  if (!drive) return nuevo;
-  const etiqueta = `<meta name="escapadas-drive" content="${escaparHtml(new URL(drive.script).href)}" data-csp="${escaparHtml(anadidos.join(' '))}">`;
-  return nuevo.replace(/(<meta http-equiv="Content-Security-Policy"[^>]*>)/, `$1\n  ${etiqueta}`);
-}
-
-/** «travelpayoutsDrive» de config/ajustes.json: null si no está o vacío; error claro si está mal. */
-export function driveDeAjustes(ruta = fileURLToPath(new URL('../config/ajustes.json', import.meta.url))) {
-  if (!existsSync(ruta)) return null;
-  const { travelpayoutsDrive } = JSON.parse(readFileSync(ruta, 'utf8'));
-  const problemas = problemasDrive(travelpayoutsDrive);
-  if (problemas.length) throw new Error(problemas.join('; '));
-  return normalizarDrive(travelpayoutsDrive) ? travelpayoutsDrive : null;
-}
-
 /**
  * «googleAds» de config/ajustes.json: null si no está o el ID está vacío. Si está mal escrito,
  * error (mejor que publicar sin medir y no enterarse).
@@ -295,7 +251,7 @@ ${unDominio}  # Las copias de seguridad de datos y la carpeta .git (despliegue d
 }
 
 /** Aplica todo a `dir`. Devuelve lo que ha hecho, para el registro. */
-export function prepararWeb({ dir = 'site', base = null, version = null, conHtaccess = false, datos = null, googleAds = null, travelpayoutsDrive = null } = {}) {
+export function prepararWeb({ dir = 'site', base = null, version = null, conHtaccess = false, datos = null, googleAds = null } = {}) {
   const hecho = [];
   const quitadas = quitarCopias(dir);
   if (quitadas.length) hecho.push(`quitadas ${quitadas.length} copias de datos`);
@@ -322,9 +278,6 @@ export function prepararWeb({ dir = 'site', base = null, version = null, conHtac
     const ads = normalizarGoogleAds(googleAds);
     writeFileSync(indiceAds, ponerGoogleAds(readFileSync(indiceAds, 'utf8'), ads));
     if (ads) hecho.push(`Google Ads ${ads.id} ${ads.conversion ? 'con conversión' : 'SIN conversión (falta googleAds.conversion)'}`);
-    const drive = normalizarDrive(travelpayoutsDrive);
-    writeFileSync(indiceAds, ponerDrive(readFileSync(indiceAds, 'utf8'), drive && travelpayoutsDrive));
-    if (drive) hecho.push(`Travelpayouts Drive (${drive.origenes.join(', ')})`);
   }
   const rutaOfertas = path.join(dir, 'data', 'ofertas.json');
   const datosPanel = existsSync(rutaOfertas) ? JSON.parse(readFileSync(rutaOfertas, 'utf8')) : null;
@@ -348,6 +301,6 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     console.error(`«${opciones.base}» no es una dirección válida`);
     process.exit(2);
   }
-  const hecho = prepararWeb({ dir: opciones.dir ?? 'site', base, version: opciones.version ?? null, conHtaccess: Boolean(opciones.htaccess), googleAds: googleAdsDeAjustes(), travelpayoutsDrive: driveDeAjustes() });
+  const hecho = prepararWeb({ dir: opciones.dir ?? 'site', base, version: opciones.version ?? null, conHtaccess: Boolean(opciones.htaccess), googleAds: googleAdsDeAjustes() });
   console.log(`Web preparada: ${hecho.join(' · ') || 'nada que hacer'}`);
 }

@@ -215,10 +215,8 @@ export function vistaAyuda(e) {
 <section class="seccion" id="privacidad">
   <h2 class="subtitulo">Privacidad</h2>
   <ul class="ayuda-lista">
-    ${e.googleAds || e.drive
-    ? `<li><strong>Sin cuentas y sin publicidad en la web.</strong></li>${e.googleAds ? `
-    <li><strong>Cookies de Google Ads, solo si las aceptas</strong> en el aviso: sirven para saber si quien llega por un anuncio nuestro entra en alguna oferta. Si las rechazas no se carga nada de Google y la web funciona igual. <a href="#" data-abrir-cookies>Cambiar tu elección</a></li>` : ''}${e.drive ? `
-    <li><strong>Enlaces de afiliado de Travelpayouts, solo si aceptas las cookies</strong>: su script convierte en enlaces de afiliado los de algunas webs de viajes al pulsarlos (puede pagarnos una comisión; tu precio no cambia). Si las rechazas no se carga. <a href="#" data-abrir-cookies>Cambiar tu elección</a></li>` : ''}`
+    ${e.googleAds
+    ? '<li><strong>Sin cuentas y sin publicidad en la web.</strong></li>\n    <li><strong>Cookies de Google Ads, solo si las aceptas</strong> en el aviso: sirven para saber si quien llega por un anuncio nuestro entra en alguna oferta. Si las rechazas no se carga nada de Google y la web funciona igual. <a href="#" data-abrir-cookies>Cambiar tu elección</a></li>'
     : '<li><strong>Sin cuentas, sin cookies, sin publicidad y sin seguimiento.</strong></li>'}
     <li>Tus favoritos, búsquedas guardadas, ciudad de salida y preferencias se guardan <strong>solo en este navegador</strong>. No se envían a ningún sitio; se borran borrando los datos del sitio en tu navegador.</li>
     <li>«Mi ubicación» solo se usa si lo pulsas, para medir distancias en tu dispositivo.</li>

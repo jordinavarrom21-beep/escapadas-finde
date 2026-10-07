@@ -1,9 +1,8 @@
 /**
- * Google Ads y Travelpayouts Drive, solo con permiso: el despliegue (scripts/preparar-web.js)
- * pone <meta name="escapadas-google-ads"> con el ID de la cuenta (AW-…) y la conversión
- * (AW-…/etiqueta) si están en config/ajustes.json («googleAds»), y <meta name="escapadas-drive">
- * con el script de Drive («travelpayoutsDrive»). Sin ninguna, este archivo no hace nada: ni
- * aviso de cookies ni nada de terceros.
+ * Google Ads, solo con permiso: el despliegue (scripts/preparar-web.js) pone la etiqueta
+ * <meta name="escapadas-google-ads"> con el ID de la cuenta (AW-…) y la conversión
+ * (AW-…/etiqueta) si están en config/ajustes.json («googleAds»). Sin ella, este archivo no
+ * hace nada: ni aviso de cookies ni nada de Google.
  *
  * Con ella:
  *  - un aviso con «Aceptar» y «Rechazar» igual de fáciles (como pide la AEPD);
@@ -14,40 +13,20 @@
  */
 (() => {
   const etiqueta = document.querySelector('meta[name="escapadas-google-ads"]');
-  // El despliegue solo las pone con datos válidos (src/google-ads.js, src/travelpayouts-drive.js).
-  const id = etiqueta?.content?.trim() || null;
-  const scriptDrive = document.querySelector('meta[name="escapadas-drive"]')?.content?.trim() || null;
-  if (!id && !scriptDrive) return;
-  const conversion = etiqueta?.dataset.conversion?.trim() || null;
+  const id = etiqueta?.content?.trim();
+  // El despliegue solo la pone con un ID válido (src/google-ads.js).
+  if (!id) return;
+  const conversion = etiqueta.dataset.conversion?.trim() || null;
   const CLAVE = 'escapadas-cookies';
 
-  // Qué se pide aceptar: lo que está instalado. Una decisión guardada solo vale si cubría todo
-  // esto: quien aceptó Google Ads no ha aceptado Drive (se le vuelve a preguntar al añadirlo).
-  const alcance = [id && 'google-ads', scriptDrive && 'travelpayouts-drive'].filter(Boolean);
-  // Sin localStorage (bloqueado o lleno), sessionStorage: así la decisión sobrevive a la recarga
-  // que hace falta para quitar Drive; sin ninguno, vale mientras dure la página.
+  // Sin almacenamiento (bloqueado o lleno), la decisión vale al menos mientras dure la visita.
   let decisionVisita = null;
-  const almacenes = () => [globalThis.localStorage, globalThis.sessionStorage];
   const leer = () => {
-    for (const almacen of almacenes()) {
-      try {
-        const guardada = JSON.parse(almacen.getItem(CLAVE));
-        if (!guardada?.decision) continue;
-        // Una de antes sin alcance era solo de Google Ads.
-        const cubre = guardada.alcance ?? ['google-ads'];
-        // Rechazar vale siempre; aceptar, solo para lo que se preguntó.
-        if (guardada.decision === 'no' || alcance.every((a) => cubre.includes(a))) return guardada.decision;
-        return null;
-      } catch { /* bloqueado: el siguiente */ }
-    }
-    return decisionVisita;
+    try { return JSON.parse(localStorage.getItem(CLAVE))?.decision ?? decisionVisita; } catch { return decisionVisita; }
   };
   const guardar = (decision) => {
     decisionVisita = decision;
-    const valor = JSON.stringify({ decision, alcance, fecha: new Date().toISOString() });
-    for (const almacen of almacenes()) {
-      try { almacen.setItem(CLAVE, valor); return; } catch { /* modo privado: el siguiente */ }
-    }
+    try { localStorage.setItem(CLAVE, JSON.stringify({ decision, fecha: new Date().toISOString() })); } catch { /* modo privado */ }
   };
 
   window.dataLayer = window.dataLayer || [];
@@ -56,17 +35,7 @@
   gtag('consent', 'default', { ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied', analytics_storage: 'denied' });
 
   let cargado = false;
-  let driveCargado = false;
   function activar() {
-    // Drive: un solo script, el de su panel; convierte en enlaces de afiliado los de sus webs al pulsarlos.
-    if (scriptDrive && !driveCargado && /^https:\/\//.test(scriptDrive)) {
-      driveCargado = true;
-      const drive = document.createElement('script');
-      drive.async = true;
-      drive.src = scriptDrive;
-      document.head.append(drive);
-    }
-    if (!id) return;
     gtag('consent', 'update', { ad_storage: 'granted', ad_user_data: 'granted', ad_personalization: 'granted' });
     if (cargado) return;
     cargado = true;
@@ -78,16 +47,13 @@
     document.head.append(script);
   }
   function desactivar() {
-    if (id) gtag('consent', 'update', { ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied' });
-    // Esta web no pone cookies propias (lo suyo va en localStorage): las que haya en este
-    // dominio son de Google Ads o de Drive, y al rechazar se borran todas.
+    gtag('consent', 'update', { ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied' });
+    // Las cookies de Google Ads que ya hubiera en este dominio.
     const dominio = location.hostname.replace(/^www\./, '');
-    for (const nombre of document.cookie.split(';').map((c) => c.split('=')[0].trim()).filter(Boolean)) {
+    for (const nombre of document.cookie.split(';').map((c) => c.split('=')[0].trim()).filter((n) => /^(_gcl_|_ga)/.test(n))) {
       document.cookie = `${nombre}=; Max-Age=0; path=/; domain=.${dominio}`;
       document.cookie = `${nombre}=; Max-Age=0; path=/`;
     }
-    // Drive ya cargado no se puede descargar: deja de estar al recargar la página.
-    if (driveCargado) setTimeout(() => location.reload(), 300);
   }
 
   /**
@@ -119,13 +85,8 @@
     const caja = document.createElement('section');
     caja.className = 'aviso-cookies';
     caja.setAttribute('aria-label', 'Cookies');
-    // Qué se acepta, dicho para cada caso: solo lo que de verdad está instalado.
-    const para = [
-      id && 'saber si alguien llegó por un anuncio nuestro y entró en una oferta (Google Ads)',
-      scriptDrive && 'que algunos enlaces a webs de viajes sean de afiliado, sin cambiar tu precio (Travelpayouts)',
-    ].filter(Boolean).join(' y ');
-    caja.innerHTML = `<p><strong>¿Aceptas cookies de ${id && scriptDrive ? 'publicidad y afiliación' : id ? 'Google Ads' : 'afiliación'}?</strong> Solo sirven para ${para}.
-      Sin ellas la web funciona igual. <a href="#/ayuda?seccion=privacidad">Más información</a></p>
+    caja.innerHTML = `<p><strong>¿Aceptas cookies de Google Ads?</strong> Solo sirven para saber si alguien llegó por un anuncio
+      nuestro y entró en una oferta. Sin ellas la web funciona igual. <a href="#/ayuda?seccion=privacidad">Más información</a></p>
       <div class="aviso-cookies__botones">
         <button type="button" class="boton" data-cookies="no">Rechazar</button>
         <button type="button" class="boton boton--tinta" data-cookies="si">Aceptar</button>
