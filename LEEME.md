@@ -261,7 +261,8 @@ para cualquier visitante:
 
 - **Primera visita**: una bienvenida de una línea (qué es y cómo se usa) que se cierra con
   «Entendido»; **Cómo funciona** (`#/ayuda`), enlazada desde el pie, con preguntas frecuentes
-  y la **privacidad** (sin cuentas, cookies ni seguimiento; lo guardado vive en su navegador).
+  y la **privacidad** (sin cuentas, cookies ni seguimiento salvo lo que aceptes de Google Ads o
+  Travelpayouts, si están activados; lo guardado vive en su navegador).
 - **Aviso legal**: «Cómo funciona» → Aviso legal, enlazado desde el pie. Quién está detrás sale de
   `"legal": {"titular", "nif", "domicilio", "email"}` en `config/ajustes.json` (obligatorio en
   España para una web con enlaces de afiliado o anuncios, LSSI art. 10). Sin titular o email no se
@@ -271,6 +272,15 @@ para cualquier visitante:
   `config/ajustes.json`, el despliegue añade un aviso de cookies con «Aceptar» y «Rechazar».
   Nada de Google se carga hasta aceptar (modo de consentimiento v2), cada clic en una oferta
   cuenta como conversión y la privacidad lo explica. Con `id` vacío, la web sigue sin cookies.
+- **Travelpayouts Drive (opcional)**: con `"travelpayoutsDrive": "https://emrldco.com/….js?t=…"`
+  (la dirección `src` del código de Travelpayouts → Drive → *Instalación manual*) en
+  `config/ajustes.json`, el despliegue abre la CSP a Drive y lo mete en el mismo aviso de
+  cookies, en la portada y en las guías para buscadores. Drive no se carga hasta «Aceptar»
+  (deja una cookie de sesión y lee las de analítica); con permiso, convierte en enlaces de
+  afiliado los de las marcas de su red. No pegues su `<script>` en el HTML: la CSP lo bloquea.
+  Ajustes recomendados en su panel: *Switch links* sí; *Keywords* y *Recommendations* no
+  (solo en inglés y meten bloques en el diseño); *Smart previews* solo en escritorio;
+  *Targeted offers* no (abren pestañas por detrás). Vacío, nada de Travelpayouts.
 - **Al compartir el enlace** (WhatsApp, redes): título, descripción e imagen `site/og.png`.
   El despliegue pone la dirección absoluta que exigen las redes.
 - **Enlaces rotos**: `site/404.html`, con un botón a la portada.
