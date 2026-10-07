@@ -66,8 +66,9 @@ let origenFicha = null;
  * esa web no responde, se usa la copia que lleva el propio hosting.
  */
 const DATOS_REMOTOS = document.querySelector('meta[name="escapadas-datos"]')?.content || null;
-/** Con Google Ads configurado (ver anuncios.js), la privacidad lo explica. */
+/** Con Google Ads o Travelpayouts Drive configurados (ver anuncios.js), la privacidad lo explica. */
 const GOOGLE_ADS = Boolean(document.querySelector('meta[name="escapadas-google-ads"]'));
+const DRIVE = Boolean(document.querySelector('meta[name="escapadas-drive"]'));
 
 async function pedirJson(url) {
   const respuesta = await fetch(url, { cache: 'no-cache' });
@@ -117,6 +118,7 @@ function crearEstado(datos, historial, vigilados) {
     vigilados: vigilados.vigilados ?? [],
     vigiladosPrivados: Boolean(vigilados.privados),
     googleAds: GOOGLE_ADS,
+    drive: DRIVE,
     ahora,
     hoy,
     findes: findes.length ? findes : findesConNoches(10, ahora),

@@ -215,9 +215,7 @@ export function vistaAyuda(e) {
 <section class="seccion" id="privacidad">
   <h2 class="subtitulo">Privacidad</h2>
   <ul class="ayuda-lista">
-    ${e.googleAds
-    ? '<li><strong>Sin cuentas y sin publicidad en la web.</strong></li>\n    <li><strong>Cookies de Google Ads, solo si las aceptas</strong> en el aviso: sirven para saber si quien llega por un anuncio nuestro entra en alguna oferta. Si las rechazas no se carga nada de Google y la web funciona igual. <a href="#" data-abrir-cookies>Cambiar tu elección</a></li>'
-    : '<li><strong>Sin cuentas, sin cookies, sin publicidad y sin seguimiento.</strong></li>'}
+    ${privacidadCookies(e)}
     <li>Tus favoritos, búsquedas guardadas, ciudad de salida y preferencias se guardan <strong>solo en este navegador</strong>. No se envían a ningún sitio; se borran borrando los datos del sitio en tu navegador.</li>
     <li>«Mi ubicación» solo se usa si lo pulsas, para medir distancias en tu dispositivo.</li>
     <li>Al buscar un pueblo o ciudad, lo que escribes se consulta en <a href="https://photon.komoot.io" target="_blank" rel="noopener noreferrer">Photon</a>; el mapa carga sus imágenes de <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>.</li>
@@ -228,6 +226,19 @@ export function vistaAyuda(e) {
 </section>
 ${seccionAvisoLegal(e)}
 </div>`;
+}
+
+/**
+ * Las cookies, según lo que haya configurado (ver site/js/anuncios.js): sin Google Ads ni
+ * Drive, ninguna; con ellos, qué hace cada uno, que solo van si se aceptan y cómo cambiarlo.
+ */
+function privacidadCookies(e) {
+  if (!e.googleAds && !e.drive) return '<li><strong>Sin cuentas, sin cookies, sin publicidad y sin seguimiento.</strong></li>';
+  const cambiar = ' <a href="#" data-abrir-cookies>Cambiar tu elección</a>';
+  const items = ['<li><strong>Sin cuentas y sin publicidad en la web.</strong></li>'];
+  if (e.googleAds) items.push(`<li><strong>Cookies de Google Ads, solo si las aceptas</strong> en el aviso: sirven para saber si quien llega por un anuncio nuestro entra en alguna oferta. Si las rechazas no se carga nada de Google y la web funciona igual.${e.drive ? '' : cambiar}</li>`);
+  if (e.drive) items.push(`<li><strong>Cookies de afiliación de Travelpayouts, solo si las aceptas</strong> en el aviso: si reservas en una web de su red (Booking.com, Trip.com, Omio…) después de pasar por aquí, esa web nos paga una comisión; tu precio no cambia. Para eso su código, que se carga desde sus servidores, convierte los enlaces a esas webs en enlaces de afiliado, guarda una cookie de sesión y recibe la dirección y el texto de la página que ves. Si las rechazas no se carga nada de Travelpayouts y la web funciona igual.${cambiar}</li>`);
+  return items.join('\n    ');
 }
 
 /**
