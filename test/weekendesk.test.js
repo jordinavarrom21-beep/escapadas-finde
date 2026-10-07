@@ -87,6 +87,36 @@ describe('parsear (páginas reales de Cataluña)', () => {
   });
 });
 
+describe('el formato nuevo de Weekendesk (Next.js App Router, desde el 7/10/2026)', () => {
+  const html = leerFixture('weekendesk-app-router.html');
+  it('lee los planes de cada hotel con el precio pasado de céntimos a euros', () => {
+    const datos = datosDePagina(html);
+    assert.equal(datos.resultados.length, 14);
+    assert.deepEqual([datos.total, datos.mostrados], [14, 14], 'el total de Weekendesk cuenta hoteles, no planes');
+    const ofertas = parsear(html, {}, ['Venta flash']);
+    assert.equal(ofertas.length, 14);
+    for (const o of ofertas) assert.deepEqual(validarOferta(o), [], o.id);
+    const augusta = ofertas.find((o) => o.id === 'weekendesk:21843318');
+    assert.deepEqual([augusta.precio, augusta.precioAnterior, augusta.unidad, augusta.noches, augusta.regimen], [125.48, 157, 'total', 1, 'media-pension']);
+    assert.equal(augusta.establecimiento, 'Augusta Club & Spa +16');
+    assert.deepEqual([augusta.lugar.nombre, augusta.valoracion], ['Lloret de Mar', { nota: 8.3, n: 15 }]);
+    assert.match(augusta.url, /^https:\/\/www\.weekendesk\.es\/fin-de-semana\/21843318\//);
+    assert.ok(augusta.etiquetas.includes('Venta flash') && augusta.etiquetas.includes('Hotel 4*'));
+  });
+  it('una página con trozos de Next.js pero sin hoteles falla claro', () => {
+    const vacia = '<script>self.__next_f.push([1,"{\\"value\\":{\\"breadcrumb\\":[]}}"])</script>';
+    assert.throws(() => datosDePagina(vacia), /no traen hoteles/);
+    assert.equal(datosDePagina('<html>nada</html>'), null);
+    // El objeto con los hoteles no tiene por qué ser el primero ni empezar por «breadcrumb».
+    const otro = JSON.stringify(JSON.stringify({ value: { alternates: { a: 1 }, hotels: [{ label: 'H', weekend: [{ id: 1, uri: '/x', label: 'Plan', price: { sellPrice: 5000, nights: 1 } }] }] } }));
+    const antes = JSON.stringify(JSON.stringify({ value: { breadcrumb: [], nada: true } }));
+    const pagina = `<script>self.__next_f.push([1,${antes}])</script><script>self.__next_f.push([1,${otro}])</script>`;
+    const d = datosDePagina(pagina);
+    assert.deepEqual([d.resultados[0].sellPrice, d.total, d.mostrados], [50, Infinity, 1], 'sin total, la página no cuenta como entera');
+    assert.throws(() => datosDePagina('<script>self.__next_f.push([1,"\\x"])</script>'), /no se puede leer/);
+  });
+});
+
 describe('obtener', () => {
   it('pide solo las 2 páginas fijas con 2 s de pausa, une las repetidas y solo reemplaza las ventas flash', async () => {
     const { ctx, peticiones, esperas } = crearCtx({ respuestas: responder(PAGINAS) });
@@ -126,7 +156,7 @@ describe('obtener', () => {
 
   it('si la web cambia y no trae __NEXT_DATA__ falla sin inventar ofertas', async () => {
     const { ctx } = crearCtx({ respuestas: () => '<html><body><h1>Escapadas</h1></body></html>' });
-    await assert.rejects(fuente.obtener(ctx), /no trae __NEXT_DATA__/);
+    await assert.rejects(fuente.obtener(ctx), /no trae datos de ofertas, ni __NEXT_DATA__/);
   });
 });
 

@@ -17,6 +17,17 @@ const esHora = (valor) => typeof valor === 'string' && /^([01]\d|2[0-3]):[0-5]\d
 const esFecha = (valor) => typeof valor === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(valor);
 const esListaDeTextos = (valor) => Array.isArray(valor) && valor.every(esTexto);
 
+/**
+ * Una dirección pública de la web: https con un dominio de verdad («https://sindominio» o
+ * «https://» no valen). En local, http://localhost o 127.0.0.1 para probar.
+ */
+export function esUrlPublica(valor) {
+  if (typeof valor !== 'string' || !URL.canParse(valor)) return false;
+  const { protocol, hostname } = new URL(valor);
+  if (['localhost', '127.0.0.1'].includes(hostname)) return protocol === 'http:' || protocol === 'https:';
+  return protocol === 'https:' && /^[a-z0-9-]+(\.[a-z0-9-]+)+$/i.test(hostname);
+}
+
 /** Recolector de problemas: `exigir(condición, mensaje)` apunta el mensaje si no se cumple. */
 function lista() {
   const problemas = [];
@@ -29,6 +40,8 @@ function problemasOrigen(origen) {
   exigir(esTexto(origen.nombre), 'origen.nombre debe ser el nombre del punto de partida');
   exigir(enRango(origen.lat, -90, 90), `origen.lat debe ser un número entre -90 y 90 (ahora: ${origen.lat})`);
   exigir(enRango(origen.lon, -180, 180), `origen.lon debe ser un número entre -180 y 180 (ahora: ${origen.lon})`);
+  // (0, 0) está en el golfo de Guinea: casi siempre es un campo que se quedó sin rellenar.
+  exigir(!(origen.lat === 0 && origen.lon === 0), 'origen.lat y origen.lon son (0, 0): pon las coordenadas de tu ciudad');
   return problemas;
 }
 
@@ -37,6 +50,8 @@ function problemasVuelos(vuelos) {
   const { problemas, exigir } = lista();
   exigir(esListaDeTextos(vuelos.aeropuertos) && vuelos.aeropuertos.length > 0,
     'vuelos.aeropuertos debe ser una lista de códigos IATA, p. ej. ["BCN"]');
+  const noIata = (Array.isArray(vuelos.aeropuertos) ? vuelos.aeropuertos : []).filter((a) => typeof a === 'string' && !/^[A-Z]{3}$/.test(a));
+  exigir(!noIata.length, `vuelos.aeropuertos: «${noIata.join('», «')}» no son códigos IATA (tres letras en mayúsculas, p. ej. "BCN")`);
   exigir(esEnteroDesde(vuelos.findes, 1), `vuelos.findes debe ser un número entero de findes a vigilar (ahora: ${vuelos.findes})`);
   exigir(esPositivo(vuelos.precioMax), `vuelos.precioMax debe ser un número de euros mayor que 0 (ahora: ${vuelos.precioMax})`);
   exigir(esNumero(vuelos.pausaEntrePeticionesMs) && vuelos.pausaEntrePeticionesMs >= 0,
@@ -54,6 +69,8 @@ function problemasVuelos(vuelos) {
     exigir(esObjeto(horario) && esHora(horario.salidaDesde) && esHora(horario.vueltaDesde)
       && esListaDeTextos(horario.aeropuertos ?? []),
     'vuelos.horarioIdeal debe ser {salidaDesde: "HH:MM", vueltaDesde: "HH:MM", aeropuertos: [...]}');
+    const noIataHorario = (Array.isArray(horario?.aeropuertos) ? horario.aeropuertos : []).filter((a) => typeof a === 'string' && !/^[A-Z]{3}$/.test(a));
+    exigir(!noIataHorario.length, `vuelos.horarioIdeal.aeropuertos: «${noIataHorario.join('», «')}» no son códigos IATA (tres letras en mayúsculas)`);
   }
   return problemas;
 }
@@ -148,6 +165,8 @@ export function validarAjustes(ajustes) {
   if (!esObjeto(ajustes)) return ['la configuración no es un objeto'];
   const { problemas, exigir } = lista();
   problemas.push(...problemasOrigen(ajustes.origen));
+  exigir(ajustes.panelUrl == null || !/^https?:\/\//.test(ajustes.panelUrl) || esUrlPublica(ajustes.panelUrl),
+    `panelUrl debe ser la dirección completa de la web, p. ej. "https://escapadasfinde.com/", o null (ahora: ${ajustes.panelUrl})`);
   exigir(esPositivo(ajustes.retencionDias),
     `retencionDias debe ser un número de días mayor que 0 (ahora: ${ajustes.retencionDias})`);
   problemas.push(...problemasVuelos(ajustes.vuelos));

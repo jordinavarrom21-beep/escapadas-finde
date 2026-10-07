@@ -378,7 +378,7 @@ describe('actividades', () => {
     assert.match(portada, /<h2 id="ideas-titulo">Lo mejor para este finde/);
     assert.doesNotMatch(portada, /<details class="portada__mas"/);
     assert.match(portada, /href="#\/escapadas\?cuando=finde&h=3&orden=total">Ver las \d+/);
-    assert.match(portada, /Conciertos y fiestas<\/span><\/h3>[^]*?Mercat medieval de Besalú/);
+    assert.match(portada, /Conciertos y fiestas<\/h3><\/header>[^]*?Mercat medieval de Besalú/);
     assert.match(portada, /href="#\/escapadas\?cuando=finde&evtipo=todos"/);
     // Planes también enseña los conciertos y fiestas de esas fechas (no con un lugar o texto buscado).
     const planes = resultadosActividades(estadoPanel(), {});

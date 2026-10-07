@@ -47,10 +47,11 @@ describe('auditoría: descartadas', () => {
   });
 
   it('en el Inicio tampoco vuelven (antes salían en Chollazos)', () => {
-    const id = vistaFinde(estado()).match(/<li class="idea"><button type="button" class="enlace-ficha" data-ficha="([^"]+)"/)?.[1];
+    const id = vistaFinde(estado()).match(/<li class="idea" style="[^"]*">[^]*?data-ficha="([^"]+)"/)?.[1];
     assert.ok(id, 'el Inicio enseña alguna escapada');
     const html = vistaFinde(estado({ descartadas: new Set([id]) }));
-    assert.ok(!html.includes(`<li class="idea"><button type="button" class="enlace-ficha" data-ficha="${id}"`));
+    const filas = [...html.matchAll(/<li class="idea" style="[^"]*">[^]*?data-ficha="([^"]+)"/g)].map((m) => m[1]);
+    assert.ok(filas.length && !filas.includes(id));
   });
 });
 

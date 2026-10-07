@@ -407,7 +407,7 @@ describe('guruwalk: obtener', () => {
   it('si fallan todas las ciudades, lanza un error claro con el último fallo', async () => {
     const todasRotas = Object.fromEntries(SLUGS.map((slug) => [slug, new ErrorHttp(500, urlDe(slug))]));
     const { ctx, peticiones, esperas } = crearCtx({ respuestas: respuestas(todasRotas) });
-    await assert.rejects(fuente.obtener(ctx), /^Error: No se ha podido leer ninguna ciudad de GuruWalk \(último error: HTTP 500 en www\.guruwalk\.com\)$/);
+    await assert.rejects(fuente.obtener(ctx), /^Error: No se ha podido leer ninguna ciudad de GuruWalk \(último error: HTTP 500 \(error de la web\) en www\.guruwalk\.com\)$/);
     assert.equal(peticiones.length, 4);
     assert.deepEqual(esperas, [2000, 2000, 2000]);
   });

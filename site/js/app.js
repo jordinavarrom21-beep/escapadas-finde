@@ -965,7 +965,7 @@ function conectarEventos() {
     origenFicha = null;
   });
   document.addEventListener('error', (evento) => {
-    if (evento.target.matches?.('img.tarjeta__imagen, img.ficha__imagen')) evento.target.remove();
+    if (evento.target.matches?.('img.tarjeta__imagen, img.ficha__imagen, .idea__foto > img')) evento.target.remove();
   }, true);
 }
 
