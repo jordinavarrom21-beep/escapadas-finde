@@ -35,7 +35,7 @@ export {
   contextoBusqueda, ctxTarjetas, formularioViaje, misAeropuertos, nombreSalida, ocultas, pestanas, puntoSalida,
   estadoWebs, textoViaje, webConProblemas,
 } from './vistas-comun.js';
-export { atajosPortada, buscadorFinde, contenidoSorpresa, destinoOrganizar, diasDeFechas, eventosCerca, paramsBuscadorFinde, resumenViaje, textoEnviar, vistaFinde } from './vistas-portada.js';
+export { atajosPortada, buscadorFinde, contenidoSorpresa, destinoOrganizar, diasDeFechas, eventosCerca, ideasPortada, paramsBuscadorFinde, resumenViaje, textoEnviar, vistaFinde } from './vistas-portada.js';
 export {
   avisosDeBusquedas, resultadosDeBusqueda, totalNovedadesGuardadas, vistaAyuda, vistaCalendario, vistaFuentes,
   vistaMis, vistaPuentes, vistaVigilados,
@@ -427,7 +427,10 @@ function formularioEscapadas(e, params, vista) {
       ${interruptorDefecto('cru', 'Ocultar cruceros', f.sinCruceros)}
     </div></div>
     <div class="grupo"><h3 class="grupo__titulo">Mis listas</h3><div class="filtros__fila">${filtrosListas(f)}</div></div>
-    <button type="button" class="boton boton--primario filtros__ver" data-cerrar-mas>Ver los resultados</button>
+    <div class="filtros__acciones">
+      <a class="boton boton--suave" href="#/${vista}" data-olvidar-filtros>${icono('deshacer')}Quitar todos los filtros</a>
+      <button type="button" class="boton boton--primario filtros__ver" data-cerrar-mas>Ver los resultados</button>
+    </div>
   </details>
   ${bloqueExclusiones(e, f, escapadas)}
   ${bloqueBusquedas(e, vista)}
@@ -633,7 +636,11 @@ export function datosMapa(e, params) {
 export function resultadosMapa(e, params, d = datosMapa(e, params)) {
   const sin = d.sinUbicacion ? ` (${contar(d.sinUbicacion, 'escapada')} sin ubicación no aparecen)` : '';
   const texto = `${contar(d.escapadas.length, 'escapada')} y ${contar(d.destinos.length, 'destino')} de vuelo en el mapa${sin}`;
-  return `${franjaPeriodo(e, 'mapa', params)}${resumenResultados(texto, conmutadorListaMapa(params, 'mapa'), { conModo: false })}`;
+  // Las que no se pueden situar siguen a un clic, en la lista, con los mismos filtros.
+  const verSin = d.sinUbicacion
+    ? `<p class="aviso-memoria">${icono('lista')}${esc(contar(d.sinUbicacion, 'escapada'))} sin ubicación no ${d.sinUbicacion === 1 ? 'sale' : 'salen'} en el mapa. <a href="${esc(crearHash('escapadas', { ...params, sinubic: '1' }))}">${d.sinUbicacion === 1 ? 'Verla' : 'Verlas'} en la lista</a></p>`
+    : '';
+  return `${franjaPeriodo(e, 'mapa', params)}${resumenResultados(texto, conmutadorListaMapa(params, 'mapa'), { conModo: false })}${verSin}`;
 }
 
 // ── Búsqueda global ──────────────────────────────────────────────────────────

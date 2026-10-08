@@ -299,9 +299,37 @@ function textoDistancia(d) {
   return `${icono('coche')} a ${d.minutos < 5 ? 'menos de 5 min' : esc(duracion(d.minutos))}`;
 }
 
-function columnaEscapadas(e, vistos) {
+/**
+ * El periodo de «Lo mejor para…»: el marcado en «¿Cuándo?» (`opcion`: «finde», el id de un finde
+ * o puente, «» para cualquier fecha o «rango» con `rango` = [desde, hasta]). Las tres columnas,
+ * sus enlaces y el título siguen a ese periodo.
+ */
+export function periodoIdeas(e, opcion = 'finde', rango = null) {
+  const [actual] = e.findes;
+  const conRango = opcion === 'rango' && rango?.[0];
+  const p = conRango ? periodoDeOpcion('rango', [rango[0], rango[1] && rango[1] >= rango[0] ? rango[1] : rango[0]]) : periodoDeOpcion(opcion === 'rango' ? 'finde' : opcion);
+  if (!p.cuando && !p.desde) return { periodo: p, titulo: 'Lo mejor de ahora', dias: 'cualquier fecha', todas: true };
+  if (p.desde) {
+    const dentro = (o) => { const s = o.fechas?.salida?.slice(0, 10); return Boolean(s) && s >= p.desde && s <= p.hasta; };
+    return { periodo: p, titulo: 'Lo mejor para tus fechas', dias: diasExplicitos(p.desde, p.hasta), delPeriodo: dentro };
+  }
+  const id = p.cuando === 'finde' ? actual.id : p.cuando;
+  const r = rangoDe(id, contextoBusqueda(e));
+  const esPuente = r?.tipo === 'puente';
+  const titulo = id === actual.id ? `Lo mejor para ${nombreFindeEnFrase(e.hoy)}`
+    : esPuente ? `Lo mejor para el puente${e.puente?.id === id && e.puente.nombre ? ` de ${e.puente.nombre}` : ''}` : 'Lo mejor para el finde siguiente';
+  return {
+    periodo: p, titulo, dias: r ? diasExplicitos(r.inicio, r.fin) : '',
+    delPeriodo: (o) => o.fechas?.findeId === id || o.fechas?.puenteId === id,
+  };
+}
+
+/** Los parámetros de una vista con el periodo de «Lo mejor para…». */
+const conPeriodoIdeas = (e, vista, params, pi) => conPeriodo(vista, params, pi.periodo, { finde: e.findes[0], puente: e.puente });
+
+function columnaEscapadas(e, vistos, pi) {
   const busqueda = contextoBusqueda(e);
-  const params = { cuando: 'finde', h: String(HORAS_IDEAS), orden: 'total' };
+  const params = conPeriodoIdeas(e, 'escapadas', { h: String(HORAS_IDEAS), orden: 'total' }, pi);
   const { ofertas, distancias } = buscarEscapadas(e.datos.ofertas, leerFiltrosEscapadas(params), busqueda);
   const lista = sinVistas(ofertas.filter((o) => !sinComprobar(o, busqueda)), vistos, FILAS_IDEAS);
   return columnaIdeas('escapadas', `Escapadas a menos de ${HORAS_IDEAS} h`,
@@ -310,13 +338,12 @@ function columnaEscapadas(e, vistos) {
     { href: crearHash('escapadas', params), texto: ofertas.length ? `Ver las ${ofertas.length}` : 'Ver escapadas' }, 'escapadas');
 }
 
-function columnaVuelos(e, vistos) {
-  const [actual] = e.findes;
+function columnaVuelos(e, vistos, pi) {
   const busqueda = contextoBusqueda(e);
   // Todos los vuelos con fecha de una vez (del más barato al más caro), y luego se separan los
-  // del finde (lo mismo que filtrarVuelos con «finde») de los de otras fechas.
+  // del periodo elegido (lo mismo que filtrarVuelos con ese finde o puente) de los de otras fechas.
   const todos = e.datos.ofertas.some(tieneVuelo) ? filtrarVuelos(e.datos.ofertas, { ...leerFiltrosVuelos(), orden: 'precio' }, busqueda) : [];
-  const esDelFinde = (o) => o.fechas?.findeId === actual.id || o.fechas?.puenteId === actual.id;
+  const esDelFinde = pi.todas ? () => true : pi.delPeriodo;
   const vuelos = todos.filter(esDelFinde);
   // Un vuelo por destino (el más barato): cuatro a Londres no ayudan a decidir.
   const destinos = new Set();
@@ -331,7 +358,7 @@ function columnaVuelos(e, vistos) {
       : [];
     const filas = [...delFinde.map(filaVuelo), ...(otras.length ? ['<li class="ideas__sub">Otras fechas</li>', ...otras.map(filaVuelo)] : [])];
     return columnaIdeas('vuelos', 'Vuelos', filas, '',
-      { href: crearHash('vuelos', { finde: actual.id }), texto: `Ver ${vuelos.length === 1 ? 'el' : `los ${vuelos.length}`} de estas fechas` }, 'vuelos');
+      { href: crearHash('vuelos', conPeriodoIdeas(e, 'vuelos', {}, pi)), texto: pi.todas ? 'Ver vuelos' : `Ver ${vuelos.length === 1 ? 'el' : `los ${vuelos.length}`} de estas fechas` }, 'vuelos');
   }
   // Sin vuelos con esas fechas, los chollos desde tus aeropuertos (de cualquier fecha, y lo dice).
   const chollos = sinVistas(chollosDeVuelos(e.datos.ofertas, leerFiltrosVuelos({ mios: '1' }), busqueda), vistos, FILAS_IDEAS);
@@ -395,24 +422,32 @@ export function filaEvento(ev) {
   ${dormir}</li>`;
 }
 
-function columnaEventos(e, vistos) {
+function columnaEventos(e, vistos, pi) {
   const [actual] = e.findes;
-  const { eventos } = eventosCerca(e);
+  // Los eventos van con fecha: con «cualquier fecha», los de este finde (y lo dice).
+  const periodo = pi.todas ? {} : pi.periodo;
+  const { eventos } = eventosCerca(e, periodo);
+  const deEsteFinde = pi.todas ? ` <small class="suave">(${esc(nombreFindeEnFrase(e.hoy))})</small>` : '';
   if (eventos.length) {
-    return columnaIdeas('tema-eventos', 'Conciertos y fiestas', eventos.map(filaEvento), '',
-      { href: crearHash('escapadas', { cuando: 'finde', evtipo: 'todos' }), texto: 'Escapadas con eventos cerca' }, 'eventos');
+    return columnaIdeas('tema-eventos', `Conciertos y fiestas${deEsteFinde}`, eventos.map(filaEvento), '',
+      { href: crearHash('escapadas', conPeriodoIdeas(e, 'escapadas', { evtipo: 'todos' }, pi.todas ? { periodo: { cuando: 'finde' } } : pi)), texto: 'Escapadas con eventos cerca' }, 'eventos');
   }
   const planes = sinVistas(actividadesPara(e.datos.ofertas, periodoFinde(actual), { max: FILAS_IDEAS * 3, descartadas: ocultas(e) }), vistos, FILAS_IDEAS);
-  return columnaIdeas('actividades', 'Planes', planes.map((o) => filaIdea(o, '')), `No hay planes con fecha para ${nombreFindeEnFrase(e.hoy)}.`,
+  return columnaIdeas('actividades', `Planes <small class="suave">(${esc(nombreFindeEnFrase(e.hoy))})</small>`, planes.map((o) => filaIdea(o, '')), `No hay planes con fecha para ${nombreFindeEnFrase(e.hoy)}.`,
     { href: crearHash('actividades', {}), texto: 'Ver planes' }, 'eventos');
 }
 
-/** Lo mejor para este finde, a la vista: tres listas cortas que se leen de un vistazo. */
-function ideasFinde(e, vistos) {
-  const [actual] = e.findes;
-  return `<section class="seccion portada__ideas" aria-labelledby="ideas-titulo">
-  <div class="seccion__cabeza"><h2 id="ideas-titulo">Lo mejor para ${nombreFindeEnFrase(e.hoy)} <span class="suave">(${esc(actual.etiqueta)})</span></h2></div>
-  <div class="ideas">${columnaEscapadas(e, vistos)}${columnaVuelos(e, vistos)}${columnaEventos(e, vistos)}</div>
+/**
+ * Lo mejor para el periodo marcado en «¿Cuándo?» (por defecto, este finde): tres listas cortas
+ * que se leen de un vistazo. Al cambiar las fechas arriba, app.js lo repinta (ideasPortada).
+ */
+export function ideasPortada(e, opcion = null, fechas = null, vistos = new Set()) {
+  const { marcada, rango } = opcionesCuando(e);
+  const valor = opcion ?? marcada;
+  const pi = periodoIdeas(e, valor, fechas?.[0] ? fechas : rango);
+  return `<section class="seccion portada__ideas" aria-labelledby="ideas-titulo" aria-live="polite">
+  <div class="seccion__cabeza"><h2 id="ideas-titulo">${esc(pi.titulo)}${pi.dias ? ` <span class="suave">(${esc(pi.dias)})</span>` : ''}</h2></div>
+  <div class="ideas">${columnaEscapadas(e, vistos, pi)}${columnaVuelos(e, vistos, pi)}${columnaEventos(e, vistos, pi)}</div>
 </section>`;
 }
 
@@ -446,6 +481,6 @@ export function vistaFinde(e, params = {}) {
 </section>
 ${atajosPortada(e)}
 ${bloqueSorpresa(e)}
-${ideasFinde(e, vistos)}
+${ideasPortada(e, null, null, vistos)}
 ${grupoRecomendado(e, params, vistos)}`;
 }

@@ -539,6 +539,8 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 .grupo__titulo { font-size: 0.76rem; font-weight: 800; color: var(--texto-suave); text-transform: uppercase; letter-spacing: 0.07em; margin: 0; }
 .filtros__mas > summary .contador { margin-left: 4px; }
 .filtros__ver { display: none; }
+/* «Quitar todos los filtros» al final de «Más filtros» (en el móvil, encima de «Ver…», que va fijo abajo). */
+.filtros__acciones { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; margin-top: 8px; }
 
 /* Atajos de un clic y «lo que tienes puesto». */
 .atajos { margin-bottom: 14px; }
@@ -698,6 +700,9 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 .insignias--tarjeta > * { flex: 0 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .insignias--tarjeta > .insignia { display: inline-flex; }
 .insignias--tarjeta > .insignia > span { overflow: hidden; text-overflow: ellipsis; }
+/* Cuándo se comprobó (o «Sin confirmar»): una línea propia de alto fijo, para que las tarjetas sigan alineadas. */
+.tarjeta__estado { margin: -4px 0 0; height: 22px; display: flex; align-items: center; overflow: hidden; white-space: nowrap; }
+.tarjeta__estado > * { overflow: hidden; text-overflow: ellipsis; }
 .insignia--comparar { background: var(--superficie-2); color: var(--texto); }
 .insignia--comparar a { color: var(--enlace); }
 .insignia--comparar .ic { color: var(--acento); }
@@ -708,6 +713,11 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 .coste-total__etiqueta { font-size: 0.8rem; font-weight: 700; }
 .coste-total__cifra strong { font-family: var(--fuente-titulos); font-size: 1.05rem; font-weight: 800; letter-spacing: -0.02em; line-height: 1.05; color: var(--texto); }
 .coste-total__supuestos { flex-basis: 100%; font-size: 0.74rem; font-weight: 500; color: var(--texto-suave); }
+/* En la tarjeta: «Viaje completo» arriba y debajo el precio comparable por persona, con el total del grupo. */
+.tarjeta .coste-total__cifra { justify-content: flex-start; gap: 2px 6px; }
+.tarjeta .coste-total__etiqueta { flex-basis: 100%; }
+.coste-total__unidad { font-size: 0.8rem; font-weight: 700; }
+.coste-total__grupo { font-size: 0.76rem; color: var(--texto-suave); }
 .precio--publicado { gap: 0 5px; }
 .precio.precio--publicado strong { font-size: 1.05rem; }
 .precio--oferta { gap: 0 7px; }
