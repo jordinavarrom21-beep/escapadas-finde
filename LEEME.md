@@ -36,6 +36,12 @@ El menú tiene cuatro apartados (abajo en el móvil y la tableta, al alcance del
   más parecido avisándolo («barclona», «girnoa»). Mientras no haya una
   fuente de vuelos con día y hora, «Vuelos» es **Chollos de vuelos** (blogs y comunidades, con
   fechas flexibles) y no enseña filtros de finde, aeropuerto ni horario que no se aplicarían.
+  Las fechas se eligen en un solo sitio, la barra **«¿Cuándo?»** de cada pestaña (y de Buscar):
+  **Fecha de entrada** y **Fecha de salida** abren un calendario en la misma página (un toque
+  para la entrada y otro para la salida, también con el teclado) y hay atajos para este finde,
+  el siguiente y cada puente (en Vuelos, con cuántos hay y desde cuánto). Las noches de esas
+  fechas pasan a ser las de tu viaje (el coste se calcula con ellas). El Inicio usa el mismo
+  calendario en «Otras fechas».
 - **Fechas**, con **Calendario** (los próximos 12 findes) y **Puentes** (qué día pedir y sus ofertas).
 - **Guardados**: **búsquedas guardadas** («Guardar búsqueda» en cualquier búsqueda:
   aquí y en el número del menú ves cuántas ofertas nuevas la cumplen desde la última vez que la
@@ -272,6 +278,8 @@ para cualquier visitante:
   `config/ajustes.json`, el despliegue añade un aviso de cookies con «Aceptar» y «Rechazar».
   Nada de Google se carga hasta aceptar (modo de consentimiento v2), cada clic en una oferta
   cuenta como conversión y la privacidad lo explica. Con `id` vacío, la web sigue sin cookies.
+  La elección (aceptar, rechazar o elegir cuáles) vale seis meses, para quien acepta y para quien
+  rechaza; después se vuelve a preguntar. Antes, cada visitante la cambia con «Cookies» en el pie.
 - **Google Analytics 4 (opcional)**: con `"googleAnalytics": "G-…"` (el ID de medición del flujo
   de datos web: Analytics → Administrar → Flujos de datos) en `config/ajustes.json`, el despliegue
   abre la CSP a Analytics y lo mete en el mismo aviso de cookies, en la portada y en las guías.

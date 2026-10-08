@@ -48,7 +48,7 @@ describe('filtros claros: lo que tienes puesto', () => {
     assert.deepEqual(leerRuta(chips[0].hash).params, { h: '2', desde: '2026-10-16', hasta: '2026-10-16' });
     assert.deepEqual(leerRuta(chips[2].hash).params, { lugar: 'Girona', lat: '41.98', lon: '2.82', h: '2' });
     const rango = filtrosActivos('escapadas', { desde: '2026-10-16', hasta: '2026-10-18' }, ctx);
-    assert.deepEqual(rango.map((c) => c.texto), ['Desde el vie 16 oct', 'Hasta el dom 18 oct']);
+    assert.deepEqual(rango.map((c) => c.texto), ['Entrada el vie 16 oct', 'Salida el dom 18 oct']);
   });
 
   it('no enseña lo que no filtra: el orden ni «ocultar cruceros» (que es lo de fábrica)', () => {
@@ -93,22 +93,26 @@ describe('filtros claros: atajos', () => {
 describe('filtros claros: jerarquía del formulario', () => {
   const html = vistaEscapadas(estado(), {});
 
-  it('arriba, cinco preguntas y la explicación de fechas cerradas y flexibles', () => {
+  it('«¿Cuándo?» en la barra de fechas, encima; en los filtros, cuatro preguntas (sin repetir las fechas ni el orden)', () => {
     const titulos = [...html.matchAll(/class="bloque__titulo">([^<]+)</g)].map(([, t]) => t);
-    assert.deepEqual(titulos, ['¿Cuándo?', '¿Qué te apetece?', '¿Dónde?', '¿Cómo vas?', '¿Cuánto?']);
+    assert.deepEqual(titulos, ['¿Qué te apetece?', '¿Dónde?', '¿Cómo vas?', '¿Cuánto?']);
+    assert.match(html, /<h2 class="fechas__titulo"[^>]*>[^]*?¿Cuándo\?<\/h2>/);
+    assert.ok(html.indexOf('class="fechas"') < html.indexOf('<form class="filtros"'), 'la barra va antes que los filtros');
+    assert.doesNotMatch(html, /<select name="orden">/, 'el orden está encima de los resultados');
     assert.match(html, /name="cerradas" value="1"> Solo con fechas cerradas/);
-    assert.match(html, /la disponibilidad exacta la confirma la web del anunciante/);
+    assert.match(html, /la disponibilidad la confirma su web/);
   });
 
   it('«Más filtros» agrupado por bloques, siempre plegado y con contador', () => {
     const grupos = [...html.matchAll(/class="grupo__titulo">([^<]+)</g)].map(([, t]) => t);
-    assert.deepEqual(grupos, ['Precio y chollos', 'Viaje y alojamiento', 'Zona, web y tipo', 'Mis listas']);
+    assert.deepEqual(grupos, ['Precio y chollos', 'Viaje y alojamiento', 'Zona, web y tipo', 'Fechas de las ofertas', 'Mis listas']);
     assert.match(html, /<details class="filtros__mas filtros__mas--panel">/);
     const conFiltros = vistaEscapadas(estado(), { aloj: 'casa-rural', cho: '1', max: '100' });
     // No se abre solo (en el móvil taparía la pantalla): lo puesto se ve en los chips y en el contador.
     assert.match(conFiltros, /<details class="filtros__mas filtros__mas--panel">/);
     assert.match(conFiltros, /data-contador-mas>\(2 puestos\)</, 'el precio máximo está arriba: no cuenta');
-    assert.equal(contarSecundarios({ max: '100', pnMax: '40', clasica: '1', q: 'x' }), 0);
+    assert.equal(contarSecundarios({ max: '100', pnMax: '40', noches: '2', q: 'x' }), 0);
+    assert.equal(contarSecundarios({ cerradas: '1', encaje: '1' }), 2);
   });
 
   it('no se pierde ningún filtro de antes', () => {
@@ -116,8 +120,10 @@ describe('filtros claros: jerarquía del formulario', () => {
     assert.match(html, /name="precio"/);
     for (const tipo of ['oferta', 'noche', 'persona', 'total']) assert.match(html, new RegExp(`name="preciotipo"[^]*?value="${tipo}"`), tipo);
     for (const como of ['', 'coche', 'sincoche']) assert.match(html, new RegExp(`name="como" value="${como}"`), como);
-    for (const nombre of ['q', 'orden', 'cuando', 'dia', 'desde', 'hasta', 'temas', 'lugar', 'h', 'km', 'pnMin',
-      'clasica', 'noches', 'regimen', 'aloj', 'nota', 'transporte', 'pais', 'region', 'fuente', 'tipo', 'cru', 'dto', 'pts', 'cho', 'baja',
+    // «Escapada clásica (2 noches)» es «Noches: 2» (eran dos controles para lo mismo) y «Un día
+    // concreto», una entrada y una salida el mismo día.
+    for (const nombre of ['q', 'orden', 'cuando', 'desde', 'hasta', 'temas', 'lugar', 'h', 'km', 'pnMin',
+      'noches', 'regimen', 'aloj', 'nota', 'transporte', 'pais', 'region', 'fuente', 'tipo', 'cru', 'dto', 'pts', 'cho', 'baja',
       'hist', 'fav', 'nuevas', 'sindesc', 'dup', 'notemas', 'nodest']) {
       assert.match(html, new RegExp(`name="${nombre}"`), nombre);
     }

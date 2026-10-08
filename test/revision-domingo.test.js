@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 
 import { findesConNoches, findesProximos, nombreFinde, nombreFindeEnFrase, proximoPuente, quedanNoches } from '../site/js/fechas.js';
 import { filtrosActivos } from '../site/js/filtros.js';
-import { franjaPeriodo } from '../site/js/vistas-comun.js';
+import { barraFechas } from '../site/js/vistas-comun.js';
 import { buscadorFinde, vistaEscapadas } from '../site/js/vistas.js';
 import {
   buscarEscapadas, eventosEnBusqueda, filtrarVuelos, leerFiltrosEscapadas, leerFiltrosVuelos, leerRuta, rangoDe, resumenCalendario,
@@ -41,7 +41,7 @@ describe('el domingo, el finde en curso ya no se propone', () => {
     assert.equal(nombreFindeEnFrase('2026-10-04'), 'el próximo finde');
     const e = estadoPanel(DATOS_PANEL, { hoy: '2026-09-20' }); // domingo
     assert.match(buscadorFinde(e), /<small>El próximo finde<\/small>/);
-    assert.match(franjaPeriodo(e, 'escapadas', { cuando: 'finde' }), /<strong>El próximo finde<\/strong>/);
+    assert.match(barraFechas(e, 'escapadas', { cuando: 'finde' }), /aria-pressed="true">El próximo finde ·/);
     assert.deepEqual(filtrosActivos('escapadas', { cuando: 'finde' }, { hoy: e.hoy }).map((c) => c.texto), ['El próximo finde']);
     assert.match(vistaEscapadas(e, {}), /El próximo finde ·/);
     assert.ok(!/Este finde/.test(buscadorFinde(e)));

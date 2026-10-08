@@ -66,14 +66,16 @@ describe('auditoría: «Copiar como vigilado» con un puente o un finde concreto
   });
 });
 
-describe('auditoría: un día concreto frente al rango', () => {
-  it('un solo día va en su campo y deja vacíos los del rango (si no, tocar el rango no hacía nada)', () => {
-    const html = vistaEscapadas(estado(), { desde: '2026-10-16', hasta: '2026-10-16' });
-    assert.match(html, /name="dia" value="2026-10-16"/);
-    assert.match(html, /name="desde" value=""/);
-    assert.match(html, /name="hasta" value=""/);
-    const rango = vistaEscapadas(estado(), { desde: '2026-10-16', hasta: '2026-10-18' });
-    assert.match(rango, /name="dia" value=""/);
-    assert.match(rango, /name="desde" value="2026-10-16"/);
+describe('auditoría: un solo sitio para las fechas', () => {
+  it('la entrada y la salida van en la barra «¿Cuándo?» (del formulario con form=), sin «Un día concreto» aparte', () => {
+    const html = vistaEscapadas(estado(), { desde: '2026-10-16', hasta: '2026-10-18' });
+    assert.doesNotMatch(html, /name="dia"|type="date"/);
+    assert.match(html, /<input type="hidden" name="desde" value="2026-10-16" form="filtros-escapadas">/);
+    assert.match(html, /<input type="hidden" name="hasta" value="2026-10-18" form="filtros-escapadas">/);
+    assert.match(html, /Fecha de entrada<\/span>\s*<span class="fechas__valor">vie 16 oct/);
+    assert.match(html, /Fecha de salida<\/span>\s*<span class="fechas__valor">dom 18 oct/);
+    // Un solo día: entrada y salida el mismo día.
+    const unDia = vistaEscapadas(estado(), { desde: '2026-10-16', hasta: '2026-10-16' });
+    assert.match(unDia, /data-fechas-noches>Un día</);
   });
 });
