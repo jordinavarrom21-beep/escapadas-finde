@@ -76,8 +76,27 @@ async function pedirJson(url) {
   return respuesta.json();
 }
 
+/**
+ * Los datos que tema.js ya ha pedido nada más abrir la página (solo la primera vez: luego,
+ * al renovar, se piden de nuevo).
+ */
+function datosAdelantados(ruta) {
+  const pedido = window.escapadasDatos?.[ruta];
+  if (pedido) delete window.escapadasDatos[ruta];
+  return pedido;
+}
+
 async function cargarJson(ruta, porDefecto) {
   try {
+    const adelantado = datosAdelantados(ruta);
+    if (adelantado) {
+      try {
+        return await adelantado;
+      } catch (error) {
+        // Se vuelve a pedir abajo, como si no se hubiera adelantado.
+        console.warn(`No han llegado los datos adelantados de ${ruta}; se piden otra vez:`, error);
+      }
+    }
     if (DATOS_REMOTOS && ruta.startsWith('data/')) {
       try {
         return await pedirJson(new URL(ruta, DATOS_REMOTOS).href);
@@ -1062,6 +1081,9 @@ async function iniciar() {
   pintarCabecera();
   pintarNovedades();
   render({ enfocar: false });
+  // Para tema.js (ya no hace falta avisar de que no arranca) y anuncios.js (Drive, después).
+  window.escapadasListo = true;
+  window.dispatchEvent(new Event('escapadas:listo'));
   setInterval(pintarReloj, 30_000);
   setInterval(comprobarDatosNuevos, NOVEDADES_MS);
   activarActualizaciones();

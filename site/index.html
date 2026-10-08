@@ -33,12 +33,31 @@
   <link rel="preload" href="fonts/figtree.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="fonts/bricolage-grotesque.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="css/estilos.css">
+  <!-- Todos los módulos del panel a la vez: si no, el navegador los descubre uno tras otro al
+       leer cada import (en un móvil, cerca de un segundo más). test/arranque.test.js comprueba
+       que no falte ninguno. -->
+  <link rel="modulepreload" href="js/app.js">
   <link rel="modulepreload" href="js/filtros.js">
   <link rel="modulepreload" href="js/vistas.js">
   <link rel="modulepreload" href="js/vistas-comun.js">
   <link rel="modulepreload" href="js/vistas-portada.js">
+  <link rel="modulepreload" href="js/vistas-info.js">
   <link rel="modulepreload" href="js/plantillas.js">
+  <link rel="modulepreload" href="js/plantillas-ficha.js">
   <link rel="modulepreload" href="js/iconos.js">
+  <link rel="modulepreload" href="js/formato.js">
+  <link rel="modulepreload" href="js/fechas.js">
+  <link rel="modulepreload" href="js/fechas-enlaces.js">
+  <link rel="modulepreload" href="js/ficha.js">
+  <link rel="modulepreload" href="js/cdn.js">
+  <link rel="modulepreload" href="js/coste.js">
+  <link rel="modulepreload" href="js/geo.js">
+  <link rel="modulepreload" href="js/rutas.js">
+  <link rel="modulepreload" href="js/nota.js">
+  <link rel="modulepreload" href="js/local.js">
+  <link rel="modulepreload" href="js/viaje.js">
+  <link rel="modulepreload" href="js/mapa.js">
+  <link rel="modulepreload" href="js/ubicacion.js">
   <script type="module" src="js/app.js"></script>
   <!-- Aviso de cookies, Google Ads y Travelpayouts Drive: solo si el despliegue pone la etiqueta
        «escapadas-google-ads» o «escapadas-drive» (anuncios.js). -->

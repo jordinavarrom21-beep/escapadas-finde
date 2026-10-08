@@ -336,9 +336,12 @@ ${unDominio}  # Las copias de seguridad de datos y la carpeta .git (despliegue d
   <FilesMatch "(\\.html|sw\\.js|\\.json|\\.xml|\\.txt|\\.webmanifest)$">
     Header set Cache-Control "no-cache"
   </FilesMatch>
-  # Estilos y código: el service worker los renueva en cada versión; aquí, poco rato.
+  # Estilos y código: se comprueban siempre (si no han cambiado, la respuesta es un «304» de
+  # unos bytes). Con una hora de caché, justo después de publicar el navegador o la CDN podían
+  # mezclar módulos viejos y nuevos y el panel no arrancaba. Las visitas repetidas los sacan
+  # igual de rápido del service worker, que los renueva enteros en cada versión.
   <FilesMatch "\\.(css|js)$">
-    Header set Cache-Control "public, max-age=3600"
+    Header set Cache-Control "no-cache"
   </FilesMatch>
   <FilesMatch "^sw\\.js$">
     Header set Cache-Control "no-cache"

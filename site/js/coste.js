@@ -6,14 +6,14 @@
  */
 
 import { FACTOR_CARRETERA } from './geo.js';
-import { contar, euros } from './formato.js';
+import { contar, euros, unDecimal } from './formato.js';
 
 /** Transporte que no es el coche propio. */
 const OTRO_TRANSPORTE = ['avion', 'tren', 'bus', 'ferry'];
 const NOMBRE_TRANSPORTE = { avion: 'avión', tren: 'tren', bus: 'autobús', ferry: 'ferry' };
 
 const redondear = (n) => Math.round(n * 100) / 100;
-const litros = (n) => n.toLocaleString('es-ES', { maximumFractionDigits: 1 });
+const litros = unDecimal;
 
 /** Los billetes (vuelo, tren, bus, ferry) son el propio viaje: su precio es el transporte. */
 const esBillete = (o) => o.tipo === 'vuelo' || ['i/v', 'trayecto'].includes(o.unidad);

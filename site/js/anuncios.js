@@ -104,7 +104,10 @@
     // Los avisos flotantes («Hay datos nuevos»…) suben para que el de cookies no los tape.
     document.body.style.setProperty('--alto-cookies', `${caja.offsetHeight + 12}px`);
   }
-  const vigilarDialogos = new MutationObserver(() => {
+  // Solo cuando se abre o se cierra una ficha (<dialog>): los filtros también cambian «open»
+  // (son <details>) y recolocar en cada uno obligaba a recalcular toda la página.
+  const vigilarDialogos = new MutationObserver((cambios) => {
+    if (!cambios.some((cambio) => cambio.target.tagName === 'DIALOG')) return;
     const caja = document.querySelector('.aviso-cookies');
     if (caja) colocar(caja);
   });
@@ -152,6 +155,20 @@
     vigilarDialogos.observe(document.body, { subtree: true, attributes: true, attributeFilter: ['open'] });
   }
 
+  /**
+   * Con permiso ya dado, Drive y Google Ads esperan a que el panel pinte las ofertas: así no
+   * compiten con ellas por la conexión y el procesador al abrir la web (sobre todo en el
+   * móvil). En las guías, que no tienen panel, enseguida. Si el panel tarda mucho, a los 8 s.
+   */
+  function despuesDelPanel(fn) {
+    const hayPanel = document.querySelector('script[type="module"][src$="js/app.js"]');
+    if (!hayPanel || window.escapadasListo) { fn(); return; }
+    let hecho = false;
+    const una = () => { if (!hecho) { hecho = true; fn(); } };
+    window.addEventListener('escapadas:listo', una, { once: true });
+    setTimeout(una, 8000);
+  }
+
   function arrancar() {
     // El pie ya no dice «Sin cookies ni seguimiento»: enlaza al aviso.
     for (const marca of document.querySelectorAll('[data-sin-cookies]')) {
@@ -171,7 +188,7 @@
       if (conversion && cargado && leer() === 'si' && evento.target.closest?.('a[data-clic]')) gtag('event', 'conversion', { send_to: conversion });
     });
     const decision = leer();
-    if (decision === 'si') activar();
+    if (decision === 'si') despuesDelPanel(activar);
     else if (decision === null) aviso();
   }
 

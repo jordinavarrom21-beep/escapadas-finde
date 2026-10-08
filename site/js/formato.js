@@ -3,8 +3,15 @@
  * desde los tests de Node.
  */
 
+// Un formateador de cada tipo para toda la web: crear uno en cada llamada (toLocaleString con
+// opciones) era lo más lento al abrirla, porque el coste de cada oferta escribe varios números.
 const EUROS_ENTEROS = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
 const EUROS_DECIMALES = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2 });
+const NUMERO = new Intl.NumberFormat('es-ES');
+const UN_DECIMAL = new Intl.NumberFormat('es-ES', { maximumFractionDigits: 1 });
+
+/** 1234.56 → «1234,6» (como mucho un decimal: litros, notas). */
+export const unDecimal = (n) => UN_DECIMAL.format(n);
 
 export const ETIQUETAS_UNIDAD = {
   pp: 'por persona',
@@ -48,7 +55,7 @@ export const ETIQUETAS_ALOJAMIENTO = {
 export const grados = (valor) => (Number.isFinite(valor) ? `${Math.round(valor)}°` : '');
 
 /** 8.6 → «8,6». */
-export const nota = (valor) => (Number.isFinite(valor) ? valor.toLocaleString('es-ES', { maximumFractionDigits: 1 }) : '');
+export const nota = (valor) => (Number.isFinite(valor) ? unDecimal(valor) : '');
 
 /** ['a', 'b', 'c'] → «a, b y c». */
 export function enumerar(partes, conjuncion = 'y') {
@@ -120,7 +127,7 @@ export const AVISO_DRIVE = 'Si aceptas las cookies, los enlaces a webs de la red
 
 /** Plural sencillo: (1, 'vuelo') → «1 vuelo» · (3, 'vuelo') → «3 vuelos». */
 export function contar(n, singular, plural = `${singular}s`) {
-  return `${n.toLocaleString('es-ES')} ${n === 1 ? singular : plural}`;
+  return `${NUMERO.format(n)} ${n === 1 ? singular : plural}`;
 }
 
 /**

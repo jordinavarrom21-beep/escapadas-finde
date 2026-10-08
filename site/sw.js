@@ -74,20 +74,20 @@ async function primeroRed(peticion) {
   }
 }
 
-async function primeroCache(peticion, evento) {
+/**
+ * La interfaz de esta versión, tal como se guardó al instalarla. No se «actualiza por
+ * detrás»: eso metía en la caché de esta versión archivos de la siguiente publicación y, si
+ * no llegaban todos, quedaban módulos viejos y nuevos mezclados y el panel no arrancaba. Lo
+ * nuevo llega entero con el service worker nuevo (otra VERSION). Lo que no se guardó al
+ * instalar (p. ej. un icono que pide el sistema) se pide y se guarda.
+ */
+async function primeroCache(peticion) {
   const cache = await caches.open(VERSION);
   const guardada = await cache.match(peticion, { ignoreSearch: true });
-  const actualizar = fetch(peticion)
-    .then((respuesta) => {
-      if (respuesta.ok) return cache.put(peticion, respuesta.clone()).then(() => respuesta);
-      return respuesta;
-    });
-  if (guardada) {
-    // Sin red se sigue con la copia guardada; el fallo solo se anota.
-    evento.waitUntil(actualizar.catch((error) => console.warn(`No se ha podido actualizar ${peticion.url}:`, error)));
-    return guardada;
-  }
-  return actualizar;
+  if (guardada) return guardada;
+  const respuesta = await fetch(peticion);
+  if (respuesta.ok) await cache.put(peticion, respuesta.clone());
+  return respuesta;
 }
 
 self.addEventListener('fetch', (evento) => {
@@ -98,5 +98,5 @@ self.addEventListener('fetch', (evento) => {
   if (request.method !== 'GET' || (url.origin !== self.location.origin && !datosRemotos)) return;
   // Los datos y las guías para buscadores (src/paginas.js) cambian con cada escaneo: primero la red.
   if (url.pathname.includes('/data/') || /\/(escapadas|vuelos|actividades)\/|sitemap\.xml$/.test(url.pathname)) evento.respondWith(primeroRed(request));
-  else evento.respondWith(primeroCache(request, evento));
+  else evento.respondWith(primeroCache(request));
 });
