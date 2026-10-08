@@ -600,14 +600,13 @@ export function tarjetaOferta(o, ctx) {
   <div class="tarjeta__cuerpo">
     <div class="tarjeta__cabeza">
       <span class="tarjeta__lugar">${textoLugar(o) || esc(ETIQUETAS_TIPO[o.tipo] ?? o.tipo)}</span>
-      ${puntuacion(o, ctx)}
       ${botonDescartar(o)}
     </div>
     <h3 class="tarjeta__titulo"><button type="button" class="enlace-ficha" data-ficha="${esc(o.id)}">${esc(tituloLegible(o.titulo))}</button></h3>
     ${opinionesTarjeta(o, web)}
-    ${motivoTarjeta(o, ctx)}
     <ul class="tarjeta__datos">${datosTarjeta(o, ctx)}</ul>
-    <div class="insignias insignias--tarjeta">${insigniaEvento(o, ctx)}${equivalentes(o, ctx)}${insigniasTarjeta(o, ctx)}${avisoTarjeta(o, ctx)}</div>
+    <div class="insignias insignias--tarjeta">${insigniaEvento(o, ctx)}${equivalentes(o, ctx)}${insigniasTarjeta(o, ctx)}${avisoTarjeta(o)}</div>
+    <p class="tarjeta__estado">${textoComprobada(o, ctx, { corto: true })}</p>
     <div class="tarjeta__pie">
       <div class="tarjeta__precio">${bloquePrecio(o, ctx)}</div>
       <div class="acciones">${botonComparar(o, ctx)}${enlaceOferta(o, typeof o.precio === 'number' && o.precio > 0 ? textoAccion(o) : `Ver en ${esc(web)}`, ctx)}</div>
@@ -640,16 +639,6 @@ function opinionesTarjeta(o, web) {
   return `<p class="tarjeta__opiniones" title="Valoración de los clientes en ${esc(web)}. ${esc(f.larga)}">${icono('estrella')}<strong>${nota(v.nota)}<span class="tarjeta__opiniones-max">/10</span></strong><span class="tarjeta__opiniones-texto">${adjetivoNota(v.nota)}${cuantas}${f.corta ? ` · <span class="aviso-suave">${f.corta}</span>` : ''}</span></p>`;
 }
 
-/**
- * El motivo principal de la nota, entero y en dos líneas como mucho («Más barata que 180 de
- * 206 escapadas parecidas»): antes iban dos motivos en una línea y se cortaba a media frase.
- * El desglose completo, en la ficha.
- */
-function motivoTarjeta(o, ctx) {
-  const motivo = motivoPrincipal(o, ctx.ahora, { corto: true });
-  if (!motivo) return '<p class="tarjeta__motivo" aria-hidden="true"></p>';
-  return `<p class="tarjeta__motivo" title="${esc(`Por qué tiene un ${o.puntuacion}: ${motivoPrincipal(o, ctx.ahora)}`)}">${esc(motivo)}</p>`;
-}
 
 /**
  * «Recién añadida»: entró en Escapadas Finde desde tu última visita. Dice cuándo llegó al
@@ -657,15 +646,9 @@ function motivoTarjeta(o, ctx) {
  */
 const insigniaNueva = () => `<span class="insignia insignia--nueva" title="Añadida a Escapadas Finde desde tu última visita. No indica si quedan plazas: eso lo confirma su web.">${icono('nuevo')}Recién añadida</span>`;
 
-/**
- * Lo que va a la vista en la tarjeta: cuándo se comprobó (y si está sin confirmar) y si el
- * enlace es de afiliado. La web va en el botón.
- */
-function avisoTarjeta(o, ctx) {
-  return [
-    textoComprobada(o, ctx, { corto: true }),
-    o.afiliado && `<span class="insignia aviso-afiliado" title="${esc(TEXTO_AFILIADO)}">${icono('enlace')}Enlace de afiliado</span>`,
-  ].filter(Boolean).join('');
+/** Si el enlace es de afiliado (la web va en el botón). */
+function avisoTarjeta(o) {
+  return o.afiliado ? `<span class="insignia aviso-afiliado" title="${esc(TEXTO_AFILIADO)}">${icono('enlace')}Enlace de afiliado</span>` : '';
 }
 
 /**
@@ -738,18 +721,23 @@ function supuestosCortos(o, c, ctx) {
  * gasolina ≈ 164 €», de dónde sale (oferta + gasolina) y lo que se supone. Sin total, la
  * gasolina que calculó el escaneo (solo desde su origen) y, si tampoco, nada.
  */
+/**
+ * El precio comparable de la tarjeta: el viaje completo por persona (el que usan «Viaje más
+ * barato» y el presupuesto por persona) y el total para el grupo, con sus supuestos en una
+ * línea. El desglose parte a parte (oferta, gasolina…), en la ficha.
+ */
 function lineaCoste(o, ctx) {
   const c = costeDe(o, ctx);
   if (c.total == null) return envolverDato(textoCosteCoche(o, ctx));
   const titulo = `${resumenCoste(c)}. ${desgloseCorto(c)}. La oferta la cobra la web que la publica; el resto es una estimación. Supone: ${c.supuestos.join('; ')}.`;
-  // Con más de una parte (la oferta y la gasolina), de dónde sale el total, a la vista.
-  const partes = c.partes.length > 1
-    ? `${barraCoste(c)}<span class="coste__leyenda">${c.partes.map((p, i) => `<span><i class="coste__muestra coste__muestra--${claseParte(p, i)}" aria-hidden="true"></i>${p.estimado ? '≈ ' : ''}${euros(Math.round(p.eur))} ${esc(nombreCorto(p))}</span>`).join('<span aria-hidden="true">+</span>')}</span>`
-    : '';
   const supuestos = supuestosCortos(o, c, ctx);
+  const aprox = c.estimado ? '≈ ' : '';
+  const porPersona = c.viajeros > 1
+    ? `<strong>${aprox}${esc(euros(Math.round(c.porPersona)))}</strong> <span class="coste-total__unidad">por persona</span> <span class="coste-total__grupo">(${aprox}${esc(euros(Math.round(c.total)))} para ${esc(contar(c.viajeros, 'persona'))})</span>`
+    : `<strong>${aprox}${esc(euros(Math.round(c.total)))}</strong>`;
   return `<div class="dato-extra coste-total" title="${esc(titulo)}">
-    <p class="coste-total__cifra"><span class="coste-total__etiqueta">${c.estimado ? 'Viaje completo estimado' : 'Viaje completo'} para ${esc(contar(c.viajeros, 'persona'))}</span> <strong>${c.estimado ? '≈ ' : ''}${esc(euros(Math.round(c.total)))}</strong></p>
-    ${partes}${supuestos ? `<span class="coste-total__supuestos">${esc(supuestos)}</span>` : ''}
+    <p class="coste-total__cifra"><span class="coste-total__etiqueta">Viaje completo${c.estimado ? ' estimado' : ''}</span> ${porPersona}</p>
+    ${supuestos ? `<span class="coste-total__supuestos">${esc(supuestos)}</span>` : ''}
   </div>`;
 }
 
@@ -764,8 +752,6 @@ export function bloquePrecio(o, ctx) {
   return `${precio(o, { etiqueta, principal: true })}${lineaCoste(o, ctx)}`;
 }
 
-/** Nombre corto de cada parte del coste para la leyenda de la tarjeta. */
-const nombreCorto = (p) => (p.concepto.startsWith('Gasolina') ? 'gasolina' : p.concepto.startsWith('Billetes de vuelta') ? 'vuelta' : p.concepto.startsWith('Billetes') ? 'billetes' : 'oferta');
 /** Color de cada parte: la oferta (lo que publica la web) y lo estimado (gasolina, la vuelta). */
 export const claseParte = (p) => (p.estimado ? 'estimado' : 'oferta');
 

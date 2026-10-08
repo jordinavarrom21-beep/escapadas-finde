@@ -26,7 +26,7 @@ import { estadoVacio } from './plantillas.js';
 import { icono } from './iconos.js';
 import { activarUbicacion } from './ubicacion.js';
 import {
-  VISTAS_HTML, atajosPortada, diasDeFechas, contarSecundarios, totalNovedadesGuardadas, destinoOrganizar, contenidoSorpresa, estadoWebs, textoEnviar, contextoBusqueda, ctxTarjetas, datosMapa, formularioViaje, nombreSalida,
+  VISTAS_HTML, atajosPortada, ideasPortada, diasDeFechas, contarSecundarios, totalNovedadesGuardadas, destinoOrganizar, contenidoSorpresa, estadoWebs, textoEnviar, contextoBusqueda, ctxTarjetas, datosMapa, formularioViaje, nombreSalida,
   misAeropuertos, resultadosMapa, textoViaje,
 } from './vistas.js';
 
@@ -948,11 +948,13 @@ function conectarEventos() {
     const { name } = evento.target;
     if (name === 'cuando' || name === 'desde' || name === 'hasta') fechasPropias(formulario, evento.target);
     pintarEnviarFinde(formulario);
-    // Los atajos siguen a las fechas elegidas: sus cifras y enlaces son de ese periodo.
+    // Los atajos y «Lo mejor para…» siguen a las fechas elegidas: sus cifras, títulos y
+    // enlaces son de ese periodo («Otras fechas» sin ida aún no cambia nada).
     if (name === 'cuando' || name === 'desde' || name === 'hasta') {
       const cuando = formulario.querySelector('input[name="cuando"]:checked')?.value ?? '';
       const fechas = [formulario.elements.desde?.value, formulario.elements.hasta?.value];
       principal.querySelector('.portada__atajos')?.replaceWith(htmlAElemento(atajosPortada(estado, cuando, fechas)));
+      if (cuando !== 'rango' || fechas[0]) principal.querySelector('.portada__ideas')?.replaceWith(htmlAElemento(ideasPortada(estado, cuando, fechas)));
     }
   });
   principal.addEventListener('change', alCambiarFiltro);

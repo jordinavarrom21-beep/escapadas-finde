@@ -168,6 +168,8 @@ export function leerFiltrosEscapadas(p = {}) {
     regimen: REGIMENES_ORDEN.includes(p.regimen) ? p.regimen : '',
     transporte: p.transporte ?? '',
     sinCoche: p.sincoche === '1',
+    // Las que no salen en el mapa (sin ubicación): el mapa enlaza a ellas en la lista.
+    sinUbicacion: p.sinubic === '1',
     alojamiento: ALOJAMIENTOS.includes(p.aloj) ? p.aloj : '',
     // Categoría mínima: 2 a 5 estrellas. Las que no dicen sus estrellas no entran.
     estrellas: ['2', '3', '4', '5'].includes(p.est) ? Number(p.est) : null,
@@ -747,6 +749,7 @@ export function buscarEscapadas(ofertas, f, ctx) {
   // Con presupuesto solo entran las que tienen un total que se puede comprobar.
   const sinTotal = f.presupuesto ? lista.filter((o) => costes.get(o.id).total == null).length : 0;
   if (f.presupuesto) lista = lista.filter((o) => cabeEnPresupuesto(costes.get(o.id), f));
+  if (f.sinUbicacion) lista = lista.filter((o) => !distancias.has(o.id));
   const comparador = comparadoresEscapadas(distancias, costes, desdeSalida)[f.orden] ?? porPuntuacion;
   return { ofertas: alFinalSinComprobar(lista.sort(comparador), ctx), distancias, desdeSalida, costes, sinTotal };
 }
@@ -1316,6 +1319,7 @@ function textoFiltro(clave, valor, ctx) {
     hist: () => 'Mínimo histórico',
     sindesc: () => (valor === '0' ? 'Con las descartadas y las no disponibles' : null),
     sinconf: () => 'Con las sin confirmar',
+    sinubic: () => 'Solo las que no salen en el mapa',
     dup: () => 'Con las repetidas',
     cru: () => (valor === '0' ? 'Con cruceros' : null),
     cerradas: () => 'Solo con fechas cerradas',

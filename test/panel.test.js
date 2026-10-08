@@ -16,7 +16,7 @@ import { parsearPhoton, urlPhoton } from '../site/js/geo.js';
 import { contenidoFicha, tarjeta } from '../site/js/plantillas.js';
 import {
   avisosDeBusquedas, contenidoSorpresa, contextoBusqueda, ocultas, resultadosBuscar, resultadosEscapadas, resultadosDeBusqueda, resultadosVuelos, totalNovedadesGuardadas, vistaMis, vistaVuelos, vistaActividades, vistaCalendario, vistaEscapadas, vistaFinde,
-  vistaFuentes, vistaPuentes, resultadosActividades, estadoWebs,
+  vistaFuentes, vistaPuentes, resultadosActividades, estadoWebs, ideasPortada,
 } from '../site/js/vistas.js';
 import { crearServidor, rutaArchivo } from '../scripts/servir.js';
 
@@ -377,9 +377,17 @@ describe('actividades', () => {
     // «Lo mejor para este finde»: escapadas cerca, vuelos y lo que pasa allí, en filas cortas y a la vista.
     assert.match(portada, /<h2 id="ideas-titulo">Lo mejor para este finde/);
     assert.doesNotMatch(portada, /<details class="portada__mas"/);
-    assert.match(portada, /href="#\/escapadas\?cuando=finde&h=3&orden=total">Ver las \d+/);
+    assert.match(portada, /href="#\/escapadas\?(?=[^"]*cuando=finde)(?=[^"]*h=3)[^"]*orden=total[^"]*">Ver las \d+/);
+    // Con otro periodo marcado arriba (el puente), el título, las listas y los enlaces son de ese periodo.
+    const e = estadoPanel();
+    const delPuente = ideasPortada(e, e.puente.id);
+    assert.match(delPuente, /<h2 id="ideas-titulo">Lo mejor para el puente de La Mercè \(Barcelona\) <span class="suave">\(mié 23 – dom 27 sep\)<\/span><\/h2>/);
+    assert.match(delPuente, new RegExp(`href="#/escapadas\\?[^"]*cuando=${e.puente.id}`));
+    assert.doesNotMatch(delPuente, /cuando=finde/);
+    // Con «Cualquier fecha», lo que solo puede ser de este finde (los eventos) lo dice.
+    assert.match(ideasPortada(e, ''), /<h2 id="ideas-titulo">Lo mejor de ahora <span class="suave">\(cualquier fecha\)<\/span>[^]*Conciertos y fiestas <small class="suave">\(este finde\)<\/small>|<h2 id="ideas-titulo">Lo mejor de ahora[^]*Planes <small class="suave">\(este finde\)/);
     assert.match(portada, /Conciertos y fiestas<\/h3><\/header>[^]*?Mercat medieval de Besalú/);
-    assert.match(portada, /href="#\/escapadas\?cuando=finde&evtipo=todos"/);
+    assert.match(portada, /href="#\/escapadas\?evtipo=todos&cuando=finde"/);
     // Planes también enseña los conciertos y fiestas de esas fechas (no con un lugar o texto buscado).
     const planes = resultadosActividades(estadoPanel(), {});
     assert.match(planes, /Conciertos, festivales y fiestas[^]*Mercat medieval de Besalú/);

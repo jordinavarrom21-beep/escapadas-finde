@@ -69,7 +69,10 @@ describe('coste total en el panel', async () => {
     const [primera] = ofertas;
     const ctx = ctxTarjetas(e);
     const html = tarjeta(primera, ctx);
-    assert.match(html, /class="dato-extra coste-total" title="[^"]*\d+\s€\/persona[^"]*La oferta la cobra la web[^]*?Viaje completo (estimado )?para 3 personas<\/span> <strong>(≈ )?\d+\s€<\/strong>/);
+    // El precio comparable: por persona (lo que ordena «Viaje más barato» y el presupuesto por persona) y el total del grupo.
+    assert.match(html, /class="dato-extra coste-total" title="[^"]*\d+\s€\/persona[^"]*La oferta la cobra la web[^]*?Viaje completo( estimado)?<\/span> <strong>(≈ )?\d+\s€<\/strong> <span class="coste-total__unidad">por persona<\/span> <span class="coste-total__grupo">\((≈ )?[\d.]+\s€ para 3 personas\)<\/span>/);
+    // El desglose (barra y leyenda), solo en la ficha.
+    assert.ok(!html.includes('coste__barra'));
     // Primero y en grande el precio de la oferta, rotulado con su web; debajo, el viaje completo.
     assert.ok(html.indexOf('precio--oferta') < html.indexOf('coste-total'));
     assert.match(html, /<p class="precio precio--oferta"><span class="precio__etiqueta">Precio en [^<]+<\/span>/);
