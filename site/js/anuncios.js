@@ -13,10 +13,11 @@
  *    la AEPD;
  *  - nada de Google ni de Travelpayouts hasta que se acepta (Google: modo de consentimiento
  *    v2, «básico»), y de cada uno solo lo aceptado;
- *  - con la medición, una visita por cada sección del panel (Inicio, Escapadas…) y cada clic
- *    en una oferta («Ver en…», «Reservar») como evento «clic_oferta» con la web; con Google
- *    Ads, ese clic cuenta como conversión; con Drive, los enlaces de las marcas de su red pasan
- *    a ser de afiliado;
+ *  - con la medición, una visita por cada sección del panel (Inicio, Escapadas…), cada clic en
+ *    una oferta («Ver en…», «Reservar») como evento «clic_oferta» con la web, y lo que avisa
+ *    app.js (abrir la ficha de una oferta, guardarla, buscar, compartir); con Google Ads, ese
+ *    clic cuenta como conversión; con Drive, los enlaces de las marcas de su red pasan a ser
+ *    de afiliado;
  *  - «Cookies» en el pie vuelve a abrir el aviso para cambiar de opinión.
  * La decisión se guarda en este navegador (localStorage), no en una cookie. Vale también en
  * las guías para buscadores (escapadas/, vuelos/…), que cargan este archivo si hay Drive o
@@ -87,17 +88,25 @@
 
   /**
    * Una visita a una página. En el panel, la sección (#/escapadas…) sin los filtros: así se
-   * agrupa por sección y no se envía lo que se busca. En una guía, su dirección.
+   * agrupa por sección y no se envía lo que se busca. Con la «?…» de la dirección: ahí vienen
+   * utm_…, gclid… y sin ellos las visitas de una campaña o un anuncio no se atribuyen. La
+   * página anterior es la sección de antes (la primera, la web de la que se llega). En una
+   * guía, su dirección.
    */
+  let anterior = null;
   function visita() {
     if (!midiendo()) return;
     const vista = document.body.dataset.vista;
     if (hayPanel && !vista) return; // el panel aún no ha pintado: lo enviará al pintar
+    const direccion = hayPanel ? `${location.origin}${location.pathname}${location.search}#/${vista}` : location.href;
+    if (direccion === anterior) return;
     gtag('event', 'page_view', {
       send_to: analitica,
       page_title: document.title,
-      page_location: hayPanel ? `${location.origin}${location.pathname}#/${vista}` : location.href,
+      page_location: direccion,
+      ...(anterior ? { page_referrer: anterior } : {}),
     });
+    anterior = direccion;
   }
 
   function cargarGtag(cuenta) {
@@ -293,12 +302,16 @@
       const oferta = evento.target.closest?.('a[data-clic]');
       if (!oferta) return;
       if (midiendo()) {
-        gtag('event', 'clic_oferta', { send_to: analitica, web: oferta.dataset.clic, tipo: oferta.dataset.clicTipo, oferta: oferta.dataset.clicOferta });
+        gtag('event', 'clic_oferta', { send_to: analitica, web: oferta.dataset.clic, tipo: oferta.dataset.clicOferta, enlace: oferta.dataset.clicTipo });
       }
       if (conversion && activo.has('google-ads') && permitido('google-ads')) gtag('event', 'conversion', { send_to: conversion });
     });
     // Cada sección del panel que se abre (app.js lo avisa al pintarla) es una visita.
     window.addEventListener('escapadas:vista', visita);
+    // Lo que se hace en el panel (app.js: ver_oferta, guardar_oferta, search, share).
+    window.addEventListener('escapadas:medir', ({ detail }) => {
+      if (midiendo() && detail?.evento) gtag('event', detail.evento, { send_to: analitica, ...detail.datos });
+    });
     const acepta = leer();
     if (acepta === null) aviso();
     else if (acepta.length) despuesDelPanel(() => activar(acepta));

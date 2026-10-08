@@ -276,12 +276,17 @@ para cualquier visitante:
   de datos web: Analytics → Administrar → Flujos de datos) en `config/ajustes.json`, el despliegue
   abre la CSP a Analytics y lo mete en el mismo aviso de cookies, en la portada y en las guías.
   Nada se carga hasta aceptar la medición (con varias finalidades, «Configurar» deja elegir cada
-  una). Cuenta una visita por sección del panel (`#/escapadas`…, sin filtros ni búsquedas) y cada
-  clic en una oferta como evento `clic_oferta` con la web (`web`), el tipo de enlace y el de oferta.
-  Las visitas con `?propietario=1` no cuentan. En la propiedad: *Medición mejorada → Vistas de
-  página → Configuración avanzada*: desactiva **«Cambios de página basados en eventos del historial
-  del navegador»** (si no, cada sección cuenta dos veces); *Google Signals* desactivado; marca
-  `clic_oferta` como **evento clave**. Vacío, nada de Google Analytics.
+  una). Cuenta una visita por sección del panel (`#/escapadas`…, sin filtros, con la `?utm_…` de
+  la dirección para atribuir campañas) y estos eventos, con los parámetros `web` (de qué web es la
+  oferta), `tipo` (escapada, hotel, vuelo…), `destino` y `precio`:
+  `clic_oferta` (ir a la web de la oferta; también `enlace`: afiliado, patrocinado o normal),
+  `ver_oferta` (abrir su ficha), `guardar_oferta` (favorito), `search` (`search_term`: lo escrito
+  en «Buscar») y `share` (copiar el enlace de una búsqueda). Las visitas con `?propietario=1` no
+  cuentan. En la propiedad: *Medición mejorada → Vistas de página → Configuración avanzada*:
+  desactiva **«Cambios de página basados en eventos del historial del navegador»** (si no, cada
+  sección cuenta dos veces); *Google Signals* desactivado; **eventos clave** `clic_oferta` y
+  `guardar_oferta`; **dimensiones personalizadas** (de evento) `web`, `tipo`, `destino` y
+  `enlace`, y la métrica `precio`. Vacío, nada de Google Analytics.
 - **Travelpayouts Drive (opcional)**: con `"travelpayoutsDrive": "https://emrldco.com/….js?t=…"`
   (la dirección `src` del código de Travelpayouts → Drive → *Instalación manual*) en
   `config/ajustes.json`, el despliegue abre la CSP a Drive y lo mete en el mismo aviso de
