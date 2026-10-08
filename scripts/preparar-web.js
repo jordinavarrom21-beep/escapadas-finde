@@ -165,9 +165,9 @@ export function ponerGoogleAds(html, googleAds) {
  * el resto de su código del mismo sitio y le pide allí su configuración y qué enlaces cambiar;
  * mn-tz.com y emrld.cc son sus comprobaciones de bloqueadores (están en su código) y
  * www.travelpayouts.com/check_auth mira si quien visita es el dueño de la cuenta (para su
- * editor visual; sin él, un error en la consola). Los enlaces que cambia llevan a sus dominios
- * de redirección: es navegar, no hace falta abrir nada. Comprobado en escapadasfinde.com con
- * Drive activo. Si un día pide otro dominio, la consola del navegador lo dice («Refused to connect…»).
+ * editor visual). Los enlaces que cambia llevan a sus dominios de redirección: es navegar, no
+ * hace falta abrir nada. Comprobado en escapadasfinde.com con Drive activo. Si un día pide
+ * otro dominio, la consola del navegador lo dice («Refused to connect…»).
  */
 const DRIVE_CONEXIONES = ['https://mn-tz.com', 'https://emrld.cc', 'https://www.travelpayouts.com'];
 function cspDrive(url) {
@@ -203,8 +203,7 @@ export function ponerDriveGuia(html, drive) {
   const raiz = html.match(/<link rel="stylesheet" href="([^"]*)css\/estilos\.css">/)?.[1];
   if (raiz == null) return html;
   const conScripts = html.replace(/(<meta http-equiv="Content-Security-Policy" content="[^"]*?)script-src 'none'/, "$1script-src 'self'");
-  // Sus vistas previas de enlaces llevan sus propios estilos en línea (como en la portada, que
-  // ya los permite); sin esto se ven sin diseño en las guías.
+  // Sus previsualizaciones llevan sus propios estilos (en shadow DOM), como en la portada.
   return ajustarCsp(conScripts, { ...cspDrive(url), 'style-src': ["'unsafe-inline'"] }, true)
     .replace(META_CSP, `$1\n<meta name="escapadas-drive" content="${url}">`)
     .replace('</head>', `<script src="${raiz}js/anuncios.js" defer></script>\n</head>`)
