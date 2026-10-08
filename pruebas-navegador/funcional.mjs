@@ -343,6 +343,44 @@ ok((await m.locator('.navegacion a[data-vista="calendario"]').getAttribute('aria
 ok((await m.locator('.navegacion > ul > li').count()) === 4, 'móvil: cuatro apartados abajo');
 await cm.close();
 
+// ── Aviso de cookies con Google Analytics y Drive: cada uno con su permiso ──
+// La portada como la deja el despliegue (etiquetas y CSP); gtag.js y Drive, simulados (vacíos).
+const { ponerDrive, ponerGoogleAnalytics } = await import('../scripts/preparar-web.js');
+const conCookies = ponerDrive(ponerGoogleAnalytics(readFileSync(path.join(RAIZ, 'site/index.html'), 'utf8'), 'G-PRUEBA1234'), 'https://drive.example.com/drive.js?t=1');
+const ck = await contexto();
+await ck.route((url) => ['/', '/index.html'].includes(url.pathname) && url.hostname === '127.0.0.1', (r) => r.fulfill({ body: conCookies, contentType: 'text/html; charset=utf-8' }));
+const cargados = [];
+await ck.route(/googletagmanager\.com|drive\.example\.com/, (r) => { cargados.push(new URL(r.request().url()).hostname); return r.fulfill({ body: '', contentType: 'text/javascript' }); });
+const k = await pagina(ck);
+const visitas = () => k.evaluate(() => (window.dataLayer ?? []).filter((e) => e[0] === 'event' && e[1] === 'page_view').map((e) => e[2].page_location.replace(location.origin, '')));
+await ir(k, 'finde');
+ok(await k.locator('.aviso-cookies').isVisible(), 'cookies: el aviso sale en la primera visita');
+ok(!cargados.length && !(await visitas()).length, 'cookies: nada de Google ni de Drive antes de elegir');
+await k.locator('.aviso-cookies [data-cookies="elegir"]').click();
+ok((await k.locator('.aviso-cookies__opcion').count()) === 2 && !(await k.locator('.aviso-cookies__opcion input:checked').count()), 'cookies: «Configurar» enseña cada finalidad, sin marcar');
+await k.locator('.aviso-cookies__opcion:has(input[name="analytics"])').click();
+await k.locator('.aviso-cookies [data-cookies="guardar"]').click();
+await k.waitForTimeout(300);
+ok(!(await k.locator('.aviso-cookies').count()) && cargados.includes('www.googletagmanager.com') && !cargados.includes('drive.example.com'), 'cookies: solo la medición: Google Analytics sí, Drive no');
+ok(JSON.stringify(await visitas()) === '["/#/finde"]', `analytics: la visita a Inicio (${await visitas()})`);
+await k.evaluate(() => { location.hash = '#/escapadas?orden=precio'; });
+await k.waitForTimeout(400);
+await k.evaluate(() => { location.hash = '#/escapadas?orden=distancia'; });
+await k.waitForTimeout(400);
+ok(JSON.stringify(await visitas()) === '["/#/finde","/#/escapadas"]', `analytics: una visita por sección, sin filtros (${await visitas()})`);
+await k.reload();
+await k.waitForSelector('#principal .titulo-vista');
+await k.waitForTimeout(500);
+ok(!(await k.locator('.aviso-cookies').count()) && (await visitas()).length === 1, 'cookies: la elección se recuerda y la medición sigue al volver');
+await k.locator('[data-abrir-cookies]').first().click();
+ok(await k.locator('.aviso-cookies__opcion input[name="analytics"]').isChecked() && !(await k.locator('.aviso-cookies__opcion input[name="drive"]').isChecked()), 'cookies: «Cookies» del pie enseña lo aceptado');
+await k.locator('.aviso-cookies [data-cookies="no"]').click();
+await k.waitForLoadState('load');
+await k.waitForSelector('#principal .titulo-vista');
+await k.waitForTimeout(500);
+ok(!(await visitas()).length && JSON.parse(await k.evaluate(() => localStorage.getItem('escapadas-cookies'))).decision === 'no', 'cookies: «Rechazar» recarga sin Google Analytics');
+await ck.close();
+
 // ── Service worker: instala la interfaz (fuentes e iconos incluidos) y funciona sin conexión ──
 // Con service worker (el resto de pruebas lo bloquean para no mezclar cachés).
 const cs = await contexto({ serviceWorkers: 'allow' });

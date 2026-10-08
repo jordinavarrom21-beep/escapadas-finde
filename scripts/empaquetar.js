@@ -16,7 +16,7 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 import { CARPETAS, generarPaginas } from '../src/paginas.js';
-import { driveDeAjustes, googleAdsDeAjustes, leerArgumentos, normalizarBase, ponerDireccion, prepararWeb, quitarDireccion } from './preparar-web.js';
+import { driveDeAjustes, googleAdsDeAjustes, googleAnalyticsDeAjustes, leerArgumentos, normalizarBase, ponerDireccion, prepararWeb, quitarDireccion } from './preparar-web.js';
 import { basePages } from './datos-publicados.js';
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -90,7 +90,7 @@ export function empaquetar({ dominio = null, salida = path.join(RAIZ, 'dist'), d
 
   // En GitHub Actions, la del commit (la misma que Pages): la interfaz se renueva solo si cambia.
   const version = process.env.GITHUB_SHA ? `hosting-${process.env.GITHUB_SHA.slice(0, 12)}` : `zip-${datosPanel.generado.replace(/\D/g, '').slice(0, 12)}`;
-  const hecho = prepararWeb({ dir: destino, base, version, conHtaccess: true, datos, googleAds: googleAdsDeAjustes(), drive: driveDeAjustes() });
+  const hecho = prepararWeb({ dir: destino, base, version, conHtaccess: true, datos, googleAds: googleAdsDeAjustes(), drive: driveDeAjustes(), googleAnalytics: googleAnalyticsDeAjustes() });
   // Sin dominio: nada de direcciones de otra web (la de GitHub Pages, si site/ ya venía
   // preparada) y el enlace de la 404 a la raíz (la 404 se sirve en cualquier ruta).
   if (!base) {

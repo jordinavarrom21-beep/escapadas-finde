@@ -5,6 +5,7 @@
  */
 import { problemasDrive } from './drive.js';
 import { problemasGoogleAds } from './google-ads.js';
+import { problemasGoogleAnalytics } from './google-analytics.js';
 import { problemasLegal } from './legal.js';
 import { cargarJson } from './almacen.js';
 
@@ -180,6 +181,7 @@ export function validarAjustes(ajustes) {
     `viajeros debe ser un número entero de personas mayor o igual que 1 (ahora: ${ajustes.viajeros})`);
   problemas.push(...problemasPreferencias(ajustes.preferencias));
   problemas.push(...problemasGoogleAds(ajustes.googleAds));
+  problemas.push(...problemasGoogleAnalytics(ajustes.googleAnalytics));
   problemas.push(...problemasDrive(ajustes.travelpayoutsDrive));
   problemas.push(...problemasLegal(ajustes.legal));
   return problemas;
