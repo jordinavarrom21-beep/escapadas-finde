@@ -65,6 +65,13 @@ describe('arranque de la web', () => {
     assert.match(leer('js/anuncios.js'), /else if \(acepta\.length\) despuesDelPanel\(\(\) => activar\(acepta\)\)/);
   });
 
+  it('sin saltos al pintar (CLS): la vista se sabe desde el principio y el hueco se reserva mientras carga', () => {
+    assert.match(leer('js/tema.js'), /document\.documentElement\.dataset\.vistaInicial = location\.hash/);
+    const css = readFileSync(new URL('css/estilos.css', SITE), 'utf8');
+    assert.match(css, /html\[data-vista-inicial="finde"\] body:not\(\[data-vista\]\) #boton-viaje/);
+    assert.match(css, /\.js #principal:has\(> \.cargando\) \{ min-height: 100vh; \}/);
+  });
+
   it('el service worker no mezcla versiones: la interfaz guardada no se cambia por detrás', () => {
     const sw = leer('sw.js');
     const primeroCache = sw.slice(sw.indexOf('async function primeroCache'), sw.indexOf('self.addEventListener(\'fetch\''));

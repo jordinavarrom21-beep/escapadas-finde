@@ -216,7 +216,7 @@ export function vistaAyuda(e) {
   <h2 class="subtitulo">Privacidad</h2>
   <ul class="ayuda-lista">
     ${privacidadCookies(e)}
-    <li>Tus favoritos, búsquedas guardadas, ciudad de salida y preferencias se guardan <strong>solo en este navegador</strong>. No se envían a ningún sitio; se borran borrando los datos del sitio en tu navegador.</li>
+    <li>Tus favoritos, búsquedas guardadas, ciudad de salida y preferencias se guardan <strong>solo en este navegador</strong> (en su almacenamiento, no en cookies). No se envían a ningún sitio y <strong>no se sincronizan</strong> con tus otros dispositivos o navegadores, porque no hay cuentas: para llevarlos a otro, usa «Descargar mis guardados» en <a href="#/mis">Guardados</a> y cárgalos allí. Se borran borrando los datos del sitio en tu navegador.</li>
     <li>«Mi ubicación» solo se usa si lo pulsas, para medir distancias en tu dispositivo.</li>
     <li>Al buscar un pueblo o ciudad, lo que escribes se consulta en <a href="https://photon.komoot.io" target="_blank" rel="noopener noreferrer">Photon</a>; el mapa carga sus imágenes de <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>.</li>
     <li>Si eliges una salida distinta de la de serie, los kilómetros por carretera se calculan con <a href="https://project-osrm.org" target="_blank" rel="noopener noreferrer">OSRM</a>: se le envían las coordenadas de tu salida y de los destinos (nada más). El mapa y la gráfica de precios cargan sus librerías desde <a href="https://cdnjs.com" target="_blank" rel="noopener noreferrer">cdnjs</a>.</li>
@@ -236,12 +236,14 @@ ${seccionAvisoLegal(e)}
 function privacidadCookies(e) {
   if (!e.googleAnalytics && !e.googleAds && !e.drive) return '<li><strong>Sin cuentas, sin cookies, sin publicidad y sin seguimiento.</strong></li>';
   const items = [];
+  // Primero lo que vale para todos: sin aceptar nada, la web es la misma y no hay cookies opcionales.
+  const base = '<li><strong>Sin cuentas y sin publicidad en la web.</strong> Si no aceptas nada (o pulsas «Rechazar»), la web funciona entera y <strong>no usa ninguna cookie opcional</strong>: ni de medición, ni de publicidad, ni de afiliación. Tu elección se guarda en este navegador, no en una cookie.</li>';
   if (e.googleAnalytics) items.push(`<strong>Cookies de medición de Google Analytics, solo si las aceptas</strong> en el aviso: cuentan las visitas a cada sección de la web, qué ofertas abres, guardas o compartes y a qué web vas desde ellas, lo que escribes en «Buscar» (para saber qué destinos interesan) y datos generales del navegador, el dispositivo y la zona (no la dirección IP), para saber qué se usa y mejorarlo. Los filtros que eliges no se envían. Los trata Google por cuenta nuestra y pueden llegar a EE. UU. (Marco de Privacidad de Datos UE-EE. UU.). Si las rechazas no se carga Google Analytics y la web funciona igual.`);
   if (e.googleAds) items.push(`<strong>Cookies de Google Ads, solo si las aceptas</strong> en el aviso: sirven para saber si quien llega por un anuncio nuestro entra en alguna oferta. Si las rechazas no se carga Google Ads y la web funciona igual.`);
   if (e.drive) items.push(`<strong>Cookies de afiliación de Travelpayouts, solo si las aceptas</strong> en el aviso: si reservas en una web de su red (Booking.com, Trip.com, Omio…) después de pasar por aquí, esa web nos paga una comisión; tu precio no cambia. Para eso su código, que se carga desde sus servidores, convierte los enlaces a esas webs en enlaces de afiliado, guarda una cookie de sesión y recibe la dirección y el texto de la página que ves. Si las rechazas no se carga nada de Travelpayouts y la web funciona igual.`);
   // Con más de una, «Configurar» en el aviso deja aceptar cada una por separado.
   const cambiar = items.length > 1 ? ' <a href="#" data-abrir-cookies>Cambiar tu elección o elegir cuáles</a>' : ' <a href="#" data-abrir-cookies>Cambiar tu elección</a>';
-  return ['<li><strong>Sin cuentas y sin publicidad en la web.</strong></li>', ...items.map((texto, i) => `<li>${texto}${i === items.length - 1 ? cambiar : ''}</li>`)].join('\n    ');
+  return [base, ...items.map((texto, i) => `<li>${texto}${i === items.length - 1 ? cambiar : ''}</li>`)].join('\n    ');
 }
 
 /**
@@ -374,7 +376,7 @@ export function vistaMis(e, params = {}) {
   const noDisponibles = marcadas('no-disponible');
   const comparar = [...(e.comparar ?? [])].filter((id) => e.porId.has(id)).length;
   const email = e.datos.avisos?.email;
-  const copia = seccion(conIcono('guardar', 'Copia de seguridad'), `<p>Todo esto se guarda solo en este navegador. Sin cuenta: descarga un archivo con tus favoritos, búsquedas, comparación y preferencias, y cárgalo en otro navegador o dispositivo (sustituye lo que haya allí).</p>
+  const copia = seccion(conIcono('guardar', 'Copia de seguridad'), `<p>Todo esto se guarda solo en este navegador y <strong>no se sincroniza</strong> con tus otros dispositivos (no hay cuentas). Para tenerlo en otro navegador o dispositivo, descarga aquí un archivo con tus favoritos, búsquedas, comparación y preferencias y cárgalo allí (sustituye lo que haya).</p>
 <p class="acciones"><button type="button" class="boton boton--suave boton--mini" data-exportar-guardados>${icono('externo')}Descargar mis guardados</button>
 <label class="boton boton--suave boton--mini">${icono('deshacer')}Cargar una copia<input type="file" accept="application/json,.json" data-importar-guardados class="sr"></label></p>`);
   if (params.ver === 'busquedas') {

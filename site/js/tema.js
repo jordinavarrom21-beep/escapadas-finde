@@ -13,6 +13,10 @@
 // Con JavaScript, la portada para buscadores (.portada-estatica) no llega a verse: el panel
 // la sustituye al pintar y así no salta de un contenido a otro.
 document.documentElement.classList.add('js');
+// La vista que se va a pintar, ya desde el principio: en la portada la cabecera no lleva la
+// búsqueda ni «Tu salida» (estilos: body[data-vista="finde"]) y, si se quitaban al pintar, todo
+// lo de debajo subía de golpe (desplazamiento de contenido, CLS).
+document.documentElement.dataset.vistaInicial = location.hash.replace(/^#\/?/, '').split('?')[0] || 'finde';
 try {
   const tema = localStorage.getItem('escapadas:tema');
   if (tema === 'claro' || tema === 'oscuro') document.documentElement.dataset.theme = tema === 'claro' ? 'light' : 'dark';
