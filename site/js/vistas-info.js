@@ -229,16 +229,19 @@ ${seccionAvisoLegal(e)}
 }
 
 /**
- * Las cookies, según lo que haya configurado (ver site/js/anuncios.js): sin Google Ads ni
- * Drive, ninguna; con ellos, qué hace cada uno, que solo van si se aceptan y cómo cambiarlo.
+ * Las cookies, según lo que haya configurado (ver site/js/anuncios.js): sin Google Analytics,
+ * Google Ads ni Drive, ninguna; con ellos, qué hace cada uno, que solo van si se aceptan (cada
+ * uno por separado) y cómo cambiarlo.
  */
 function privacidadCookies(e) {
-  if (!e.googleAds && !e.drive) return '<li><strong>Sin cuentas, sin cookies, sin publicidad y sin seguimiento.</strong></li>';
-  const cambiar = ' <a href="#" data-abrir-cookies>Cambiar tu elección</a>';
-  const items = ['<li><strong>Sin cuentas y sin publicidad en la web.</strong></li>'];
-  if (e.googleAds) items.push(`<li><strong>Cookies de Google Ads, solo si las aceptas</strong> en el aviso: sirven para saber si quien llega por un anuncio nuestro entra en alguna oferta. Si las rechazas no se carga nada de Google y la web funciona igual.${e.drive ? '' : cambiar}</li>`);
-  if (e.drive) items.push(`<li><strong>Cookies de afiliación de Travelpayouts, solo si las aceptas</strong> en el aviso: si reservas en una web de su red (Booking.com, Trip.com, Omio…) después de pasar por aquí, esa web nos paga una comisión; tu precio no cambia. Para eso su código, que se carga desde sus servidores, convierte los enlaces a esas webs en enlaces de afiliado, guarda una cookie de sesión y recibe la dirección y el texto de la página que ves. Si las rechazas no se carga nada de Travelpayouts y la web funciona igual.${cambiar}</li>`);
-  return items.join('\n    ');
+  if (!e.googleAnalytics && !e.googleAds && !e.drive) return '<li><strong>Sin cuentas, sin cookies, sin publicidad y sin seguimiento.</strong></li>';
+  const items = [];
+  if (e.googleAnalytics) items.push(`<strong>Cookies de medición de Google Analytics, solo si las aceptas</strong> en el aviso: cuentan las visitas a cada sección de la web, a qué web vas desde una oferta y datos generales del navegador, el dispositivo y la zona (no la dirección IP), para saber qué se usa y mejorarlo. No se envía lo que buscas ni los filtros que eliges. Los trata Google por cuenta nuestra y pueden llegar a EE. UU. (Marco de Privacidad de Datos UE-EE. UU.). Si las rechazas no se carga Google Analytics y la web funciona igual.`);
+  if (e.googleAds) items.push(`<strong>Cookies de Google Ads, solo si las aceptas</strong> en el aviso: sirven para saber si quien llega por un anuncio nuestro entra en alguna oferta. Si las rechazas no se carga Google Ads y la web funciona igual.`);
+  if (e.drive) items.push(`<strong>Cookies de afiliación de Travelpayouts, solo si las aceptas</strong> en el aviso: si reservas en una web de su red (Booking.com, Trip.com, Omio…) después de pasar por aquí, esa web nos paga una comisión; tu precio no cambia. Para eso su código, que se carga desde sus servidores, convierte los enlaces a esas webs en enlaces de afiliado, guarda una cookie de sesión y recibe la dirección y el texto de la página que ves. Si las rechazas no se carga nada de Travelpayouts y la web funciona igual.`);
+  // Con más de una, «Configurar» en el aviso deja aceptar cada una por separado.
+  const cambiar = items.length > 1 ? ' <a href="#" data-abrir-cookies>Cambiar tu elección o elegir cuáles</a>' : ' <a href="#" data-abrir-cookies>Cambiar tu elección</a>';
+  return ['<li><strong>Sin cuentas y sin publicidad en la web.</strong></li>', ...items.map((texto, i) => `<li>${texto}${i === items.length - 1 ? cambiar : ''}</li>`)].join('\n    ');
 }
 
 /**

@@ -150,26 +150,27 @@ describe('Travelpayouts Drive en las guías para buscadores', () => {
 
 describe('aviso de cookies con Drive (anuncios.js)', () => {
   it('Drive solo se carga dentro de activar(), con la dirección de la etiqueta', () => {
-    const activar = ANUNCIOS.slice(ANUNCIOS.indexOf('function activar()'), ANUNCIOS.indexOf('function desactivar()'));
+    const activar = ANUNCIOS.slice(ANUNCIOS.indexOf('function activar('), ANUNCIOS.indexOf('function retirar('));
+    assert.match(activar, /if \(drive && acepta\.includes\('drive'\) && !activo\.has\('drive'\)\) \{/);
     assert.match(activar, /script\.src = drive;/);
     assert.equal(ANUNCIOS.match(/script\.src = drive;/g).length, 1);
     assert.doesNotMatch(ANUNCIOS, /emrldco/, 'la dirección sale de la etiqueta, no del código');
-    assert.match(ANUNCIOS, /if \(!id && !drive\) return;/);
+    assert.match(ANUNCIOS, /if \(!id && !drive && !analitica\) return;/);
   });
 
   it('rechazar borra lo de Drive, y quien solo aceptó Google Ads vuelve a ver el aviso', () => {
-    const desactivar = ANUNCIOS.slice(ANUNCIOS.indexOf('function desactivar()'), ANUNCIOS.indexOf('function colocar('));
-    assert.match(desactivar, /am_user_session/);
-    assert.match(desactivar, /emerald_\|mn:/);
-    assert.match(desactivar, /if \(driveCargado\) location\.reload\(\);/);
-    assert.match(ANUNCIOS, /ALCANCE\.every\(\(a\) => \(guardada\.para \?\? \['google-ads'\]\)\.includes\(a\)\)/);
-    assert.match(ANUNCIOS, /JSON\.stringify\(\{ decision, para: ALCANCE,/);
+    const retirar = ANUNCIOS.slice(ANUNCIOS.indexOf('function retirar('), ANUNCIOS.indexOf('function colocar('));
+    assert.match(retirar, /fuera\.includes\('drive'\) && 'am_user_session\$'/);
+    assert.match(retirar, /emerald_\|mn:/);
+    assert.match(retirar, /if \(fuera\.some\(\(clave\) => activo\.has\(clave\)\)\) location\.reload\(\);/);
+    assert.match(ANUNCIOS, /const preguntado = guardada\.para \?\? \['google-ads'\];/);
+    assert.match(ANUNCIOS, /if \(acepta\.length && !ALCANCE\.every\(\(a\) => preguntado\.includes\(a\)\)\) return eleccionVisita;/);
+    assert.match(ANUNCIOS, /JSON\.stringify\(\{ decision, para: ALCANCE, acepta,/);
   });
 
-  it('el aviso pregunta por lo que hay: afiliación, Google Ads o los dos', () => {
-    assert.match(ANUNCIOS, /¿Aceptas cookies de afiliación\?/);
-    assert.match(ANUNCIOS, /¿Aceptas cookies de Google Ads y de afiliación\?/);
-    assert.match(ANUNCIOS, /¿Aceptas cookies de Google Ads\?/);
+  it('el aviso pregunta por lo que hay: medición, Google Ads, afiliación o varias', () => {
+    assert.match(ANUNCIOS, /¿Aceptas cookies de \$\{enumerar\(FINALIDADES\.map\(\(f\) => f\.corto\)\)\}\?/);
+    for (const corto of ['medición', 'Google Ads', 'afiliación']) assert.ok(ANUNCIOS.includes(`corto: '${corto}'`), corto);
     // «Más información» lleva a la privacidad también desde las guías.
     assert.match(ANUNCIOS, /href="\$\{raiz\}#\/ayuda\?seccion=privacidad"/);
   });

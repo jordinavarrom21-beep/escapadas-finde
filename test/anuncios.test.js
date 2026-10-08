@@ -98,18 +98,29 @@ describe('Google Ads en la web publicada', () => {
 });
 
 describe('aviso de cookies (anuncios.js)', () => {
+  const entre = (desde, hasta) => ANUNCIOS.slice(ANUNCIOS.indexOf(desde), ANUNCIOS.indexOf(hasta));
   it('nada de Google hasta aceptar: consentimiento denegado de serie y gtag.js solo dentro de activar()', () => {
-    assert.match(ANUNCIOS, /gtag\('consent', 'default', \{ ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied'/);
-    const activar = ANUNCIOS.slice(ANUNCIOS.indexOf('function activar()'), ANUNCIOS.indexOf('function desactivar()'));
-    assert.match(activar, /googletagmanager\.com\/gtag\/js/);
+    assert.match(ANUNCIOS, /gtag\('consent', 'default', \{ ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied', analytics_storage: 'denied' \}\)/);
+    assert.match(entre('function cargarGtag(', 'function activar('), /googletagmanager\.com\/gtag\/js/);
     assert.equal(ANUNCIOS.match(/googletagmanager\.com\/gtag\/js/g).length, 1);
+    // Se carga desde activar() y solo con el permiso de cada uno (Ads o la medición).
+    const activar = entre('function activar(', 'function retirar(');
+    assert.equal(ANUNCIOS.match(/cargarGtag\(/g).length, 3);
+    assert.equal(activar.match(/cargarGtag\(/g).length, 2);
+    assert.match(activar, /const anuncios = Boolean\(id && acepta\.includes\('google-ads'\)\);/);
   });
   it('«Rechazar» y «Aceptar» en el mismo aviso, y la conversión solo con permiso', () => {
     assert.match(ANUNCIOS, /data-cookies="no">Rechazar</);
     assert.match(ANUNCIOS, /data-cookies="si">Aceptar</);
-    assert.match(ANUNCIOS, /conversion && cargado && leer\(\) === 'si'/);
-    // Sin localStorage, la decisión vale durante la visita.
-    assert.match(ANUNCIOS, /decisionVisita = decision/);
+    assert.match(ANUNCIOS, /conversion && activo\.has\('google-ads'\) && permitido\('google-ads'\)/);
+    // Sin localStorage, la elección vale durante la visita.
+    assert.match(ANUNCIOS, /eleccionVisita = acepta/);
+  });
+  it('con más de una finalidad, «Configurar»: una casilla por cada una, sin marcar de entrada', () => {
+    assert.match(ANUNCIOS, /const variasFinalidades = FINALIDADES\.length > 1;/);
+    assert.match(ANUNCIOS, /data-cookies="\$\{configurando \? 'guardar' : 'elegir'\}"/);
+    assert.match(ANUNCIOS, /opciones\(anterior \?\? \[\]\)/);
+    assert.match(ANUNCIOS, /acepta\.includes\(f\.clave\) \? ' checked' : ''/);
   });
   it('la página lo carga y el pie tiene dónde poner «Cookies»', () => {
     assert.match(INDICE, /<script src="js\/anuncios\.js" defer><\/script>/);

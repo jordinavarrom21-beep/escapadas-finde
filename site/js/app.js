@@ -66,7 +66,8 @@ let origenFicha = null;
  * esa web no responde, se usa la copia que lleva el propio hosting.
  */
 const DATOS_REMOTOS = document.querySelector('meta[name="escapadas-datos"]')?.content || null;
-/** Con Google Ads o Travelpayouts Drive configurados (ver anuncios.js), la privacidad lo explica. */
+/** Con Google Analytics, Google Ads o Travelpayouts Drive configurados (ver anuncios.js), la privacidad lo explica. */
+const GOOGLE_ANALYTICS = Boolean(document.querySelector('meta[name="escapadas-google-analytics"]'));
 const GOOGLE_ADS = Boolean(document.querySelector('meta[name="escapadas-google-ads"]'));
 const DRIVE = Boolean(document.querySelector('meta[name="escapadas-drive"]'));
 
@@ -136,6 +137,7 @@ function crearEstado(datos, historial, vigilados) {
     historial,
     vigilados: vigilados.vigilados ?? [],
     vigiladosPrivados: Boolean(vigilados.privados),
+    googleAnalytics: GOOGLE_ANALYTICS,
     googleAds: GOOGLE_ADS,
     drive: DRIVE,
     ahora,
@@ -388,6 +390,8 @@ function render({ enfocar = true } = {}) {
   }
   // «#/ayuda?seccion=privacidad»: directo a esa sección.
   if (params.seccion) principal.querySelector(`#${CSS.escape(params.seccion)}`)?.scrollIntoView();
+  // Otra sección (o la primera): anuncios.js la cuenta como visita si se acepta la medición.
+  if (cambiaVista) window.dispatchEvent(new CustomEvent('escapadas:vista', { detail: vista }));
 }
 
 function actualizarResultados(vista, params) {

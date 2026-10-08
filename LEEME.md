@@ -261,8 +261,8 @@ para cualquier visitante:
 
 - **Primera visita**: una bienvenida de una línea (qué es y cómo se usa) que se cierra con
   «Entendido»; **Cómo funciona** (`#/ayuda`), enlazada desde el pie, con preguntas frecuentes
-  y la **privacidad** (sin cuentas, cookies ni seguimiento salvo lo que aceptes de Google Ads o
-  Travelpayouts, si están activados; lo guardado vive en su navegador).
+  y la **privacidad** (sin cuentas, cookies ni seguimiento salvo lo que aceptes de Google Analytics,
+  Google Ads o Travelpayouts, si están activados; lo guardado vive en su navegador).
 - **Aviso legal**: «Cómo funciona» → Aviso legal, enlazado desde el pie. Quién está detrás sale de
   `"legal": {"titular", "nif", "domicilio", "email"}` en `config/ajustes.json` (obligatorio en
   España para una web con enlaces de afiliado o anuncios, LSSI art. 10). Sin titular o email no se
@@ -272,6 +272,16 @@ para cualquier visitante:
   `config/ajustes.json`, el despliegue añade un aviso de cookies con «Aceptar» y «Rechazar».
   Nada de Google se carga hasta aceptar (modo de consentimiento v2), cada clic en una oferta
   cuenta como conversión y la privacidad lo explica. Con `id` vacío, la web sigue sin cookies.
+- **Google Analytics 4 (opcional)**: con `"googleAnalytics": "G-…"` (el ID de medición del flujo
+  de datos web: Analytics → Administrar → Flujos de datos) en `config/ajustes.json`, el despliegue
+  abre la CSP a Analytics y lo mete en el mismo aviso de cookies, en la portada y en las guías.
+  Nada se carga hasta aceptar la medición (con varias finalidades, «Configurar» deja elegir cada
+  una). Cuenta una visita por sección del panel (`#/escapadas`…, sin filtros ni búsquedas) y cada
+  clic en una oferta como evento `clic_oferta` con la web (`web`), el tipo de enlace y el de oferta.
+  Las visitas con `?propietario=1` no cuentan. En la propiedad: *Medición mejorada → Vistas de
+  página → Configuración avanzada*: desactiva **«Cambios de página basados en eventos del historial
+  del navegador»** (si no, cada sección cuenta dos veces); *Google Signals* desactivado; marca
+  `clic_oferta` como **evento clave**. Vacío, nada de Google Analytics.
 - **Travelpayouts Drive (opcional)**: con `"travelpayoutsDrive": "https://emrldco.com/….js?t=…"`
   (la dirección `src` del código de Travelpayouts → Drive → *Instalación manual*) en
   `config/ajustes.json`, el despliegue abre la CSP a Drive y lo mete en el mismo aviso de

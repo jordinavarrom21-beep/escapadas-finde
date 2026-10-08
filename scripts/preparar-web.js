@@ -9,6 +9,8 @@
  *  - con «googleAds» en config/ajustes.json: el aviso de cookies y Google Ads (anuncios.js);
  *  - con «travelpayoutsDrive»: Travelpayouts Drive en el mismo aviso (solo con permiso), en
  *    index.html y en las guías para buscadores;
+ *  - con «googleAnalytics»: Google Analytics 4 en el mismo aviso (solo con permiso), también
+ *    en la portada y en las guías;
  *  - con --htaccess: el .htaccess para Apache/LiteSpeed (Hostinger): HTTPS, dominio
  *    único, 404, compresión, cabeceras de seguridad y caché.
  *
@@ -21,6 +23,7 @@ import { fileURLToPath } from 'node:url';
 import { normalizarDrive, problemasDrive } from '../src/drive.js';
 import { AVISO_DRIVE } from '../site/js/formato.js';
 import { normalizarGoogleAds, problemasGoogleAds } from '../src/google-ads.js';
+import { normalizarGoogleAnalytics, problemasGoogleAnalytics } from '../src/google-analytics.js';
 import { CARPETAS, estructuradosPortada, generarPaginas } from '../src/paginas.js';
 
 /** «--base=x» o «--base x» → {base: 'x'}; «--htaccess» → {htaccess: true}. */
@@ -202,13 +205,61 @@ export function ponerDriveGuia(html, drive) {
   // La guía enlaza sus estilos con la ruta relativa a la raíz: la misma vale para js/.
   const raiz = html.match(/<link rel="stylesheet" href="([^"]*)css\/estilos\.css">/)?.[1];
   if (raiz == null) return html;
-  const conScripts = html.replace(/(<meta http-equiv="Content-Security-Policy" content="[^"]*?)script-src 'none'/, "$1script-src 'self'");
   // Sus previsualizaciones llevan sus propios estilos (en shadow DOM), como en la portada.
-  return ajustarCsp(conScripts, { ...cspDrive(url), 'style-src': ["'unsafe-inline'"] }, true)
-    .replace(META_CSP, `$1\n<meta name="escapadas-drive" content="${url}">`)
+  const conDrive = ajustarCsp(conAvisoCookies(html, raiz), { ...cspDrive(url), 'style-src': ["'unsafe-inline'"] }, true)
+    .replace(META_CSP, `$1\n<meta name="escapadas-drive" content="${url}">`);
+  // El mismo aviso que el pie del panel (app.js): con Drive, tras aceptar, hay enlaces de afiliado.
+  return conDrive.replace(PIE_GUIA, (todo, antes, cierre) => `${antes} ${AVISO_DRIVE} No cambia tu precio ni el orden de las ofertas.${cierre}`);
+}
+
+/** El último párrafo del pie de una guía (src/paginas.js). */
+const PIE_GUIA = /(<footer class="pie[^>]*>[^]*?)(<\/p>\s*<\/footer>)/;
+
+/**
+ * Lo que comparten Drive y Google Analytics en una guía: la CSP deja cargar scripts propios,
+ * anuncios.js (el aviso de cookies) y «Cookies» en el pie para cambiar de opinión. Una sola
+ * vez aunque estén los dos.
+ */
+function conAvisoCookies(html, raiz) {
+  if (html.includes('js/anuncios.js')) return html;
+  return html
+    .replace(/(<meta http-equiv="Content-Security-Policy" content="[^"]*?)script-src 'none'/, "$1script-src 'self'")
     .replace('</head>', `<script src="${raiz}js/anuncios.js" defer></script>\n</head>`)
-    // El mismo aviso que el pie del panel (app.js): con Drive, tras aceptar, hay enlaces de afiliado.
-    .replace(/(<footer class="pie[^>]*>[^]*?)(<\/p>\s*<\/footer>)/, (todo, antes, cierre) => `${antes} · <a href="#" data-abrir-cookies>Cookies</a>. ${AVISO_DRIVE} No cambia tu precio ni el orden de las ofertas.${cierre}`);
+    .replace(PIE_GUIA, (todo, antes, cierre) => `${antes} · <a href="#" data-abrir-cookies>Cookies</a>.${cierre}`);
+}
+
+/**
+ * Lo que necesita Google Analytics 4 en la CSP (developers.google.com/tag-platform/security/guides/csp):
+ * gtag.js y los envíos de las visitas, que van a servidores de cada región
+ * (region1.google-analytics.com…), de ahí los comodines. Sus píxeles ya caben en img-src
+ * («https:»). Sin Google Signals (desactivado en la propiedad), no hace falta nada más. No
+ * coincide con ningún origen de Google Ads: quitar uno no toca al otro.
+ */
+const CSP_GOOGLE_ANALYTICS = {
+  'script-src': ['https://*.googletagmanager.com'],
+  'connect-src': ['https://*.google-analytics.com', 'https://*.analytics.google.com', 'https://*.googletagmanager.com'],
+};
+
+/**
+ * Google Analytics 4 en index.html: la etiqueta que lee anuncios.js (lo carga solo si el
+ * visitante acepta la medición) y la CSP abierta a Analytics. Sin ID válido, quita lo que
+ * hubiera. Se puede repetir sin duplicar nada.
+ */
+export function ponerGoogleAnalytics(html, googleAnalytics) {
+  const ga = normalizarGoogleAnalytics(googleAnalytics);
+  const nuevo = ajustarCsp(html.replace(/\s*<meta name="escapadas-google-analytics"[^>]*>/, ''), CSP_GOOGLE_ANALYTICS, Boolean(ga));
+  if (!ga) return nuevo;
+  return nuevo.replace(META_CSP, `$1\n  <meta name="escapadas-google-analytics" content="${ga}">`);
+}
+
+/** Google Analytics en una guía para buscadores, como Drive (ver ponerDriveGuia). */
+export function ponerAnaliticaGuia(html, googleAnalytics) {
+  const ga = normalizarGoogleAnalytics(googleAnalytics);
+  if (!ga || html.includes('<meta name="escapadas-google-analytics"')) return html;
+  const raiz = html.match(/<link rel="stylesheet" href="([^"]*)css\/estilos\.css">/)?.[1];
+  if (raiz == null) return html;
+  return ajustarCsp(conAvisoCookies(html, raiz), CSP_GOOGLE_ANALYTICS, true)
+    .replace(META_CSP, `$1\n<meta name="escapadas-google-analytics" content="${ga}">`);
 }
 
 /** Las guías para buscadores que haya en `dir` (escapadas/, vuelos/, actividades/). */
@@ -235,6 +286,18 @@ export function googleAdsDeAjustes(ruta = fileURLToPath(new URL('../config/ajust
   const problemas = problemasGoogleAds(googleAds);
   if (problemas.length) throw new Error(`config/ajustes.json: ${problemas.join('; ')}`);
   return normalizarGoogleAds(googleAds);
+}
+
+/**
+ * «googleAnalytics» de config/ajustes.json: null si no está o está vacío. Si está mal escrito,
+ * error (mejor que publicar sin medir y no enterarse).
+ */
+export function googleAnalyticsDeAjustes(ruta = fileURLToPath(new URL('../config/ajustes.json', import.meta.url))) {
+  if (!existsSync(ruta)) return null;
+  const { googleAnalytics } = JSON.parse(readFileSync(ruta, 'utf8'));
+  const problemas = problemasGoogleAnalytics(googleAnalytics);
+  if (problemas.length) throw new Error(`config/ajustes.json: ${problemas.join('; ')}`);
+  return normalizarGoogleAnalytics(googleAnalytics);
 }
 
 /**
@@ -359,7 +422,7 @@ ${unDominio}  # Las copias de seguridad de datos y la carpeta .git (despliegue d
 }
 
 /** Aplica todo a `dir`. Devuelve lo que ha hecho, para el registro. */
-export function prepararWeb({ dir = 'site', base = null, version = null, conHtaccess = false, datos = null, googleAds = null, drive = null } = {}) {
+export function prepararWeb({ dir = 'site', base = null, version = null, conHtaccess = false, datos = null, googleAds = null, drive = null, googleAnalytics = null } = {}) {
   const hecho = [];
   const quitadas = quitarCopias(dir);
   if (quitadas.length) hecho.push(`quitadas ${quitadas.length} copias de datos`);
@@ -394,6 +457,14 @@ export function prepararWeb({ dir = 'site', base = null, version = null, conHtac
       for (const ruta of enGuias) writeFileSync(ruta, ponerDriveGuia(readFileSync(ruta, 'utf8'), urlDrive));
       hecho.push(`Travelpayouts Drive con permiso (portada y ${enGuias.length} guías)`);
     }
+    // Y Google Analytics, igual.
+    const ga = normalizarGoogleAnalytics(googleAnalytics);
+    writeFileSync(indiceAds, ponerGoogleAnalytics(readFileSync(indiceAds, 'utf8'), ga));
+    if (ga) {
+      const enGuias = guias(dir);
+      for (const ruta of enGuias) writeFileSync(ruta, ponerAnaliticaGuia(readFileSync(ruta, 'utf8'), ga));
+      hecho.push(`Google Analytics ${ga} con permiso (portada y ${enGuias.length} guías)`);
+    }
   }
   const rutaOfertas = path.join(dir, 'data', 'ofertas.json');
   const datosPanel = existsSync(rutaOfertas) ? JSON.parse(readFileSync(rutaOfertas, 'utf8')) : null;
@@ -417,6 +488,6 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     console.error(`«${opciones.base}» no es una dirección válida`);
     process.exit(2);
   }
-  const hecho = prepararWeb({ dir: opciones.dir ?? 'site', base, version: opciones.version ?? null, conHtaccess: Boolean(opciones.htaccess), googleAds: googleAdsDeAjustes(), drive: driveDeAjustes() });
+  const hecho = prepararWeb({ dir: opciones.dir ?? 'site', base, version: opciones.version ?? null, conHtaccess: Boolean(opciones.htaccess), googleAds: googleAdsDeAjustes(), drive: driveDeAjustes(), googleAnalytics: googleAnalyticsDeAjustes() });
   console.log(`Web preparada: ${hecho.join(' · ') || 'nada que hacer'}`);
 }

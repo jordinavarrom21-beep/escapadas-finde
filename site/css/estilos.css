@@ -1231,16 +1231,32 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 /* Si también hay un aviso corto, el de datos nuevos sube para no taparlo. */
 .aviso-flotante--datos:not([hidden]) ~ .aviso-flotante:not(:empty) { bottom: calc(76px + var(--barra-movil) + var(--alto-cookies, 0px)); }
 
-/* Aviso de cookies (anuncios.js, solo con Google Ads): «Rechazar» y «Aceptar» igual de visibles. */
+/* Aviso de cookies (anuncios.js, con Google Analytics, Google Ads o Drive): «Rechazar» y «Aceptar» igual de visibles. */
 .aviso-cookies {
   position: fixed; left: 50%; bottom: calc(12px + var(--barra-movil)); transform: translateX(-50%); z-index: 70;
   width: min(620px, calc(100% - 24px)); padding: 14px 16px; display: grid; gap: 10px;
   border-radius: var(--radio-medio); border: 1px solid var(--borde-fuerte);
   background: var(--superficie); color: var(--texto); box-shadow: var(--sombra-alta); font-size: 0.9rem; line-height: 1.5;
+  /* Con «Configurar» abierto puede no caber en un móvil apaisado: se desplaza dentro. */
+  max-height: calc(100dvh - 24px - var(--barra-movil)); overflow-y: auto; overscroll-behavior: contain;
 }
 .aviso-cookies p { margin: 0; }
-.aviso-cookies__botones { display: flex; gap: 10px; justify-content: flex-end; }
+.aviso-cookies__elegir { display: grid; gap: 8px; margin: 0; padding: 0; border: 0; min-width: 0; }
+.aviso-cookies__opcion { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
+.aviso-cookies__opcion input { flex: none; width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--tinta); }
+.aviso-cookies__botones { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; justify-content: flex-end; }
 .aviso-cookies__botones .boton { flex: 1 1 0; max-width: 180px; justify-content: center; }
+/* «Configurar» es un enlace (Rechazar y Aceptar, iguales); abierto, «Guardar mi elección» es un botón. */
+.aviso-cookies__configurar:not(.boton) {
+  margin-right: auto; padding: 8px 2px; border: 0; background: none; color: var(--texto);
+  font: inherit; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; cursor: pointer;
+}
+.aviso-cookies__botones .aviso-cookies__configurar.boton { max-width: 220px; }
+@media (max-width: 520px) {
+  /* En el móvil, Rechazar y Aceptar juntos arriba; lo de elegir, debajo. */
+  .aviso-cookies__botones .aviso-cookies__configurar { order: 3; flex: 1 1 100%; text-align: center; }
+  .aviso-cookies__botones .aviso-cookies__configurar.boton { max-width: none; }
+}
 
 .pie {
   display: grid; gap: 10px; margin-top: 12px; padding-block: 0 40px;
