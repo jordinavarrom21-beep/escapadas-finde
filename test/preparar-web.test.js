@@ -97,4 +97,14 @@ describe('web para un hosting sin dominio fijo', () => {
     assert.deepEqual(leerArgumentos(['--sin-zip', '--dominio', '']), { 'sin-zip': true, dominio: '' });
     assert.match(htaccess(null), /RewriteRule \(\^\|\/\)\\\.git\(\/\|\$\) - \[F,L\]/, '.git nunca se sirve');
   });
+
+  it('una guía que hoy no existe lleva a la lista (302) en vez de a la 404, y el icono del iPhone siempre está', () => {
+    const texto = htaccess('https://escapadasfinde.com/');
+    // Solo si no hay archivo ni carpeta: las guías que sí existen se sirven tal cual.
+    assert.match(texto, /RewriteCond %\{REQUEST_FILENAME\} !-f\n {2}RewriteCond %\{REQUEST_FILENAME\} !-d\n {2}RewriteRule \^escapadas\/\[\^\/\]\+\/\?\$ \/escapadas\/ \[R=302,L\]/);
+    assert.match(texto, /RewriteRule \^\(vuelos\|actividades\)\(\/\.\*\)\?\$ \/ \[R=302,L\]/);
+    assert.match(texto, /RewriteRule \^apple-touch-icon-\(precomposed\|\[0-9\]\+x\[0-9\]\+\(-precomposed\)\?\)\\\.png\$ apple-touch-icon\.png \[L\]/);
+    // Dentro del bloque de mod_rewrite (si el servidor no lo tiene, no rompe nada).
+    assert.ok(texto.indexOf('/escapadas/ [R=302,L]') < texto.indexOf('</IfModule>'));
+  });
 });

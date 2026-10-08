@@ -33,6 +33,8 @@ export const ALOJAMIENTOS = ['hotel', 'casa-rural', 'camping', 'apartamento', 'p
 const IDS_TEMAS = new Set(TEMAS.map((t) => t.id));
 
 const esNumero = (valor) => typeof valor === 'number' && Number.isFinite(valor);
+/** «undefined», «[object Object]», «NaN €», etiquetas HTML o JSON a medias en el título. */
+const TITULO_ROTO = /^\s*(undefined|null|nan)\s*$|\[object \w+\]|\bundefined\b|<\/?[a-z][\w-]*(\s[^>]*)?>|^\s*[{[]\s*"/i;
 const esFechaIso = (valor) => typeof valor === 'string' && !Number.isNaN(Date.parse(valor));
 
 /** Lista de problemas de una oferta (vacía si es válida). */
@@ -41,6 +43,8 @@ export function validarOferta(o) {
   if (typeof o.fuente !== 'string' || !o.fuente) errores.push('falta fuente');
   if (typeof o.id !== 'string' || !o.id.startsWith(`${o.fuente}:`)) errores.push('id debe empezar por «fuente:»');
   if (typeof o.titulo !== 'string' || !o.titulo.trim()) errores.push('falta título');
+  // Un lector que se equivoca de sitio deja restos de código en vez del nombre: no se publica.
+  else if (TITULO_ROTO.test(o.titulo)) errores.push(`título roto: ${o.titulo.slice(0, 60)}`);
   if (typeof o.url !== 'string' || !/^https?:\/\//.test(o.url)) errores.push(`url no válida: ${o.url}`);
   if (!TIPOS.includes(o.tipo)) errores.push(`tipo no válido: ${o.tipo}`);
   if (o.precio !== null && !(esNumero(o.precio) && o.precio >= 0)) errores.push(`precio no válido: ${o.precio}`);
@@ -83,7 +87,6 @@ export function completarOferta(datos) {
     id: null,
     fuente: null,
     tipo: 'escapada',
-    titulo: '',
     descripcion: '',
     url: '',
     imagen: null,
@@ -130,6 +133,9 @@ export function completarOferta(datos) {
     tiempo: null,
     eventos: [],
     ...datos,
+    // «Platja d´Aro»: el acento agudo suelto no es un apóstrofo y el navegador parte la línea
+    // justo antes («Platja d / ´Aro»). Entre dos letras se cambia por el apóstrofo tipográfico.
+    titulo: typeof datos.titulo === 'string' ? datos.titulo.replace(/(\p{L})[´`](?=\p{L})/gu, '$1’') : (datos.titulo ?? ''),
     fechas: { salida: null, vuelta: null, findeId: null, puenteId: null, ...datos.fechas },
     // Un solo nombre por localidad («Gerona» → «Girona»): ver util/lugares.js.
     lugar: datos.lugar ? { ...datos.lugar, nombre: nombreOficial(datos.lugar.nombre) } : null,

@@ -391,7 +391,9 @@ describe('actividades', () => {
     // Con las fechas marcadas arriba («Este finde» por defecto); antes cada atajo iba con las suyas.
     assert.match(atajos, /href="#\/escapadas\?cho=1&amp;cuando=finde"|href="#\/escapadas\?cho=1&cuando=finde"/);
     assert.match(atajos, /data-sorpresa/);
-    assert.ok((atajos.match(/<li>/g) ?? []).length <= 4, 'como mucho cuatro atajos');
+    // El mapa, a mano desde el Inicio y con las mismas fechas (antes solo se llegaba desde Explorar).
+    assert.match(atajos, /href="#\/mapa\?cuando=finde"[^>]*>[^]*Ver en el mapa/);
+    assert.ok((atajos.match(/<li>/g) ?? []).length <= 5, 'como mucho cinco atajos');
     // Una sola vez tu viaje; el estado de las webs, solo para quien administra la web.
     assert.equal((portada.match(/data-mi-viaje/g) ?? []).length, 1);
     assert.doesNotMatch(portada, /href="#\/fuentes"/);

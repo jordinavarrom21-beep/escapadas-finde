@@ -162,11 +162,13 @@ export function ponerGoogleAds(html, googleAds) {
 /**
  * Lo que necesita Travelpayouts Drive en la CSP. Su script (el de `travelpayoutsDrive`) carga
  * el resto de su código del mismo sitio y le pide allí su configuración y qué enlaces cambiar;
- * mn-tz.com y emrld.cc son sus comprobaciones de bloqueadores (están en su código). Los
- * enlaces que cambia llevan a sus dominios de redirección: es navegar, no hace falta abrir nada.
- * Si un día pide otro dominio, la consola del navegador lo dice («Refused to connect…»).
+ * mn-tz.com y emrld.cc son sus comprobaciones de bloqueadores (están en su código) y
+ * www.travelpayouts.com/check_auth mira si quien visita es el dueño de la cuenta (para su
+ * editor visual; sin él, un error en la consola). Los enlaces que cambia llevan a sus dominios
+ * de redirección: es navegar, no hace falta abrir nada. Comprobado en escapadasfinde.com con
+ * Drive activo. Si un día pide otro dominio, la consola del navegador lo dice («Refused to connect…»).
  */
-const DRIVE_CONEXIONES = ['https://mn-tz.com', 'https://emrld.cc'];
+const DRIVE_CONEXIONES = ['https://mn-tz.com', 'https://emrld.cc', 'https://www.travelpayouts.com'];
 function cspDrive(url) {
   const { origin } = new URL(url);
   return { 'script-src': [origin], 'connect-src': [origin, ...DRIVE_CONEXIONES] };
@@ -200,10 +202,13 @@ export function ponerDriveGuia(html, drive) {
   const raiz = html.match(/<link rel="stylesheet" href="([^"]*)css\/estilos\.css">/)?.[1];
   if (raiz == null) return html;
   const conScripts = html.replace(/(<meta http-equiv="Content-Security-Policy" content="[^"]*?)script-src 'none'/, "$1script-src 'self'");
-  return ajustarCsp(conScripts, cspDrive(url), true)
+  // Sus vistas previas de enlaces llevan sus propios estilos en línea (como en la portada, que
+  // ya los permite); sin esto se ven sin diseño en las guías.
+  return ajustarCsp(conScripts, { ...cspDrive(url), 'style-src': ["'unsafe-inline'"] }, true)
     .replace(META_CSP, `$1\n<meta name="escapadas-drive" content="${url}">`)
     .replace('</head>', `<script src="${raiz}js/anuncios.js" defer></script>\n</head>`)
-    .replace(/(<footer class="pie[^>]*>[^]*?)(<\/p>\s*<\/footer>)/, '$1 · <a href="#" data-abrir-cookies>Cookies</a>$2');
+    // Como en el pie de la portada (app.js): con Drive, tras aceptar, hay enlaces de afiliado.
+    .replace(/(<footer class="pie[^>]*>[^]*?)(<\/p>\s*<\/footer>)/, '$1 · <a href="#" data-abrir-cookies>Cookies</a>. Si aceptas las cookies, los enlaces a webs de la red de Travelpayouts pasan a ser de afiliado; no cambia tu precio ni el orden.$2');
 }
 
 /** Las guías para buscadores que haya en `dir` (escapadas/, vuelos/, actividades/). */
@@ -295,6 +300,18 @@ ${unDominio}  # Las copias de seguridad de datos y la carpeta .git (despliegue d
   # Las instrucciones de instalación del zip no son para los visitantes.
   RewriteRule ^LEEME-HOSTINGER\\.txt$ - [F,L]
   RewriteRule (^|/)\\.git(/|$) - [F,L]
+  # Las guías salen y entran con las ofertas de cada día (src/paginas.js): la que hoy no tiene
+  # suficientes no se publica. Quien llegue a ella (un buscador, un enlace guardado) va a la
+  # lista de escapadas o a la portada en vez de a «esta página no existe». Temporal (302):
+  # la guía vuelve en cuanto vuelve a haber ofertas.
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^escapadas/[^/]+/?$ /escapadas/ [R=302,L]
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^(vuelos|actividades)(/.*)?$ / [R=302,L]
+  # Iconos que el iPhone pide por su cuenta aunque la página diga otro: el mismo de siempre.
+  RewriteRule ^apple-touch-icon-(precomposed|[0-9]+x[0-9]+(-precomposed)?)\\.png$ apple-touch-icon.png [L]
 </IfModule>
 
 <IfModule mod_headers.c>

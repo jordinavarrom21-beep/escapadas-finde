@@ -103,6 +103,15 @@ describe('tiempo', () => {
     assert.match(logs[0], /previsión del tiempo/);
   });
 
+  test('si un lote falla no pide los demás (cada uno serían minutos de esperas) y usa la caché', async () => {
+    const { ctx, logs, peticiones } = contexto({ respuestas: () => { throw new Error('Tiempo de espera agotado en api.open-meteo.com'); } });
+    const ofertas = Array.from({ length: 160 }, (_, i) => oferta({ lugar: { nombre: `Pueblo ${i}`, lat: 41 + i / 100, lon: 2 } }));
+    await anadirTiempo(ofertas, ctx);
+    assert.equal(peticiones.length, 1, 'una petición, no cuatro');
+    assert.equal(logs.length, 1);
+    assert.match(logs[0], /no se piden los 3 lotes que quedan\); se usa la guardada/);
+  });
+
   test('la tabla de códigos WMO cubre la fixture y emojiTiempo tiene respaldo', () => {
     for (const codigo of new Set(PREVISIONES.flatMap((p) => p.daily.weather_code))) {
       assert.ok(CODIGOS_TIEMPO[codigo], `falta el código WMO ${codigo}`);

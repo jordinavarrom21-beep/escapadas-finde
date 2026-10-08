@@ -104,6 +104,20 @@ const DETALLE_HABITUAL = 0.6;
 const MINIMO_DETALLES = 5;
 const pct = (valor) => `${Math.round(valor * 100)} %`;
 
+/**
+ * Precio típico de una lectura (la mediana de los que traen precio), o null con menos de
+ * `MINIMO_DETALLES`. Si de un día para otro se multiplica o se divide por más de
+ * `SALTO_PRECIO`, lo más probable es que el lector esté cogiendo otro número de la página
+ * (el ahorro, el precio por noche en vez del total…), no que todo haya cambiado de precio.
+ */
+const SALTO_PRECIO = 3;
+export function precioMediano(ofertas) {
+  const precios = ofertas.map((o) => o.precio).filter((p) => typeof p === 'number' && p > 0).sort((a, b) => a - b);
+  if (precios.length < MINIMO_DETALLES) return null;
+  const medio = Math.floor(precios.length / 2);
+  return Math.round(precios.length % 2 ? precios[medio] : (precios[medio - 1] + precios[medio]) / 2);
+}
+
 /** Qué parte de las ofertas trae cada detalle: {precio: 0.95, imagen: 1, …}. */
 export function coberturaDetalles(ofertas) {
   const n = ofertas.length;
@@ -121,7 +135,8 @@ export function coberturaDetalles(ofertas) {
  */
 export function revisarLectura(resultado, previo, ahora) {
   const n = resultado.ofertas.length;
-  const actual = { total: n, detalles: coberturaDetalles(resultado.ofertas) };
+  const mediana = precioMediano(resultado.ofertas);
+  const actual = { total: n, detalles: coberturaDetalles(resultado.ofertas), ...(mediana != null ? { precioMediano: mediana } : {}) };
   const normal = referenciaDe(previo);
   const viejo = previo.desdeAviso && ahora - Date.parse(previo.desdeAviso) >= DIAS_NUEVA_NORMALIDAD * DIA_MS;
   const sinAviso = { aviso: null, detallesPerdidos: [], reemplazar: resultado.reemplazar, referencia: actual };
@@ -137,6 +152,10 @@ export function revisarLectura(resultado, previo, ahora) {
   if (perdidos.length) {
     const lista = perdidos.map((clave) => `${DETALLES[clave].nombre} (${pct(actual.detalles[clave])}; lo normal, ${pct(normal.detalles[clave])})`);
     avisos.push(`Faltan datos que antes traía casi siempre: ${lista.join(', ')}. Puede que la web haya cambiado dónde los pone`);
+  }
+  // Datos que llegan pero mal leídos: el precio típico salta de golpe.
+  if (mediana != null && normal.precioMediano > 0 && (mediana > normal.precioMediano * SALTO_PRECIO || mediana * SALTO_PRECIO < normal.precioMediano)) {
+    avisos.push(`Los precios han cambiado mucho de golpe (lo normal, unos ${normal.precioMediano} €; ahora, ${mediana} €). Puede que se esté leyendo otro número de la página`);
   }
   if (!avisos.length) return sinAviso;
   // Lo normal no cambia por una lectura rara: así el aviso sigue mientras dure el problema.

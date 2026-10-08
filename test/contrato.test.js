@@ -158,6 +158,13 @@ describe('modelo: completarOferta', () => {
     assert.equal(completada.fechas.salida, '2026-10-02T19:00:00');
     assert.equal(completada.fechas.puenteId, null);
   });
+
+  test('«d´Aro» pasa a «d’Aro» (el acento suelto partía la línea) y lo demás no se toca', () => {
+    assert.equal(completarOferta({ titulo: 'Escapada en Platja d´Aro y L`Escala' }).titulo, 'Escapada en Platja d’Aro y L’Escala');
+    assert.equal(completarOferta({ titulo: 'Precio ´ suelto y café' }).titulo, 'Precio ´ suelto y café');
+    assert.equal(completarOferta({}).titulo, '');
+    assert.equal(completarOferta({ titulo: 7 }).titulo, 7, 'lo que no es texto lo rechaza validarOferta, no aquí');
+  });
 });
 
 describe('contrato de las fuentes', () => {

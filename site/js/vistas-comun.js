@@ -140,7 +140,7 @@ export const conIcono = (nombre, texto, clase = '') => `<span class="seccion__ic
 /** «Tarjetas» o «Lista»: app.js marca el que está puesto (se guarda en este navegador). */
 export const selectorModo = `<div class="selector-modo" role="group" aria-label="Cómo ver los resultados">
   <button type="button" class="selector-modo__boton" data-modo-lista="tarjetas" aria-pressed="true" aria-label="Ver en tarjetas">${icono('todo')}<span class="solo-ancho">Tarjetas</span></button>
-  <button type="button" class="selector-modo__boton" data-modo-lista="lista" aria-pressed="false" aria-label="Ver en lista">${icono('lista')}<span class="solo-ancho">Lista</span></button>
+  <button type="button" class="selector-modo__boton" data-modo-lista="lista" aria-pressed="false" aria-label="Ver en lista compacta">${icono('lista')}<span class="solo-ancho">Compacta</span></button>
 </div>`;
 /** Las pestañas de cada apartado del menú: Explorar, Fechas y Mis cosas. */
 export const PESTANAS = {

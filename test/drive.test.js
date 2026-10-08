@@ -75,7 +75,7 @@ describe('Travelpayouts Drive en la portada (index.html)', () => {
     assert.doesNotMatch(html, /<script[^>]*emrldco/);
     const directivas = csp(html);
     assert.ok(directivas['script-src'].includes('https://emrldco.com'));
-    for (const origen of ['https://emrldco.com', 'https://mn-tz.com', 'https://emrld.cc']) assert.ok(directivas['connect-src'].includes(origen), origen);
+    for (const origen of ['https://emrldco.com', 'https://mn-tz.com', 'https://emrld.cc', 'https://www.travelpayouts.com']) assert.ok(directivas['connect-src'].includes(origen), origen);
     assert.ok(directivas['script-src'].includes('https://cdnjs.cloudflare.com'));
     assert.ok(directivas['connect-src'].includes('https://photon.komoot.io'));
     assert.ok(!directivas['script-src'].includes("'unsafe-inline'"), 'sigue sin scripts en línea');
@@ -111,7 +111,11 @@ describe('Travelpayouts Drive en las guías para buscadores', () => {
     const directivas = csp(html);
     assert.deepEqual(directivas['script-src'], ["'self'", 'https://emrldco.com']);
     assert.ok(directivas['connect-src'].includes('https://emrldco.com'));
-    assert.match(html, /<a href="#" data-abrir-cookies>Cookies<\/a><\/p>\s*<\/footer>/);
+    assert.ok(directivas['connect-src'].includes('https://www.travelpayouts.com'), 'su comprobación de dueño (editor visual)');
+    // Las vistas previas de Drive traen sus estilos en línea; scripts en línea, ninguno.
+    assert.deepEqual(directivas['style-src'], ["'self'", "'unsafe-inline'"]);
+    assert.ok(!directivas['script-src'].includes("'unsafe-inline'"));
+    assert.match(html, /<a href="#" data-abrir-cookies>Cookies<\/a>\. Si aceptas las cookies, los enlaces a webs de la red de Travelpayouts pasan a ser de afiliado; no cambia tu precio ni el orden\.<\/p>\s*<\/footer>/);
     // Se puede repetir.
     assert.equal(ponerDriveGuia(html, DRIVE), html);
   });

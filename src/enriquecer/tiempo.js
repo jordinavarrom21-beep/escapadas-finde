@@ -111,7 +111,12 @@ async function pedirPrevisiones(puntos, ctx) {
       const previsiones = Array.isArray(respuesta) ? respuesta : [respuesta];
       lote.forEach((punto, j) => guardarPrevision(punto, previsiones[j], ctx));
     } catch (error) {
-      ctx.log(`No se ha podido consultar la previsión del tiempo: ${error.message}`);
+      // Si Open-Meteo no responde a un lote, tampoco a los demás: cada lote fallido son casi
+      // dos minutos de esperas y reintentos (el 8/10 alargó el escaneo de 1 a 6 min). Se sigue
+      // con la previsión guardada y se vuelve a preguntar en el próximo escaneo.
+      const quedan = Math.ceil((puntos.length - i - lote.length) / MAX_COORDENADAS);
+      ctx.log(`No se ha podido consultar la previsión del tiempo: ${error.message}${quedan ? ` (no se piden los ${quedan} lotes que quedan)` : ''}; se usa la guardada`);
+      return;
     }
   }
 }
