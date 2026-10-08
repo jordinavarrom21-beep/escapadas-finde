@@ -7,7 +7,7 @@
 import { etiquetaDia, nombreFinde, nombreFindeEnFrase } from './fechas.js';
 import { TIPOS_EVENTO, contar, duracion, escaparHtml as esc, euros, haceCuanto, normalizar, urlSegura } from './formato.js';
 import {
-  actividadesPara, buscarActividades, buscarEscapadas, chollosDeVuelos, conPeriodo, crearHash, filtrarVuelos,
+  actividadesPara, buscarActividades, buscarEscapadas, chollosDeVuelos, conPeriodo, contenidoMapa, crearHash, filtrarVuelos,
   leerFiltrosActividades, leerFiltrosEscapadas, leerFiltrosVuelos, perfilFavoritos, periodoFinde, planesSorpresa,
   rangoDe, recomendadas, salidaPuente, sinComprobar, tieneVuelo,
 } from './filtros.js';
@@ -226,7 +226,11 @@ export function atajosPortada(e, opcion = null, fechas = null) {
   const cho = conFechas('escapadas', { cho: '1' });
   const gratis = conFechas('actividades', { gratis: '1' });
   const ninos = conFechas('escapadas', { ninos: 'ventaja' });
+  // El mapa es una vista de Escapadas (Explorar → «Lista | Mapa»): aquí, a mano desde el Inicio.
+  const mapa = conFechas('mapa', {});
   const n = {
+    // Lo mismo que pinta el mapa (escapadas con ubicación y destinos de vuelo).
+    mapa: ((m) => m.escapadas.length + m.destinos.length)(contenidoMapa(e.datos.ofertas, leerFiltrosEscapadas(mapa), busqueda)),
     cho: buscarEscapadas(e.datos.ofertas, leerFiltrosEscapadas(cho), busqueda).ofertas.length,
     gratis: buscarActividades(e.datos.ofertas, leerFiltrosActividades(gratis), busqueda).length,
     ninos: buscarEscapadas(e.datos.ofertas, leerFiltrosEscapadas(ninos), busqueda).ofertas.length,
@@ -238,6 +242,8 @@ export function atajosPortada(e, opcion = null, fechas = null) {
     atajo(n.cho, 'Chollos', crearHash('escapadas', cho), 'fuego', `Escapadas muy por debajo de su precio normal${cuandoTexto}`),
     atajo(n.gratis, 'Planes gratis', crearHash('actividades', gratis), 'actividades', `Planes gratis${cuandoTexto}`),
     atajo(n.ninos, 'Viajar con niños', crearHash('escapadas', ninos), 'tema-familia', `Escapadas con niños gratis o con descuento${cuandoTexto}`),
+    // Como los demás: con lo que se verá en el mapa y solo si hay algo que ver.
+    atajo(n.mapa, 'Ver en el mapa', crearHash('mapa', mapa), 'mapa', `Las escapadas en el mapa${cuandoTexto}`),
     `<li><button type="button" class="atajo" data-sorpresa aria-controls="sorpresa-bloque">${icono('nuevo')}<span>Sorpréndeme</span></button></li>`,
   ].join('');
   return `<section class="seccion portada__atajos" aria-labelledby="atajos-titulo">
@@ -307,15 +313,25 @@ function columnaEscapadas(e, vistos) {
 function columnaVuelos(e, vistos) {
   const [actual] = e.findes;
   const busqueda = contextoBusqueda(e);
-  const vuelos = e.datos.ofertas.some(tieneVuelo)
-    ? filtrarVuelos(e.datos.ofertas, { ...leerFiltrosVuelos(), finde: actual.id, orden: 'precio' }, busqueda)
-    : [];
+  // Todos los vuelos con fecha de una vez (del más barato al más caro), y luego se separan los
+  // del finde (lo mismo que filtrarVuelos con «finde») de los de otras fechas.
+  const todos = e.datos.ofertas.some(tieneVuelo) ? filtrarVuelos(e.datos.ofertas, { ...leerFiltrosVuelos(), orden: 'precio' }, busqueda) : [];
+  const esDelFinde = (o) => o.fechas?.findeId === actual.id || o.fechas?.puenteId === actual.id;
+  const vuelos = todos.filter(esDelFinde);
+  // Un vuelo por destino (el más barato): cuatro a Londres no ayudan a decidir.
+  const destinos = new Set();
+  const otroDestino = (o) => { const d = o.lugar?.nombre ?? o.titulo; if (destinos.has(d)) return false; destinos.add(d); return true; };
+  const filaVuelo = (o) => filaIdea(o, esc(textoFechas(o)), miniaturaVuelo(o));
   if (vuelos.length) {
-    // Un vuelo por destino (el más barato): cuatro a Londres no ayudan a decidir.
-    const destinos = new Set();
-    const variados = vuelos.filter((o) => { const d = o.lugar?.nombre ?? o.titulo; if (destinos.has(d)) return false; destinos.add(d); return true; });
-    return columnaIdeas('vuelos', 'Vuelos', sinVistas(variados, vistos, FILAS_IDEAS).map((o) => filaIdea(o, esc(textoFechas(o)), miniaturaVuelo(o))), '',
-      { href: crearHash('vuelos', { finde: actual.id }), texto: `Ver los ${vuelos.length}` }, 'vuelos');
+    const delFinde = sinVistas(vuelos.filter(otroDestino), vistos, FILAS_IDEAS);
+    // Con pocos para el finde, la columna se completa con los más baratos de otras fechas (y lo
+    // dice): así no queda medio vacía al lado de las otras dos.
+    const otras = delFinde.length < FILAS_IDEAS
+      ? sinVistas(todos.filter((o) => !esDelFinde(o) && o.fechas?.salida && otroDestino(o)), vistos, FILAS_IDEAS - delFinde.length)
+      : [];
+    const filas = [...delFinde.map(filaVuelo), ...(otras.length ? ['<li class="ideas__sub">Otras fechas</li>', ...otras.map(filaVuelo)] : [])];
+    return columnaIdeas('vuelos', 'Vuelos', filas, '',
+      { href: crearHash('vuelos', { finde: actual.id }), texto: `Ver ${vuelos.length === 1 ? 'el' : `los ${vuelos.length}`} de estas fechas` }, 'vuelos');
   }
   // Sin vuelos con esas fechas, los chollos desde tus aeropuertos (de cualquier fecha, y lo dice).
   const chollos = sinVistas(chollosDeVuelos(e.datos.ofertas, leerFiltrosVuelos({ mios: '1' }), busqueda), vistos, FILAS_IDEAS);

@@ -19,6 +19,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { normalizarDrive, problemasDrive } from '../src/drive.js';
+import { AVISO_DRIVE } from '../site/js/formato.js';
 import { normalizarGoogleAds, problemasGoogleAds } from '../src/google-ads.js';
 import { CARPETAS, estructuradosPortada, generarPaginas } from '../src/paginas.js';
 
@@ -206,7 +207,8 @@ export function ponerDriveGuia(html, drive) {
   return ajustarCsp(conScripts, { ...cspDrive(url), 'style-src': ["'unsafe-inline'"] }, true)
     .replace(META_CSP, `$1\n<meta name="escapadas-drive" content="${url}">`)
     .replace('</head>', `<script src="${raiz}js/anuncios.js" defer></script>\n</head>`)
-    .replace(/(<footer class="pie[^>]*>[^]*?)(<\/p>\s*<\/footer>)/, '$1 · <a href="#" data-abrir-cookies>Cookies</a>$2');
+    // El mismo aviso que el pie del panel (app.js): con Drive, tras aceptar, hay enlaces de afiliado.
+    .replace(/(<footer class="pie[^>]*>[^]*?)(<\/p>\s*<\/footer>)/, (todo, antes, cierre) => `${antes} · <a href="#" data-abrir-cookies>Cookies</a>. ${AVISO_DRIVE} No cambia tu precio ni el orden de las ofertas.${cierre}`);
 }
 
 /** Las guías para buscadores que haya en `dir` (escapadas/, vuelos/, actividades/). */
@@ -298,6 +300,20 @@ ${unDominio}  # Las copias de seguridad de datos y la carpeta .git (despliegue d
   # Las instrucciones de instalación del zip no son para los visitantes.
   RewriteRule ^LEEME-HOSTINGER\\.txt$ - [F,L]
   RewriteRule (^|/)\\.git(/|$) - [F,L]
+  # Las guías salen y entran con las ofertas de cada día (src/paginas.js): la que hoy no tiene
+  # suficientes no se publica. Quien llegue a ella (un buscador, un enlace guardado) va a la
+  # lista de escapadas o a la portada en vez de a «esta página no existe». Temporal (302):
+  # la guía vuelve en cuanto vuelve a haber ofertas.
+  # La lista de escapadas también es una guía: si hoy tampoco está, a la portada.
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond %{DOCUMENT_ROOT}/escapadas/index.html -f
+  RewriteRule ^escapadas/[^/]+/?$ /escapadas/ [R=302,L]
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^(escapadas|vuelos|actividades)(/.*)?$ / [R=302,L]
+  # Iconos que el iPhone pide por su cuenta aunque la página diga otro: el mismo de siempre.
+  RewriteRule ^apple-touch-icon-(precomposed|[0-9]+x[0-9]+(-precomposed)?)\\.png$ apple-touch-icon.png [L]
 </IfModule>
 
 <IfModule mod_headers.c>

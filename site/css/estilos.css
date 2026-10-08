@@ -1501,7 +1501,8 @@ body:has([data-plegable-movil][open]) .barra-comparar [data-abrir-filtros] { dis
 .tendencia .minigrafica { color: inherit; }
 
 /* Inicio: «¿Qué buscas?» con tres opciones grandes, y lo demás plegado debajo. */
-.portada { display: grid; gap: 16px; max-width: 1040px; }
+/* Al ancho de la página, como «Lo mejor para este finde» de debajo (antes se quedaba más estrecho). */
+.portada { display: grid; gap: 16px; }
 .portada__intro { margin: -8px 0 4px; color: var(--texto-suave); font-size: 1rem; }
 /* Tu viaje, una sola vez: «Barcelona · 2 personas · 2 noches» con «Cambiar». */
 .viaje-resumen {
@@ -1516,7 +1517,14 @@ body:has([data-plegable-movil][open]) .barra-comparar [data-abrir-filtros] { dis
 .viaje-resumen__texto strong { font-size: 0.92rem; overflow-wrap: anywhere; }
 .viaje-resumen__cambiar { margin-left: 8px; font-size: 0.85rem; font-weight: 750; color: var(--enlace); }
 /* ¿Cuándo?: tarjetas con el nombre en pequeño y los días en grande; la elegida, en verde. */
-.opciones--cuando { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); }
+/* Todas en una fila con sitio (sin una suelta en la segunda); en el móvil, de dos en dos y la
+   última, si queda sola, a todo el ancho. */
+.opciones--cuando { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.opciones--cuando > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+@media (min-width: 720px) {
+  .opciones--cuando { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }
+  .opciones--cuando > :last-child:nth-child(odd) { grid-column: auto; }
+}
 .buscador-finde__fechas { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); gap: 8px; }
 .buscador-finde__fechas[hidden] { display: none; }
 .buscador-finde__fechas label { display: grid; gap: 4px; font-size: 0.85rem; font-weight: 700; }
@@ -1600,7 +1608,19 @@ body:has([data-plegable-movil][open]) .barra-comparar [data-abrir-filtros] { dis
 
 /* «Lo mejor para este finde»: tres columnas de mini tarjetas con el estilo de las grandes
    (foto o ilustración, color de la temática, precio destacado). */
-.ideas { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr)); }
+/* Una columna en el móvil; en tableta, Escapadas y Vuelos lado a lado y los eventos debajo a
+   todo el ancho (en dos columnas), sin una tarjeta huérfana; con sitio, las tres en fila. */
+.ideas { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 700px) {
+  .ideas { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ideas__columna--eventos { grid-column: 1 / -1; }
+  .ideas__columna--eventos .ideas__lista { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 8px; }
+}
+@media (min-width: 1200px) {
+  .ideas { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .ideas__columna--eventos { grid-column: auto; }
+  .ideas__columna--eventos .ideas__lista { grid-template-columns: minmax(0, 1fr); }
+}
 .ideas__columna {
   --color-columna: var(--acento);
   display: flex; flex-direction: column; min-width: 0; overflow: hidden;
@@ -1654,7 +1674,8 @@ body:has([data-plegable-movil][open]) .barra-comparar [data-abrir-filtros] { dis
 .idea .enlace-ficha:focus-visible { outline: none; }
 .idea:has(.enlace-ficha:focus-visible) { outline: 3px solid var(--acento); outline-offset: 2px; }
 .idea__precio {
-  display: grid; justify-items: end; padding: 4px 10px; border-radius: 12px; white-space: nowrap;
+  /* Mismo ancho mínimo en todas: los precios quedan alineados en columna. */
+  display: grid; justify-items: end; min-width: 4.6rem; box-sizing: border-box; padding: 4px 10px; border-radius: 12px; white-space: nowrap;
   background: color-mix(in srgb, var(--color-tema, var(--acento)) 10%, var(--superficie));
   font-family: var(--fuente-titulos); font-size: 1.05rem; font-weight: 800; line-height: 1.15;
 }
@@ -1662,10 +1683,18 @@ body:has([data-plegable-movil][open]) .barra-comparar [data-abrir-filtros] { dis
 .idea__precio--dormir { background: var(--superficie-2); font-size: 0.95rem; }
 .idea__detalle { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; font-size: 0.82rem; color: var(--texto-suave); }
 .idea__detalle .ic { width: 15px; height: 15px; }
+/* Separador dentro de una columna («Otras fechas» en Vuelos cuando el finde tiene pocos). */
+.ideas__sub {
+  grid-column: 1 / -1; padding: 8px 8px 0; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--texto-suave);
+}
 @media (max-width: 380px) {
-  .idea { grid-template-columns: 52px minmax(0, 1fr); }
+  /* En pantallas muy estrechas, lo mismo en pequeño (el precio no baja de línea). */
+  .idea { grid-template-columns: 52px minmax(0, 1fr) auto; gap: 10px; padding: 8px 6px; }
   .idea__foto { width: 52px; height: 52px; }
-  .idea__precio { grid-column: 2; justify-self: start; justify-items: start; display: flex; gap: 6px; align-items: baseline; }
+  .idea__precio { min-width: 0; padding: 3px 8px; font-size: 0.95rem; }
+  .idea__precio--dormir { font-size: 0.88rem; }
+  .idea__ruta { inset: auto 2px 4px; padding: 1px 2px; gap: 1px; font-size: 0.56rem; letter-spacing: 0; }
 }
 .planes-eventos { margin: 0 0 16px; padding: 14px 16px; border: 1px solid var(--borde); border-radius: var(--radio-medio); background: var(--superficie); }
 .planes-eventos h2 { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin: 0 0 4px; font-size: 1.05rem; }

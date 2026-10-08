@@ -104,6 +104,26 @@ const DETALLE_HABITUAL = 0.6;
 const MINIMO_DETALLES = 5;
 const pct = (valor) => `${Math.round(valor * 100)} %`;
 
+/**
+ * Precio típico de una lectura: la mediana de los que traen precio (null con menos de
+ * `MINIMO_DETALLES`) y si los precios de esa web se parecen entre sí (el cuartil alto no
+ * pasa de `DISPERSION_MAXIMA` veces el bajo). Si en una web de precios parecidos la mediana
+ * se multiplica o se divide por más de `SALTO_PRECIO` de golpe, lo más probable es que el
+ * lector esté cogiendo otro número (el ahorro, el precio por noche en vez del total…). Las
+ * webs que mezclan vuelos de 20 € y paquetes de 300 € (blogs, newsletters) no se comparan:
+ * su mediana cambia sola según lo que publiquen cada día.
+ */
+const SALTO_PRECIO = 3;
+const DISPERSION_MAXIMA = 4;
+export function precioTipico(ofertas) {
+  const precios = ofertas.map((o) => o.precio).filter((p) => typeof p === 'number' && p > 0).sort((a, b) => a - b);
+  if (precios.length < MINIMO_DETALLES) return { mediana: null, estable: false };
+  const cuantil = (q) => precios[Math.min(precios.length - 1, Math.floor(q * precios.length))];
+  const medio = Math.floor(precios.length / 2);
+  const mediana = Math.round(precios.length % 2 ? precios[medio] : (precios[medio - 1] + precios[medio]) / 2);
+  return { mediana, estable: cuantil(0.75) <= cuantil(0.25) * DISPERSION_MAXIMA };
+}
+
 /** Qué parte de las ofertas trae cada detalle: {precio: 0.95, imagen: 1, …}. */
 export function coberturaDetalles(ofertas) {
   const n = ofertas.length;
@@ -121,8 +141,12 @@ export function coberturaDetalles(ofertas) {
  */
 export function revisarLectura(resultado, previo, ahora) {
   const n = resultado.ofertas.length;
-  const actual = { total: n, detalles: coberturaDetalles(resultado.ofertas) };
   const normal = referenciaDe(previo);
+  const { mediana, estable } = precioTipico(resultado.ofertas);
+  // El precio de referencia solo de una lectura de precios parecidos; con pocos precios hoy o
+  // muy dispares, se conserva el de antes (si no, la vigilancia se perdería sin avisar).
+  const precioRef = mediana != null && estable ? mediana : (normal?.precioMediano ?? null);
+  const actual = { total: n, detalles: coberturaDetalles(resultado.ofertas), ...(precioRef != null ? { precioMediano: precioRef } : {}) };
   const viejo = previo.desdeAviso && ahora - Date.parse(previo.desdeAviso) >= DIAS_NUEVA_NORMALIDAD * DIA_MS;
   const sinAviso = { aviso: null, detallesPerdidos: [], reemplazar: resultado.reemplazar, referencia: actual };
   if (!normal || normal.total < MINIMO_COMPARABLE || viejo) return sinAviso;
@@ -137,6 +161,11 @@ export function revisarLectura(resultado, previo, ahora) {
   if (perdidos.length) {
     const lista = perdidos.map((clave) => `${DETALLES[clave].nombre} (${pct(actual.detalles[clave])}; lo normal, ${pct(normal.detalles[clave])})`);
     avisos.push(`Faltan datos que antes traía casi siempre: ${lista.join(', ')}. Puede que la web haya cambiado dónde los pone`);
+  }
+  // Datos que llegan pero mal leídos: el precio típico de una lectura de precios parecidos salta
+  // de golpe. Si hoy vienen muy dispares (la web mezcla productos), no se compara.
+  if (mediana != null && estable && normal.precioMediano > 0 && (mediana > normal.precioMediano * SALTO_PRECIO || mediana * SALTO_PRECIO < normal.precioMediano)) {
+    avisos.push(`Los precios han cambiado mucho de golpe (lo normal, unos ${normal.precioMediano} €; ahora, ${mediana} €). Puede que se esté leyendo otro número de la página`);
   }
   if (!avisos.length) return sinAviso;
   // Lo normal no cambia por una lectura rara: así el aviso sigue mientras dure el problema.

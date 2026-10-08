@@ -33,6 +33,22 @@ export const ALOJAMIENTOS = ['hotel', 'casa-rural', 'camping', 'apartamento', 'p
 const IDS_TEMAS = new Set(TEMAS.map((t) => t.id));
 
 const esNumero = (valor) => typeof valor === 'number' && Number.isFinite(valor);
+/**
+ * Restos de código en vez de un título: «undefined», «NaN» (con esas mayúsculas, como las
+ * escribe JavaScript), «[object Object]», «null» solo, un JSON a medias o una etiqueta HTML de
+ * verdad (conocida y, si lleva algo, atributos con «=»). «<ida y vuelta>», «<a 1 h de Madrid>»
+ * o «Hotel Nan» son títulos de verdad y pasan.
+ */
+const CODIGO_EN_TITULO = /\bundefined\b|\bNaN\b|\[object \w+\]|^\s*null\s*$|^\s*[{[]\s*"/;
+const HTML_EN_TITULO = /<\/?(div|span|p|a|br|img|strong|b|i|em|ul|ol|li|h[1-6]|script|style|button|section|article|table|td|tr)(\s+[a-z-]+\s*=\s*("[^"]*"|'[^']*'))*\s*\/?>/i;
+const TITULO_ROTO = { test: (titulo) => CODIGO_EN_TITULO.test(titulo) || HTML_EN_TITULO.test(titulo) };
+
+/**
+ * «Platja d´Aro»: el acento agudo (o el acento grave) suelto entre dos letras no es un
+ * apóstrofo y el navegador parte la línea justo antes («Platja d / ´Aro»). Se cambia por el
+ * apóstrofo tipográfico. Lo que no es texto se devuelve tal cual.
+ */
+export const arreglarApostrofes = (texto) => (typeof texto === 'string' ? texto.replace(/(\p{L})[´`](?=\p{L})/gu, '$1’') : texto);
 const esFechaIso = (valor) => typeof valor === 'string' && !Number.isNaN(Date.parse(valor));
 
 /** Lista de problemas de una oferta (vacía si es válida). */
@@ -41,6 +57,8 @@ export function validarOferta(o) {
   if (typeof o.fuente !== 'string' || !o.fuente) errores.push('falta fuente');
   if (typeof o.id !== 'string' || !o.id.startsWith(`${o.fuente}:`)) errores.push('id debe empezar por «fuente:»');
   if (typeof o.titulo !== 'string' || !o.titulo.trim()) errores.push('falta título');
+  // Un lector que se equivoca de sitio deja restos de código en vez del nombre: no se publica.
+  else if (TITULO_ROTO.test(o.titulo)) errores.push(`título roto: ${o.titulo.slice(0, 60)}`);
   if (typeof o.url !== 'string' || !/^https?:\/\//.test(o.url)) errores.push(`url no válida: ${o.url}`);
   if (!TIPOS.includes(o.tipo)) errores.push(`tipo no válido: ${o.tipo}`);
   if (o.precio !== null && !(esNumero(o.precio) && o.precio >= 0)) errores.push(`precio no válido: ${o.precio}`);
@@ -83,8 +101,6 @@ export function completarOferta(datos) {
     id: null,
     fuente: null,
     tipo: 'escapada',
-    titulo: '',
-    descripcion: '',
     url: '',
     imagen: null,
     precio: null,
@@ -118,7 +134,6 @@ export function completarOferta(datos) {
     patrocinada: null,
     enlaces: [],
     alojamiento: null,
-    establecimiento: null,
     ninos: null,
     estrellas: null,
     historialPorNoche: false,
@@ -130,9 +145,13 @@ export function completarOferta(datos) {
     tiempo: null,
     eventos: [],
     ...datos,
+    // Los textos que se enseñan, con apóstrofos de verdad (ver arreglarApostrofes).
+    titulo: arreglarApostrofes(datos.titulo ?? ''),
+    descripcion: arreglarApostrofes(datos.descripcion ?? ''),
+    establecimiento: arreglarApostrofes(datos.establecimiento ?? null),
     fechas: { salida: null, vuelta: null, findeId: null, puenteId: null, ...datos.fechas },
     // Un solo nombre por localidad («Gerona» → «Girona»): ver util/lugares.js.
-    lugar: datos.lugar ? { ...datos.lugar, nombre: nombreOficial(datos.lugar.nombre) } : null,
+    lugar: datos.lugar ? { ...datos.lugar, nombre: nombreOficial(arreglarApostrofes(datos.lugar.nombre)) } : null,
   };
 }
 

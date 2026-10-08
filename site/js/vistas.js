@@ -12,9 +12,9 @@ import { etiquetaDia, nombreFinde } from './fechas.js';
 import {
   ALOJAMIENTOS, ATAJOS_ESCAPADAS, ATAJOS_A_LA_VISTA, ORDENES_ACTIVIDADES, SIN_COCHE, ORDENES_ESCAPADAS, REGIMENES_ORDEN,
   buscarActividades, buscarEscapadas, buscarTexto, chollosDeVuelos, conFaltas, promocionesDeVuelos, crearHash, destinosDe, transporteSuelto,
-  destinosDeVuelo, esActividad, esEscapada, filtrarVuelos, filtrosActivos, leerFiltrosActividades, zonasDe,
+  contenidoMapa, esActividad, esEscapada, filtrarVuelos, filtrosActivos, leerFiltrosActividades, zonasDe,
   leerFiltrosComunes, leerFiltrosEscapadas, leerFiltrosVuelos, radioBusquedaKm, viajeDeParams, tieneVuelo,
-  valoresUnicos, vuelosParaMapa, KM_CERCA_DE_LO_BUSCADO, lugarDeConsulta, encajeEnRango, periodoPasado, rangoDe,
+  valoresUnicos, KM_CERCA_DE_LO_BUSCADO, lugarDeConsulta, encajeEnRango, periodoPasado, rangoDe,
 } from './filtros.js';
 import {
   certeza, costeDe, textoAlojamiento, textoCaducidad, textoFechas, textoLugar, estadoVacio, rejilla,
@@ -620,13 +620,8 @@ ${atajosEscapadas('mapa', e.hoy)}<details class="filtros-plegables"><summary>Fil
 /** Lo que se pinta en el mapa con los filtros actuales. */
 export function datosMapa(e, params) {
   const f = leerFiltrosEscapadas(params);
-  const { ofertas, distancias } = buscarEscapadas(e.datos.ofertas, f, contextoBusqueda(e));
-  const destinos = destinosDeVuelo(vuelosParaMapa(e.datos.ofertas, f, contextoBusqueda(e)));
   return {
-    escapadas: ofertas.filter((o) => distancias.has(o.id)),
-    sinUbicacion: ofertas.filter((o) => !distancias.has(o.id)).length,
-    destinos,
-    distancias,
+    ...contenidoMapa(e.datos.ofertas, f, contextoBusqueda(e)),
     punto: f.punto ?? puntoSalida(e),
     radioKm: radioBusquedaKm(f),
     desde: f.punto?.nombre ?? nombreSalida(e),

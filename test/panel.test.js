@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 import {
-  actividadesCerca, actividadesPara, analizarConsulta, buscarActividades, buscarEscapadas, buscarTexto,
+  actividadesCerca, actividadesPara, analizarConsulta, buscarActividades, buscarEscapadas, buscarTexto, contenidoMapa,
   chollosDeVuelos, crearHash, criterioVigilado, describirCriterio, destinosDeVuelo, diasAPedir, disponibleEn,
   duracionActividad, esActividad, esNovedad, filtrarVuelos, leerFiltrosActividades, leerFiltrosComunes,
   leerFiltrosEscapadas, leerFiltrosVuelos, leerRuta, medirDistancias, perfilFavoritos, periodoFinde,
@@ -391,7 +391,9 @@ describe('actividades', () => {
     // Con las fechas marcadas arriba («Este finde» por defecto); antes cada atajo iba con las suyas.
     assert.match(atajos, /href="#\/escapadas\?cho=1&amp;cuando=finde"|href="#\/escapadas\?cho=1&cuando=finde"/);
     assert.match(atajos, /data-sorpresa/);
-    assert.ok((atajos.match(/<li>/g) ?? []).length <= 4, 'como mucho cuatro atajos');
+    // El mapa, a mano desde el Inicio y con las mismas fechas (antes solo se llegaba desde Explorar).
+    assert.match(atajos, /href="#\/mapa\?cuando=finde"[^>]*>[^]*Ver en el mapa/);
+    assert.ok((atajos.match(/<li>/g) ?? []).length <= 5, 'como mucho cinco atajos');
     // Una sola vez tu viaje; el estado de las webs, solo para quien administra la web.
     assert.equal((portada.match(/data-mi-viaje/g) ?? []).length, 1);
     assert.doesNotMatch(portada, /href="#\/fuentes"/);
@@ -693,9 +695,12 @@ describe('atajos de Inicio con las fechas elegidas', async () => {
     for (const lista of [finde, todo, puente]) {
       for (const { href, n } of Object.values(lista)) {
         const { vista, params } = leerRuta(href);
+        const mapa = vista === 'mapa' && contenidoMapa(ofertas, leerFiltrosEscapadas(params), contextoBusqueda(e));
         const total = vista === 'actividades'
           ? buscarActividades(ofertas, leerFiltrosActividades(params), contextoBusqueda(e)).length
-          : buscarEscapadas(ofertas, leerFiltrosEscapadas(params), contextoBusqueda(e)).ofertas.length;
+          // El mapa: lo que pinta (escapadas con ubicación y destinos de vuelo).
+          : mapa ? mapa.escapadas.length + mapa.destinos.length
+            : buscarEscapadas(ofertas, leerFiltrosEscapadas(params), contextoBusqueda(e)).ofertas.length;
         assert.equal(n, total, href);
       }
     }

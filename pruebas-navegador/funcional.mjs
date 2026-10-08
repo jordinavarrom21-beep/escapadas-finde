@@ -60,7 +60,8 @@ ok((await p.locator('#sorpresa').innerHTML()) !== antes, 'sorpresa: «Otra ronda
 ok((await aviso(p)).includes('Tres planes nuevos'), 'sorpresa: se anuncia');
 // Lo mejor para este finde: tres listas cortas a la vista, cada una con su «Ver…».
 ok((await p.locator('.portada__ideas .ideas__columna').count()) === 3 && await p.locator('.portada__ideas').isVisible(), 'lo mejor del finde: tres columnas a la vista');
-ok((await p.locator('.ideas__lista').evaluateAll((ls) => ls.every((l) => l.children.length <= 4))), 'lo mejor del finde: como mucho cuatro por lista');
+// (El separador «Otras fechas» de Vuelos no es una oferta.)
+ok((await p.locator('.ideas__lista').evaluateAll((ls) => ls.every((l) => l.querySelectorAll('.idea').length <= 4))), 'lo mejor del finde: como mucho cuatro por lista');
 ok((await p.locator('.ideas__columna .ideas__mas').count()) === 3, 'lo mejor del finde: cada lista con su «Ver…»');
 // Otras fechas: el calendario sale al elegirla y lleva a Escapadas con esas fechas.
 ok(await p.locator('[data-fechas-propias]').isHidden(), 'otras fechas: calendario plegado de entrada');

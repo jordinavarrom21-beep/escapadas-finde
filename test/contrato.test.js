@@ -158,6 +158,30 @@ describe('modelo: completarOferta', () => {
     assert.equal(completada.fechas.salida, '2026-10-02T19:00:00');
     assert.equal(completada.fechas.puenteId, null);
   });
+
+  test('«d´Aro» pasa a «d’Aro» (el acento suelto partía la línea) en todo lo que se enseña', () => {
+    const o = completarOferta({
+      titulo: 'Escapada en Platja d´Aro y L`Escala', descripcion: 'Junto a l´Estartit', establecimiento: 'Mas Ca l`Estrada',
+      lugar: { nombre: 'L´Ampolla', lat: 40.8, lon: 0.7 },
+    });
+    assert.equal(o.titulo, 'Escapada en Platja d’Aro y L’Escala');
+    assert.equal(o.descripcion, 'Junto a l’Estartit');
+    assert.equal(o.establecimiento, 'Mas Ca l’Estrada');
+    assert.equal(o.lugar.nombre, 'L’Ampolla');
+    assert.equal(completarOferta({ titulo: 'Precio ´ suelto y café' }).titulo, 'Precio ´ suelto y café');
+    assert.deepEqual([completarOferta({}).titulo, completarOferta({}).descripcion, completarOferta({}).establecimiento], ['', '', null]);
+    assert.equal(completarOferta({ titulo: 7 }).titulo, 7, 'lo que no es texto lo rechaza validarOferta, no aquí');
+  });
+
+  test('un título con restos de código no se publica; los raros de verdad, sí', () => {
+    const titulo = (t) => validarOferta(completarOferta(base({ titulo: t }))).filter((e) => e.startsWith('título roto'));
+    for (const roto of ['undefined', 'Hotel undefined en Roses', 'Desde NaN €', '[object Object]', 'null', '<div class="x">Hotel</div>', 'Hotel <b>4*</b> en Roses', 'Spa<br/>y cena', '<a href="https://x.es">Oferta</a>', '{"titulo":"Hotel"']) {
+      assert.equal(titulo(roto).length, 1, roto);
+    }
+    for (const bueno of ['Vuelos a Roma <ida y vuelta>', 'Casas rurales <a 1 h de Madrid> desde 50 €', 'Ofertas <a elegir>', 'Hotel Nan Restaurant', 'Escapada «sin null» a Null Island', 'I <3 Barcelona', '2x1 en [Halloween]']) {
+      assert.deepEqual(titulo(bueno), [], bueno);
+    }
+  });
 });
 
 describe('contrato de las fuentes', () => {
