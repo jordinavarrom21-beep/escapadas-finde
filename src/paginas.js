@@ -303,7 +303,8 @@ export function htmlPagina(d, ofertas, { raiz, base = null, generado, total, tod
     ],
   });
   const cabeza = [
-    `<title>${esc(d.titulo)} · ${NOMBRE_WEB}</title>`,
+    // Con el nombre de la web solo si cabe (unos 65 caracteres): si no, Google corta el título.
+    `<title>${esc(d.titulo)}${d.titulo.length + NOMBRE_WEB.length + 3 <= 65 ? ` · ${NOMBRE_WEB}` : ''}</title>`,
     `<meta name="description" content="${esc(descripcion)}">`,
     '<meta name="robots" content="max-image-preview:large">',
     canonical && `<link rel="canonical" href="${esc(canonical)}">`,

@@ -43,7 +43,8 @@
   --chollo-suave: #fbe4d5;
   --chollo-fuerte: #9a3a0c;
   --chollo-claro: #fdba8c;
-  --exito: #0b7a4b;
+  /* 5:1 sobre el fondo (WCAG AA); antes 4,46. */
+  --exito: #0a7046;
   --peligro: #b42318;
   --aviso: #9a4a00;
   --aviso-suave: #fff1dc;
@@ -105,6 +106,7 @@
     --chollo-claro: #f6a574;
     --exito: #4ade80;
     --peligro: #ff8a80;
+    --tema-eventos-texto: #ff8a80;
     --aviso: #fbbf24;
     --aviso-suave: #3a2a08;
     --puente: #d6b4ff;
@@ -145,6 +147,7 @@
   --chollo-claro: #f6a574;
   --exito: #4ade80;
   --peligro: #ff8a80;
+  --tema-eventos-texto: #ff8a80;
   --aviso: #fbbf24;
   --aviso-suave: #3a2a08;
   --puente: #d6b4ff;
@@ -303,7 +306,7 @@ pre code { background: none; padding: 0; }
   border-radius: 999px; font-size: 0.74rem; font-weight: 800; background: var(--superficie-2); color: var(--texto-suave);
   font-variant-numeric: tabular-nums;
 }
-.puntuacion__etiqueta { font-weight: 700; opacity: 0.85; }
+.puntuacion__etiqueta { font-weight: 700; }
 .puntuacion__max, .tarjeta__opiniones-max { font-size: 0.78em; font-weight: 600; opacity: 0.75; }
 .tarjeta__cabeza .puntuacion { padding: 0 9px; }
 .puntuacion--alta { background: var(--acento); color: var(--acento-texto); }
@@ -404,6 +407,8 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 .titulo-vista { margin-bottom: 18px; font-size: clamp(1.9rem, 3.6vw, 2.8rem); line-height: 1.05; letter-spacing: -0.03em; }
 .titulo-vista .suave { display: block; font-family: var(--fuente); font-size: 1rem; font-weight: 500; letter-spacing: 0; margin-top: 6px; }
 .cargando { padding: 48px 0; text-align: center; color: var(--texto-suave); }
+/* Mientras carga, el hueco de una pantalla: el pie no se ve y no salta al pintar las ofertas (CLS). */
+.js #principal:has(> .cargando) { min-height: 100vh; }
 
 .seccion { margin-top: 44px; }
 .seccion__cabeza { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
@@ -979,7 +984,8 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 .finde-celda--puente { background: var(--banda); border-color: var(--banda); color: var(--banda-texto) !important; }
 .finde-celda--puente .finde-celda__cuando, .finde-celda--puente .suave { color: var(--banda-suave); }
 .finde-celda--puente .insignia--puente { background: var(--chollo); color: var(--chollo-texto); }
-.finde-celda__cuando { font-size: 0.74rem; font-weight: 800; color: var(--texto-suave); text-transform: uppercase; letter-spacing: 0.07em; }
+/* Color de texto normal: sobre los fondos del mapa de calor el gris suave no llegaba a 4,5:1. */
+.finde-celda__cuando { font-size: 0.74rem; font-weight: 800; color: var(--texto); text-transform: uppercase; letter-spacing: 0.07em; }
 .finde-celda__fecha { font-family: var(--fuente-titulos); font-size: 1.4rem; font-weight: 800; letter-spacing: -0.02em; }
 .finde-celda__dato { display: flex; align-items: center; gap: 6px; font-size: 0.87rem; overflow-wrap: anywhere; }
 .finde-celda .insignia { align-self: flex-start; }
@@ -1042,6 +1048,13 @@ main { padding-block: 22px 56px; min-height: 60vh; }
   background: #ffffff; color: #17211f; font: 800 13px/1.2 var(--fuente); white-space: nowrap;
   border: 0; box-shadow: 0 3px 10px rgb(23 33 31 / 28%);
 }
+/* Una escapada sola: un punto de su color, que también recibe el foco del teclado. */
+.marcador-punto span {
+  display: block; width: 18px; height: 18px; transform: translate(-50%, -50%); border-radius: 50%;
+  border: 2px solid #ffffff; box-shadow: 0 2px 6px rgb(23 33 31 / 35%);
+}
+.leaflet-marker-icon:focus-visible { outline: none; }
+.leaflet-marker-icon:focus-visible span { outline: 3px solid var(--acento); outline-offset: 2px; }
 .leaflet-container { font: inherit; }
 .leaflet-popup-content { margin: 10px; }
 .leaflet-popup-content-wrapper, .leaflet-popup-tip { background: var(--superficie); color: var(--texto); border-radius: 18px; }
@@ -1690,7 +1703,8 @@ body:has([data-plegable-movil][open]) .barra-comparar [data-abrir-filtros] { dis
 .idea__ruta span { color: var(--tema-playa); }
 .idea__fecha {
   display: grid; place-content: center; text-align: center; line-height: 1.05;
-  background: color-mix(in srgb, var(--tema-eventos) 12%, var(--superficie)); color: var(--tema-eventos);
+  /* En oscuro, un rojo más claro para el texto (el de la temática se queda en 2,85:1). */
+  background: color-mix(in srgb, var(--tema-eventos) 12%, var(--superficie)); color: var(--tema-eventos-texto, var(--tema-eventos));
   border: 1px solid color-mix(in srgb, var(--tema-eventos) 25%, transparent);
 }
 .idea__fecha strong { font-family: var(--fuente-titulos); font-size: 1.45rem; font-weight: 800; }
@@ -1764,8 +1778,10 @@ body:has([data-plegable-movil][open]) .barra-comparar [data-abrir-filtros] { dis
 .insignia--evento { background: color-mix(in srgb, var(--tema-eventos, var(--acento)) 16%, var(--superficie)); color: var(--texto); }
 
 /* En la portada, tu viaje y el destino van en el buscador: arriba no se repiten. */
-body[data-vista="finde"] #boton-viaje, body[data-vista="finde"] #buscador { display: none; }
-body[data-vista="finde"] .cabecera-info:not(:has(#novedades:not([hidden]), #actualizado:not([hidden]))) { display: none; }
+body[data-vista="finde"] #boton-viaje, body[data-vista="finde"] #buscador,
+html[data-vista-inicial="finde"] body:not([data-vista]) #boton-viaje, html[data-vista-inicial="finde"] body:not([data-vista]) #buscador { display: none; }
+body[data-vista="finde"] .cabecera-info:not(:has(#novedades:not([hidden]), #actualizado:not([hidden]))),
+html[data-vista-inicial="finde"] body:not([data-vista]) .cabecera-info:not(:has(#novedades:not([hidden]), #actualizado:not([hidden]))) { display: none; }
 /* Un finde o puente que ya pasó en la URL: la franja avisa en vez de decir «cualquier fecha». */
 .franja-periodo--pasado { background: var(--aviso-suave); color: var(--aviso); }
 /* Cuántas tienen fechas de verdad en el periodo elegido y cuántas son flexibles. */

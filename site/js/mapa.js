@@ -31,6 +31,23 @@ function crearMapa(L, contenedor) {
   const selector = L.control.layers(null, { [`${icono('escapadas')} Escapadas`]: capas.escapadas, [`${icono('vuelos')} Vuelos`]: capas.vuelos }).addTo(mapa);
   const boton = selector.getContainer()?.querySelector('.leaflet-control-layers-toggle');
   if (boton) { boton.title = 'Qué enseñar en el mapa'; boton.setAttribute('aria-label', 'Qué enseñar en el mapa'); }
+  // Con el teclado: al abrir la ventana de un punto, el foco va a su primer enlace o botón, y al
+  // cerrarla vuelve al punto (si no, había que recorrer todos los puntos para llegar a ella).
+  let origenVentana = null;
+  mapa.on('popupopen', (evento) => {
+    origenVentana = evento.popup._source?.getElement?.() ?? null;
+    const caja = evento.popup.getElement();
+    // Escape la cierra también con el foco dentro (Leaflet solo lo mira con el foco en el mapa).
+    if (caja && !caja.dataset.conEscape) {
+      caja.dataset.conEscape = '';
+      caja.addEventListener('keydown', (tecla) => { if (tecla.key === 'Escape') { tecla.stopPropagation(); mapa.closePopup(); } });
+    }
+    caja?.querySelector('.leaflet-popup-content a[href], .leaflet-popup-content button')?.focus({ preventScroll: true });
+  });
+  mapa.on('popupclose', () => {
+    if (origenVentana?.isConnected && contenedor.contains(document.activeElement ?? null)) origenVentana.focus({ preventScroll: true });
+    origenVentana = null;
+  });
   observador = new ResizeObserver(() => {
     mapa.invalidateSize();
     if (encuadrePendiente && contenedor.clientWidth) encuadrar(L, encuadrePendiente);
@@ -40,6 +57,21 @@ function crearMapa(L, contenedor) {
 
 /** Los clics dentro de las ventanas suben hasta el documento, que los atiende como en el resto del panel. */
 const ventana = (html) => `<div class="ventana-mapa">${html}</div>`;
+
+/**
+ * Un punto del mapa que se puede usar con el teclado y con lector de pantalla: recibe el foco
+ * (Tab), se abre con Intro y dice qué es («Sitges: Hotel… desde 45 €»).
+ */
+function marcador(L, latlng, icon, etiqueta) {
+  const m = L.marker(latlng, { icon, title: etiqueta, keyboard: true, riseOnHover: true });
+  m.on('add', () => {
+    const el = m.getElement();
+    if (!el) return;
+    el.setAttribute('role', 'button');
+    el.setAttribute('aria-label', etiqueta);
+  });
+  return m;
+}
 
 function encuadrar(L, d) {
   const clave = `${d.punto?.lat},${d.punto?.lon},${d.radioKm}`;
@@ -77,18 +109,17 @@ export async function pintarMapa(contenedor, d, ctx) {
   for (const grupo of agruparPorLugar(d.escapadas)) {
     const [o] = grupo;
     const color = colorCss(`--tema-${o.temas[0]}`) || acento;
-    const marcador = grupo.length === 1
-      ? L.circleMarker([o.lugar.lat, o.lugar.lon], { radius: 8, color: '#ffffff', weight: 2, fillColor: color, fillOpacity: 0.95 })
-      : L.marker([o.lugar.lat, o.lugar.lon], {
-        icon: L.divIcon({ className: 'marcador-grupo', html: `<span>${grupo.length}</span>`, iconSize: null }),
-        title: `${grupo.length} escapadas en ${o.lugar.nombre ?? 'este sitio'}`, riseOnHover: true,
-      });
-    marcador.bindPopup(() => ventana(contenidoGrupo(grupo, ctx)), { minWidth: 260, maxWidth: 320 }).addTo(capas.escapadas);
+    const punto = grupo.length === 1
+      ? marcador(L, [o.lugar.lat, o.lugar.lon], L.divIcon({ className: 'marcador-punto', html: `<span style="background:${color}"></span>`, iconSize: null }),
+        `${o.lugar.nombre ?? 'Escapada'}: ${o.titulo}${typeof o.precio === 'number' && o.precio > 0 ? `, desde ${euros(o.precio)}` : ''}`)
+      : marcador(L, [o.lugar.lat, o.lugar.lon], L.divIcon({ className: 'marcador-grupo', html: `<span>${grupo.length}</span>`, iconSize: null }),
+        `${grupo.length} escapadas en ${o.lugar.nombre ?? 'este sitio'}`);
+    punto.bindPopup(() => ventana(contenidoGrupo(grupo, ctx)), { minWidth: 260, maxWidth: 320 }).addTo(capas.escapadas);
   }
   for (const { oferta, total } of d.destinos) {
     const icono = L.divIcon({ className: 'marcador-precio', html: `<span>${euros(Math.round(oferta.precio))}</span>`, iconSize: null });
     const extra = total > 1 ? `<p class="ventana-mapa__nota">${total} vuelos a este destino; este es el más barato.</p>` : '';
-    L.marker([oferta.lugar.lat, oferta.lugar.lon], { icon: icono, title: `${oferta.lugar.nombre}: desde ${euros(oferta.precio)}`, riseOnHover: true })
+    marcador(L, [oferta.lugar.lat, oferta.lugar.lon], icono, `Vuelo a ${oferta.lugar.nombre}: desde ${euros(oferta.precio)}`)
       .bindPopup(() => ventana(tarjeta(oferta, ctx) + extra), { minWidth: 260, maxWidth: 320 })
       .addTo(capas.vuelos);
   }

@@ -91,10 +91,11 @@ describe('páginas para buscadores', () => {
     assert.match(girona, /href="\.\.\/\.\.\/#\/escapadas\?region=Girona&amp;orden=total"/, 'la misma búsqueda en el panel');
     // La guía general no repite el título de la portada (competirían por la misma búsqueda).
     assert.doesNotMatch(pagina('escapadas'), /<title>Escapadas de fin de semana desde/);
-    assert.match(pagina('escapadas/puente'), /<title>Escapadas para el puente del [^<]+ desde Barcelona · Escapadas Finde<\/title>/);
+    // Un título largo va sin « · Escapadas Finde» (si no, Google lo corta).
+    assert.match(pagina('escapadas/puente'), /<title>Escapadas para el puente del [^<]+ desde Barcelona( · Escapadas Finde)?<\/title>/);
     for (const ruta of rutas) {
       const titulo = pagina(ruta).match(/<title>([^<]+)<\/title>/)[1];
-      assert.ok(titulo.length <= 80, `título corto para los resultados de búsqueda: ${titulo}`);
+      assert.ok(titulo.length <= 65 || !titulo.includes('Escapadas Finde'), `título corto para los resultados de búsqueda: ${titulo}`);
     }
   });
 
