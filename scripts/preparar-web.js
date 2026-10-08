@@ -19,6 +19,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { normalizarDrive, problemasDrive } from '../src/drive.js';
+import { AVISO_DRIVE } from '../site/js/formato.js';
 import { normalizarGoogleAds, problemasGoogleAds } from '../src/google-ads.js';
 import { CARPETAS, estructuradosPortada, generarPaginas } from '../src/paginas.js';
 
@@ -207,8 +208,8 @@ export function ponerDriveGuia(html, drive) {
   return ajustarCsp(conScripts, { ...cspDrive(url), 'style-src': ["'unsafe-inline'"] }, true)
     .replace(META_CSP, `$1\n<meta name="escapadas-drive" content="${url}">`)
     .replace('</head>', `<script src="${raiz}js/anuncios.js" defer></script>\n</head>`)
-    // Como en el pie de la portada (app.js): con Drive, tras aceptar, hay enlaces de afiliado.
-    .replace(/(<footer class="pie[^>]*>[^]*?)(<\/p>\s*<\/footer>)/, '$1 · <a href="#" data-abrir-cookies>Cookies</a>. Si aceptas las cookies, los enlaces a webs de la red de Travelpayouts pasan a ser de afiliado; no cambia tu precio ni el orden.$2');
+    // El mismo aviso que el pie del panel (app.js): con Drive, tras aceptar, hay enlaces de afiliado.
+    .replace(/(<footer class="pie[^>]*>[^]*?)(<\/p>\s*<\/footer>)/, (todo, antes, cierre) => `${antes} · <a href="#" data-abrir-cookies>Cookies</a>. ${AVISO_DRIVE} No cambia tu precio ni el orden de las ofertas.${cierre}`);
 }
 
 /** Las guías para buscadores que haya en `dir` (escapadas/, vuelos/, actividades/). */

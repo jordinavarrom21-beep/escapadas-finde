@@ -1,5 +1,6 @@
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
+import { ErrorHttp, ErrorRed } from '../src/util/http.js';
 
 import { CODIGOS_TIEMPO, anadirTiempo, emojiTiempo, periodoViaje } from '../src/enriquecer/tiempo.js';
 import { findesProximos } from '../src/util/fechas.js';
@@ -103,13 +104,19 @@ describe('tiempo', () => {
     assert.match(logs[0], /previsión del tiempo/);
   });
 
-  test('si un lote falla no pide los demás (cada uno serían minutos de esperas) y usa la caché', async () => {
-    const { ctx, logs, peticiones } = contexto({ respuestas: () => { throw new Error('Tiempo de espera agotado en api.open-meteo.com'); } });
-    const ofertas = Array.from({ length: 160 }, (_, i) => oferta({ lugar: { nombre: `Pueblo ${i}`, lat: 41 + i / 100, lon: 2 } }));
-    await anadirTiempo(ofertas, ctx);
-    assert.equal(peticiones.length, 1, 'una petición, no cuatro');
-    assert.equal(logs.length, 1);
-    assert.match(logs[0], /no se piden los 3 lotes que quedan\); se usa la guardada/);
+  test('si Open-Meteo está caído no pide los demás lotes (minutos de esperas); un error de un lote solo, sí', async () => {
+    const ofertas = () => Array.from({ length: 160 }, (_, i) => oferta({ lugar: { nombre: `Pueblo ${i}`, lat: 41 + i / 100, lon: 2 } }));
+    const caido = contexto({ respuestas: () => { throw new ErrorRed('https://api.open-meteo.com/v1/forecast', { motivo: 'timeout' }); } });
+    await anadirTiempo(ofertas(), caido.ctx);
+    assert.equal(caido.peticiones.length, 1, 'una petición, no cuatro');
+    assert.match(caido.logs[0], /Tiempo de espera agotado en api\.open-meteo\.com \(no se piden los 3 lotes que quedan; se usa la guardada\)/);
+    const caido503 = contexto({ respuestas: () => { throw new ErrorHttp(503, 'https://api.open-meteo.com/v1/forecast'); } });
+    await anadirTiempo(ofertas(), caido503.ctx);
+    assert.equal(caido503.peticiones.length, 1);
+    // Un 400 (una coordenada que no le gusta) es de ese lote: los demás se piden.
+    const malLote = contexto({ respuestas: () => { throw new ErrorHttp(400, 'https://api.open-meteo.com/v1/forecast'); } });
+    await anadirTiempo(ofertas(), malLote.ctx);
+    assert.equal(malLote.peticiones.length, 4);
   });
 
   test('la tabla de códigos WMO cubre la fixture y emojiTiempo tiene respaldo', () => {

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 
 import fuente, { parsear, precioDe } from '../src/fuentes/tuscasasrurales.js';
 import { estadoInicial, fusionar } from '../src/almacen.js';
-import { validarOferta } from '../src/modelo.js';
+import { arreglarApostrofes, validarOferta } from '../src/modelo.js';
 import { ErrorHttp } from '../src/util/http.js';
 import { rutaPermitida } from '../src/util/robots.js';
 import { AHORA, crearCtx, leerFixture } from './ayudas.js';
@@ -57,7 +57,7 @@ function segunElHtml(html) {
     ids: [...html.matchAll(/<article class="cont-gr-ficha" data-nombreurl="[^"]*" data-id="(\d+)">/g)].map((m) => m[1]),
     urls: enlaces.map((m) => m[1]),
     // El modelo cambia el acento suelto entre letras por el apóstrofo («l`Estrada» → «l’Estrada»).
-    titulos: enlaces.map((m) => m[2].replace(/(\p{L})[´`](?=\p{L})/gu, '$1’')),
+    titulos: enlaces.map((m) => arreglarApostrofes(m[2])),
     provincias: [...html.matchAll(/<p class="ficha-provincia">([^<]+)<\/p>/g)].map((m) => m[1]),
     // Cada precio va seguido de su unidad: «Desde 30€» + «persona/noche».
     precios: [...html.matchAll(/<div class="ficha-precio">Desde (\d+)€<\/div>\s*<div class="ficha-pers-noche">persona\/noche<\/div>/g)]

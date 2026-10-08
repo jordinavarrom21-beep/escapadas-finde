@@ -111,6 +111,13 @@ export function normalizar(texto = '') {
   return String(texto).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 }
 
+/**
+ * Lo que dice el pie con Travelpayouts Drive puesto: tras aceptar las cookies, los enlaces a
+ * webs de su red son de afiliado. Un solo texto para el pie del panel (app.js) y el de las
+ * guías para buscadores (scripts/preparar-web.js).
+ */
+export const AVISO_DRIVE = 'Si aceptas las cookies, los enlaces a webs de la red de Travelpayouts (Booking.com, Trip.com, Omio…) pasan a ser de afiliado.';
+
 /** Plural sencillo: (1, 'vuelo') → «1 vuelo» · (3, 'vuelo') → «3 vuelos». */
 export function contar(n, singular, plural = `${singular}s`) {
   return `${n.toLocaleString('es-ES')} ${n === 1 ? singular : plural}`;

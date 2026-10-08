@@ -11,6 +11,7 @@ import {
   leerFiltrosActividades, leerFiltrosEscapadas, leerFiltrosVuelos, perfilFavoritos, periodoFinde, planesSorpresa,
   rangoDe, recomendadas, salidaPuente, sinComprobar, tieneVuelo,
 } from './filtros.js';
+import { tieneCoordenadas } from './geo.js';
 import { colorTema, estadoVacio, tarjeta, tarjetaConMotivo, textoFechas } from './plantillas.js';
 import { escena, icono, tipoEscena } from './iconos.js';
 import {
@@ -229,6 +230,7 @@ export function atajosPortada(e, opcion = null, fechas = null) {
   // El mapa es una vista de Escapadas (Explorar → «Lista | Mapa»): aquí, a mano desde el Inicio.
   const mapa = conFechas('mapa', {});
   const n = {
+    mapa: buscarEscapadas(e.datos.ofertas, leerFiltrosEscapadas(mapa), busqueda).ofertas.filter((o) => tieneCoordenadas(o.lugar)).length,
     cho: buscarEscapadas(e.datos.ofertas, leerFiltrosEscapadas(cho), busqueda).ofertas.length,
     gratis: buscarActividades(e.datos.ofertas, leerFiltrosActividades(gratis), busqueda).length,
     ninos: buscarEscapadas(e.datos.ofertas, leerFiltrosEscapadas(ninos), busqueda).ofertas.length,
@@ -240,7 +242,8 @@ export function atajosPortada(e, opcion = null, fechas = null) {
     atajo(n.cho, 'Chollos', crearHash('escapadas', cho), 'fuego', `Escapadas muy por debajo de su precio normal${cuandoTexto}`),
     atajo(n.gratis, 'Planes gratis', crearHash('actividades', gratis), 'actividades', `Planes gratis${cuandoTexto}`),
     atajo(n.ninos, 'Viajar con niños', crearHash('escapadas', ninos), 'tema-familia', `Escapadas con niños gratis o con descuento${cuandoTexto}`),
-    `<li><a class="atajo" href="${crearHash('mapa', mapa)}" title="${esc(`Las escapadas en el mapa${cuandoTexto}`)}">${icono('mapa')}<span>Ver en el mapa</span></a></li>`,
+    // Como los demás: con lo que se verá en el mapa y solo si hay algo que ver.
+    atajo(n.mapa, 'Ver en el mapa', crearHash('mapa', mapa), 'mapa', `Las escapadas en el mapa${cuandoTexto}`),
     `<li><button type="button" class="atajo" data-sorpresa aria-controls="sorpresa-bloque">${icono('nuevo')}<span>Sorpréndeme</span></button></li>`,
   ].join('');
   return `<section class="seccion portada__atajos" aria-labelledby="atajos-titulo">
@@ -310,9 +313,11 @@ function columnaEscapadas(e, vistos) {
 function columnaVuelos(e, vistos) {
   const [actual] = e.findes;
   const busqueda = contextoBusqueda(e);
-  const vuelos = e.datos.ofertas.some(tieneVuelo)
-    ? filtrarVuelos(e.datos.ofertas, { ...leerFiltrosVuelos(), finde: actual.id, orden: 'precio' }, busqueda)
-    : [];
+  // Todos los vuelos con fecha de una vez (del más barato al más caro), y luego se separan los
+  // del finde (lo mismo que filtrarVuelos con «finde») de los de otras fechas.
+  const todos = e.datos.ofertas.some(tieneVuelo) ? filtrarVuelos(e.datos.ofertas, { ...leerFiltrosVuelos(), orden: 'precio' }, busqueda) : [];
+  const esDelFinde = (o) => o.fechas?.findeId === actual.id || o.fechas?.puenteId === actual.id;
+  const vuelos = todos.filter(esDelFinde);
   // Un vuelo por destino (el más barato): cuatro a Londres no ayudan a decidir.
   const destinos = new Set();
   const otroDestino = (o) => { const d = o.lugar?.nombre ?? o.titulo; if (destinos.has(d)) return false; destinos.add(d); return true; };
@@ -321,9 +326,9 @@ function columnaVuelos(e, vistos) {
     const delFinde = sinVistas(vuelos.filter(otroDestino), vistos, FILAS_IDEAS);
     // Con pocos para el finde, la columna se completa con los más baratos de otras fechas (y lo
     // dice): así no queda medio vacía al lado de las otras dos.
-    const deOtrasFechas = () => filtrarVuelos(e.datos.ofertas, { ...leerFiltrosVuelos(), orden: 'precio' }, busqueda)
-      .filter((o) => o.fechas?.findeId !== actual.id && o.fechas?.puenteId !== actual.id);
-    const otras = delFinde.length < FILAS_IDEAS ? sinVistas(deOtrasFechas().filter(otroDestino), vistos, FILAS_IDEAS - delFinde.length) : [];
+    const otras = delFinde.length < FILAS_IDEAS
+      ? sinVistas(todos.filter((o) => !esDelFinde(o) && otroDestino(o)), vistos, FILAS_IDEAS - delFinde.length)
+      : [];
     const filas = [...delFinde.map(filaVuelo), ...(otras.length ? ['<li class="ideas__sub">Otras fechas</li>', ...otras.map(filaVuelo)] : [])];
     return columnaIdeas('vuelos', 'Vuelos', filas, '',
       { href: crearHash('vuelos', { finde: actual.id }), texto: `Ver ${vuelos.length === 1 ? 'el' : `los ${vuelos.length}`} de estas fechas` }, 'vuelos');

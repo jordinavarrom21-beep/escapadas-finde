@@ -6,6 +6,7 @@
  */
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import { AVISO_DRIVE } from '../site/js/formato.js';
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -115,7 +116,8 @@ describe('Travelpayouts Drive en las guías para buscadores', () => {
     // Las vistas previas de Drive traen sus estilos en línea; scripts en línea, ninguno.
     assert.deepEqual(directivas['style-src'], ["'self'", "'unsafe-inline'"]);
     assert.ok(!directivas['script-src'].includes("'unsafe-inline'"));
-    assert.match(html, /<a href="#" data-abrir-cookies>Cookies<\/a>\. Si aceptas las cookies, los enlaces a webs de la red de Travelpayouts pasan a ser de afiliado; no cambia tu precio ni el orden\.<\/p>\s*<\/footer>/);
+    // El mismo aviso que el pie del panel (un solo texto, AVISO_DRIVE).
+    assert.ok(html.includes(`<a href="#" data-abrir-cookies>Cookies</a>. ${AVISO_DRIVE} No cambia tu precio ni el orden de las ofertas.</p>`));
     // Se puede repetir.
     assert.equal(ponerDriveGuia(html, DRIVE), html);
   });
@@ -190,6 +192,8 @@ describe('Drive y el aviso de enlaces de afiliado del pie', () => {
     const pie = app.slice(app.indexOf('function pintarAvisoComercial()'), app.indexOf('\n}\n', app.indexOf('function pintarAvisoComercial()')));
     assert.match(pie, /const drive = DRIVE \?/);
     assert.match(pie, /proveedores\.length \|\| patrocinadas \|\| drive/);
-    assert.match(pie, /red de Travelpayouts/);
+    // El texto es AVISO_DRIVE, el mismo que el pie de las guías.
+    assert.match(pie, /const drive = DRIVE \? `\$\{AVISO_DRIVE\} `/);
+    assert.match(AVISO_DRIVE, /red de Travelpayouts/);
   });
 });

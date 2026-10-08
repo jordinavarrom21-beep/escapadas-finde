@@ -33,8 +33,19 @@ export const ALOJAMIENTOS = ['hotel', 'casa-rural', 'camping', 'apartamento', 'p
 const IDS_TEMAS = new Set(TEMAS.map((t) => t.id));
 
 const esNumero = (valor) => typeof valor === 'number' && Number.isFinite(valor);
-/** «undefined», «[object Object]», «NaN €», etiquetas HTML o JSON a medias en el título. */
-const TITULO_ROTO = /^\s*(undefined|null|nan)\s*$|\[object \w+\]|\bundefined\b|<\/?[a-z][\w-]*(\s[^>]*)?>|^\s*[{[]\s*"/i;
+/**
+ * Restos de código en vez de un título: «undefined», «NaN» (con esas mayúsculas, como las
+ * escribe JavaScript), «[object Object]», «null» solo, etiquetas HTML conocidas o un JSON a
+ * medias. «<ida y vuelta>» o «Hotel Nan» son títulos de verdad y pasan.
+ */
+const TITULO_ROTO = /\bundefined\b|\bNaN\b|\[object \w+\]|^\s*null\s*$|<\/?(div|span|p|a|br|img|strong|b|i|em|ul|ol|li|h[1-6]|script|style|button|section|article|table|td|tr)\b[^>]*>|^\s*[{[]\s*"/;
+
+/**
+ * «Platja d´Aro»: el acento agudo (o el acento grave) suelto entre dos letras no es un
+ * apóstrofo y el navegador parte la línea justo antes («Platja d / ´Aro»). Se cambia por el
+ * apóstrofo tipográfico. Lo que no es texto se devuelve tal cual.
+ */
+export const arreglarApostrofes = (texto) => (typeof texto === 'string' ? texto.replace(/(\p{L})[´`](?=\p{L})/gu, '$1’') : texto);
 const esFechaIso = (valor) => typeof valor === 'string' && !Number.isNaN(Date.parse(valor));
 
 /** Lista de problemas de una oferta (vacía si es válida). */
@@ -87,7 +98,6 @@ export function completarOferta(datos) {
     id: null,
     fuente: null,
     tipo: 'escapada',
-    descripcion: '',
     url: '',
     imagen: null,
     precio: null,
@@ -121,7 +131,6 @@ export function completarOferta(datos) {
     patrocinada: null,
     enlaces: [],
     alojamiento: null,
-    establecimiento: null,
     ninos: null,
     estrellas: null,
     historialPorNoche: false,
@@ -133,12 +142,13 @@ export function completarOferta(datos) {
     tiempo: null,
     eventos: [],
     ...datos,
-    // «Platja d´Aro»: el acento agudo suelto no es un apóstrofo y el navegador parte la línea
-    // justo antes («Platja d / ´Aro»). Entre dos letras se cambia por el apóstrofo tipográfico.
-    titulo: typeof datos.titulo === 'string' ? datos.titulo.replace(/(\p{L})[´`](?=\p{L})/gu, '$1’') : (datos.titulo ?? ''),
+    // Los textos que se enseñan, con apóstrofos de verdad (ver arreglarApostrofes).
+    titulo: arreglarApostrofes(datos.titulo ?? ''),
+    descripcion: arreglarApostrofes(datos.descripcion ?? ''),
+    establecimiento: arreglarApostrofes(datos.establecimiento ?? null),
     fechas: { salida: null, vuelta: null, findeId: null, puenteId: null, ...datos.fechas },
     // Un solo nombre por localidad («Gerona» → «Girona»): ver util/lugares.js.
-    lugar: datos.lugar ? { ...datos.lugar, nombre: nombreOficial(datos.lugar.nombre) } : null,
+    lugar: datos.lugar ? { ...datos.lugar, nombre: nombreOficial(arreglarApostrofes(datos.lugar.nombre)) } : null,
   };
 }
 
