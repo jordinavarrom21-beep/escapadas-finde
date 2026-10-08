@@ -7,7 +7,7 @@ import { costeViaje, resumenCoste } from './coste.js';
 import { diasEntre, etiquetaDia, etiquetaRango, fechaLocal, horaDe } from './fechas.js';
 import {
   ETIQUETAS_ALOJAMIENTO, ETIQUETAS_REGIMEN, ETIQUETAS_TIPO, ETIQUETAS_TRANSPORTE, ETIQUETAS_UNIDAD, SIN_UNIDAD, TIPOS_EVENTO,
-  contar, duracion, enumerar, escaparHtml as esc, euros, grados, haceCuanto, nota, puntosMinigrafica, tituloLegible, urlSegura,
+  contar, duracion, enumerar, escaparHtml as esc, euros, grados, haceCuanto, nota, puntosMinigrafica, tituloLegible, unDecimal, urlSegura,
 } from './formato.js';
 import {
   SIN_COCHE, duracionActividad, encajeEnRango, esDuplicada, esNovedad, precioDeSerie, salidasDe, sinComprobar, sufijoSerie,
@@ -185,7 +185,7 @@ export function textoCosteCoche(o, ctx) {
   // Menos de medio euro («≈ 0 €») es ir a la misma ciudad: no es un dato útil.
   if (!(o.costeCoche?.eur >= 0.5) || conTransporteIncluido(o) || ctx.salidaPropia) return '';
   const personas = ctx.viajeros ? ` para ${contar(ctx.viajeros, 'persona')}` : '';
-  const litros = o.costeCoche.litros ? `: ${o.costeCoche.litros.toLocaleString('es-ES', { maximumFractionDigits: 1 })} l` : '';
+  const litros = o.costeCoche.litros ? `: ${unDecimal(o.costeCoche.litros)} l` : '';
   return `<span class="coste-coche" title="Estimación con el consumo y el precio medio del carburante${litros}. Sin peajes ni aparcamiento.">${conIcono('gasolina', `≈ ${euros(Math.round(o.costeCoche.eur))} de gasolina ida y vuelta · estimado, un coche${personas}`)}</span>`;
 }
 
