@@ -4,7 +4,7 @@ import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import { htaccess, leerArgumentos, normalizarBase, ponerDireccion, ponerPortada, prepararWeb } from '../scripts/preparar-web.js';
+import { htaccess, leerArgumentos, normalizarBase, ponerDireccion, ponerPortada, prepararWeb, versionarReferencias } from '../scripts/preparar-web.js';
 
 const SITE = new URL('../site/', import.meta.url);
 
@@ -107,5 +107,34 @@ describe('web para un hosting sin dominio fijo', () => {
     assert.match(texto, /RewriteRule \^apple-touch-icon-\(precomposed\|\[0-9\]\+x\[0-9\]\+\(-precomposed\)\?\)\\\.png\$ apple-touch-icon\.png \[L\]/);
     // Dentro del bloque de mod_rewrite (si el servidor no lo tiene, no rompe nada).
     assert.ok(texto.indexOf('/escapadas/ [R=302,L]') < texto.indexOf('</IfModule>'));
+  });
+});
+
+describe('cada publicación pide sus propios módulos («?v=<versión>»)', () => {
+  it('index.html, guías, importaciones y service worker con la versión; se puede repetir', () => {
+    const dir = mkdtempSync(path.join(tmpdir(), 'version-'));
+    cpSync(new URL('.', SITE), dir, { recursive: true, filter: (origen) => !origen.includes(`${path.sep}data${path.sep}`) && !origen.endsWith(`${path.sep}data`) });
+    mkdirSync(path.join(dir, 'escapadas', 'spa'), { recursive: true });
+    writeFileSync(path.join(dir, 'escapadas', 'spa', 'index.html'), '<link rel="stylesheet" href="../../css/estilos.css">\n<script src="../../js/anuncios.js" defer></script>');
+    prepararWeb({ dir, version: 'abc123' });
+    const indice = readFileSync(path.join(dir, 'index.html'), 'utf8');
+    // Todos los módulos, los estilos y los scripts clásicos; ninguno sin versión.
+    assert.match(indice, /<link rel="modulepreload" href="js\/app\.js\?v=abc123">/);
+    assert.match(indice, /<script type="module" src="js\/app\.js\?v=abc123"><\/script>/);
+    assert.match(indice, /<script src="js\/tema\.js\?v=abc123"><\/script>/);
+    assert.match(indice, /href="css\/estilos\.css\?v=abc123"/);
+    assert.doesNotMatch(indice, /(src|href)="js\/[\w-]+\.js"/);
+    assert.equal(readFileSync(path.join(dir, 'escapadas', 'spa', 'index.html'), 'utf8'), '<link rel="stylesheet" href="../../css/estilos.css?v=abc123">\n<script src="../../js/anuncios.js?v=abc123" defer></script>');
+    const app = readFileSync(path.join(dir, 'js', 'app.js'), 'utf8');
+    assert.match(app, /from '\.\/filtros\.js\?v=abc123';/);
+    assert.doesNotMatch(app, /from '\.\/[\w-]+\.js';/);
+    const sw = readFileSync(path.join(dir, 'sw.js'), 'utf8');
+    assert.match(sw, /'js\/app\.js\?v=abc123',/);
+    assert.match(sw, /'css\/estilos\.css\?v=abc123',/);
+    assert.match(sw, /'escapadas-interfaz-abc123'/);
+    // Otra publicación en la misma carpeta: la versión cambia, no se acumula.
+    versionarReferencias(dir, 'def456');
+    assert.match(readFileSync(path.join(dir, 'index.html'), 'utf8'), /src="js\/app\.js\?v=def456"/);
+    assert.doesNotMatch(readFileSync(path.join(dir, 'js', 'app.js'), 'utf8'), /abc123/);
   });
 });

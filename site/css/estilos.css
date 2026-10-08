@@ -1287,6 +1287,8 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 /* La portada para buscadores (index.html sin JavaScript): con JavaScript, el panel la sustituye. */
 .portada-estatica { display: grid; gap: 14px; max-width: 900px; padding-block: 12px; }
 .js .portada-estatica { display: none; }
+/* Si el panel no arranca (tema.js, app.js), la portada sin JavaScript hace de alternativa. */
+.js.sin-panel .portada-estatica { display: grid; }
 
 .vigilado-json { margin-top: 10px; max-height: 260px; }
 .chip--excluido { border-color: var(--peligro); }

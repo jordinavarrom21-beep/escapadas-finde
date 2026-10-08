@@ -35,8 +35,10 @@ describe('arranque de la web', () => {
   it('tema.js pide los datos con las mismas opciones que app.js y app.js los recoge una sola vez', () => {
     const tema = leer('js/tema.js');
     const app = leer('js/app.js');
-    assert.match(tema, /fetch\(ruta, \{ cache: 'no-cache' \}\)/);
-    assert.match(app, /fetch\(url, \{ cache: 'no-cache' \}\)/);
+    // Las mismas opciones (sin caché vieja) y el mismo límite para empezar a responder.
+    assert.match(tema, /fetch\(ruta, \{ cache: 'no-cache', signal: control\?\.signal \}\)/);
+    assert.match(tema, /window\.escapadasPedir\(ruta\)/);
+    assert.match(app, /window\.escapadasPedir \? window\.escapadasPedir\(url\) : fetch\(url, \{ cache: 'no-cache' \}\)/);
     for (const ruta of ['data/ofertas.json', 'data/historial.json']) assert.ok(tema.includes(`'${ruta}': pedir('${ruta}')`), ruta);
     // Con datos de otra web (hosting con datos remotos), no se adelantan: los pide app.js.
     assert.match(tema, /meta\[name="escapadas-datos"\]/);
@@ -46,6 +48,16 @@ describe('arranque de la web', () => {
   it('si el panel no arranca, aviso con «Recargar»; app.js avisa de que ha pintado', () => {
     const tema = leer('js/tema.js');
     assert.match(tema, /window\.addEventListener\('error'/);
+    // También un módulo que no llega (error del <script>, en captura) y un fallo asíncrono.
+    assert.match(tema, /\}, true\);/);
+    assert.match(tema, /window\.addEventListener\('unhandledrejection'/);
+    // Cualquier «Reintentar» de la página borra la copia guardada, aunque el panel no arranque.
+    assert.match(tema, /closest\?\.\('\[data-recargar-limpio\]'\)/);
+    // Un fallo al pintar (no solo al pedir los datos) acaba en un error con «Reintentar».
+    const app = leer('js/app.js');
+    const iniciar = app.slice(app.indexOf('async function iniciar()'));
+    assert.equal(iniciar.match(/falloAlArrancar\(/g).length, 2);
+    assert.match(app, /data-recargar-limpio>/);
     assert.match(tema, /serviceWorker\?\.getRegistrations/);
     assert.match(tema, /caches\.delete/);
     assert.match(leer('js/app.js'), /window\.escapadasListo = true;\n\s*window\.dispatchEvent\(new Event\('escapadas:listo'\)\)/);
