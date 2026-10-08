@@ -1,7 +1,9 @@
 /**
  * Deja una carpeta de la web lista para publicar, igual en GitHub Pages y en Hostinger:
  *  - quita las copias de seguridad de los datos (*.bak, *.tmp), que no hacen falta fuera;
- *  - pone la versión en la caché del service worker (cada despliegue, interfaz nueva entera);
+ *  - pone la versión en la caché del service worker (cada despliegue, interfaz nueva entera) y
+ *    en las direcciones de los módulos y los estilos («js/app.js?v=…»): ninguna caché (la del
+ *    navegador, la del hosting o su CDN) puede mezclar archivos de dos publicaciones;
  *  - con la dirección de la web: la imagen y la URL absolutas para la vista previa al
  *    compartir, la URL canónica y el enlace de inicio de la página 404;
  *  - con los datos en data/: la portada para buscadores en index.html (qué es la web, lo
@@ -76,6 +78,37 @@ function versionar(dir, version) {
   const nuevo = texto.replace(/escapadas-interfaz-[\w.-]+'/, `escapadas-interfaz-${version}'`);
   if (!nuevo.includes(`'escapadas-interfaz-${version}'`)) throw new Error('No se encuentra la versión de la caché en sw.js');
   writeFileSync(ruta, nuevo);
+}
+
+/** «js/x.js» y «css/estilos.css» en un atributo (con «../» delante en las guías). */
+const REFERENCIA_HTML = /((?:src|href)="(?:\.\.\/)*(?:js\/[\w-]+\.js|css\/estilos\.css))(?:\?v=[\w.-]+)?"/g;
+/** «from './x.js'» e «import './x.js'» entre módulos. */
+const IMPORTACION = /((?:\bfrom|\bimport)\s*['"]\.\/[\w-]+\.js)(?:\?v=[\w.-]+)?(['"])/g;
+/** La lista de la interfaz del service worker. */
+const EN_SERVICE_WORKER = /'((?:js\/[\w-]+\.js|css\/estilos\.css))(?:\?v=[\w.-]+)?'/g;
+
+/**
+ * Los módulos y los estilos con «?v=<versión>» en index.html, 404.html, las guías, las
+ * importaciones entre módulos y la lista del service worker. Sin esto, tras publicar, una
+ * caché (del navegador, del hosting o de su CDN) podía dar un módulo de la versión anterior
+ * junto a los nuevos y el panel no arrancaba («does not provide an export named…»), y el
+ * service worker guardaba esa mezcla. Se puede repetir (cambia la versión, no la duplica).
+ */
+export function versionarReferencias(dir, version) {
+  const v = encodeURIComponent(version);
+  const cambiar = (ruta, patron, reemplazo) => {
+    if (!existsSync(ruta)) return 0;
+    const texto = readFileSync(ruta, 'utf8');
+    const nuevo = texto.replace(patron, reemplazo);
+    if (nuevo !== texto) writeFileSync(ruta, nuevo);
+    return 1;
+  };
+  let archivos = 0;
+  for (const ruta of [path.join(dir, 'index.html'), path.join(dir, '404.html'), ...guias(dir)]) archivos += cambiar(ruta, REFERENCIA_HTML, `$1?v=${v}"`);
+  const js = path.join(dir, 'js');
+  if (existsSync(js)) for (const nombre of readdirSync(js).filter((n) => n.endsWith('.js'))) archivos += cambiar(path.join(js, nombre), IMPORTACION, `$1?v=${v}$2`);
+  archivos += cambiar(path.join(dir, 'sw.js'), EN_SERVICE_WORKER, `'$1?v=${v}'`);
+  return archivos;
 }
 
 /** Quita la dirección absoluta (vista previa y canónica): para una web sin dominio fijo. */
@@ -478,6 +511,8 @@ export function prepararWeb({ dir = 'site', base = null, version = null, conHtac
     writeFileSync(path.join(dir, '.htaccess'), htaccess(base));
     hecho.push('.htaccess');
   }
+  // Al final: también las guías y los scripts que se acaban de añadir (Drive, Analytics).
+  if (version) hecho.push(`direcciones con ?v=${version} (${versionarReferencias(dir, version)} archivos)`);
   return hecho;
 }
 

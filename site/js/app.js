@@ -78,8 +78,11 @@ const datosOferta = (o) => ({ web: o.fuente, tipo: o.tipo, destino: o.lugar?.nom
 const GOOGLE_ADS = Boolean(document.querySelector('meta[name="escapadas-google-ads"]'));
 const DRIVE = Boolean(document.querySelector('meta[name="escapadas-drive"]'));
 
+/** fetch sin caché vieja y con límite para empezar a responder (tema.js: escapadasPedir). */
+const pedir = (url) => (window.escapadasPedir ? window.escapadasPedir(url) : fetch(url, { cache: 'no-cache' }));
+
 async function pedirJson(url) {
-  const respuesta = await fetch(url, { cache: 'no-cache' });
+  const respuesta = await pedir(url);
   if (!respuesta.ok) throw new Error(`HTTP ${respuesta.status} en ${url}`);
   return respuesta.json();
 }
@@ -1080,25 +1083,48 @@ function aplicarDatosNuevos() {
   if (datosNuevos) usarDatos(datosNuevos);
 }
 
+/** La portada para buscadores que trae index.html (lo mejor de ahora y las guías, sin JavaScript). */
+const PORTADA_ESTATICA = principal.querySelector('.portada-estatica')?.outerHTML ?? '';
+
+/**
+ * Si el panel no puede arrancar, lo dice con palabras, ofrece «Reintentar» (tema.js: borra la
+ * copia guardada y baja la versión publicada) y, como alternativa, la portada sin JavaScript.
+ * Nunca deja «Cargando ofertas…» para siempre.
+ */
+function falloAlArrancar(titulo, texto) {
+  const alternativa = PORTADA_ESTATICA ? '<p class="suave">Mientras tanto, aquí tienes las mejores ofertas de ahora y las guías:</p>' : '';
+  principal.innerHTML = `${estadoVacio(titulo, texto, `<p><button type="button" class="boton boton--primario" data-recargar-limpio>${icono('deshacer')}Reintentar</button></p>${alternativa}`)}${PORTADA_ESTATICA}`;
+  document.documentElement.classList.add('sin-panel');
+}
+
 async function iniciar() {
   pintarBotonTema();
+  let cargados;
   try {
-    const [datos, historial, vigilados] = await Promise.all([
+    cargados = await Promise.all([
       cargarJson('data/ofertas.json'),
       cargarJson('data/historial.json', {}),
       cargarJson('data/vigilados.json', { vigilados: [] }),
     ]);
-    estado = crearEstado(datos, historial, vigilados);
   } catch (error) {
     console.error('No se han podido cargar los datos del panel:', error);
-    principal.innerHTML = estadoVacio('No se han podido cargar las ofertas',
-      'Puede que aún no se haya hecho la primera revisión o que no haya conexión.', '<a class="boton boton--primario" href="">Reintentar</a>');
+    falloAlArrancar('No se han podido cargar las ofertas', navigator.onLine === false
+      ? 'No hay conexión a internet. Cuando vuelva, pulsa «Reintentar».'
+      : 'El servidor no ha respondido a tiempo o los datos no han llegado completos. «Reintentar» los vuelve a pedir.');
     return;
   }
-  conectarEventos();
-  pintarCabecera();
-  pintarNovedades();
-  render({ enfocar: false });
+  try {
+    estado = crearEstado(...cargados);
+    conectarEventos();
+    pintarCabecera();
+    pintarNovedades();
+    render({ enfocar: false });
+  } catch (error) {
+    // Un dato inesperado o un módulo de otra versión: sin esto, «Cargando…» para siempre.
+    console.error('No se ha podido pintar el panel:', error);
+    falloAlArrancar('No se ha podido mostrar la web', 'Ha fallado algo al preparar las ofertas. «Reintentar» descarga de nuevo la versión publicada.');
+    return;
+  }
   // Para tema.js (ya no hace falta avisar de que no arranca) y anuncios.js (Drive, después).
   window.escapadasListo = true;
   window.dispatchEvent(new Event('escapadas:listo'));

@@ -36,7 +36,7 @@
   // La raíz de la web (este archivo está en js/): «Más información» vale también desde las guías.
   const raiz = new URL('../', document.currentScript?.src ?? location.href).href;
   // El panel (index.html) o una guía para buscadores, que no lo tiene.
-  const hayPanel = Boolean(document.querySelector('script[type="module"][src$="js/app.js"]'));
+  const hayPanel = Boolean(document.querySelector('script[type="module"][src*="js/app.js"]'));
 
   // Cada finalidad, con lo que se pregunta en el aviso.
   const FINALIDADES = [

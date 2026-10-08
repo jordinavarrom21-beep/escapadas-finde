@@ -1,13 +1,19 @@
 /**
- * Service worker del panel: la interfaz se sirve desde la caché (y se actualiza
- * en segundo plano) y los datos, primero desde la red con la caché de respaldo.
+ * Service worker del panel: la interfaz se sirve desde la caché de su versión y los datos,
+ * primero desde la red con la caché de respaldo.
  *
  * VERSION cambia con cada commit (el workflow le pone el SHA al desplegar): así el
  * navegador instala la interfaz nueva entera de una vez, sin mezclar módulos viejos
- * y nuevos, y borra la caché anterior.
+ * y nuevos, y borra la caché anterior. Al desplegar, los módulos y los estilos se piden
+ * además con «?v=<versión>» (scripts/preparar-web.js): ni el navegador ni la caché o el CDN
+ * del hosting pueden servir un archivo de otra publicación con la dirección de este.
  */
 
 const VERSION = 'escapadas-interfaz-dev';
+/** La versión tal como va en «?v=» (VERSION sin el prefijo). */
+const V = VERSION.replace('escapadas-interfaz-', '');
+/** Sin respuesta de la red en este tiempo, los datos guardados (y la red los renueva para la próxima vez). */
+const ESPERA_RED_MS = 8000;
 const CACHE_DATOS = 'escapadas-datos';
 const INTERFAZ = [
   './',
@@ -61,16 +67,29 @@ self.addEventListener('activate', (evento) => {
   );
 });
 
-async function primeroRed(peticion) {
+/**
+ * Primero la red; si falla, o si tarda más de ESPERA_RED_MS y hay copia guardada, la copia
+ * (una conexión colgada no deja la web en «Cargando…»). La respuesta de la red, cuando llega,
+ * se guarda igualmente para la próxima vez.
+ */
+async function primeroRed(peticion, evento) {
   const cache = await caches.open(CACHE_DATOS);
-  try {
-    const respuesta = await fetch(peticion);
-    if (respuesta.ok) await cache.put(peticion, respuesta.clone());
+  // Una respuesta de error (500, 404…) cuenta como fallo: con copia guardada, mejor la copia.
+  const red = fetch(peticion).then(async (respuesta) => {
+    if (!respuesta.ok) throw Object.assign(new Error(`HTTP ${respuesta.status} en ${peticion.url}`), { respuesta });
+    await cache.put(peticion, respuesta.clone());
     return respuesta;
-  } catch (error) {
-    const guardada = await cache.match(peticion);
-    if (guardada) return guardada;
-    throw error;
+  });
+  // Que el service worker no se pare antes de guardar la respuesta, aunque ya se haya usado la copia.
+  evento?.waitUntil(red.catch((error) => console.warn(`Sin respuesta de la red para ${peticion.url}:`, error)));
+  const guardada = await cache.match(peticion);
+  // Sin copia, lo que haya dicho la red (también su error, para que la página lo explique).
+  if (!guardada) return red.catch((error) => { if (error.respuesta) return error.respuesta; throw error; });
+  const espera = new Promise((listo) => { setTimeout(() => listo(null), ESPERA_RED_MS); });
+  try {
+    return (await Promise.race([red, espera])) ?? guardada;
+  } catch {
+    return guardada;
   }
 }
 
@@ -83,10 +102,13 @@ async function primeroRed(peticion) {
  */
 async function primeroCache(peticion) {
   const cache = await caches.open(VERSION);
-  const guardada = await cache.match(peticion, { ignoreSearch: true });
+  // Un módulo con «?v=»: el de esa versión exacta. Lo demás (index.html?utm_…), sin mirar la «?…».
+  const version = new URL(peticion.url).searchParams.get('v');
+  const guardada = await cache.match(peticion, { ignoreSearch: version == null });
   if (guardada) return guardada;
   const respuesta = await fetch(peticion);
-  if (respuesta.ok) await cache.put(peticion, respuesta.clone());
+  // Lo de otra versión (una pestaña vieja abierta) no entra en la caché de esta.
+  if (respuesta.ok && (version == null || version === V)) await cache.put(peticion, respuesta.clone());
   return respuesta;
 }
 
@@ -97,6 +119,6 @@ self.addEventListener('fetch', (evento) => {
   const datosRemotos = url.hostname.endsWith('.github.io') && url.pathname.includes('/data/');
   if (request.method !== 'GET' || (url.origin !== self.location.origin && !datosRemotos)) return;
   // Los datos y las guías para buscadores (src/paginas.js) cambian con cada escaneo: primero la red.
-  if (url.pathname.includes('/data/') || /\/(escapadas|vuelos|actividades)\/|sitemap\.xml$/.test(url.pathname)) evento.respondWith(primeroRed(request));
+  if (url.pathname.includes('/data/') || /\/(escapadas|vuelos|actividades)\/|sitemap\.xml$/.test(url.pathname)) evento.respondWith(primeroRed(request, evento));
   else evento.respondWith(primeroCache(request));
 });
