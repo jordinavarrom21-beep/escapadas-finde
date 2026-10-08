@@ -1,8 +1,8 @@
 /**
  * ¿Sigue activa la oferta? En cada escaneo se mira, poco a poco, la página de las ofertas de
  * las webs que dicen en ella si el chollo ha terminado. Las terminadas se retiran; las que
- * siguen activas cuentan como vistas en su web (`vistaUltima`), así no salen con «Puede
- * haber terminado» ni se borran por llevar días fuera de su feed.
+ * siguen activas cuentan como vistas en su web (`vistaUltima`), así no salen como «Sin
+ * confirmar» (site/js/vigencia.js) ni se borran por llevar días fuera de su feed.
  *
  * Solo se comprueba donde la página lo dice de forma fiable (sondeo del 4 de octubre de 2026
  * con ofertas reales que su web ya no listaba):

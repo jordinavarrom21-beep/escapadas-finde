@@ -738,6 +738,9 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 .dato-extra a { color: var(--enlace); }
 .comprobada { font-size: 0.78rem; }
 .comprobada--antigua { color: var(--aviso); }
+/* En la tarjeta: cuándo se comprobó, en una línea discreta (no una insignia más). */
+.comprobada--tarjeta { display: inline-flex; align-items: center; gap: 4px; color: var(--texto-suave); font-size: 0.76rem; }
+.comprobada--tarjeta svg { width: 13px; height: 13px; }
 .coste-total {
   align-items: center; padding: 7px 10px; border-radius: 12px; background: var(--acento-suave);
   color: var(--acento-suave-texto); font-weight: 750; font-size: 0.84rem;

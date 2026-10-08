@@ -47,6 +47,7 @@ const INTERFAZ = [
   'js/tema.js',
   'js/ubicacion.js',
   'js/viaje.js',
+  'js/vigencia.js',
   'js/vistas.js',
   'js/vistas-comun.js',
   'js/vistas-info.js',

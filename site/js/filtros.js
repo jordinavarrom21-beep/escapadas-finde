@@ -7,6 +7,7 @@ import { costeViaje } from './coste.js';
 import { diaSemana, diasEntre, etiquetaDia, fechaLocal, nombreFinde, quedanNoches, sumarDias } from './fechas.js';
 import { distanciaKm, esMismoPunto, minutosEnCoche, radioKmParaMinutos, tieneCoordenadas } from './geo.js';
 import { clavePunto } from './rutas.js';
+import { vigencia } from './vigencia.js';
 import {
   ETIQUETAS_ALOJAMIENTO, ETIQUETAS_REGIMEN, ETIQUETAS_TIPO, ETIQUETAS_TRANSPORTE, TIPOS_EVENTO, duracion, euros, normalizar,
 } from './formato.js';
@@ -130,8 +131,8 @@ export function leerFiltrosComunes(p = {}) {
     // Las descartadas (✕) y las que marcas «Ya no está disponible» se ocultan salvo que se pida verlas («sindesc=0»).
     sinDescartadas: p.sindesc !== '0',
     conDuplicadas: p.dup === '1',
-    // Las que su web lleva días sin publicar van al final; con «frescas=1», ni eso.
-    soloComprobadas: p.frescas === '1',
+    // Las «sin confirmar» (vigencia.js) no salen salvo que se pidan («sinconf=1»), y entonces al final.
+    incluirSinConfirmar: p.sinconf === '1',
     noTemas: lista(p.notemas),
     noDestinos: lista(p.nodest),
     desde,
@@ -207,21 +208,13 @@ const ascendente = (a, b) => (a === b ? 0 : a == null ? 1 : b == null ? -1 : a <
 const descendente = (a, b) => (a === b ? 0 : a == null ? 1 : b == null ? -1 : a < b ? 1 : -1);
 const porPuntuacion = (a, b) => b.puntuacion - a.puntuacion;
 
-/** Sin volver a verla en su web durante más de esto (o de 3 intervalos de su fuente), puede haber cambiado. */
-export const HORAS_SIN_COMPROBAR = 24;
-
 /**
- * ¿Lleva su web más de `HORAS_SIN_COMPROBAR` (o 3 intervalos de revisión) sin publicarla?
- * Se mide hasta `ctx.revision` (la hora del escaneo) si viene: así, si el escaneo se
- * retrasa, no pasan todas a «sin comprobar» a la vez. Si no, hasta `ctx.ahora`.
+ * ¿No está vigente? «Sin confirmar» (su web no la ha vuelto a mostrar en el tiempo que marca la
+ * política de vigencia: vigencia.js) o, si se cuela alguna, caducada. El panel ya quita las
+ * caducadas al cargar los datos (app.js).
  */
 export function sinComprobar(o, ctx = {}) {
-  const vista = Date.parse(o.vistaUltima);
-  if (!Number.isFinite(vista)) return false;
-  const hasta = (ctx.revision ?? ctx.ahora ?? new Date()).getTime();
-  const intervaloMin = ctx.intervalos?.get(o.fuente);
-  const limiteHoras = Math.max(HORAS_SIN_COMPROBAR, intervaloMin ? (3 * intervaloMin) / 60 : 0);
-  return (hasta - vista) / 3_600_000 > limiteHoras;
+  return vigencia(o, ctx) !== 'vigente';
 }
 
 /** Mismo orden, pero las que su web lleva tiempo sin publicar, al final. */
@@ -537,7 +530,6 @@ function cumpleComunes(o, f, ctx) {
     && (!f.fav || Boolean(ctx.favoritos?.has(o.id)))
     && (!f.sinDescartadas || !ctx.descartadas?.has(o.id))
     && (f.conDuplicadas || !esDuplicada(o))
-    && (!f.soloComprobadas || !sinComprobar(o, ctx))
     && (!f.soloCerradas || Boolean(o.fechas?.salida))
     && cumpleNinos(o, f.ninos)
     && cumpleFechas(o, f, ctx);
@@ -1323,7 +1315,7 @@ function textoFiltro(clave, valor, ctx) {
     baja: () => 'Con bajada de precio',
     hist: () => 'Mínimo histórico',
     sindesc: () => (valor === '0' ? 'Con las descartadas y las no disponibles' : null),
-    frescas: () => 'Solo comprobadas hace poco',
+    sinconf: () => 'Con las sin confirmar',
     dup: () => 'Con las repetidas',
     cru: () => (valor === '0' ? 'Con cruceros' : null),
     cerradas: () => 'Solo con fechas cerradas',

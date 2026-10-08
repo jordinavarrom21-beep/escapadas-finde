@@ -17,6 +17,15 @@ const POR_FUENTE = {
   rusticae: 'hotel',
 };
 
+/**
+ * Fuentes cuyas ofertas siempre incluyen dónde dormir, aunque el título no diga qué es: se usa
+ * si las palabras clave no lo aclaran. Atrápalo «Escapadas» es hotel + extras (ver
+ * src/fuentes/atrapalo.js); sin esto, las guías (que piden alojamiento) las dejaban fuera.
+ */
+const POR_DEFECTO = {
+  atrapalo: 'hotel',
+};
+
 /** De la palabra más específica a la más genérica (sin tildes: se compara normalizado). */
 const POR_PALABRA = [
   [/\bcasas? rural(es)?\b|\bcasa-rural\b/, 'casa-rural'],
@@ -41,7 +50,7 @@ export function detectarAlojamiento(oferta) {
   const porFuente = POR_FUENTE[oferta.fuente];
   if (porFuente) return porFuente;
   const texto = normalizarTexto(`${oferta.titulo} · ${oferta.descripcion}`);
-  return POR_PALABRA.find(([patron]) => patron.test(texto))?.[1] ?? null;
+  return POR_PALABRA.find(([patron]) => patron.test(texto))?.[1] ?? POR_DEFECTO[oferta.fuente] ?? null;
 }
 
 /** Rellena `alojamiento` solo si la fuente no lo ha dado. */

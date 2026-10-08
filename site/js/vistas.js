@@ -24,8 +24,8 @@ import { icono, iconoTema } from './iconos.js';
 import {
   ETIQUETAS_ORDEN, FILTROS_MAS_VUELOS, FILTROS_SECUNDARIOS, bloqueBusquedas, bloqueExclusiones, botonLimpiar,
   campoTexto, conmutadorListaMapa, contextoBusqueda, ctxTarjetas, etiquetaFinde, etiquetaPuente, franjaPeriodo, filtrosChollo, filtrosListas, interruptor,
-  interruptorDefecto, marcado, misAeropuertos, mostradas, nombreSalida, numero, opciones, pestanas, puntoSalida,
-  resumenResultados,
+  interruptorDefecto, marcado, misAeropuertos, mostradas, nombreSalida, numero, ofertasDe, opciones, pestanas, puntoSalida,
+  resumenResultados, avisoSinConfirmar,
 } from './vistas-comun.js';
 import { eventosCerca, filaEvento, vistaFinde } from './vistas-portada.js';
 import { vistaAyuda, vistaCalendario, vistaFuentes, vistaMis, vistaPuentes, vistaVigilados } from './vistas-info.js';
@@ -119,8 +119,8 @@ function apartadoPlegado(titulo, cuantos, intro, contenido, { abierto = false, i
 }
 
 /** Tren, bus y ferry: billetes sueltos que antes salían como escapadas. */
-function apartadoTransporte(e, f, ctx, contexto, abierto = false) {
-  const lista = transporteSuelto(e.datos.ofertas, f, contexto);
+function apartadoTransporte(e, f, ctx, contexto, abierto = false, base = e.datos.ofertas) {
+  const lista = transporteSuelto(base, f, contexto);
   if (!lista.length) return '';
   return apartadoPlegado('Tren, bus y ferry', lista.length,
     'Billetes y promociones de tren, autobús y barco desde tu zona: solo el viaje, sin alojamiento.',
@@ -152,10 +152,11 @@ export function resultadosVuelos(e, params) {
   const rango = rangoDe(f.finde, contexto);
   const ctx = ctxTarjetas(e, { rango });
   const hayConFecha = e.datos.ofertas.some(tieneVuelo);
+  const base = ofertasDe(e, params);
   const { resultado: [vuelos, chollos, promociones], aproximado } = conFaltas((g) => [
-    filtrarVuelos(e.datos.ofertas, g, contexto), chollosDeVuelos(e.datos.ofertas, g, contexto), promocionesDeVuelos(e.datos.ofertas, g, contexto),
+    filtrarVuelos(base, g, contexto), chollosDeVuelos(base, g, contexto), promocionesDeVuelos(base, g, contexto),
   ], f, (r) => r.every((lista) => !lista.length));
-  const parecido = aproximado ? avisoAproximado(f.q) : '';
+  const parecido = `${aproximado ? avisoAproximado(f.q) : ''}${avisoSinConfirmar(e, 'vuelos', params, (lista) => filtrarVuelos(lista, f, contexto).length + chollosDeVuelos(lista, f, contexto).length)}`;
   if (!hayConFecha) {
     const resumen = `${contar(chollos.length, 'chollo')} de vuelos${promociones.length ? ` y ${contar(promociones.length, 'promoción', 'promociones')}` : ''}`;
     return `${filaActivos(e, 'vuelos', params)}${resumenResultados(resumen)}${parecido}
@@ -165,7 +166,7 @@ ${promociones.length ? `<section class="seccion">
   <p class="seccion__intro">Códigos, rebajas y selecciones de «muchos destinos»: no son un billete, sino una forma de pagar menos en la web de la aerolínea.</p>
   ${rejilla(promociones, ctx, { mostradas: mostradas(e, 'promociones'), clave: 'promociones' })}
 </section>` : ''}
-${apartadoTransporte(e, f, ctx, contexto)}`;
+${apartadoTransporte(e, f, ctx, contexto, false, base)}`;
   }
   // Con un finde o un puente elegido: primero los que salen y vuelven dentro de esos días;
   // aparte, los que se solapan (salen antes o vuelven después), diciendo en qué.
@@ -191,7 +192,7 @@ ${apartadoPlegado('Billetes sin fecha concreta', chollos.length,
 ${promociones.length ? apartadoPlegado('Promociones de aerolíneas', promociones.length,
     'Códigos, rebajas y selecciones de «muchos destinos»: no son un billete, sino una forma de pagar menos en la web de la aerolínea.',
     rejilla(promociones, ctx, { mostradas: mostradas(e, 'promociones'), clave: 'promociones' })) : ''}
-${apartadoTransporte(e, f, ctx, contexto)}`;
+${apartadoTransporte(e, f, ctx, contexto, false, base)}`;
 }
 
 // ── Escapadas y mapa ─────────────────────────────────────────────────────────
@@ -534,13 +535,14 @@ function listaPorFechas(e, f, params, ofertas, ctx) {
 
 export function resultadosEscapadas(e, params) {
   const f = leerFiltrosEscapadas(params);
-  const { resultado, aproximado } = conFaltas((g) => buscarEscapadas(e.datos.ofertas, g, contextoBusqueda(e)), f);
+  const { resultado, aproximado } = conFaltas((g) => buscarEscapadas(ofertasDe(e, params), g, contextoBusqueda(e)), f);
   const { ofertas, distancias, costes, sinTotal } = resultado;
+  const sinConfirmar = avisoSinConfirmar(e, 'escapadas', params, (lista) => buscarEscapadas(lista, f, contextoBusqueda(e)).ofertas.length);
   // Filtrando por eventos, cada tarjeta enseña el suyo (también en las de fechas flexibles).
   const ctx = ctxTarjetas(e, { distancias, desde: f.punto?.nombre ?? nombreSalida(e), rango: rangoDe(f.cuando, contextoBusqueda(e)), conEventos: Boolean(f.evento), tipoEvento: f.evento });
   // En el móvil el «Mapa» ya está en la pastilla flotante: aquí sobra.
   const acciones = conmutadorListaMapa(params, 'escapadas');
-  return `${franjaPeriodo(e, 'escapadas', params)}${filaActivos(e, 'escapadas', params)}${resumenResultados(contar(ofertas.length, 'escapada'), acciones)}${aproximado ? avisoAproximado(f.q) : ''}${tambienCerca(e, f, params, ofertas)}
+  return `${franjaPeriodo(e, 'escapadas', params)}${filaActivos(e, 'escapadas', params)}${resumenResultados(contar(ofertas.length, 'escapada'), acciones)}${aproximado ? avisoAproximado(f.q) : ''}${sinConfirmar}${tambienCerca(e, f, params, ofertas)}
 ${ordenRapido('escapadas', params, f.orden)}${explicacionOrden(e, f, costes)}${f.presupuesto ? `<p class="seccion__intro">Presupuesto: viaje completo (oferta y gasolina estimada) de hasta ${esc(euros(f.presupuesto))} ${f.presupuestoPor === 'persona' ? 'por persona' : 'en total'} para ${esc(contar(e.viaje?.viajeros ?? 2, 'persona'))}.${sinTotal ? ` ${esc(contar(sinTotal, 'oferta'))} sin datos suficientes para un total no se pueden comprobar y no salen.` : ''}</p>` : ''}
 ${ofertas.length
     ? listaPorFechas(e, f, params, ofertas, ctx)
@@ -573,7 +575,7 @@ ${avisoMemoria(e, 'actividades')}${avisoViajeCompartido(e, params)}
     <label class="campo">Ordenar por <select name="orden">${opciones(ORDENES_ACTIVIDADES.map((o) => [o, ETIQUETAS_ORDEN_ACTIVIDADES[o]]), f.orden)}</select></label>
     ${interruptor('gratis', 'Solo gratis', f.gratis)}
     ${interruptorDefecto('sindesc', 'Ocultar las descartadas y las no disponibles', f.sinDescartadas)}
-    ${interruptor('frescas', 'Ocultar las que su web lleva días sin publicar', f.soloComprobadas)}
+    ${interruptor('sinconf', 'Incluir las sin confirmar (su web no las ha vuelto a mostrar)', f.incluirSinConfirmar)}
   </div>
   ${bloqueBusquedas(e, 'actividades')}
 </form></details></div>
@@ -599,10 +601,10 @@ function eventosEnPlanes(e, f) {
 
 export function resultadosActividades(e, params) {
   const f = leerFiltrosActividades(params);
-  const { resultado: lista, aproximado } = conFaltas((g) => buscarActividades(e.datos.ofertas, g, contextoBusqueda(e)), f);
+  const { resultado: lista, aproximado } = conFaltas((g) => buscarActividades(ofertasDe(e, params), g, contextoBusqueda(e)), f);
   const gratis = lista.filter((o) => o.precio === 0).length;
   const resumen = `${contar(lista.length, 'plan', 'planes')}${gratis ? ` · ${gratis} ${gratis === 1 ? 'gratis' : 'gratis'}` : ''}`;
-  return `${franjaPeriodo(e, 'actividades', params)}${filaActivos(e, 'actividades', params)}${eventosEnPlanes(e, f)}${resumenResultados(resumen)}${aproximado ? avisoAproximado(f.q) : ''}
+  return `${franjaPeriodo(e, 'actividades', params)}${filaActivos(e, 'actividades', params)}${eventosEnPlanes(e, f)}${resumenResultados(resumen)}${aproximado ? avisoAproximado(f.q) : ''}${avisoSinConfirmar(e, 'actividades', params, (otras) => buscarActividades(otras, f, contextoBusqueda(e)).length)}
 ${lista.length
     ? rejilla(lista, ctxTarjetas(e), { mostradas: mostradas(e, 'actividades'), clave: 'actividades' })
     : periodoPasado(f.cuando, contextoBusqueda(e)) ? vacioPeriodoPasado('actividades')
@@ -621,7 +623,7 @@ ${atajosEscapadas('mapa', e.hoy)}<details class="filtros-plegables"><summary>Fil
 export function datosMapa(e, params) {
   const f = leerFiltrosEscapadas(params);
   return {
-    ...contenidoMapa(e.datos.ofertas, f, contextoBusqueda(e)),
+    ...contenidoMapa(ofertasDe(e, params), f, contextoBusqueda(e)),
     punto: f.punto ?? puntoSalida(e),
     radioKm: radioBusquedaKm(f),
     desde: f.punto?.nombre ?? nombreSalida(e),
@@ -666,9 +668,10 @@ export function vistaBuscar(e, params) {
 
 export function resultadosBuscar(e, params) {
   const f = leerFiltrosComunes(params);
-  const { resultado: lista, aproximado } = conFaltas((g) => buscarTexto(e.datos.ofertas, g, contextoBusqueda(e)), f);
+  const { resultado: lista, aproximado } = conFaltas((g) => buscarTexto(ofertasDe(e, params), g, contextoBusqueda(e)), f);
+  const sinConfirmar = avisoSinConfirmar(e, 'buscar', params, (otras) => buscarTexto(otras, f, contextoBusqueda(e)).length);
   if (!lista.length) {
-    return `${resumenResultados('0 ofertas')}${estadoVacio(f.nuevas ? 'No hay novedades desde tu última visita.' : `Nada coincide con «${esc(f.q)}».`, 'Prueba con otra palabra: un destino, una región, un tema… Con «-» delante quitas resultados.', f.nuevas ? '' : buscarFuera(f.q))}`;
+    return `${resumenResultados('0 ofertas')}${sinConfirmar}${estadoVacio(f.nuevas ? 'No hay novedades desde tu última visita.' : `Nada coincide con «${esc(f.q)}».`, 'Prueba con otra palabra: un destino, una región, un tema… Con «-» delante quitas resultados.', f.nuevas ? '' : buscarFuera(f.q))}`;
   }
   // Una sola forma de buscar: desde aquí se sigue en la pestaña de Explorar que toque, con
   // la búsqueda puesta y todos sus filtros.
@@ -680,7 +683,7 @@ export function resultadosBuscar(e, params) {
       pestana('vuelos', 'En Vuelos', 'vuelos', lista.filter((o) => o.tipo === 'vuelo').length),
     ].join(' ')}</nav>`
     : '';
-  return `${resumenResultados(contar(lista.length, 'oferta'))}${aproximado ? avisoAproximado(f.q) : ''}${seguir}${rejilla(lista, ctxTarjetas(e), { mostradas: mostradas(e, 'buscar'), clave: 'buscar' })}`;
+  return `${resumenResultados(contar(lista.length, 'oferta'))}${aproximado ? avisoAproximado(f.q) : ''}${sinConfirmar}${seguir}${rejilla(lista, ctxTarjetas(e), { mostradas: mostradas(e, 'buscar'), clave: 'buscar' })}`;
 }
 
 // ── Comparar ─────────────────────────────────────────────────────────────────

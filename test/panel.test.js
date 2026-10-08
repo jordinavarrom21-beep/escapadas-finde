@@ -16,7 +16,7 @@ import { parsearPhoton, urlPhoton } from '../site/js/geo.js';
 import { contenidoFicha, tarjeta } from '../site/js/plantillas.js';
 import {
   avisosDeBusquedas, contenidoSorpresa, contextoBusqueda, ocultas, resultadosBuscar, resultadosEscapadas, resultadosDeBusqueda, resultadosVuelos, totalNovedadesGuardadas, vistaMis, vistaVuelos, vistaActividades, vistaCalendario, vistaEscapadas, vistaFinde,
-  vistaFuentes, vistaPuentes, resultadosActividades,
+  vistaFuentes, vistaPuentes, resultadosActividades, estadoWebs,
 } from '../site/js/vistas.js';
 import { crearServidor, rutaArchivo } from '../scripts/servir.js';
 
@@ -394,10 +394,9 @@ describe('actividades', () => {
     // El mapa, a mano desde el Inicio y con las mismas fechas (antes solo se llegaba desde Explorar).
     assert.match(atajos, /href="#\/mapa\?cuando=finde"[^>]*>[^]*Ver en el mapa/);
     assert.ok((atajos.match(/<li>/g) ?? []).length <= 5, 'como mucho cinco atajos');
-    // Una sola vez tu viaje; el estado de las webs, solo para quien administra la web.
+    // Una sola vez tu viaje; el estado de las webs, para todos (la misma frase que el pie).
     assert.equal((portada.match(/data-mi-viaje/g) ?? []).length, 1);
-    assert.doesNotMatch(portada, /href="#\/fuentes"/);
-    assert.match(vistaFinde({ ...estadoPanel(), propietario: true }, {}), /class="portada__confianza[^"]*"[^]*?href="#\/fuentes"/);
+    assert.match(portada, /class="portada__confianza[^"]*"[^]*?href="#\/fuentes"/);
 
     const conActividades = contenidoFicha(escapadaGirona, { ...ctxFicha, actividades: actividadesCerca(ofertas, escapadaGirona) });
     assert.match(conActividades, /Qué hacer allí/);
@@ -533,10 +532,18 @@ describe('búsqueda, novedades y resúmenes', () => {
     assert.match(vistaCalendario(estadoPanel()), /finde-celda--puente[^]*La Mercè/);
   });
 
-  it('estado de las fuentes: las bloqueadas y desactivadas no cuentan como fallo y se muestra el motivo', () => {
+  it('estado de las webs: para todos, con estado y fechas; el detalle técnico, solo para quien administra la web', () => {
     assert.deepEqual(resumenFuentes(datos.fuentes), { activas: 9, ok: 8, conError: 1, conAviso: 0, inactivas: 2 });
-    assert.doesNotMatch(vistaFuentes(estadoPanel()), /nomolesten|robots/i, 'a un visitante no se le enseña qué webs se leen');
-    const html = vistaFuentes({ ...estadoPanel(), propietario: true });
+    const e = estadoPanel();
+    const visitante = vistaFuentes(e);
+    assert.match(visitante, /<h1 class="titulo-vista" tabindex="-1">Estado de las webs<\/h1>/);
+    // La misma frase que la portada y el pie.
+    assert.ok(visitante.includes(`<strong>${estadoWebs(datos.fuentes, e.ahora).texto}.</strong>`));
+    for (const f of datos.fuentes) assert.ok(visitante.includes(`<th scope="row">${f.nombre}</th>`), f.nombre);
+    assert.match(visitante, /<td data-etiqueta="Última lectura correcta"><time datetime="[^"]+" title="[^"]+">hace/);
+    assert.match(visitante, /No se consulta/);
+    assert.doesNotMatch(visitante, /HTTP 403|robots\.txt/, 'sin el detalle técnico');
+    const html = vistaFuentes({ ...e, propietario: true });
     assert.match(html, /Bloqueada<\/span><\/td>\s*<td data-etiqueta="Detalle">Su robots\.txt prohíbe \/api/);
     assert.match(html, /HTTP 403 en www\.nomolesten\.com/);
   });
@@ -774,27 +781,28 @@ describe('ofertas que ya no están', () => {
   const hora = (h) => new Date(AHORA.getTime() - h * 3_600_000).toISOString();
   const ctx = { revision: AHORA, intervalos: new Map([['lenta', 720]]) };
 
-  it('«sin comprobar»: más de 24 h (o 3 revisiones de su web) sin verla, medido hasta la hora del escaneo', () => {
-    assert.equal(sinComprobar({ fuente: 'rapida', vistaUltima: hora(23) }, ctx), false);
-    assert.equal(sinComprobar({ fuente: 'rapida', vistaUltima: hora(25) }, ctx), true);
-    assert.equal(sinComprobar({ fuente: 'lenta', vistaUltima: hora(30) }, ctx), false, 'cada 12 h: hasta 36 h');
-    assert.equal(sinComprobar({ fuente: 'lenta', vistaUltima: hora(37) }, ctx), true);
-    // Si el escaneo se retrasa, no pasan todas a «sin comprobar» de golpe.
-    assert.equal(sinComprobar({ fuente: 'rapida', vistaUltima: hora(2) }, { revision: new Date(AHORA.getTime() - 3_600_000), ahora: new Date(AHORA.getTime() + 48 * 3_600_000) }), false);
+  it('«sin confirmar»: el límite de su tipo (o 2 revisiones de su web + 1 h), medido hasta la hora del escaneo', () => {
+    const hotel = (h, fuente = 'rapida') => ({ tipo: 'hotel', fuente, vistaUltima: hora(h) });
+    assert.equal(sinComprobar(hotel(47), ctx), false);
+    assert.equal(sinComprobar(hotel(49), ctx), true, 'alojamiento: 48 h');
+    assert.equal(sinComprobar({ tipo: 'vuelo', fuente: 'rapida', vistaUltima: hora(25) }, ctx), true, 'vuelos: 24 h');
+    assert.equal(sinComprobar({ tipo: 'actividad', fuente: 'rapida', vistaUltima: hora(60) }, ctx), false, 'actividades: 72 h');
+    assert.equal(sinComprobar(hotel(30, 'lenta'), ctx), false);
+    assert.equal(sinComprobar({ tipo: 'vuelo', fuente: 'lenta', vistaUltima: hora(24.5) }, ctx), false, 'cada 12 h: al menos 25 h');
+    // Si el escaneo se retrasa, no pasan todas a «sin confirmar» de golpe.
+    assert.equal(sinComprobar(hotel(2), { revision: new Date(AHORA.getTime() - 3_600_000), ahora: new Date(AHORA.getTime() + 48 * 3_600_000) }), false);
   });
 
-  it('van al final sin cambiar el orden entre ellas, y con «frescas=1» no salen', () => {
-    const [a, b, c] = [{ id: 'a', fuente: 'x', vistaUltima: hora(40) }, { id: 'b', fuente: 'x', vistaUltima: hora(1) }, { id: 'c', fuente: 'x', vistaUltima: hora(2) }];
+  it('van al final sin cambiar el orden entre ellas (cuando se piden con «sinconf=1»)', () => {
+    const [a, b, c] = [{ id: 'a', tipo: 'hotel', fuente: 'x', vistaUltima: hora(60) }, { id: 'b', tipo: 'hotel', fuente: 'x', vistaUltima: hora(1) }, { id: 'c', tipo: 'hotel', fuente: 'x', vistaUltima: hora(2) }];
     assert.deepEqual(alFinalSinComprobar([a, b, c], ctx).map((o) => o.id), ['b', 'c', 'a']);
 
     const e = estadoPanel();
     const base = contextoBusqueda(e);
     const todas = buscarEscapadas(ofertas, leerFiltrosEscapadas({}), base).ofertas;
     const i = todas.findIndex((o) => sinComprobar(o, base));
-    if (i >= 0) assert.ok(todas.slice(i).every((o) => sinComprobar(o, base)), 'las sin comprobar, todas detrás');
-    const frescas = buscarEscapadas(ofertas, leerFiltrosEscapadas({ frescas: '1' }), base).ofertas;
-    assert.ok(frescas.every((o) => !sinComprobar(o, base)));
-    assert.deepEqual(filtrosActivos('escapadas', { frescas: '1' }).map((c) => c.texto), ['Solo comprobadas hace poco']);
+    if (i >= 0) assert.ok(todas.slice(i).every((o) => sinComprobar(o, base)), 'las sin confirmar, todas detrás');
+    assert.deepEqual(filtrosActivos('escapadas', { sinconf: '1' }).map((c) => c.texto), ['Con las sin confirmar']);
   });
 
   it('las marcadas «Ya no está disponible» se ocultan como las descartadas', () => {
