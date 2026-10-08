@@ -167,7 +167,10 @@ describe('la medición en la web (anuncios.js y app.js)', () => {
   it('una visita por sección del panel, sin filtros ni búsquedas en la dirección', () => {
     const visita = entre('function visita()', 'function cargarGtag(');
     assert.match(visita, /if \(!midiendo\(\)\) return;/);
-    assert.match(visita, /`\$\{location\.origin\}\$\{location\.pathname\}#\/\$\{vista\}`/);
+    // Con la «?…» (utm_…, gclid…): sin ella, una campaña no se atribuye.
+    assert.match(visita, /`\$\{location\.origin\}\$\{location\.pathname\}\$\{location\.search\}#\/\$\{vista\}`/);
+    assert.match(visita, /if \(direccion === anterior\) return;/);
+    assert.match(visita, /\.\.\.\(anterior \? \{ page_referrer: anterior \} : \{\}\)/);
     assert.match(ANUNCIOS, /window\.addEventListener\('escapadas:vista', visita\);/);
     // app.js avisa solo al cambiar de sección (filtrar no es otra visita).
     assert.match(APP, /if \(cambiaVista\) window\.dispatchEvent\(new CustomEvent\('escapadas:vista', \{ detail: vista \}\)\);/);
@@ -175,6 +178,13 @@ describe('la medición en la web (anuncios.js y app.js)', () => {
 
   it('el clic en una oferta se mide con la web de destino, solo con permiso', () => {
     assert.match(ANUNCIOS, /if \(midiendo\(\)\) \{\n\s*gtag\('event', 'clic_oferta', \{ send_to: analitica, web: oferta\.dataset\.clic,/);
+  });
+
+  it('abrir, guardar, buscar y compartir: app.js lo avisa y solo se envía con permiso', () => {
+    assert.match(ANUNCIOS, /window\.addEventListener\('escapadas:medir', \(\{ detail \}\) => \{\n\s*if \(midiendo\(\) && detail\?\.evento\)/);
+    for (const evento of ["medir('ver_oferta'", "medir('guardar_oferta'", "medir('search', { search_term: q.slice(0, 80) })", "medir('share'"]) assert.ok(APP.includes(evento), evento);
+    // De la oferta, nada personal: la web, qué es, dónde y el precio.
+    assert.match(APP, /const datosOferta = \(o\) => \(\{ web: o\.fuente, tipo: o\.tipo, destino: o\.lugar\?\.nombre \?\? '',/);
   });
 
   it('dejar de aceptar la medición borra sus cookies (_ga…) y lo deniega', () => {
@@ -189,7 +199,8 @@ describe('la privacidad con Google Analytics', () => {
     const conGa = vistaAyuda({ ...estadoPanel(), googleAnalytics: true });
     assert.doesNotMatch(conGa, /sin cookies/i);
     assert.match(conGa, /Cookies de medición de Google Analytics, solo si las aceptas/);
-    assert.match(conGa, /No se envía lo que buscas ni los filtros que eliges/);
+    assert.match(conGa, /lo que escribes en «Buscar»/);
+    assert.match(conGa, /Los filtros que eliges no se envían/);
     assert.equal(veces(conGa, 'data-abrir-cookies'), 1);
     const las3 = vistaAyuda({ ...estadoPanel(), googleAnalytics: true, googleAds: true, drive: true });
     for (const texto of ['Google Analytics', 'Google Ads', 'Travelpayouts']) assert.ok(las3.includes(texto), texto);

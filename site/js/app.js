@@ -68,6 +68,13 @@ let origenFicha = null;
 const DATOS_REMOTOS = document.querySelector('meta[name="escapadas-datos"]')?.content || null;
 /** Con Google Analytics, Google Ads o Travelpayouts Drive configurados (ver anuncios.js), la privacidad lo explica. */
 const GOOGLE_ANALYTICS = Boolean(document.querySelector('meta[name="escapadas-google-analytics"]'));
+/**
+ * Lo que se hace en la web (abrir una oferta, guardarla, buscar, compartir), para la medición:
+ * anuncios.js lo envía a Google Analytics solo si se ha aceptado. Nada personal.
+ */
+const medir = (evento, datos = {}) => window.dispatchEvent(new CustomEvent('escapadas:medir', { detail: { evento, datos } }));
+/** La oferta tal como se mide: de qué web es, qué es, dónde y por cuánto. */
+const datosOferta = (o) => ({ web: o.fuente, tipo: o.tipo, destino: o.lugar?.nombre ?? '', ...(Number.isFinite(o.precio) ? { precio: o.precio } : {}) });
 const GOOGLE_ADS = Boolean(document.querySelector('meta[name="escapadas-google-ads"]'));
 const DRIVE = Boolean(document.querySelector('meta[name="escapadas-drive"]'));
 
@@ -567,6 +574,8 @@ function alternarFavorito(id) {
   if (activo) estado.favoritos.add(id);
   else estado.favoritos.delete(id);
   guardarFavoritos(estado.favoritos);
+  const oferta = estado.porId.get(id);
+  if (activo && oferta) medir('guardar_oferta', datosOferta(oferta));
   document.querySelectorAll(`[data-fav="${CSS.escape(id)}"]`).forEach((boton) => boton.setAttribute('aria-pressed', String(activo)));
   anunciar(activo ? 'Guardada en favoritos: la tienes en «Guardados»' : 'Quitada de favoritos');
 }
@@ -733,6 +742,7 @@ async function mostrarFicha(id, disparador) {
   const { punto } = ['escapadas', 'mapa'].includes(vista) ? leerFiltrosEscapadas(params) : {};
   const distancias = punto ? medirDistancias([oferta], punto, estado.datos.origen) : estado.distanciasOrigen;
   origenFicha = disparador;
+  medir('ver_oferta', datosOferta(oferta));
   abrirFicha(dialogo, oferta, ctxTarjetas(estado, {
     distancias,
     desde: punto?.nombre ?? nombreSalida(estado),
@@ -799,6 +809,7 @@ async function compartirBusqueda(vista) {
   const { params } = leerRuta(location.hash);
   const hash = crearHash(vista, { ...params, ...paramsViaje(estado.salida, estado.viaje) });
   const enlace = `${location.origin}${location.pathname}${hash}`;
+  medir('share', { method: 'enlace', content_type: vista });
   anunciar(await copiarTexto(enlace)
     ? 'Enlace copiado: abre la misma búsqueda, con tu salida, viajeros y noches.'
     : `No se ha podido copiar solo. El enlace es: ${enlace}`);
@@ -962,7 +973,10 @@ function conectarEventos() {
   document.addEventListener('visibilitychange', refrescarSiHaceFalta);
   $('#buscador').addEventListener('submit', (evento) => {
     evento.preventDefault();
-    location.hash = crearHash('buscar', { q: $('#q').value.trim() });
+    const q = $('#q').value.trim();
+    // Qué destinos interesan (solo el texto buscado, recortado).
+    if (q) medir('search', { search_term: q.slice(0, 80) });
+    location.hash = crearHash('buscar', { q });
   });
   $('#cambiar-tema').addEventListener('click', cambiarTema);
   matchMedia('(prefers-color-scheme: dark)').addEventListener('change', pintarBotonTema);
