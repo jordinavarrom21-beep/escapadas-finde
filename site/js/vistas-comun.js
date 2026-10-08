@@ -3,16 +3,19 @@
  * las secciones, las pestañas y los campos de los formularios de filtros.
  */
 
-import { etiquetaDia, nombreFinde } from './fechas.js';
+import { etiquetaDia, etiquetaRango, nombreFinde } from './fechas.js';
 import { contar, escaparHtml as esc, haceCuanto } from './formato.js';
-import { POR_PAGINA, TEXTO_PERIODO_PASADO, crearHash, destinosDe, resumenFuentes, salidaPuente } from './filtros.js';
+import {
+  POR_PAGINA, TEXTO_PERIODO_PASADO, crearHash, destinosDe, leerFiltrosComunes, periodoPasado, rangoDe, resumenFuentes, salidaPuente,
+} from './filtros.js';
 import { NOCHES, VIAJEROS, aeropuertosCercanos } from './viaje.js';
 import { icono } from './iconos.js';
+import { camposFechas } from './selector-fechas.js';
 
 /** Los filtros que van dentro de «Más filtros» (los de arriba se ven siempre). */
 export const FILTROS_SECUNDARIOS = [
-  'pnMin', 'km', 'dto', 'pts', 'nota', 'noches', 'regimen', 'aloj', 'est', 'transporte', 'fuente', 'tipo', 'pais', 'region',
-  'nuevas', 'fav', 'cho', 'baja', 'hist', 'sindesc', 'sinconf', 'dup', 'cru',
+  'pnMin', 'km', 'dto', 'pts', 'nota', 'regimen', 'aloj', 'est', 'transporte', 'fuente', 'tipo', 'pais', 'region',
+  'nuevas', 'fav', 'cho', 'baja', 'hist', 'sindesc', 'sinconf', 'dup', 'cru', 'cerradas', 'encaje',
 ];
 /** Los que van en «Más filtros» de la vista de vuelos. */
 export const FILTROS_MAS_VUELOS = ['dto', 'pts', 'cho', 'baja', 'hist', 'nuevas', 'fav', 'sindesc', 'sinconf', 'dup'];
@@ -277,8 +280,12 @@ export function etiquetaFinde(finde, puentes = []) {
 
 // ── Piezas compartidas de los formularios ────────────────────────────────────
 
-export function campoTexto(f) {
-  return `<label class="campo campo--ancho">Buscar palabras
+/**
+ * Buscar dentro de la pestaña (`ambito`: «escapadas», «vuelos», «planes»). El buscador de arriba
+ * busca en todo: el rótulo dice en qué busca cada uno.
+ */
+export function campoTexto(f, ambito = '') {
+  return `<label class="campo campo--ancho">${ambito ? `Buscar en ${ambito}` : 'Buscar palabras'}
   <input type="search" name="q" value="${esc(f.q)}" placeholder="playa -crucero" autocomplete="off" enterkeyhint="search">
   <span class="ayuda">Varias palabras a la vez; con «-» delante quitas resultados (<code>playa -crucero</code>).</span>
 </label>`;
@@ -350,29 +357,63 @@ export function bloqueBusquedas(e, vista) {
 }
 
 
+/** Vistas con barra de fechas y formulario de filtros (sus fechas van en él con form="…"). */
+const CON_FORMULARIO = ['escapadas', 'vuelos', 'actividades', 'mapa'];
+
 /**
- * La franja con el periodo elegido, arriba de los resultados de Escapadas, Vuelos, Planes y
- * Mapa: «Puente · Fiesta Nacional · vie 9 – lun 12 oct · Cambiar fechas». Es la misma en
- * todas las pestañas (el periodo pasa de una a otra), así se ve enseguida si algo no cuadra.
+ * Las fechas elegidas en una vista: el finde o el puente («cuando», en Vuelos «finde») con sus
+ * días, o la entrada y la salida (desde/hasta). `pasado`: un finde o puente que ya pasó.
  */
-export function franjaPeriodo(e, vista, params = {}) {
-  const cuando = (vista === 'vuelos' ? params.finde : params.cuando) ?? '';
-  const id = cuando === 'finde' ? e.findes[0]?.id : cuando === 'puente' ? e.puente?.id : cuando;
-  const finde = e.findes.find((f) => f.id === id);
-  const puente = (e.datos.puentes ?? []).find((p) => p.id === id);
-  const { desde = '', hasta = '' } = params;
-  let texto;
-  if (finde) texto = `<strong>${finde.id === e.findes[0]?.id ? nombreFinde(e.hoy) : 'Finde'}</strong> · ${esc(etiquetaFinde(finde, e.datos.puentes))}`;
-  else if (puente) texto = `<strong>Puente</strong> · ${esc(puente.nombre)} · ${esc(diasExplicitos(salidaPuente(puente), puente.hasta))}`;
-  else if (desde && hasta) texto = desde === hasta ? `<strong>El ${esc(etiquetaDia(desde))}</strong>` : `<strong>Fechas</strong> · ${esc(diasExplicitos(desde, hasta))}`;
-  else if (desde || hasta) texto = `<strong>${desde ? `Desde el ${esc(etiquetaDia(desde))}` : `Hasta el ${esc(etiquetaDia(hasta))}`}</strong>`;
-  // Un finde o puente que ya pasó (enlace viejo): se dice, no se finge «cualquier fecha» con 0 resultados.
-  else if (cuando) texto = `<strong>${TEXTO_PERIODO_PASADO}</strong>`;
-  else texto = '<strong>Cualquier fecha</strong>';
-  const elegido = texto !== '<strong>Cualquier fecha</strong>';
-  const sinFechas = Object.fromEntries(Object.entries(params).filter(([clave]) => !['cuando', 'finde', 'desde', 'hasta'].includes(clave)));
-  const quitar = elegido ? `<a class="franja-periodo__quitar" href="${esc(crearHash(vista, sinFechas))}" aria-label="Quitar las fechas">${icono('cerrar')}</a>` : '';
-  return `<div class="franja-periodo${!finde && !puente && !desde && !hasta && cuando ? ' franja-periodo--pasado' : ''}">${icono('calendario')}<span class="franja-periodo__texto">${texto}</span><button type="button" class="enlace-boton" data-cambiar-fechas>${elegido ? 'Cambiar<span class="solo-ancho"> fechas</span>' : 'Elegir fechas'}</button>${quitar}</div>`;
+export function fechasElegidas(e, vista, params = {}) {
+  const clave = vista === 'vuelos' ? 'finde' : 'cuando';
+  const cuando = params[clave] ?? '';
+  const contexto = { finde: e.findes[0], puente: e.puente, findes: e.findes, puentes: e.datos.puentes };
+  const rango = rangoDe(cuando, contexto);
+  const { desde, hasta } = leerFiltrosComunes(params);
+  return {
+    clave, cuando, rango, desde, hasta,
+    pasado: !rango && periodoPasado(cuando, contexto),
+    entrada: rango?.inicio ?? desde,
+    salida: rango?.fin ?? (hasta || desde),
+  };
+}
+
+/**
+ * «¿Cuándo?» de Explorar y Buscar: la fecha de entrada y la de salida (abren un calendario aquí
+ * mismo, selector-fechas.js) y los atajos (cualquier fecha, este finde, el siguiente y los
+ * puentes). Es el único sitio de la vista donde se eligen las fechas, y las mismas pasan de una
+ * pestaña a otra. Sus campos son del formulario de filtros (form="filtros-…"): cambiar otro
+ * filtro no las pierde. `cifras`: id del periodo → texto («12 · desde 48 €»), para Vuelos.
+ */
+export function barraFechas(e, vista, params = {}, { cifras = new Map(), ayuda = '' } = {}) {
+  const f = fechasElegidas(e, vista, params);
+  const deFormulario = CON_FORMULARIO.includes(vista) ? ` form="filtros-${vista}"` : '';
+  const [primero, siguiente] = e.findes;
+  const relativo = vista === 'vuelos' ? primero?.id : 'finde';
+  const marcada = f.cuando === primero?.id ? relativo : f.cuando;
+  const rapida = (valor, texto, clase = '') => {
+    const cifra = cifras.get(valor === 'finde' ? primero?.id : valor);
+    return `<button type="button" class="chip${clase}" data-fechas-rapida="${esc(valor)}" aria-pressed="${!f.desde && marcada === valor}">${texto}${cifra ? ` <span class="chip__cifra">${esc(cifra)}</span>` : ''}</button>`;
+  };
+  const rapidas = [
+    rapida('', 'Cualquier fecha'),
+    ...(primero ? [rapida(relativo, `${esc(nombreFinde(e.hoy))} · ${esc(primero.etiqueta)}`)] : []),
+    ...(siguiente ? [rapida(siguiente.id, `El siguiente · ${esc(siguiente.etiqueta)}`, siguiente.puenteId ? ' chip--puente' : '')] : []),
+    ...(e.datos.puentes ?? []).map((p) => rapida(p.id, `${icono('puentes')}${esc(p.nombre)} · ${esc(etiquetaRango(salidaPuente(p), p.hasta))}`, ' chip--puente')),
+  ];
+  // Junto a las fechas, sus noches (el atajo marcado ya dice si es «Este finde» o un puente).
+  const resumen = f.pasado ? TEXTO_PERIODO_PASADO : null;
+  const elegido = Boolean(f.cuando || f.desde || f.hasta);
+  const id = `fechas-${vista}`;
+  return `<section class="fechas${f.pasado ? ' fechas--pasado' : ''}" data-fechas data-vista="${esc(vista)}" data-entrada="${esc(f.entrada)}" data-salida="${esc(f.salida)}" aria-labelledby="${id}-titulo">
+  <h2 class="fechas__titulo" id="${id}-titulo">${icono('calendario')}¿Cuándo?</h2>
+  <input type="hidden" name="${f.clave}" value="${esc(f.cuando)}"${deFormulario}><input type="hidden" name="desde" value="${esc(f.desde)}"${deFormulario}><input type="hidden" name="hasta" value="${esc(f.hasta)}"${deFormulario}>
+  ${camposFechas({ entrada: f.entrada, salida: f.salida, idPanel: `${id}-calendario`, resumen, quitar: elegido })}
+  <div class="fechas__panel" id="${id}-calendario" data-fechas-panel role="group" aria-label="Calendario: elige la fecha de entrada y la de salida" hidden>
+    <div data-calendario></div>${ayuda ? `<p class="ayuda fechas__ayuda">${ayuda}</p>` : ''}
+  </div>
+  <div class="fechas__rapidas chips chips--desplazables" role="group" aria-label="Fechas rápidas"><div class="chips__lista">${rapidas.join('')}</div></div>
+</section>`;
 }
 
 /** «Lista | Mapa»: la misma búsqueda (categoría, fechas y filtros) vista de una u otra forma. */

@@ -18,7 +18,8 @@
  *    app.js (abrir la ficha de una oferta, guardarla, buscar, compartir); con Google Ads, ese
  *    clic cuenta como conversión; con Drive, los enlaces de las marcas de su red pasan a ser
  *    de afiliado;
- *  - «Cookies» en el pie vuelve a abrir el aviso para cambiar de opinión.
+ *  - «Cookies» en el pie vuelve a abrir el aviso para cambiar de opinión, y la elección (aceptar
+ *    o rechazar) vale seis meses: después se vuelve a preguntar.
  * La decisión se guarda en este navegador (localStorage), no en una cookie. Vale también en
  * las guías para buscadores (escapadas/, vuelos/…), que cargan este archivo si hay Drive o
  * Analytics. Las visitas de quien administra la web («?propietario=1») no se miden.
@@ -50,11 +51,20 @@
 
   // Sin almacenamiento (bloqueado o lleno), la elección vale al menos mientras dure la visita.
   let eleccionVisita = null;
+  /**
+   * Cuánto vale la elección, la que sea (aceptar, rechazar o elegir cuáles): pasado ese tiempo se
+   * vuelve a preguntar. Lo mismo para quien acepta que para quien rechaza (volver a preguntar
+   * antes solo a quien rechaza sería insistir); la AEPD lo considera buena práctica con un
+   * máximo de 24 meses. En cualquier momento se cambia desde «Cookies» en el pie.
+   */
+  const VALIDEZ_MS = 182 * 86_400_000;
   /** Lo aceptado (una lista, vacía si se rechazó todo) o null si hay que preguntar. */
   const leer = () => {
     try {
       const guardada = JSON.parse(localStorage.getItem(CLAVE));
       if (!guardada?.decision) return eleccionVisita;
+      // Una elección de hace más de seis meses (o sin fecha válida) ya no vale: se pregunta otra vez.
+      if (!(Date.now() - Date.parse(guardada.fecha) <= VALIDEZ_MS)) return eleccionVisita;
       const preguntado = guardada.para ?? ['google-ads'];
       // Antes de «Configurar» solo había «sí» a todo lo preguntado o «no».
       const acepta = Array.isArray(guardada.acepta) ? guardada.acepta : guardada.decision === 'si' ? preguntado : [];

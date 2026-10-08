@@ -7,7 +7,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { buscarEscapadas, esEscapada, esTransporte, leerFiltrosEscapadas, leerFiltrosVuelos, transporteSuelto, ATAJOS_ESCAPADAS } from '../site/js/filtros.js';
-import { resultadosVuelos, vistaFinde, vistaPuentes } from '../site/js/vistas.js';
+import { resultadosVuelos, vistaFinde, vistaPuentes, vistaVuelos } from '../site/js/vistas.js';
 import { contenidoFicha } from '../site/js/plantillas.js';
 import { contextoBusqueda } from '../site/js/vistas-comun.js';
 import { crearOferta } from '../src/modelo.js';
@@ -40,11 +40,13 @@ describe('billetes sueltos de tren, bus y ferry', () => {
 });
 
 describe('Vuelos empieza por las fechas', () => {
-  it('sin finde elegido, «¿Para cuándo?» con cada finde, cuántos vuelos hay y desde cuánto; con uno elegido, no', () => {
+  it('cada atajo de «¿Cuándo?» dice cuántos vuelos hay y desde cuánto (sin repetir los findes en otro apartado)', () => {
     const e = estadoPanel();
     const html = resultadosVuelos(e, {});
-    assert.match(html, /¿Para cuándo\?[^]*?href="#\/vuelos\?finde=2026-09-18"[^]*?atajo__cifra">\d+ · desde [\d,]+\s€/);
-    assert.doesNotMatch(resultadosVuelos(e, { finde: e.findes[0].id }), /¿Para cuándo\?/);
+    const vista = vistaVuelos(e, {});
+    assert.match(vista, /data-fechas-rapida="2026-09-18" aria-pressed="false">[^<]*<span class="chip__cifra">\d+ · desde [\d,]+\s€<\/span>/);
+    assert.doesNotMatch(vista, /¿Para cuándo\?/);
+    assert.equal((vista.match(/data-fechas-rapida="2026-09-18"/g) ?? []).length, 1, 'cada finde una sola vez');
     // Lo secundario, plegado: billetes sin fecha y promociones.
     assert.match(html, /<details class="seccion seccion-plegable">\s*<summary><h2>Billetes sin fecha concreta/);
   });

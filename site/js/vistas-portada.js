@@ -13,6 +13,7 @@ import {
 } from './filtros.js';
 import { colorTema, estadoVacio, tarjeta, tarjetaConMotivo, textoFechas } from './plantillas.js';
 import { escena, icono, tipoEscena } from './iconos.js';
+import { camposFechas } from './selector-fechas.js';
 import {
   HORAS_SORPRESA, conIcono, contextoBusqueda, ctxTarjetas, diasExplicitos, estadoWebs, etiquetaFinde, marcado, nombreSalida,
   ocultas, seccion,
@@ -106,7 +107,7 @@ export function periodoDeOpcion(valor, rango = null) {
 
 export function buscadorFinde(e) {
   const { opciones: cuando, marcada: marcadoCuando, rango } = opcionesCuando(e);
-  const opcionCuando = ([valor, texto, dias]) => `<label class="opcion opcion--fecha"><input type="radio" name="cuando" value="${esc(valor)}" data-dias="${esc(dias)}"${marcado(valor === marcadoCuando)}${valor === 'rango' ? ' aria-controls="buscador-finde-fechas"' : ''}><small>${esc(texto)}</small><span${valor === 'rango' ? ' data-dias-propios' : ''}>${esc(dias || (valor === 'rango' ? 'elige en el calendario' : 'lo mejor que haya'))}</span></label>`;
+  const opcionCuando = ([valor, texto, dias]) => `<label class="opcion opcion--fecha"><input type="radio" name="cuando" value="${esc(valor)}" data-dias="${esc(dias)}"${marcado(valor === marcadoCuando)}${valor === 'rango' ? ' aria-controls="buscador-finde-fechas"' : ''}><small>${esc(texto)}</small><span${valor === 'rango' ? ' data-dias-propios' : ''}>${esc(dias || (valor === 'rango' ? 'elige entrada y salida' : 'lo mejor que haya'))}</span></label>`;
   const como = [['', 'Como sea'], ['coche', 'En coche'], ['sincoche', 'Sin coche']];
   const opcion = (nombre, [valor, texto], marcada) => `<label class="opcion"><input type="radio" name="${nombre}" value="${esc(valor)}"${marcado(marcada)}> ${esc(texto)}</label>`;
   const temas = [['', 'Cualquier plan'], ...e.datos.temas.map((t) => [t.id, t.nombre])]
@@ -118,9 +119,10 @@ export function buscadorFinde(e) {
   <h2 id="buscador-finde-titulo" class="sr">Elige qué buscar y para cuándo</h2>
   <fieldset class="buscador-finde__grupo"><legend>1. ¿Cuándo?</legend>
     <div class="opciones opciones--cuando">${cuando.map(opcionCuando).join('')}</div>
-    <div class="buscador-finde__fechas" id="buscador-finde-fechas" data-fechas-propias${marcadoCuando === 'rango' ? '' : ' hidden'}>
-      <label>Ida <input type="date" name="desde" min="${esc(e.hoy)}" value="${esc(rango?.[0] ?? '')}"></label>
-      <label>Vuelta <input type="date" name="hasta" min="${esc(rango?.[0] ?? e.hoy)}" value="${esc(rango?.[1] ?? '')}"></label>
+    <div class="buscador-finde__fechas fechas fechas--portada" id="buscador-finde-fechas" data-fechas data-fechas-portada data-fechas-propias data-entrada="${esc(rango?.[0] ?? '')}" data-salida="${esc(rango?.[1] ?? '')}"${marcadoCuando === 'rango' ? '' : ' hidden'}>
+      <input type="hidden" name="desde" value="${esc(rango?.[0] ?? '')}"><input type="hidden" name="hasta" value="${esc(rango?.[1] ?? '')}">
+      ${camposFechas({ entrada: rango?.[0] ?? '', salida: rango?.[1] ?? '', idPanel: 'buscador-finde-calendario' })}
+      <div class="fechas__panel" id="buscador-finde-calendario" data-fechas-panel role="group" aria-label="Calendario: elige la fecha de entrada y la de salida" hidden><div data-calendario></div></div>
     </div>
   </fieldset>
   <fieldset class="buscador-finde__grupo"><legend>2. ¿Qué buscas?</legend>

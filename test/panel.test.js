@@ -748,7 +748,7 @@ describe('vistas nuevas', () => {
     const e = estadoPanel();
     e.busquedas = [{ nombre: 'Spa barato', vista: 'escapadas', hash: '#/escapadas?temas=spa&pnMax=40' }];
     const html = vistaEscapadas(e, { aloj: 'casa-rural', nodest: 'Sitges' });
-    for (const campo of ['q', 'pnMin', 'precio', 'preciotipo', 'como', 'dto', 'pts', 'nota', 'aloj', 'region', 'clasica', 'desde', 'cho', 'sindesc', 'dup', 'cru']) {
+    for (const campo of ['q', 'pnMin', 'precio', 'preciotipo', 'como', 'dto', 'pts', 'nota', 'aloj', 'region', 'noches', 'desde', 'cho', 'sindesc', 'dup', 'cru']) {
       assert.match(html, new RegExp(`name="${campo}"`), `falta el filtro ${campo}`);
     }
     assert.match(html, /<option value="casa-rural" selected/);

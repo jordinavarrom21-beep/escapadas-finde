@@ -63,10 +63,19 @@ ok((await p.locator('.portada__ideas .ideas__columna').count()) === 3 && await p
 // (El separador «Otras fechas» de Vuelos no es una oferta.)
 ok((await p.locator('.ideas__lista').evaluateAll((ls) => ls.every((l) => l.querySelectorAll('.idea').length <= 4))), 'lo mejor del finde: como mucho cuatro por lista');
 ok((await p.locator('.ideas__columna .ideas__mas').count()) === 3, 'lo mejor del finde: cada lista con su «Ver…»');
-// Otras fechas: el calendario sale al elegirla y lleva a Escapadas con esas fechas.
+// Otras fechas: el calendario sale aquí mismo al elegirla (entrada y salida, sin ir a otra vista).
 ok(await p.locator('[data-fechas-propias]').isHidden(), 'otras fechas: calendario plegado de entrada');
 await p.locator('label:has(input[name="cuando"][value="rango"])').click();
-ok(await p.locator('[data-fechas-propias]').isVisible(), 'otras fechas: el calendario se abre');
+ok(await p.locator('#buscador-finde-calendario').isVisible() && (await p.locator('.calendario__paso').textContent()).includes('fecha de entrada'), 'otras fechas: el calendario se abre pidiendo la fecha de entrada');
+const diasInicio = p.locator('.buscador-finde .calendario__dia:not(:disabled)');
+const [entradaInicio, salidaInicio] = [await diasInicio.nth(9).getAttribute('data-dia'), await diasInicio.nth(11).getAttribute('data-dia')];
+await diasInicio.nth(9).click();
+ok((await p.locator('.calendario__paso').textContent()).includes('la fecha de salida'), 'otras fechas: después pide la de salida');
+await diasInicio.nth(11).click();
+await p.waitForTimeout(200);
+ok(await p.locator('#buscador-finde-calendario').isHidden() && (await p.locator('.buscador-finde [data-fechas-campo="salida"] .fechas__valor').textContent()).length > 3
+  && (await p.locator('[data-enviar-para]').textContent()).startsWith('para '), 'otras fechas: con la salida se cierra y el botón dice esos días');
+ok(await p.evaluate(() => document.querySelector('.buscador-finde').elements.desde.value) === entradaInicio && await p.evaluate(() => document.querySelector('.buscador-finde').elements.hasta.value) === salidaInicio, 'otras fechas: entrada y salida en el buscador');
 await p.locator('label:has(input[name="cuando"][value="finde"])').click();
 if (hayDestacado) {
   // La primera idea: su ficha guarda el favorito y descartar desde ella la quita
@@ -137,6 +146,51 @@ await p.waitForTimeout(300);
 ok(!(await p.locator(`#resultados [data-descartar="${idPrimera}"]`).count()), 'descartar: la tarjeta desaparece');
 const numero = (t) => Number(t.replace(/\D/g, ''));
 ok(numero(await p.locator('#resultados .resultados__cuenta').textContent()) === numero(cuentaAntes) - 1, 'descartar: el total baja en 1');
+
+// La barra «¿Cuándo?»: atajos, calendario con teclado, quitar; las fechas se conservan con otros filtros.
+await ir(p, 'escapadas');
+ok((await p.locator('.filtros [data-campo-fechas], .filtros input[type="date"]').count()) === 0 && (await p.locator('section[data-fechas]').count()) === 1, 'fechas: un solo sitio para elegirlas (la barra), no repetidas en los filtros');
+ok((await p.locator('.filtros select[name="orden"]').count()) === 0 && (await p.locator('#resultados [data-otro-orden]').count()) === 1, 'orden: un solo sitio (encima de los resultados, con «Otro orden…»)');
+await p.locator('.fechas__rapidas .chip[data-fechas-rapida="finde"]').click();
+await p.waitForTimeout(300);
+ok((await p.evaluate(() => location.hash)).includes('cuando=finde') && (await p.locator('.fechas__rapidas .chip[data-fechas-rapida="finde"]').getAttribute('aria-pressed')) === 'true', 'fechas: «Este finde» se aplica sin salir de la vista');
+ok(await p.evaluate(() => document.activeElement?.matches('.chip[data-fechas-rapida="finde"]')), 'fechas: el foco sigue en el atajo');
+await p.locator('section[data-fechas] [data-fechas-campo="entrada"]').click();
+ok(await p.locator('section[data-fechas] [data-fechas-panel]').isVisible(), 'fechas: «Fecha de entrada» abre el calendario aquí mismo');
+const foco = () => p.evaluate(() => document.activeElement?.dataset.dia);
+const enfocado = await foco();
+await p.keyboard.press('ArrowRight');
+ok((await foco()) > enfocado, 'calendario: las flechas mueven el día');
+await p.keyboard.press('Escape');
+ok(await p.locator('section[data-fechas] [data-fechas-panel]').isHidden() && (await p.evaluate(() => location.hash)).includes('cuando=finde'), 'calendario: Escape lo cierra sin cambiar nada');
+await p.locator('section[data-fechas] [data-fechas-campo="entrada"]').click();
+const diasBarra = p.locator('section[data-fechas] .calendario__dia:not(:disabled)');
+const entradaBarra = await diasBarra.nth(8).getAttribute('data-dia');
+const salidaBarra = await diasBarra.nth(11).getAttribute('data-dia');
+await diasBarra.nth(8).click();
+await diasBarra.nth(11).click();
+await p.waitForTimeout(400);
+const hashFechas = await p.evaluate(() => location.hash);
+ok(hashFechas.includes(`desde=${entradaBarra}`) && hashFechas.includes(`hasta=${salidaBarra}`) && !hashFechas.includes('cuando='), `fechas: entrada y salida del calendario (${hashFechas})`);
+ok((await p.locator('section[data-fechas] .fechas__noches').textContent()) === '3 noches' && (await p.locator('#boton-viaje').textContent()).includes('3 noches'), 'fechas: las noches de tu viaje son las de tus fechas');
+await p.locator('.filtros label.chip--tema:has(input[value="playa"])').first().click();
+await p.waitForTimeout(400);
+ok((await p.evaluate(() => location.hash)).includes(`desde=${entradaBarra}`), 'fechas: no se pierden al tocar otro filtro');
+await p.locator('.atajos a.chip--atajo').first().click();
+await p.waitForTimeout(300);
+ok((await p.evaluate(() => location.hash)).includes(`desde=${entradaBarra}`), 'fechas: los atajos las conservan');
+await p.locator('#resultados [data-otro-orden]').selectOption('calidad');
+await p.waitForTimeout(400);
+ok((await p.evaluate(() => location.hash)).includes('orden=calidad') && (await p.locator('#resultados .orden-rapido__otro--elegido').count()) === 1, 'orden: «Otro orden…» lo aplica');
+await p.locator('section[data-fechas] .fechas__quitar').click();
+await p.waitForTimeout(300);
+ok(!/desde=|cuando=/.test(await p.evaluate(() => location.hash)), 'fechas: «Quitar fechas»');
+await p.locator('#boton-viaje').click();
+await p.waitForSelector('#mi-viaje[open]');
+await p.locator('#mi-viaje select[name="noches"]').selectOption('2');
+await p.locator('#mi-viaje button[type="submit"]').click();
+await p.waitForTimeout(300);
+await ir(p, 'escapadas');
 
 // Más filtros: contador y valoración mínima
 await p.locator('.filtros__mas--panel > summary').click();
@@ -229,15 +283,16 @@ await p.waitForTimeout(400);
 ok((await p.evaluate(() => location.hash)).includes('mios=1'), 'vuelos: «Solo desde mis aeropuertos»');
 ok(typeof nVuelos === 'string', 'vuelos: resumen de resultados');
 if (conVuelosConFecha) {
-  // Un rango elegido en Escapadas llega a Vuelos y no se pierde al tocar otro filtro (el formulario no tiene campos de rango).
+  // Un rango elegido en Escapadas llega a Vuelos y no se pierde al tocar otro filtro (los campos de la barra son del formulario).
   await p.goto(`${BASE}#/vuelos?desde=2026-10-16&hasta=2026-10-18`); await p.waitForSelector('#resultados'); await p.waitForTimeout(300);
-  ok(!(await p.locator('input[name="finde"][value=""]').isChecked()), 'vuelos: con un rango, «Todos» no sale marcado');
+  ok((await p.locator('.fechas__rapidas .chip[data-fechas-rapida=""]').getAttribute('aria-pressed')) === 'false', 'vuelos: con un rango, «Cualquier fecha» no sale marcado');
+  ok((await p.locator('section[data-fechas] .fechas__valor').allTextContents()).join(' ') === 'vie 16 oct dom 18 oct', 'vuelos: la barra dice la entrada y la salida');
   await p.locator('.filtros input[name="ideal"]').check(); await p.waitForTimeout(400);
   const hashRango = await p.evaluate(() => location.hash);
   ok(hashRango.includes('desde=2026-10-16') && hashRango.includes('ideal=1'), `vuelos: el rango sobrevive a tocar otro filtro (${hashRango})`);
   // Un finde que ya pasó en la URL: se dice, no se finge «cualquier fecha».
   await p.goto(`${BASE}#/vuelos?finde=2020-01-03`); await p.waitForSelector('#resultados'); await p.waitForTimeout(300);
-  ok((await p.locator('.franja-periodo__texto').textContent()).includes('Fechas que ya pasaron') && (await p.locator('#resultados').textContent()).includes('ya pasó'), 'vuelos: un finde pasado se explica');
+  ok((await p.locator('section[data-fechas] .fechas__noches').textContent()).includes('Fechas que ya pasaron') && (await p.locator('#resultados').textContent()).includes('ya pasó'), 'vuelos: un finde pasado se explica');
 }
 // El periodo elegido en Explorar arranca marcado en Inicio.
 // El Inicio ofrece «el puente» = el próximo que no ha terminado (hoy de verdad: la prueba corre con el reloj real).
@@ -390,6 +445,15 @@ await k.waitForLoadState('load');
 await k.waitForSelector('#principal .titulo-vista');
 await k.waitForTimeout(500);
 ok(!(await visitas()).length && JSON.parse(await k.evaluate(() => localStorage.getItem('escapadas-cookies'))).decision === 'no', 'cookies: «Rechazar» recarga sin Google Analytics');
+await k.reload(); await k.waitForSelector('#principal .titulo-vista'); await k.waitForTimeout(300);
+ok(!(await k.locator('.aviso-cookies').count()), 'cookies: el rechazo se respeta (no se vuelve a preguntar enseguida)');
+// Pasados seis meses, se vuelve a preguntar (a quien rechazó y a quien aceptó).
+await k.evaluate(() => {
+  const guardada = JSON.parse(localStorage.getItem('escapadas-cookies'));
+  localStorage.setItem('escapadas-cookies', JSON.stringify({ ...guardada, fecha: new Date(Date.now() - 200 * 86_400_000).toISOString() }));
+});
+await k.reload(); await k.waitForSelector('#principal .titulo-vista'); await k.waitForTimeout(300);
+ok(await k.locator('.aviso-cookies').isVisible(), 'cookies: pasados seis meses se vuelve a preguntar');
 await ck.close();
 
 // ── Service worker: instala la interfaz (fuentes e iconos incluidos) y funciona sin conexión ──

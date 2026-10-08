@@ -44,6 +44,7 @@ const INTERFAZ = [
   'js/plantillas.js',
   'js/plantillas-ficha.js',
   'js/rutas.js',
+  'js/selector-fechas.js',
   'js/tema.js',
   'js/ubicacion.js',
   'js/viaje.js',

@@ -163,7 +163,8 @@ export function leerFiltrosEscapadas(p = {}) {
   return {
     ...leerFiltrosComunes(p),
     temas: lista(p.temas),
-    noches: ['1', '2', '3'].includes(p.noches) ? Number(p.noches) : null,
+    // «clasica=1» (enlaces de antes) es lo mismo que 2 noches: eran dos controles para lo mismo.
+    noches: ['1', '2', '3'].includes(p.noches) ? Number(p.noches) : p.clasica === '1' ? NOCHES_CLASICAS : null,
     clasica: p.clasica === '1',
     regimen: REGIMENES_ORDEN.includes(p.regimen) ? p.regimen : '',
     transporte: p.transporte ?? '',
@@ -1166,15 +1167,14 @@ export function urlEditarVigilados({ hostname = '', pathname = '/' } = {}) {
 export const ATAJOS_ESCAPADAS = [
   // Las situaciones que se reconocen de un vistazo van primero y siempre a la vista; el resto,
   // en «Más ideas» (ATAJOS_A_LA_VISTA).
-  // «Este finde» no va aquí: ya está en «¿Cuándo?», justo debajo (eran dos controles para lo mismo).
+  // Las fechas no van aquí: están en «¿Cuándo?», justo encima (eran dos controles para lo mismo).
   { texto: 'A menos de 2 h', icono: 'coche', params: { h: '2', orden: 'total' } },
   { texto: 'Spa', icono: 'tema-spa', params: { temas: 'spa', orden: 'total' } },
   { texto: 'Con niños', icono: 'tema-familia', params: { ninos: 'apto' } },
   { texto: 'Sin coche', icono: 'tren', params: { sincoche: '1' } },
   { texto: 'Menos de 100 € por persona', icono: 'cartera', params: { pres: '100', prespor: 'persona', orden: 'total' } },
-  { texto: 'Lo más barato en total', icono: 'cartera', params: { orden: 'total' } },
-  { texto: 'Lo más cómodo', icono: 'coche', params: { orden: 'comodo' } },
-  { texto: 'Por debajo de lo normal', icono: 'bajada', params: { orden: 'ahorro' } },
+  // «Lo más barato», «Lo más cómodo» y «Por debajo de lo normal» solo ordenaban: ya están en los
+  // órdenes de encima de los resultados («Viaje más barato», «Más cerca», «Más rebajadas»).
   { texto: 'Spa a menos de 2 h', icono: 'tema-spa', params: { temas: 'spa', h: '2' } },
   { texto: 'Niños gratis o con descuento', icono: 'tema-familia', params: { ninos: 'ventaja' } },
   { texto: 'Con conciertos o fiestas cerca', icono: 'tema-eventos', params: { evtipo: 'todos' } },
@@ -1357,7 +1357,7 @@ export function filtrosActivos(vista, params = {}, ctx = {}) {
         if (clave === 'desde') chips.push({ clave: 'desde', texto: `El ${etiquetaDia(desde)}`, hash: sin('desde', 'hasta') });
         continue;
       }
-      if (dia(valor)) chips.push({ clave, texto: `${clave === 'desde' ? 'Desde' : 'Hasta'} el ${etiquetaDia(valor)}`, hash: sin(clave) });
+      if (dia(valor)) chips.push({ clave, texto: `${clave === 'desde' ? 'Entrada' : 'Salida'} el ${etiquetaDia(valor)}`, hash: sin(clave) });
       continue;
     }
     const texto = textoFiltro(clave, valor, { ...ctx, params });

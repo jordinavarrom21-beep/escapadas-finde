@@ -276,6 +276,9 @@ pre code { background: none; padding: 0; }
 .orden-rapido { display: flex; gap: 6px; margin: 4px 0 12px; }
 .orden-rapido .chip { min-height: 40px; padding: 6px 12px; font-size: 0.82rem; text-decoration: none; }
 .orden-rapido .chip--elegido { background: var(--tinta); border-color: var(--tinta); color: var(--tinta-texto); }
+.orden-rapido__otro { flex: none; display: inline-flex; }
+.orden-rapido__otro select { min-height: 40px; padding-block: 6px; border-radius: var(--radio-chico); font-size: 0.82rem; font-weight: 700; }
+.orden-rapido__otro--elegido select { background: var(--tinta); border-color: var(--tinta); color: var(--tinta-texto); }
 .chip--tema .ic { color: var(--color-tema); }
 .chip--tema:has(input:checked) { background: var(--acento); border-color: var(--acento); color: var(--acento-texto); }
 .chip--tema:has(input:checked) .ic { color: currentColor; }
@@ -1038,7 +1041,7 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 
 /* ── Mapa ─────────────────────────────────────────────────────────────────── */
 
-.mapa {
+.mapa { isolation: isolate;
   height: min(72vh, 680px); min-height: 380px; border-radius: 24px; overflow: hidden;
   border: 1px solid var(--borde); background: var(--superficie-2);
 }
@@ -1569,10 +1572,7 @@ body:has([data-plegable-movil][open]) .barra-comparar [data-abrir-filtros] { dis
   .opciones--cuando { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }
   .opciones--cuando > :last-child:nth-child(odd) { grid-column: auto; }
 }
-.buscador-finde__fechas { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); gap: 8px; }
 .buscador-finde__fechas[hidden] { display: none; }
-.buscador-finde__fechas label { display: grid; gap: 4px; font-size: 0.85rem; font-weight: 700; }
-.buscador-finde__fechas input { min-height: 44px; min-width: 0; width: 100%; }
 .opcion--fecha { gap: 4px; min-height: 64px; padding: 10px 14px; border-radius: var(--radio-medio); }
 .opcion--fecha small { font-size: 0.7rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }
 .opcion--fecha span { font-size: 0.95rem; }
@@ -1648,7 +1648,6 @@ body:has([data-plegable-movil][open]) .barra-comparar [data-abrir-filtros] { dis
 }
 .seccion-plegable[open] > summary::after { transform: rotate(-135deg); margin-bottom: -3px; }
 .seccion-plegable[open] > summary { margin-bottom: 8px; }
-.vuelos-por-fechas .atajo { flex-wrap: wrap; }
 
 /* «Lo mejor para este finde»: tres columnas de mini tarjetas con el estilo de las grandes
    (foto o ilustración, color de la temática, precio destacado). */
@@ -1753,16 +1752,91 @@ body:has([data-plegable-movil][open]) .barra-comparar [data-abrir-filtros] { dis
 .ideas__columna .ideas__mas .ic { color: var(--color-columna); }
 .planes-eventos .ideas__mas { margin: 8px 0 0; }
 
-/* Franja del periodo elegido: la misma arriba de Escapadas, Vuelos, Planes y Mapa. */
-.franja-periodo {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin: 0 0 12px; padding: 8px 8px 8px 14px;
-  border-radius: 14px; background: var(--acento-suave); color: var(--acento-suave-texto); font-size: 0.92rem;
+/* «¿Cuándo?»: fecha de entrada y de salida con su calendario, y los atajos de fechas. La misma
+   barra en Escapadas, Vuelos, Planes, Mapa y Buscar; los campos y el calendario, también en el
+   buscador del Inicio. */
+.fechas {
+  position: relative; display: grid; gap: 10px; margin: 0 0 14px; padding: 14px;
+  border-radius: var(--radio); background: var(--superficie); border: 1px solid var(--borde); box-shadow: var(--sombra);
 }
-.franja-periodo > .ic { flex: none; }
-.franja-periodo__texto { flex: 1 1 0; min-width: 12em; }
-.franja-periodo__quitar { display: inline-grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; color: inherit; }
-.franja-periodo__quitar:hover { background: color-mix(in srgb, currentColor 12%, transparent); }
-.franja-periodo .enlace-boton { min-height: 32px; font-weight: 800; }
+.fechas__titulo {
+  display: flex; align-items: center; gap: 6px; margin: 0; font-family: var(--fuente);
+  font-size: 0.74rem; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; color: var(--texto-suave);
+}
+.fechas__titulo .ic { width: 16px; height: 16px; color: var(--acento); }
+.fechas__campos {
+  min-width: 0; display: grid; align-items: center; gap: 6px 8px;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto;
+}
+.fechas__campo {
+  display: grid; gap: 2px; min-height: 56px; min-width: 0; padding: 8px 14px; text-align: left; cursor: pointer;
+  border: 1.5px solid var(--borde); border-radius: var(--radio-medio); background: var(--superficie); color: var(--texto); font: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.fechas__campo:hover { border-color: var(--borde-fuerte); }
+.fechas__campo:focus-visible { outline: 3px solid var(--acento); outline-offset: 2px; }
+.fechas__campo--activo { border-color: var(--acento); box-shadow: inset 0 0 0 1px var(--acento); }
+.fechas__etiqueta { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; color: var(--texto-suave); }
+.fechas__valor { font-weight: 750; font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fechas__valor--vacio { color: var(--texto-suave); font-weight: 600; }
+.fechas__flecha { display: inline-grid; color: var(--texto-suave); }
+.fechas__flecha .ic { width: 18px; height: 18px; }
+.fechas__extra { display: flex; align-items: center; gap: 4px 14px; flex-wrap: wrap; }
+.fechas__noches { font-size: 0.86rem; font-weight: 700; color: var(--acento-suave-texto); white-space: nowrap; }
+.fechas__noches:empty { display: none; }
+.fechas__quitar { display: inline-flex; align-items: center; gap: 4px; min-height: 40px; font-size: 0.86rem; white-space: nowrap; }
+.fechas__quitar .ic { width: 16px; height: 16px; }
+.fechas--pasado .fechas__noches { color: var(--aviso); }
+.fechas__rapidas .chip { min-height: 40px; padding: 6px 13px; font-size: 0.86rem; }
+.fechas__rapidas .chip .ic { width: 16px; height: 16px; }
+.fechas__rapidas .chip[aria-pressed="true"] { background: var(--tinta); border-color: var(--tinta); color: var(--tinta-texto); }
+.fechas__rapidas .chip--puente[aria-pressed="true"] { background: var(--puente); border-color: var(--puente); color: var(--superficie); }
+.fechas__rapidas .chip[aria-pressed="true"] .ic { color: currentColor; }
+.chip__cifra { font-weight: 600; opacity: 0.85; font-size: 0.8rem; }
+.fechas__panel[hidden] { display: none; }
+.fechas__panel { display: grid; gap: 10px; padding-top: 4px; }
+.fechas__ayuda { margin: 0; }
+/* El calendario: la barra con el mes y qué toca elegir, los días y «Listo». */
+.calendario__barra { display: flex; align-items: center; gap: 8px; }
+.calendario__paso { flex: 1; margin: 0; text-align: center; font-weight: 700; font-size: 0.92rem; }
+.calendario__flecha:disabled { opacity: 0.35; cursor: default; }
+.calendario__meses { display: grid; grid-template-columns: repeat(var(--meses, 1), minmax(0, 1fr)); gap: 24px; }
+.calendario__mes { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.calendario__mes caption { padding: 2px 0 8px; font-weight: 800; text-transform: capitalize; font-size: 0.95rem; }
+.calendario__mes th { padding: 2px 0 6px; font-size: 0.74rem; font-weight: 700; color: var(--texto-suave); }
+.calendario__mes td { padding: 1px 0; text-align: center; }
+.calendario__mes td.en-rango { background: var(--acento-suave); }
+.calendario__mes td.en-rango:has(.calendario__dia--entrada) { background: linear-gradient(90deg, transparent 50%, var(--acento-suave) 50%); }
+.calendario__mes td.en-rango:has(.calendario__dia--salida) { background: linear-gradient(90deg, var(--acento-suave) 50%, transparent 50%); }
+.calendario__mes td.en-rango:has(.calendario__dia--entrada.calendario__dia--salida) { background: none; }
+.calendario__dia {
+  position: relative; display: inline-grid; place-items: center; width: 100%; max-width: 44px; height: 42px; padding: 0;
+  border: 0; border-radius: 50%; background: none; color: var(--texto); font: inherit; font-weight: 650; font-size: 0.92rem; cursor: pointer;
+}
+.calendario__dia:hover:not(:disabled) { background: var(--superficie-3); }
+.calendario__dia:focus-visible { outline: 3px solid var(--acento); outline-offset: 1px; z-index: 1; }
+.calendario__dia:disabled { color: var(--texto-suave); opacity: 0.5; cursor: default; }
+.calendario__dia--finde { font-weight: 800; }
+.calendario__dia--hoy { box-shadow: inset 0 0 0 1.5px var(--borde-fuerte); }
+.calendario__dia--puente::after { content: ""; position: absolute; bottom: 5px; width: 5px; height: 5px; border-radius: 50%; background: var(--puente); }
+.calendario__dia--rango { color: var(--acento-suave-texto); border-radius: 0; }
+.calendario__dia--previo { background: var(--superficie-2); border-radius: 0; }
+.calendario__dia--entrada, .calendario__dia--salida, .calendario__dia--entrada:hover:not(:disabled), .calendario__dia--salida:hover:not(:disabled) { background: var(--acento); color: var(--acento-texto); }
+.calendario__dia--entrada.calendario__dia--puente::after, .calendario__dia--salida.calendario__dia--puente::after { background: var(--acento-texto); }
+.calendario__pie { display: flex; align-items: center; justify-content: flex-end; gap: 12px; }
+/* En pantallas anchas, el calendario de la barra flota debajo de las fechas (no empuja la página). */
+@media (min-width: 720px) {
+  .fechas:not(.fechas--portada) .fechas__panel {
+    position: absolute; z-index: 30; top: calc(100% - 6px); left: 14px; width: min(660px, calc(100% - 28px));
+    padding: 16px; border-radius: var(--radio); background: var(--superficie); border: 1px solid var(--borde); box-shadow: var(--sombra-alta);
+  }
+  .fechas:not(.fechas--portada) .fechas__campos { max-width: 720px; }
+  .fechas__campo { min-width: 190px; }
+  .fechas__rapidas .chips__lista { flex-wrap: wrap; overflow: visible; padding-right: 0; -webkit-mask-image: none; mask-image: none; }
+}
+/* En el buscador del Inicio, sin caja propia: va dentro de la del buscador. */
+.fechas--portada { margin: 0; padding: 0; border: 0; box-shadow: none; background: none; }
+.fechas--portada .fechas__campos, .fechas--portada .fechas__panel { max-width: 680px; }
 /* «Lista | Mapa». */
 .conmutador { display: inline-flex; padding: 3px; gap: 2px; border-radius: 999px; background: var(--superficie-2, var(--superficie)); border: 1px solid var(--borde); }
 .conmutador__opcion { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 14px; border-radius: 999px; color: var(--texto); text-decoration: none; font-weight: 700; font-size: 0.88rem; }
@@ -1782,8 +1856,6 @@ body[data-vista="finde"] #boton-viaje, body[data-vista="finde"] #buscador,
 html[data-vista-inicial="finde"] body:not([data-vista]) #boton-viaje, html[data-vista-inicial="finde"] body:not([data-vista]) #buscador { display: none; }
 body[data-vista="finde"] .cabecera-info:not(:has(#novedades:not([hidden]), #actualizado:not([hidden]))),
 html[data-vista-inicial="finde"] body:not([data-vista]) .cabecera-info:not(:has(#novedades:not([hidden]), #actualizado:not([hidden]))) { display: none; }
-/* Un finde o puente que ya pasó en la URL: la franja avisa en vez de decir «cualquier fecha». */
-.franja-periodo--pasado { background: var(--aviso-suave); color: var(--aviso); }
 /* Cuántas tienen fechas de verdad en el periodo elegido y cuántas son flexibles. */
 .desglose-fechas { display: flex; gap: 8px; align-items: flex-start; margin: 0 0 12px; font-size: 0.88rem; color: var(--texto-suave); line-height: 1.45; }
 .desglose-fechas .ic { flex: none; width: 16px; height: 16px; margin-top: 2px; color: var(--acento); }
@@ -1801,10 +1873,16 @@ html[data-vista-inicial="finde"] body:not([data-vista]) .cabecera-info:not(:has(
     position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; padding: 0;
   }
   body:is([data-vista="escapadas"], [data-vista="vuelos"], [data-vista="actividades"]) .pestanas { margin-bottom: 12px; }
-  /* La franja de fechas en una banda: el texto en su columna y «Cambiar» y ✕ al lado. */
-  .franja-periodo { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 2px 6px; padding: 6px 4px 6px 12px; font-size: 0.86rem; }
-  .franja-periodo__texto { min-width: 0; line-height: 1.3; }
-  .franja-periodo .enlace-boton { min-height: 40px; padding-inline: 4px; }
-  .franja-periodo__quitar { width: 40px; height: 40px; }
+  /* La barra de fechas, compacta: sin título (los campos ya dicen qué son) y los atajos deslizando. */
+  .fechas:not(.fechas--portada) { padding: 10px; gap: 8px; }
+  .fechas:not(.fechas--portada) .fechas__titulo { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .fechas__campos { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); }
+  .fechas__extra { grid-column: 1 / -1; justify-content: space-between; }
+  .fechas__extra:not(:has(.fechas__quitar)):has(.fechas__noches:empty) { display: none; }
+  .fechas__campo { min-height: 52px; padding: 6px 10px; }
+  .fechas__etiqueta { font-size: 0.64rem; letter-spacing: 0.02em; }
+  /* Con el calendario abierto, la pastilla flotante (Filtros · Mapa) no tapa «Listo». */
+  html:has(.fechas--abierta) .barra-comparar { display: none; }
+  .fechas__rapidas .chips__lista { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: -10px; padding-inline: 10px; }
   .atajos { margin-bottom: 10px; }
 }

@@ -87,17 +87,35 @@ describe('Inicio: qué quieres organizar y para cuándo', async () => {
   });
 });
 
-describe('franja del periodo y Lista / Mapa', async () => {
-  const { conmutadorListaMapa, franjaPeriodo, pestanas } = await import('../site/js/vistas-comun.js');
-  const e = { findes: [ctx.finde, FINDE], puente: PUENTE, datos: { puentes: [PUENTE] } };
-  it('dice el periodo con sus días, igual en todas las pestañas, y ofrece cambiarlo', () => {
-    assert.match(franjaPeriodo(e, 'escapadas', { cuando: 'puente' }), /<strong>Puente<\/strong> · Fiesta Nacional · vie 9 – lun 12 oct[^]*data-cambiar-fechas>Cambiar<span class="solo-ancho"> fechas<\/span>/);
-    const texto = (html) => html.match(/franja-periodo__texto">(.*?)<\/span>/)[1];
-    assert.equal(texto(franjaPeriodo(e, 'vuelos', { finde: '2026-10-10' })), texto(franjaPeriodo(e, 'actividades', { cuando: '2026-10-10' })));
-    assert.match(franjaPeriodo(e, 'vuelos', { finde: '2026-10-10', aero: 'BCN' }), /href="#\/vuelos\?aero=BCN" aria-label="Quitar las fechas"/);
-    assert.match(franjaPeriodo(e, 'escapadas', { cuando: '2026-10-09' }), /<strong>Finde<\/strong> · vie 9 – dom 11 oct · vuelve antes del festivo/);
-    assert.match(franjaPeriodo(e, 'mapa', {}), /Cualquier fecha[^]*Elegir fechas/);
-    assert.match(franjaPeriodo(e, 'escapadas', { desde: '2026-10-16', hasta: '2026-10-18' }), /<strong>Fechas<\/strong> · vie 16 – dom 18 oct/);
+describe('barra de fechas («¿Cuándo?») y Lista / Mapa', async () => {
+  const { barraFechas, conmutadorListaMapa, pestanas } = await import('../site/js/vistas-comun.js');
+  const e = { hoy: '2026-10-01', findes: [{ ...ctx.finde, etiqueta: '2–4 oct' }, FINDE], puente: PUENTE, datos: { puentes: [PUENTE] } };
+  const fechas = (html) => [...html.matchAll(/class="fechas__valor[^"]*">([^<]+)</g)].map(([, v]) => v);
+  const marcado = (html) => html.match(/data-fechas-rapida="([^"]*)" aria-pressed="true"/)?.[1];
+  it('dice la fecha de entrada y la de salida del periodo, igual en todas las pestañas, y ofrece cambiarlas aquí mismo', () => {
+    const puente = barraFechas(e, 'escapadas', { cuando: 'puente' });
+    assert.deepEqual(fechas(puente), ['vie 9 oct', 'lun 12 oct'], 'el puente, del último laborable a su último día');
+    assert.match(puente, /Fecha de entrada<\/span>/);
+    assert.match(puente, /Fecha de salida<\/span>/);
+    assert.match(puente, /data-fechas-noches>3 noches</);
+    assert.match(puente, /data-fechas-campo="entrada" aria-expanded="false" aria-controls="fechas-escapadas-calendario"/);
+    assert.deepEqual(fechas(barraFechas(e, 'vuelos', { finde: '2026-10-10' })), fechas(barraFechas(e, 'actividades', { cuando: '2026-10-10' })));
+    assert.equal(marcado(barraFechas(e, 'vuelos', { finde: '2026-10-10' })), '2026-10-10');
+    assert.match(barraFechas(e, 'vuelos', { finde: '2026-10-10', aero: 'BCN' }), /data-fechas-rapida="" aria-label="Quitar las fechas"/);
+    assert.deepEqual(fechas(barraFechas(e, 'escapadas', { cuando: '2026-10-09' })), ['vie 9 oct', 'dom 11 oct']);
+    const nada = barraFechas(e, 'mapa', {});
+    assert.deepEqual(fechas(nada), ['Añadir fecha', 'Añadir fecha']);
+    assert.equal(marcado(nada), '');
+    assert.doesNotMatch(nada, /Quitar las fechas/);
+    const rango = barraFechas(e, 'escapadas', { desde: '2026-10-16', hasta: '2026-10-18' });
+    assert.deepEqual(fechas(rango), ['vie 16 oct', 'dom 18 oct']);
+    assert.equal(marcado(rango), undefined, 'con fechas propias no se marca ningún atajo');
+    // «Este finde» es «finde» en Escapadas (vale cada semana) y su id en Vuelos (que no lo entiende).
+    assert.match(barraFechas(e, 'escapadas', { cuando: 'finde' }), /data-fechas-rapida="finde" aria-pressed="true">Este finde · 2–4 oct/);
+    assert.match(barraFechas(e, 'vuelos', { finde: '2026-10-02' }), /data-fechas-rapida="2026-10-02" aria-pressed="true">Este finde/);
+    // Sus campos son del formulario de filtros (fuera de él): Buscar no tiene formulario.
+    assert.match(rango, /<input type="hidden" name="desde" value="2026-10-16" form="filtros-escapadas">/);
+    assert.match(barraFechas(e, 'buscar', { desde: '2026-10-16' }), /<input type="hidden" name="desde" value="2026-10-16">/);
   });
   it('el mapa es otra vista de la misma búsqueda, no otra pestaña', () => {
     const html = conmutadorListaMapa({ cuando: 'puente', temas: 'spa' }, 'mapa');
@@ -123,7 +141,7 @@ describe('mapa', async () => {
 });
 
 describe('un finde o puente que ya pasó en la URL: todas las piezas dicen lo mismo', async () => {
-  const { franjaPeriodo } = await import('../site/js/vistas-comun.js');
+  const { barraFechas } = await import('../site/js/vistas-comun.js');
   const { resultadosEscapadas, resultadosVuelos, resultadosActividades, vistaVuelos } = await import('../site/js/vistas.js');
   const { estadoPanel, ctxPanel } = await import('./ayudas-panel.js');
   const e = estadoPanel();
@@ -137,9 +155,9 @@ describe('un finde o puente que ya pasó en la URL: todas las piezas dicen lo mi
     assert.equal(periodoPasado('puente', { ...ctx, puente: null }), true, 'sin puente a la vista, «el puente» no es nada');
   });
 
-  it('franja, chip y estado vacío lo dicen (antes: «Cualquier fecha», el id crudo y 0 resultados sin explicar)', () => {
-    assert.match(franjaPeriodo(e, 'escapadas', { cuando: '2020-01-01' }), /<strong>Fechas que ya pasaron<\/strong>[^]*franja-periodo__quitar/);
-    assert.match(franjaPeriodo(e, 'vuelos', { finde: '2020-01-01' }), /Fechas que ya pasaron/);
+  it('barra, chip y estado vacío lo dicen (antes: «Cualquier fecha», el id crudo y 0 resultados sin explicar)', () => {
+    assert.match(barraFechas(e, 'escapadas', { cuando: '2020-01-01' }), /data-fechas-noches>Fechas que ya pasaron<[^]*Quitar fechas/);
+    assert.match(barraFechas(e, 'vuelos', { finde: '2020-01-01' }), /Fechas que ya pasaron/);
     assert.deepEqual(filtrosActivos('escapadas', { cuando: '2020-01-01' }, ctx).map((c) => c.texto), ['Fechas que ya pasaron']);
     for (const html of [resultadosEscapadas(e, { cuando: '2020-01-01' }), resultadosActividades(e, { cuando: '2020-01-01' }), resultadosVuelos(e, { finde: '2020-01-01' })]) {
       assert.match(html, /Ese finde o puente ya pasó/);
@@ -156,11 +174,12 @@ describe('un finde o puente que ya pasó en la URL: todas las piezas dicen lo mi
     assert.deepEqual(filtrarVuelos(e.datos.ofertas, leerFiltrosVuelos({ finde: 'puente' }), { ...ctx, puente: null }), [], 'sin puente a la vista, ninguno');
   });
 
-  it('Vuelos con un rango de fechas: «Todos» no sale marcado y el rango viaja en el formulario (tocar otro filtro no lo pierde)', () => {
+  it('Vuelos con un rango de fechas: «Cualquier fecha» no sale marcado y el rango viaja en el formulario (tocar otro filtro no lo pierde)', () => {
     const html = vistaVuelos(e, { desde: '2026-10-16', hasta: '2026-10-18' });
-    assert.ok(!/name="finde" value="" checked/.test(html));
-    assert.match(html, /<input type="hidden" name="desde" value="2026-10-16"><input type="hidden" name="hasta" value="2026-10-18">/);
-    assert.ok(!/name="desde"/.test(vistaVuelos(e, { finde: e.findes[0].id })), 'sin rango, sin campos ocultos');
+    assert.match(html, /data-fechas-rapida="" aria-pressed="false"/);
+    assert.match(html, /<input type="hidden" name="finde" value="" form="filtros-vuelos"><input type="hidden" name="desde" value="2026-10-16" form="filtros-vuelos"><input type="hidden" name="hasta" value="2026-10-18" form="filtros-vuelos">/);
+    assert.match(html, /<form class="filtros" id="filtros-vuelos" data-filtros="vuelos"/);
+    assert.match(vistaVuelos(e, { finde: e.findes[0].id }), /<input type="hidden" name="desde" value="" form="filtros-vuelos">/, 'sin rango, vacíos');
   });
 });
 
@@ -185,8 +204,10 @@ describe('Inicio arranca con el periodo elegido en Explorar', async () => {
     const html = buscadorFinde({ ...e, periodo: { cuando: '', desde: '2026-10-16', hasta: '2026-10-18' } });
     assert.equal(marcado(html), 'rango');
     assert.match(html, /<small>Tus fechas<\/small><span data-dias-propios>vie 16 – dom 18 oct<\/span>/);
-    assert.match(html, /type="date" name="desde" min="[^"]+" value="2026-10-16"/);
-    assert.doesNotMatch(html, /data-fechas-propias hidden/, 'el calendario a la vista');
+    assert.match(html, /<input type="hidden" name="desde" value="2026-10-16"><input type="hidden" name="hasta" value="2026-10-18">/);
+    assert.match(html, /Fecha de entrada<\/span>\s*<span class="fechas__valor">vie 16 oct/);
+    assert.match(html, /Fecha de salida<\/span>\s*<span class="fechas__valor">dom 18 oct/);
+    assert.doesNotMatch(html, /data-fechas-propias[^>]* hidden/, 'las fechas a la vista');
     assert.match(html, /data-enviar-para>para vie 16 – dom 18 oct</);
     const ids = { finde: e.findes[0], puente: e.puente };
     assert.equal(destinoOrganizar('vuelos', { cuando: 'rango', desde: '2026-10-16', hasta: '2026-10-18' }, ids), '#/vuelos?desde=2026-10-16&hasta=2026-10-18');
@@ -194,10 +215,11 @@ describe('Inicio arranca con el periodo elegido en Explorar', async () => {
     assert.deepEqual(paramsBuscadorFinde({ cuando: 'rango', desde: '2026-10-16', hasta: '2026-10-18' }), { desde: '2026-10-16', hasta: '2026-10-18', temas: '', orden: 'total' });
   });
 
-  it('«Otras fechas» con calendario siempre: plegado hasta elegirla; sin vuelta, un día; sin ida, cualquier fecha', () => {
+  it('«Otras fechas» con calendario aquí mismo: plegado hasta elegirla; sin vuelta, un día; sin ida, cualquier fecha', () => {
     const html = buscadorFinde({ ...e, periodo: null });
-    assert.match(html, /value="rango"[^>]*><small>Otras fechas<\/small><span data-dias-propios>elige en el calendario<\/span>/);
-    assert.match(html, /data-fechas-propias hidden>[^]*type="date" name="desde"[^]*type="date" name="hasta"/);
+    assert.match(html, /value="rango"[^>]*><small>Otras fechas<\/small><span data-dias-propios>elige entrada y salida<\/span>/);
+    assert.match(html, /data-fechas-propias data-entrada="" data-salida="" hidden>[^]*name="desde"[^]*name="hasta"[^]*Fecha de entrada[^]*Fecha de salida[^]*data-calendario/);
+    assert.doesNotMatch(html, /type="date"/, 'sin los campos de fecha del navegador (en inglés en algunos, y dos selectores aparte)');
     const ids = { finde: e.findes[0], puente: e.puente };
     assert.equal(destinoOrganizar('escapadas', { cuando: 'rango', desde: '2026-10-24', hasta: '' }, ids), '#/escapadas?desde=2026-10-24&hasta=2026-10-24&orden=total');
     assert.equal(destinoOrganizar('vuelos', { cuando: 'rango', desde: '2026-10-24', hasta: '2026-10-20' }, ids), '#/vuelos?desde=2026-10-24&hasta=2026-10-24');
