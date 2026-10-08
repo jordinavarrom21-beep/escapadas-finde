@@ -35,10 +35,13 @@ const IDS_TEMAS = new Set(TEMAS.map((t) => t.id));
 const esNumero = (valor) => typeof valor === 'number' && Number.isFinite(valor);
 /**
  * Restos de código en vez de un título: «undefined», «NaN» (con esas mayúsculas, como las
- * escribe JavaScript), «[object Object]», «null» solo, etiquetas HTML conocidas o un JSON a
- * medias. «<ida y vuelta>» o «Hotel Nan» son títulos de verdad y pasan.
+ * escribe JavaScript), «[object Object]», «null» solo, un JSON a medias o una etiqueta HTML de
+ * verdad (conocida y, si lleva algo, atributos con «=»). «<ida y vuelta>», «<a 1 h de Madrid>»
+ * o «Hotel Nan» son títulos de verdad y pasan.
  */
-const TITULO_ROTO = /\bundefined\b|\bNaN\b|\[object \w+\]|^\s*null\s*$|<\/?(div|span|p|a|br|img|strong|b|i|em|ul|ol|li|h[1-6]|script|style|button|section|article|table|td|tr)\b[^>]*>|^\s*[{[]\s*"/;
+const CODIGO_EN_TITULO = /\bundefined\b|\bNaN\b|\[object \w+\]|^\s*null\s*$|^\s*[{[]\s*"/;
+const HTML_EN_TITULO = /<\/?(div|span|p|a|br|img|strong|b|i|em|ul|ol|li|h[1-6]|script|style|button|section|article|table|td|tr)(\s+[a-z-]+\s*=\s*("[^"]*"|'[^']*'))*\s*\/?>/i;
+const TITULO_ROTO = { test: (titulo) => CODIGO_EN_TITULO.test(titulo) || HTML_EN_TITULO.test(titulo) };
 
 /**
  * «Platja d´Aro»: el acento agudo (o el acento grave) suelto entre dos letras no es un

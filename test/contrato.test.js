@@ -175,10 +175,10 @@ describe('modelo: completarOferta', () => {
 
   test('un título con restos de código no se publica; los raros de verdad, sí', () => {
     const titulo = (t) => validarOferta(completarOferta(base({ titulo: t }))).filter((e) => e.startsWith('título roto'));
-    for (const roto of ['undefined', 'Hotel undefined en Roses', 'Desde NaN €', '[object Object]', 'null', '<div class="x">Hotel</div>', '{"titulo":"Hotel"']) {
+    for (const roto of ['undefined', 'Hotel undefined en Roses', 'Desde NaN €', '[object Object]', 'null', '<div class="x">Hotel</div>', 'Hotel <b>4*</b> en Roses', 'Spa<br/>y cena', '<a href="https://x.es">Oferta</a>', '{"titulo":"Hotel"']) {
       assert.equal(titulo(roto).length, 1, roto);
     }
-    for (const bueno of ['Vuelos a Roma <ida y vuelta>', 'Hotel Nan Restaurant', 'Escapada «sin null» a Null Island', 'I <3 Barcelona', '2x1 en [Halloween]']) {
+    for (const bueno of ['Vuelos a Roma <ida y vuelta>', 'Casas rurales <a 1 h de Madrid> desde 50 €', 'Ofertas <a elegir>', 'Hotel Nan Restaurant', 'Escapada «sin null» a Null Island', 'I <3 Barcelona', '2x1 en [Halloween]']) {
       assert.deepEqual(titulo(bueno), [], bueno);
     }
   });

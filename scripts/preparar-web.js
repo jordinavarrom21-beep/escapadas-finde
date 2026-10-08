@@ -304,12 +304,14 @@ ${unDominio}  # Las copias de seguridad de datos y la carpeta .git (despliegue d
   # suficientes no se publica. Quien llegue a ella (un buscador, un enlace guardado) va a la
   # lista de escapadas o a la portada en vez de a «esta página no existe». Temporal (302):
   # la guía vuelve en cuanto vuelve a haber ofertas.
+  # La lista de escapadas también es una guía: si hoy tampoco está, a la portada.
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond %{DOCUMENT_ROOT}/escapadas/index.html -f
   RewriteRule ^escapadas/[^/]+/?$ /escapadas/ [R=302,L]
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
-  RewriteRule ^(vuelos|actividades)(/.*)?$ / [R=302,L]
+  RewriteRule ^(escapadas|vuelos|actividades)(/.*)?$ / [R=302,L]
   # Iconos que el iPhone pide por su cuenta aunque la página diga otro: el mismo de siempre.
   RewriteRule ^apple-touch-icon-(precomposed|[0-9]+x[0-9]+(-precomposed)?)\\.png$ apple-touch-icon.png [L]
 </IfModule>

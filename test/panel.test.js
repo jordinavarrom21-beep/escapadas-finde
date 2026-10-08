@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 import {
-  actividadesCerca, actividadesPara, analizarConsulta, buscarActividades, buscarEscapadas, buscarTexto,
+  actividadesCerca, actividadesPara, analizarConsulta, buscarActividades, buscarEscapadas, buscarTexto, contenidoMapa,
   chollosDeVuelos, crearHash, criterioVigilado, describirCriterio, destinosDeVuelo, diasAPedir, disponibleEn,
   duracionActividad, esActividad, esNovedad, filtrarVuelos, leerFiltrosActividades, leerFiltrosComunes,
   leerFiltrosEscapadas, leerFiltrosVuelos, leerRuta, medirDistancias, perfilFavoritos, periodoFinde,
@@ -695,9 +695,12 @@ describe('atajos de Inicio con las fechas elegidas', async () => {
     for (const lista of [finde, todo, puente]) {
       for (const { href, n } of Object.values(lista)) {
         const { vista, params } = leerRuta(href);
+        const mapa = vista === 'mapa' && contenidoMapa(ofertas, leerFiltrosEscapadas(params), contextoBusqueda(e));
         const total = vista === 'actividades'
           ? buscarActividades(ofertas, leerFiltrosActividades(params), contextoBusqueda(e)).length
-          : buscarEscapadas(ofertas, leerFiltrosEscapadas(params), contextoBusqueda(e)).ofertas.length;
+          // El mapa: lo que pinta (escapadas con ubicación y destinos de vuelo).
+          : mapa ? mapa.escapadas.length + mapa.destinos.length
+            : buscarEscapadas(ofertas, leerFiltrosEscapadas(params), contextoBusqueda(e)).ofertas.length;
         assert.equal(n, total, href);
       }
     }

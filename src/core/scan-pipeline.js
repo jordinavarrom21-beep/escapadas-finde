@@ -143,9 +143,9 @@ export function revisarLectura(resultado, previo, ahora) {
   const n = resultado.ofertas.length;
   const normal = referenciaDe(previo);
   const { mediana, estable } = precioTipico(resultado.ofertas);
-  // El precio de referencia solo de una web de precios parecidos; con pocos precios hoy, se
-  // conserva el de antes (si no, una lectura corta borraría la vigilancia sin avisar).
-  const precioRef = mediana != null ? (estable ? mediana : null) : (normal?.precioMediano ?? null);
+  // El precio de referencia solo de una lectura de precios parecidos; con pocos precios hoy o
+  // muy dispares, se conserva el de antes (si no, la vigilancia se perdería sin avisar).
+  const precioRef = mediana != null && estable ? mediana : (normal?.precioMediano ?? null);
   const actual = { total: n, detalles: coberturaDetalles(resultado.ofertas), ...(precioRef != null ? { precioMediano: precioRef } : {}) };
   const viejo = previo.desdeAviso && ahora - Date.parse(previo.desdeAviso) >= DIAS_NUEVA_NORMALIDAD * DIA_MS;
   const sinAviso = { aviso: null, detallesPerdidos: [], reemplazar: resultado.reemplazar, referencia: actual };
@@ -162,8 +162,9 @@ export function revisarLectura(resultado, previo, ahora) {
     const lista = perdidos.map((clave) => `${DETALLES[clave].nombre} (${pct(actual.detalles[clave])}; lo normal, ${pct(normal.detalles[clave])})`);
     avisos.push(`Faltan datos que antes traía casi siempre: ${lista.join(', ')}. Puede que la web haya cambiado dónde los pone`);
   }
-  // Datos que llegan pero mal leídos: el precio típico salta de golpe.
-  if (mediana != null && normal.precioMediano > 0 && (mediana > normal.precioMediano * SALTO_PRECIO || mediana * SALTO_PRECIO < normal.precioMediano)) {
+  // Datos que llegan pero mal leídos: el precio típico de una lectura de precios parecidos salta
+  // de golpe. Si hoy vienen muy dispares (la web mezcla productos), no se compara.
+  if (mediana != null && estable && normal.precioMediano > 0 && (mediana > normal.precioMediano * SALTO_PRECIO || mediana * SALTO_PRECIO < normal.precioMediano)) {
     avisos.push(`Los precios han cambiado mucho de golpe (lo normal, unos ${normal.precioMediano} €; ahora, ${mediana} €). Puede que se esté leyendo otro número de la página`);
   }
   if (!avisos.length) return sinAviso;

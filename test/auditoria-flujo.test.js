@@ -89,8 +89,13 @@ describe('auditoría: flujo del escaneo', () => {
     const corta = revisarLectura({ ofertas: [...conPrecios([100, 110, 120]), ...Array.from({ length: 27 }, (_, i) => ({ id: `n:${i}`, precio: null }))], reemplazar: true }, pocasConPrecio, AHORA);
     assert.deepEqual([corta.aviso, corta.referencia.precioMediano], [null, 105], 'con 3 precios no se compara ni se pierde la referencia');
     // Una web que mezcla vuelos de 20 € y paquetes de 300 € no tiene precio típico: no se vigila.
-    const mezcla = revisarLectura({ ofertas: conPrecios([...Array(15).fill(20), ...Array(15).fill(300)]), reemplazar: true }, {}, AHORA);
+    const dispares = conPrecios([...Array(15).fill(20), ...Array(15).fill(300)]);
+    const mezcla = revisarLectura({ ofertas: dispares, reemplazar: true }, {}, AHORA);
     assert.equal(mezcla.referencia.precioMediano, undefined);
+    // Y si una de precios parecidos empieza a mezclar: no avisa, pero no pierde la referencia
+    // (si después se queda con un número equivocado, se nota).
+    const empiezaAMezclar = revisarLectura({ ofertas: dispares, reemplazar: true }, previo, AHORA);
+    assert.deepEqual([empiezaAMezclar.aviso, empiezaAMezclar.referencia.precioMediano], [null, 105]);
   });
 
   test('un error después de «falta configurar» enseña el error, no lo que faltaba', async () => {

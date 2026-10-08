@@ -811,6 +811,21 @@ export function vuelosParaMapa(ofertas, f, ctx) {
   return ofertas.filter((o) => esVuelo(o) && cumpleComunes(o, f, ctx));
 }
 
+/**
+ * Lo que sale en el mapa con unos filtros de Escapadas: las escapadas con ubicación (las que
+ * tienen distancia), cuántas no la tienen y los destinos de vuelo. Lo usan la vista del mapa
+ * y la cifra de «Ver en el mapa» del Inicio, así que dicen siempre lo mismo.
+ */
+export function contenidoMapa(ofertas, f, ctx) {
+  const { ofertas: encontradas, distancias } = buscarEscapadas(ofertas, f, ctx);
+  return {
+    escapadas: encontradas.filter((o) => distancias.has(o.id)),
+    sinUbicacion: encontradas.filter((o) => !distancias.has(o.id)).length,
+    destinos: destinosDeVuelo(vuelosParaMapa(ofertas, f, ctx)),
+    distancias,
+  };
+}
+
 /** Radio de «también cerca de…» cuando lo buscado es un pueblo o una ciudad. */
 export const KM_CERCA_DE_LO_BUSCADO = 30;
 

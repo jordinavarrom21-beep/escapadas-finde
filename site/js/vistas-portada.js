@@ -7,11 +7,10 @@
 import { etiquetaDia, nombreFinde, nombreFindeEnFrase } from './fechas.js';
 import { TIPOS_EVENTO, contar, duracion, escaparHtml as esc, euros, haceCuanto, normalizar, urlSegura } from './formato.js';
 import {
-  actividadesPara, buscarActividades, buscarEscapadas, chollosDeVuelos, conPeriodo, crearHash, filtrarVuelos,
+  actividadesPara, buscarActividades, buscarEscapadas, chollosDeVuelos, conPeriodo, contenidoMapa, crearHash, filtrarVuelos,
   leerFiltrosActividades, leerFiltrosEscapadas, leerFiltrosVuelos, perfilFavoritos, periodoFinde, planesSorpresa,
   rangoDe, recomendadas, salidaPuente, sinComprobar, tieneVuelo,
 } from './filtros.js';
-import { tieneCoordenadas } from './geo.js';
 import { colorTema, estadoVacio, tarjeta, tarjetaConMotivo, textoFechas } from './plantillas.js';
 import { escena, icono, tipoEscena } from './iconos.js';
 import {
@@ -230,7 +229,8 @@ export function atajosPortada(e, opcion = null, fechas = null) {
   // El mapa es una vista de Escapadas (Explorar → «Lista | Mapa»): aquí, a mano desde el Inicio.
   const mapa = conFechas('mapa', {});
   const n = {
-    mapa: buscarEscapadas(e.datos.ofertas, leerFiltrosEscapadas(mapa), busqueda).ofertas.filter((o) => tieneCoordenadas(o.lugar)).length,
+    // Lo mismo que pinta el mapa (escapadas con ubicación y destinos de vuelo).
+    mapa: ((m) => m.escapadas.length + m.destinos.length)(contenidoMapa(e.datos.ofertas, leerFiltrosEscapadas(mapa), busqueda)),
     cho: buscarEscapadas(e.datos.ofertas, leerFiltrosEscapadas(cho), busqueda).ofertas.length,
     gratis: buscarActividades(e.datos.ofertas, leerFiltrosActividades(gratis), busqueda).length,
     ninos: buscarEscapadas(e.datos.ofertas, leerFiltrosEscapadas(ninos), busqueda).ofertas.length,
@@ -327,7 +327,7 @@ function columnaVuelos(e, vistos) {
     // Con pocos para el finde, la columna se completa con los más baratos de otras fechas (y lo
     // dice): así no queda medio vacía al lado de las otras dos.
     const otras = delFinde.length < FILAS_IDEAS
-      ? sinVistas(todos.filter((o) => !esDelFinde(o) && otroDestino(o)), vistos, FILAS_IDEAS - delFinde.length)
+      ? sinVistas(todos.filter((o) => !esDelFinde(o) && o.fechas?.salida && otroDestino(o)), vistos, FILAS_IDEAS - delFinde.length)
       : [];
     const filas = [...delFinde.map(filaVuelo), ...(otras.length ? ['<li class="ideas__sub">Otras fechas</li>', ...otras.map(filaVuelo)] : [])];
     return columnaIdeas('vuelos', 'Vuelos', filas, '',
