@@ -12,6 +12,7 @@
  */
 import { costeDesdeOrigen } from './vigilados.js';
 import { escaparHtml as esc, euros, normalizar, urlSegura } from '../site/js/formato.js';
+import { repartir } from '../site/js/vigencia.js';
 import { etiquetaDia, fechaLocal } from './util/fechas.js';
 import { textoGuia } from './textos-guias.js';
 
@@ -36,7 +37,13 @@ const UNIDADES = {
 
 // Los billetes sueltos de tren, bus o ferry no son escapadas (lo mismo que esTransporte del panel).
 const esTransporte = (o) => ['bus', 'tren', 'ferry'].includes(o.transporte) && !o.alojamiento && !o.noches && (o.unidad == null || o.unidad === 'trayecto');
-const esEscapada = (o) => !['vuelo', 'actividad'].includes(o.tipo) && !o.etiquetas.includes('duplicada') && !esTransporte(o);
+/**
+ * Una escapada para las guías es un viaje con dónde dormir: alojamiento o noches. Una entrada,
+ * un restaurante, un descuento o un billete suelto que alguna web publica como «escapada» no
+ * entra (tienen su sitio en el panel: Planes, Vuelos, Tren, bus y ferry).
+ */
+const conAlojamiento = (o) => Boolean(o.alojamiento) || o.noches > 0;
+const esEscapada = (o) => !['vuelo', 'actividad'].includes(o.tipo) && !o.etiquetas.includes('duplicada') && !esTransporte(o) && conAlojamiento(o);
 const conTotal = (o) => costeDesdeOrigen(o, VIAJEROS).total != null;
 const porTotal = (a, b) => costeDesdeOrigen(a, VIAJEROS).total - costeDesdeOrigen(b, VIAJEROS).total;
 const porPrecio = (a, b) => (a.precio ?? Infinity) - (b.precio ?? Infinity);
@@ -130,7 +137,9 @@ export function definiciones({ origen, findes = [], puentes = [], ofertas = [], 
       ruta: 'escapadas/menos-de-100-euros', grupo: 'general', enlace: 'Por menos de 100 € por persona',
       titulo: `Escapadas desde ${desde} por menos de 100 € por persona`,
       intro: `Viajes completos que salen por menos de 100 € por persona según ${coste}.`,
-      elegir: (o) => esEscapada(o) && costeDesdeOrigen(o, VIAJEROS).porPersona <= 100, orden: porTotal,
+      // porPersona null (sin datos para el viaje completo) no cumple: antes «null <= 100» era true.
+      elegir: (o) => { const pp = costeDesdeOrigen(o, VIAJEROS).porPersona; return esEscapada(o) && pp != null && pp <= 100; },
+      orden: porTotal, umbralPorPersona: 100,
       panel: '#/escapadas?orden=total&pres=100&prespor=persona',
     },
     {
@@ -191,7 +200,18 @@ export function definiciones({ origen, findes = [], puentes = [], ofertas = [], 
   return [...fijas, ...zonas(ofertas, { desde, coste, ocupadas })];
 }
 
-function filaOferta(o, nombres) {
+/** «35 € × 2 personas = 70 € + gasolina 12 €»: de dónde sale el viaje completo, parte a parte. */
+function cuenta(c) {
+  return c.partes.map((p) => `${p.concepto.toLowerCase()} ${p.estimado ? '≈ ' : ''}${euros(Math.round(p.eur))} (${p.detalle})`).join(' + ');
+}
+
+/**
+ * Una oferta de una guía. Primero el precio comparable (el viaje completo por persona, el que
+ * ordena la guía y decide si cumple su criterio), con su unidad; al lado, el precio tal como lo
+ * publica su web, y debajo la cuenta que lleva de uno a otro. Si el precio publicado parece
+ * pasarse del límite de la guía, se dice por qué cumple.
+ */
+function filaOferta(o, nombres, d = {}) {
   const c = costeDesdeOrigen(o, VIAJEROS);
   const fechas = o.fechas.salida
     ? `${etiquetaDia(o.fechas.salida)}${o.fechas.vuelta ? ` – ${etiquetaDia(o.fechas.vuelta)}` : ''}`
@@ -201,15 +221,21 @@ function filaOferta(o, nombres) {
     ? `En ${{ tren: 'tren', bus: 'autobús', ferry: 'ferry', avion: 'avión' }[o.transporte]}`
     : o.cocheMin != null ? `${Math.floor(o.cocheMin / 60) ? `${Math.floor(o.cocheMin / 60)} h ` : ''}${o.cocheMin % 60} min en coche` : '';
   const salidas = saleDe(o);
-  const precio = o.precio === 0 ? 'Gratis' : `${o.fechas.salida ? '' : 'desde '}${euros(o.precio)} ${UNIDADES[o.unidad] ?? ''}`.trim();
+  const web = nombres.get(o.fuente) ?? o.fuente;
+  const publicado = o.precio === 0 ? 'Gratis' : `${o.fechas.salida ? '' : 'desde '}${euros(o.precio)} ${UNIDADES[o.unidad] ?? '(sin unidad)'}`.trim();
   // Solo http(s): un «javascript:» de una web de ofertas no llega nunca a un enlace (como en el panel).
   const url = urlSegura(o.urlReserva) ?? urlSegura(o.url);
   const rel = o.afiliado || o.patrocinada ? 'sponsored nofollow noopener' : 'nofollow noopener';
+  const noches = c.noches ? `, ${c.noches} ${c.noches === 1 ? 'noche' : 'noches'}` : '';
+  const precio = c.total != null
+    ? `<p class="fila-guia__precio"><strong>Viaje completo: ${c.estimado ? '≈ ' : ''}${esc(euros(Math.round(c.porPersona)))} por persona</strong> (${esc(euros(Math.round(c.total)))} para ${VIAJEROS} personas${esc(noches)}) · <span class="suave">Precio en ${esc(web)}: ${esc(publicado)}</span></p>
+  <p class="suave fila-guia__cuenta">Cuenta: ${esc(cuenta(c))} = ${esc(euros(Math.round(c.total)))} entre ${VIAJEROS} = ${esc(euros(Math.round(c.porPersona)))} por persona.${d.umbralPorPersona && o.precio > d.umbralPorPersona && c.porPersona <= d.umbralPorPersona ? ` Cumple «menos de ${esc(euros(d.umbralPorPersona))} por persona» aunque el precio publicado sea mayor: ese precio es ${esc(UNIDADES[o.unidad] ?? 'de la oferta')} y por persona sale a ${esc(euros(Math.round(c.porPersona)))}.` : ''}</p>`
+    : `<p class="fila-guia__precio"><strong>${esc(publicado)}</strong> <span class="suave">(precio en ${esc(web)}; sin datos para calcular el viaje completo)</span></p>`;
   return `<li class="fila-guia">
   <h3>${esc(o.titulo)}</h3>
   <p>${[lugar && `📍 ${esc(lugar)}`, esc(fechas), llegar && esc(llegar), salidas.length && `Sale de ${esc(salidas.join(', '))}`, o.valoracion?.nota >= 0 && `⭐ ${esc(String(o.valoracion.nota).replace('.', ','))}`].filter(Boolean).join(' · ')}</p>
-  <p><strong>${esc(precio)}</strong>${c.total != null ? ` · viaje completo ${c.estimado ? '≈ ' : ''}${esc(euros(Math.round(c.total)))} para ${VIAJEROS} (${esc(euros(Math.round(c.porPersona)))} por persona)` : ''}</p>
-  <p class="suave">Publicada en ${esc(nombres.get(o.fuente) ?? o.fuente)}${o.vistaUltima ? ` · comprobada el ${esc(etiquetaDia(o.vistaUltima))}` : ''}${o.patrocinada ? ' · Patrocinado' : ''}${url ? ` · <a href="${esc(url)}" rel="${rel}" target="_blank">Ver la oferta</a>` : ''}</p>
+  ${precio}
+  <p class="suave">Publicada en ${esc(web)}${o.vistaUltima ? ` · precio visto allí el ${esc(etiquetaDia(o.vistaUltima))}` : ''}${o.patrocinada ? ' · Patrocinado' : ''}${url ? ` · <a href="${esc(url)}" rel="${rel}" target="_blank">Ver la oferta<span class="sr"> en ${esc(web)} (se abre en otra pestaña)</span></a>` : ''}</p>
 </li>`;
 }
 
@@ -313,10 +339,11 @@ ${cabeza}
 <nav class="migas" aria-label="Estás en"><ol>${listaMigas}</ol></nav>
 <h1>${esc(d.titulo)}</h1>
 <p>${esc(d.intro)}</p>
-<p class="suave">Criterios: ${esc(total)} ofertas cumplen; aquí van las ${esc(ofertas.length)} primeras. Datos del ${esc(etiquetaDia(generado))}; los precios son los que publica cada web y pueden haber cambiado. Confirma siempre en la web del proveedor.</p>
+<p class="suave">Criterios: ${esc(total)} ofertas vigentes cumplen; aquí van las ${esc(ofertas.length)} primeras. Datos del ${esc(etiquetaDia(generado))}; los precios son los que publica cada web y pueden haber cambiado. Confirma siempre en la web del proveedor.</p>
+<p class="suave">Cómo se compara: el <strong>viaje completo por persona</strong> para ${VIAJEROS} personas, con 2 noches cuando la oferta se cobra por noche, y la gasolina de ida y vuelta si se va en coche (estimada, sin peajes ni aparcamiento). No incluye comidas ni actividades que la oferta no incluya. Junto a cada uno, el precio tal como lo publica su web y la cuenta. Solo ofertas con alojamiento que su web ha mostrado recientemente: las caducadas y las que su web ha dejado de mostrar no salen.</p>
 <p><a class="boton boton--primario" href="${esc(raiz + d.panel)}">Abrir en el panel (con mapa, filtros y comparación)</a></p>
 <h2>${esc(cuantas)}</h2>
-<ol class="lista-guia">${ofertas.map((o) => filaOferta(o, nombres)).join('')}</ol>
+<ol class="lista-guia">${ofertas.map((o) => filaOferta(o, nombres, d)).join('')}</ol>
 ${bloqueTexto(d, texto)}</main>
 <footer class="pie contenedor">
 <nav class="guias" aria-label="Más guías">${enlacesGuias(todas, raiz, d.ruta)}</nav>
@@ -370,7 +397,14 @@ export const estructuradosPortada = (base) => jsonLd({ '@context': 'https://sche
  * @param {{base?: string|null}} opciones URL pública del panel (para canonical y sitemap)
  * @returns {{archivos: {ruta: string, contenido: string}[], rutas: string[], portada: string}}
  */
-export function generarPaginas(datos, { base = null } = {}) {
+export function generarPaginas(todasLasOfertas, { base = null } = {}) {
+  // Solo las vigentes (site/js/vigencia.js), a la hora del escaneo: ni caducadas ni «sin
+  // confirmar» en las guías, en la portada sin JavaScript ni en sus recuentos.
+  const revision = Number.isFinite(Date.parse(todasLasOfertas.generado)) ? new Date(todasLasOfertas.generado) : new Date();
+  const { vigentes } = repartir(todasLasOfertas.ofertas, {
+    ahora: revision, revision, intervalos: new Map((todasLasOfertas.fuentes ?? []).map((f) => [f.id, f.intervaloMin])),
+  });
+  const datos = { ...todasLasOfertas, ofertas: vigentes };
   const candidatas = definiciones(datos).map((d) => {
     const lista = datos.ofertas.filter(d.elegir).sort(d.orden);
     return { d, lista };

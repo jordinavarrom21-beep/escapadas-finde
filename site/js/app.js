@@ -19,6 +19,7 @@ import {
   exportarGuardados, importarGuardados, cargarRutas, guardarRutas, cargarPeriodo, guardarPeriodo,
 } from './local.js';
 import { clavePunto, destinosSinRuta, pedirRutas } from './rutas.js';
+import { repartir } from './vigencia.js';
 import { salidaEfectiva, validarSalida, validarViaje } from './viaje.js';
 import { destruirMapa, pintarMapa } from './mapa.js';
 import { estadoVacio } from './plantillas.js';
@@ -142,11 +143,21 @@ function crearEstado(datos, historial, vigilados) {
   const visitaAnterior = tomarVisitaAnterior(ahora);
   // Tu salida (si no es el origen del escaneo), viajeros y noches: solo en este navegador.
   const salida = salidaEfectiva(validarSalida(cargarSalida()), datos.origen);
+  // Vigencia (vigencia.js): las caducadas no se enseñan; las «sin confirmar» van aparte y solo
+  // salen si se piden. Todo lo que cuenta y destaca (portada, calendario, atajos, mapa…) usa las vigentes.
+  const { vigentes, sinConfirmar } = repartir(datos.ofertas, {
+    ahora,
+    revision: Number.isFinite(Date.parse(datos.generado)) ? new Date(datos.generado) : ahora,
+    intervalos: new Map((datos.fuentes ?? []).map((f) => [f.id, f.intervaloMin])),
+  });
+  const todas = [...vigentes, ...sinConfirmar];
   return {
-    datos: { ...datos, puentes: datos.puentes ?? [], fuentes: datos.fuentes ?? [], temas: datos.temas ?? [] },
+    datos: { ...datos, ofertas: vigentes, sinConfirmar, todas, puentes: datos.puentes ?? [], fuentes: datos.fuentes ?? [], temas: datos.temas ?? [] },
     historial,
     vigilados: vigilados.vigilados ?? [],
     vigiladosPrivados: Boolean(vigilados.privados),
+    // El estado de las webs una sola vez: la portada, el pie y «Estado de las webs» dicen lo mismo.
+    webs: estadoWebs(datos.fuentes ?? [], ahora),
     googleAnalytics: GOOGLE_ANALYTICS,
     googleAds: GOOGLE_ADS,
     drive: DRIVE,
@@ -164,13 +175,14 @@ function crearEstado(datos, historial, vigilados) {
     referencia: referenciaNovedades(visitaAnterior, datos.generado),
     temas: new Map((datos.temas ?? []).map((t) => [t.id, t])),
     fuentes: new Map((datos.fuentes ?? []).map((f) => [f.id, f.nombre])),
-    porId: new Map(datos.ofertas.map((o) => [o.id, o])),
+    // También las sin confirmar: un favorito o un enlace compartido siguen abriendo su ficha.
+    porId: new Map(todas.map((o) => [o.id, o])),
     salida,
     propietario: detectarPropietario(),
     viaje: validarViaje(cargarViaje(), datos.viajeros),
     // Desde tu salida: desde el origen del escaneo, con los tiempos reales; si no, estimados.
     rutas: salida ? cargarRutas(clavePunto(salida)) : new Map(),
-    distanciasOrigen: medirDistancias(datos.ofertas, salida, datos.origen, salida ? cargarRutas(clavePunto(salida)) : null),
+    distanciasOrigen: medirDistancias(todas, salida, datos.origen, salida ? cargarRutas(clavePunto(salida)) : null),
     paginas: new Map(),
     ubicacion: { hostname: location.hostname, pathname: location.pathname },
   };
@@ -223,14 +235,12 @@ function pintarCabecera() {
   pintarReloj();
   pintarAvisoComercial();
   pintarBotonViaje();
-  // El estado de las webs va en el pie, con la misma frase que la portada; solo lo ve quien
-  // administra la web (qué webs se leen no es cosa de los visitantes).
+  // El estado de las webs va en el pie, con la misma frase (estado.webs) que la portada y
+  // «Estado de las webs».
   const enlace = $('#estado-fuentes');
-  enlace.hidden = !estado.propietario;
-  if (!estado.propietario) return;
-  const webs = estadoWebs(estado.datos.fuentes, new Date());
-  enlace.classList.toggle('estado-fuentes--error', webs.error);
-  enlace.querySelector('.estado-fuentes__texto').textContent = `${webs.texto} · ver el estado`;
+  enlace.hidden = false;
+  enlace.classList.toggle('estado-fuentes--error', estado.webs.error);
+  enlace.querySelector('.estado-fuentes__texto').textContent = `${estado.webs.texto} · ver el estado`;
 }
 
 function pintarNovedades() {
@@ -731,7 +741,7 @@ function cargarDetalles() {
   if (!detalles) {
     const datos = estado.datos;
     detalles = cargarJson('data/detalles.json', {}).then((porId) => {
-      for (const o of datos.ofertas) if (porId[o.id]) Object.assign(o, porId[o.id]);
+      for (const o of datos.todas) if (porId[o.id]) Object.assign(o, porId[o.id]);
     }).catch((error) => console.warn('No se han podido cargar los detalles de las fichas:', error));
   }
   return detalles;
@@ -793,7 +803,7 @@ function aplicarViaje(salida, viaje) {
   estado.salida = salidaEfectiva(salida, estado.datos.origen);
   estado.viaje = viaje;
   estado.rutas = estado.salida ? cargarRutas(clavePunto(estado.salida)) : new Map();
-  estado.distanciasOrigen = medirDistancias(estado.datos.ofertas, estado.salida, estado.datos.origen, estado.rutas);
+  estado.distanciasOrigen = medirDistancias(estado.datos.todas, estado.salida, estado.datos.origen, estado.rutas);
   pintarBotonViaje();
   completarRutas();
   render({ enfocar: false });
@@ -1143,7 +1153,7 @@ async function completarRutas() {
   const salida = estado.salida;
   if (!salida) return;
   const desde = clavePunto(salida);
-  const faltan = destinosSinRuta(estado.datos.ofertas, estado.distanciasOrigen, salida, estado.rutas);
+  const faltan = destinosSinRuta(estado.datos.todas, estado.distanciasOrigen, salida, estado.rutas);
   if (!faltan.size) return;
   const nuevas = await pedirRutas(salida, faltan, {
     pedir: (url) => fetch(url).then((r) => (r.ok ? r.json() : null)),
@@ -1152,7 +1162,7 @@ async function completarRutas() {
   if (!nuevas.size || estado.salida !== salida) return;
   for (const [clave, ruta] of nuevas) estado.rutas.set(clave, ruta);
   guardarRutas(desde, estado.rutas);
-  estado.distanciasOrigen = medirDistancias(estado.datos.ofertas, salida, estado.datos.origen, estado.rutas);
+  estado.distanciasOrigen = medirDistancias(estado.datos.todas, salida, estado.datos.origen, estado.rutas);
   // Sin molestar a quien está escribiendo o con la ficha abierta: los resultados, no el formulario.
   const { vista, params } = leerRuta(location.hash);
   if (dialogo.open) return;

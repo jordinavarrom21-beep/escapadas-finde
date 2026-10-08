@@ -130,20 +130,24 @@ describe('calidad: cada oferta dice cuándo se comprobó', () => {
   const ahora = new Date('2026-09-29T10:00:00Z');
   const ctx = (ofertas) => ctxPara(ofertas, { ahora, intervalos: new Map([['prueba', 720]]), fuentes: new Map([['prueba', 'Weekendesk']]) });
 
-  it('una vista hace poco: la tarjeta solo dice a qué web vas; «comprobada hace…», en la ficha', () => {
+  it('una vista hace poco: la tarjeta dice cuándo se vio el precio; la ficha, dónde y que las plazas se confirman allí', () => {
     const o = oferta({ vistaUltima: '2026-09-29T08:00:00Z' });
     const html = tarjeta(o, ctx([o]));
     assert.match(html, /<span class="boton__texto">Ver en Weekendesk<\/span>/, "sin precio, la web va en el botón");
-    assert.ok(!/comprobada hace|Sin comprobar|Puede haber terminado/.test(html), 'sin letra pequeña en la tarjeta');
-    assert.match(contenidoFicha(o, ctx([o])), /Comprobada en Weekendesk hace 2 h/);
+    assert.match(html, /class="comprobada comprobada--tarjeta"[^>]*>[^]*?Precio visto hace 2 h<\/span>/);
+    assert.ok(!/Sin confirmar/.test(html));
+    assert.match(contenidoFicha(o, ctx([o])), /Precio visto en Weekendesk hace 2 h \([^)]+\)\. Las plazas para tus fechas se confirman en su web\./);
+    // Con días concretos, su web la ofrecía para esos días: «Fechas comprobadas».
+    const conFechas = oferta({ vistaUltima: '2026-09-29T08:00:00Z', fechas: { salida: '2026-10-09', vuelta: '2026-10-11' } });
+    assert.match(tarjeta(conFechas, ctx([conFechas])), /Fechas comprobadas hace 2 h/);
   });
 
-  it('si hace más de 3 intervalos de su fuente (y al menos un día) que no se ve, avisa', () => {
-    const reciente = oferta({ vistaUltima: '2026-09-28T09:00:00Z' }); // 25 h, pero la fuente va cada 12 h: 36 h de margen
-    assert.ok(!tarjeta(reciente, ctx([reciente])).includes('Sin comprobar'));
+  it('pasado su límite (48 h un alojamiento, o 2 revisiones de su web + 1 h), «Sin confirmar»', () => {
+    const reciente = oferta({ vistaUltima: '2026-09-28T09:00:00Z' }); // 25 h
+    assert.ok(!tarjeta(reciente, ctx([reciente])).includes('Sin confirmar'));
     const vieja = oferta({ vistaUltima: '2026-09-27T09:00:00Z' }); // 49 h
-    assert.match(tarjeta(vieja, ctx([vieja])), /comprobada--antigua" title="Sin comprobar en Weekendesk desde hace 2 días: puede haber cambiado o terminado[^"]*">[^]*?Puede haber terminado/);
-    assert.match(contenidoFicha(vieja, ctx([vieja])), /Sin comprobar en Weekendesk/);
+    assert.match(tarjeta(vieja, ctx([vieja])), /comprobada--antigua" title="Sin confirmar: Weekendesk no la muestra desde hace 2 días[^"]*">[^]*?Sin confirmar · visto hace 2 días/);
+    assert.match(contenidoFicha(vieja, ctx([vieja])), /Sin confirmar: Weekendesk no la muestra desde hace 2 días/);
   });
 
   it('el panel recibe el intervalo de cada fuente', async () => {

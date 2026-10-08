@@ -5,12 +5,12 @@ import { contar, enumerar, escaparHtml as esc, euros, haceCuanto, urlSegura } fr
 import {
   buscarActividades, buscarEscapadas, buscarTexto, chollosDeVuelos, crearHash, describirCriterio, filtrarVuelos,
   filtrosActivos, leerFiltrosActividades, leerFiltrosComunes, leerFiltrosEscapadas, leerFiltrosVuelos,
-  resumenCalendario, resumenFuentes, resumenPuentes, tieneVuelo, leerRuta, urlEditarVigilados,
+  resumenCalendario, resumenPuentes, tieneVuelo, leerRuta, urlEditarVigilados,
 } from './filtros.js';
 import { QUE_MIDE_LA_NOTA, estadoVacio, filaOferta, insigniaEstado, rejilla } from './plantillas.js';
 import { icono } from './iconos.js';
 import {
-  conIcono, contextoBusqueda, ctxTarjetas, mostradas, motivoFuente, ocultas, pestanas, seccion,
+  conIcono, contextoBusqueda, ctxTarjetas, estadoPublico, estadoWebs, mostradas, motivoFuente, ocultas, pestanas, seccion,
 } from './vistas-comun.js';
 
 // ── Calendario ───────────────────────────────────────────────────────────────
@@ -205,7 +205,7 @@ export function vistaAyuda(e) {
 </section>
 <section class="seccion">
   <h2 class="subtitulo">Preguntas frecuentes</h2>
-  ${pregunta('¿De dónde salen las ofertas?', `<p>De webs de viajes y comunidades de chollos públicas. Solo se leen las páginas que esas webs permiten leer. Cada oferta dice en qué web está publicada; si lleva días sin aparecer en ella, se avisa con «Puede haber terminado».</p>${e.propietario ? `<p>${esc(enumerar(webs))}. <a href="#/fuentes">Estado de cada web</a></p>` : ''}`)}
+  ${pregunta('¿De dónde salen las ofertas?', `<p>De webs de viajes y comunidades de chollos públicas. Solo se leen las páginas que esas webs permiten leer. Cada oferta dice en qué web está publicada y cuándo se vio allí por última vez; si su web no la ha vuelto a mostrar en el tiempo previsto, sale como «Sin confirmar».</p><p>${esc(enumerar(webs))}. <a href="#/fuentes">Estado de cada web</a></p>`)}
   ${pregunta('¿Qué es el «Valor» de cada oferta?', `<p>Un valor de 0 a 100 de lo buena que es la oferta como chollo (no es la opinión de los clientes, que va de 0 a 10). ${esc(nota)}. Un <strong>Chollazo</strong> está muy por debajo de lo normal para ofertas parecidas.</p>`)}
   ${pregunta('¿Qué significan las estrellas y las opiniones?', '<p>«★ 8,2 Muy bien · 266 opiniones» es la valoración de otros clientes en la web de la oferta, de 0 a 10. Las estrellas (4★) son la categoría del hotel.</p>')}
   ${pregunta('¿Por qué hay precios «por persona», «por noche» o «en total»?', '<p>Cada web publica el precio a su manera. Por eso cada oferta dice a qué corresponde y, cuando se puede, se pasa a <strong>por persona y noche</strong> para compararlas, y se calcula <strong>el viaje completo</strong> para tus viajeros, con la gasolina estimada si vas en coche.</p>')}
@@ -266,30 +266,40 @@ function seccionAvisoLegal(e) {
 </section>`;
 }
 
+/** «hace 2 h», con la fecha y la hora exactas al pasar por encima y para lectores de pantalla. */
+function momento(iso, ahora) {
+  if (!iso) return '<span class="suave">Nunca</span>';
+  const exacta = new Date(iso).toLocaleString('es-ES', { timeZone: 'Europe/Madrid', dateStyle: 'medium', timeStyle: 'short' });
+  return `<time datetime="${esc(iso)}" title="${esc(exacta)}">${esc(haceCuanto(iso, ahora))}</time> <span class="suave tabla__exacta">(${esc(exacta)})</span>`;
+}
+
+/**
+ * Estado de las webs: cada web que se lee, cómo está, cuándo se leyó bien por última vez y
+ * cuántas ofertas suyas hay. La frase de arriba es la misma que la de la portada y el pie
+ * (e.webs, calculada una vez con los datos). Quien administra la web ve además el detalle
+ * técnico de cada fallo.
+ */
 export function vistaFuentes(e) {
-  // Qué webs se leen y cómo están es cosa de quien administra la web.
-  if (!e.propietario) {
-    return `<h1 class="titulo-vista" tabindex="-1">Ofertas</h1>
-${estadoVacio('Esta página no está disponible', 'Las ofertas se revisan cada 15 minutos.', `<p><a class="boton boton--primario" href="#/escapadas">Ver las escapadas${icono('flecha')}</a></p>`)}`;
-  }
-  const r = resumenFuentes(e.datos.fuentes);
+  const webs = e.webs ?? estadoWebs(e.datos.fuentes, e.ahora);
   const filas = e.datos.fuentes.map((f) => {
     const web = urlSegura(f.web);
-    const detalle = motivoFuente(f);
+    const publico = estadoPublico(f, e.ahora);
+    const detalle = e.propietario ? motivoFuente(f) || publico.detalle : publico.detalle;
     return `<tr>
-  <th scope="row">${esc(f.nombre)}<span class="suave tabla__modo">${esc(f.modo ?? '')}</span></th>
-  <td data-etiqueta="Estado">${insigniaEstado(f.aviso ? 'aviso' : f.estado)}</td>
+  <th scope="row">${esc(f.nombre)}${e.propietario ? `<span class="suave tabla__modo">${esc(f.modo ?? '')}</span>` : ''}</th>
+  <td data-etiqueta="Estado">${e.propietario ? insigniaEstado(f.aviso ? 'aviso' : f.estado) : insigniaEstado(publico.clave, publico.texto)}</td>
   <td data-etiqueta="Detalle"${detalle ? '' : ' class="tabla__vacia"'}>${detalle ? esc(detalle) : '<span class="suave">—</span>'}</td>
-  <td data-etiqueta="Actualizada">${f.ultimoOk ? `<time datetime="${esc(f.ultimoOk)}" title="${esc(new Date(f.ultimoOk).toLocaleString('es-ES'))}">${esc(haceCuanto(f.ultimoOk, e.ahora))}</time>` : '<span class="suave">Nunca</span>'}</td>
+  <td data-etiqueta="Última lectura correcta">${momento(f.ultimoOk, e.ahora)}</td>
+  <td data-etiqueta="Último intento">${momento(f.ultimoIntento ?? f.ultimoOk, e.ahora)}</td>
   <td data-etiqueta="Ofertas" class="num">${(f.total ?? 0).toLocaleString('es-ES')}</td>
-  <td data-etiqueta="Web">${web ? `<a href="${esc(web)}" target="_blank" rel="noopener noreferrer">${esc(new URL(web).hostname.replace(/^www\./, ''))}</a>` : ''}</td>
+  <td data-etiqueta="Dirección">${web ? `<a href="${esc(web)}" target="_blank" rel="noopener noreferrer">${esc(new URL(web).hostname.replace(/^www\./, ''))}<span class="sr"> (se abre en otra pestaña)</span></a>` : ''}</td>
 </tr>`;
   });
-  return `<h1 class="titulo-vista" tabindex="-1">Fuentes</h1>
-<p class="seccion__intro">${r.ok} de ${contar(r.activas, 'fuente activa', 'fuentes activas')} funcionan${r.conError ? ` y ${r.conError} con errores` : ''}${r.conAviso ? ` (${r.conAviso} para revisar: leen mucho menos de lo normal)` : ''}. ${r.inactivas ? `${contar(r.inactivas, 'fuente')} ${r.inactivas === 1 ? 'está desactivada o bloqueada' : 'están desactivadas o bloqueadas'} a propósito.` : ''} Datos generados ${esc(haceCuanto(e.datos.generado, e.ahora))}.</p>
+  return `<h1 class="titulo-vista" tabindex="-1">Estado de las webs</h1>
+<p class="seccion__intro"><strong>${esc(webs.texto)}.</strong> Cada web se revisa por su cuenta, entre cada 15 minutos y una vez al día. Si una web no se puede leer, sus ofertas siguen a la vista marcadas como «Sin confirmar» y no cuentan en los totales ni en las guías. Datos generados ${esc(haceCuanto(e.datos.generado, e.ahora))}.</p>
 <div class="tabla-envoltorio"><table class="tabla-fuentes">
-  <caption class="sr">Estado de cada fuente de ofertas</caption>
-  <thead><tr><th scope="col">Fuente</th><th scope="col">Estado</th><th scope="col">Detalle</th><th scope="col">Actualizada</th><th scope="col" class="num">Ofertas</th><th scope="col">Web</th></tr></thead>
+  <caption class="sr">Estado de cada web de ofertas</caption>
+  <thead><tr><th scope="col">Web</th><th scope="col">Estado</th><th scope="col">Detalle</th><th scope="col">Última lectura correcta</th><th scope="col">Último intento</th><th scope="col" class="num">Ofertas</th><th scope="col">Dirección</th></tr></thead>
   <tbody>${filas.join('')}</tbody>
 </table></div>`;
 }
@@ -355,7 +365,8 @@ const TITULOS_VISTA = { escapadas: 'Escapadas', actividades: 'Planes', vuelos: '
 
 export function vistaMis(e, params = {}) {
   const ctx = ctxTarjetas(e);
-  const favoritos = e.datos.ofertas.filter((o) => e.favoritos.has(o.id));
+  // También las sin confirmar: un favorito no desaparece porque su web deje de mostrarlo (sale marcado).
+  const favoritos = (e.datos.todas ?? e.datos.ofertas).filter((o) => e.favoritos.has(o.id));
   // Los que ya no se publican (terminaron o su web los quitó) no se pueden enseñar: se dice cuántos.
   const terminados = [...(e.favoritos ?? [])].filter((id) => !e.porId.has(id)).length;
   const marcadas = (estadoMio) => [...(e.misEstados ?? new Map())].filter(([, v]) => v === estadoMio).map(([id]) => e.porId.get(id)).filter(Boolean);

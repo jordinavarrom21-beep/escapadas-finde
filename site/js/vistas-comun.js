@@ -4,7 +4,7 @@
  */
 
 import { etiquetaDia, nombreFinde } from './fechas.js';
-import { contar, escaparHtml as esc } from './formato.js';
+import { contar, escaparHtml as esc, haceCuanto } from './formato.js';
 import { POR_PAGINA, TEXTO_PERIODO_PASADO, crearHash, destinosDe, resumenFuentes, salidaPuente } from './filtros.js';
 import { NOCHES, VIAJEROS, aeropuertosCercanos } from './viaje.js';
 import { icono } from './iconos.js';
@@ -12,10 +12,10 @@ import { icono } from './iconos.js';
 /** Los filtros que van dentro de «Más filtros» (los de arriba se ven siempre). */
 export const FILTROS_SECUNDARIOS = [
   'pnMin', 'km', 'dto', 'pts', 'nota', 'noches', 'regimen', 'aloj', 'est', 'transporte', 'fuente', 'tipo', 'pais', 'region',
-  'nuevas', 'fav', 'cho', 'baja', 'hist', 'sindesc', 'frescas', 'dup', 'cru',
+  'nuevas', 'fav', 'cho', 'baja', 'hist', 'sindesc', 'sinconf', 'dup', 'cru',
 ];
 /** Los que van en «Más filtros» de la vista de vuelos. */
-export const FILTROS_MAS_VUELOS = ['dto', 'pts', 'cho', 'baja', 'hist', 'nuevas', 'fav', 'sindesc', 'frescas', 'dup'];
+export const FILTROS_MAS_VUELOS = ['dto', 'pts', 'cho', 'baja', 'hist', 'nuevas', 'fav', 'sindesc', 'sinconf', 'dup'];
 export const HORAS_SORPRESA = 3;
 export const ACTIVIDADES_FINDE = 4;
 export const ETIQUETAS_ORDEN = {
@@ -89,7 +89,8 @@ export function ctxTarjetas(e, extra = {}) {
     distanciasCoste: e.distanciasOrigen,
     // El coste de coche que calcula el escaneo es desde su origen: desde otra salida no vale.
     salidaPropia: Boolean(e.salida), ...datosViaje(e), ahora: e.ahora, comparar: e.comparar ?? null, misEstados: e.misEstados ?? null,
-    intervalos: intervalosDe(e), busqueda: e.busqueda ?? null, ...extra,
+    // La misma hora de referencia que el reparto por vigencia (app.js): las marcas cuadran con las listas.
+    intervalos: intervalosDe(e), revision: horaRevision(e), busqueda: e.busqueda ?? null, ...extra,
   };
 }
 
@@ -126,6 +127,8 @@ export function contextoBusqueda(e) {
     temas: e.temas,
     revision: horaRevision(e),
     intervalos: intervalosDe(e),
+    // La hora de la visita: con ella se ve qué ha caducado (vigencia.js).
+    ahora: e.ahora,
   };
 }
 
@@ -158,6 +161,28 @@ export function pestanas(apartado, activa, e = null) {
   const texto = (largo, corto) => (corto ? `<span class="solo-ancho">${largo}</span><span class="solo-estrecho">${corto}</span>` : `<span>${largo}</span>`);
   // `ruta` puede llevar parámetros («mis?ver=busquedas»): la vista es lo de antes del «?».
   return `<nav class="pestanas" aria-label="${esc(nombre)}">${lista.map(([ruta, largo, ic, corto]) => `<a class="pestana" href="#/${ruta}"${ruta.includes('?') ? '' : ` data-vista="${ruta}"`}${corto ? ` aria-label="${esc(largo)}"` : ''}${ruta === activa ? ' aria-current="page"' : ''}>${icono(ic)}${texto(largo, corto)}</a>`).join('')}</nav>`;
+}
+
+/**
+ * Las ofertas en las que se busca: las vigentes y, si se piden («sinconf=1»), también las
+ * «sin confirmar» (vigencia.js), que van al final y marcadas.
+ */
+export const ofertasDe = (e, params = {}) => (params.sinconf === '1' ? e.datos.todas ?? e.datos.ofertas : e.datos.ofertas);
+
+/**
+ * Cuántas «sin confirmar» cumplirían los filtros y cómo verlas: no se cuentan ni salen en la
+ * lista hasta que se piden. `buscar(lista)` es la misma búsqueda de la vista sobre otra lista.
+ */
+export function avisoSinConfirmar(e, vista, params, buscar) {
+  const sinConfirmar = e.datos.sinConfirmar ?? [];
+  if (!sinConfirmar.length) return '';
+  if (params.sinconf === '1') {
+    return `<p class="aviso-memoria aviso-sin-confirmar" role="status">${icono('alerta')}Incluidas al final las que su web no ha vuelto a mostrar («Sin confirmar»). <a href="${esc(crearHash(vista, { ...params, sinconf: '' }))}">Quitarlas</a></p>`;
+  }
+  const n = buscar(sinConfirmar);
+  if (!n) return '';
+  const [la, cuenta] = n === 1 ? ['la', 'se cuenta'] : ['las', 'se cuentan'];
+  return `<p class="aviso-memoria aviso-sin-confirmar">${icono('alerta')}${esc(contar(n, 'oferta más está', 'ofertas más están'))} sin confirmar: su web no ${la} ha vuelto a mostrar en el tiempo previsto, así que no ${cuenta}. <a href="${esc(crearHash(vista, { ...params, sinconf: '1' }))}">Ver${la} al final</a></p>`;
 }
 
 export const resumenResultados = (texto, extra = '', { conModo = true } = {}) => `<div class="resultados__cabeza" data-resumen="${esc(texto)}"><p class="resultados__cuenta">${esc(texto)}</p>${conModo ? selectorModo : ''}${extra}</div>`;
@@ -195,6 +220,24 @@ export function estadoWebs(fuentes = [], ahora = new Date()) {
       ? `${r.activas - reintentando} de ${contar(r.activas, 'web')} al día · ${reintentando} reintentando`
       : `Las ${contar(r.activas, 'web')} funcionan`;
   return { texto, problemas, error: problemas.length > 0 };
+}
+
+/**
+ * El estado de una web tal como lo ve un visitante (la página «Estado de las webs»): sin
+ * detalles técnicos, con lo que significa para sus ofertas. Los mismos criterios que
+ * estadoWebs (un fallo de menos de HORAS_PROBLEMA horas es «reintentando»).
+ */
+export function estadoPublico(f, ahora = new Date()) {
+  if (['desactivada', 'bloqueada'].includes(f.estado)) return { clave: 'desactivada', texto: 'No se consulta', detalle: 'Ahora no se leen sus ofertas.' };
+  if (f.estado === 'pendiente') return { clave: 'pendiente', texto: 'Pendiente', detalle: 'Aún no se ha leído.' };
+  if (f.estado === 'error') {
+    const desde = f.desdeError ? ` desde ${haceCuanto(f.desdeError, ahora)}` : '';
+    return webConProblemas([f], ahora).length
+      ? { clave: 'error', texto: 'Con problemas', detalle: `No se ha podido leer${desde}: sus ofertas salen como «Sin confirmar».` }
+      : { clave: 'reintentando', texto: 'Reintentando', detalle: `Falló la última lectura${desde}; se vuelve a intentar en la siguiente revisión.` };
+  }
+  if (f.aviso) return { clave: 'aviso', texto: 'Al día, con aviso', detalle: 'En la última lectura mostró menos ofertas de lo normal.' };
+  return { clave: 'ok', texto: 'Al día', detalle: '' };
 }
 
 export function motivoFuente(f) {
@@ -255,7 +298,7 @@ export function filtrosListas(f) {
   return `${interruptor('fav', 'Solo favoritos', f.fav)}
 ${interruptor('nuevas', 'Solo novedades', f.nuevas)}
 ${interruptorDefecto('sindesc', 'Ocultar las descartadas y las no disponibles', f.sinDescartadas)}
-${interruptor('frescas', 'Ocultar las que su web lleva días sin publicar', f.soloComprobadas)}
+${interruptor('sinconf', 'Incluir las sin confirmar (su web no las ha vuelto a mostrar)', f.incluirSinConfirmar)}
 ${interruptor('dup', 'Mostrar las repetidas en varias webs', f.conDuplicadas)}`;
 }
 

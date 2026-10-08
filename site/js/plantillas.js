@@ -13,6 +13,7 @@ import {
   SIN_COCHE, duracionActividad, encajeEnRango, esDuplicada, esNovedad, precioDeSerie, salidasDe, sinComprobar, sufijoSerie,
   tieneVuelo,
 } from './filtros.js';
+import { diaDeSalida } from './vigencia.js';
 import { escena, icono, iconoTema, iconoTiempo, tipoEscena } from './iconos.js';
 import { conFechas, ofertaConFechas } from './fechas-enlaces.js';
 import { motivoPrincipal } from './nota.js';
@@ -29,6 +30,8 @@ export const ESTADOS_FUENTE = {
   desactivada: { texto: 'Desactivada', clase: 'inactiva' },
   bloqueada: { texto: 'Bloqueada', clase: 'inactiva' },
   pendiente: { texto: 'Pendiente', clase: 'pendiente' },
+  // Lo que ve un visitante (vistas-comun.js: estadoPublico).
+  reintentando: { texto: 'Reintentando', clase: 'pendiente' },
 };
 
 export const colorTema = (o) => (o.temas?.[0] ? `var(--tema-${o.temas[0]})` : 'var(--acento)');
@@ -99,7 +102,7 @@ export function insignias(o, ctx, { enFoto = false } = {}) {
     ctx.misEstados?.get(o.id) === 'reservada' && `<span class="insignia insignia--mio">${icono('check')}Reservada (marcada por ti)</span>`,
     ctx.misEstados?.get(o.id) === 'no-disponible' && `<span class="insignia insignia--alerta">${icono('prohibido')}No disponible (marcada por ti)</span>`,
     o.patrocinada && `<span class="insignia insignia--patrocinado" title="Un anunciante paga por destacarla; no sube en el orden normal">Patrocinado · ${esc(o.patrocinada.anunciante)}</span>`,
-    esNovedad(o, ctx.referencia) && `<span class="insignia insignia--nueva">${icono('nuevo')}Nuevo</span>`,
+    esNovedad(o, ctx.referencia) && insigniaNueva(),
     o.chollazo && !enFoto && insigniaChollazo(o),
     insigniaNinos(o),
     minimo && `<span class="insignia insignia--minimo" title="${esc(minimo.detalle)}">${esc(minimo.texto)}</span>`,
@@ -578,7 +581,7 @@ function insigniasTarjeta(o, ctx) {
     minimo && `<span class="insignia insignia--minimo" title="${esc(minimo.detalle)}">${esc(minimo.texto)}</span>`,
     o.bajada > 0 && `<span class="insignia insignia--bajada" title="${esc(textoBajada(o))}">${icono('bajada')}Ha bajado ${bajadaCorta(o)}</span>`,
     o.chollazo && insigniaReferencia(o),
-    esNovedad(o, ctx.referencia) && `<span class="insignia insignia--nueva">${icono('nuevo')}Nuevo</span>`,
+    esNovedad(o, ctx.referencia) && insigniaNueva(),
     esDuplicada(o) && `<span class="insignia">${icono('repetir')}${o.equivalentes?.length ? 'Repetida en otra web' : 'Repetida en la misma web'}</span>`,
   ].filter(Boolean);
   return [...fijas.filter(Boolean), mejor].filter(Boolean).join('');
@@ -649,21 +652,26 @@ function motivoTarjeta(o, ctx) {
 }
 
 /**
- * Solo lo que importa: si puede haber terminado (sin comprobar en días) y si el enlace es de
- * afiliado. «Comprobada hace 2 h» y la web ya no ocupan la tarjeta (la web va en el botón).
+ * «Recién añadida»: entró en Escapadas Finde desde tu última visita. Dice cuándo llegó al
+ * catálogo, no que queden plazas (eso es «Fechas comprobadas» o lo confirma su web).
+ */
+const insigniaNueva = () => `<span class="insignia insignia--nueva" title="Añadida a Escapadas Finde desde tu última visita. No indica si quedan plazas: eso lo confirma su web.">${icono('nuevo')}Recién añadida</span>`;
+
+/**
+ * Lo que va a la vista en la tarjeta: cuándo se comprobó (y si está sin confirmar) y si el
+ * enlace es de afiliado. La web va en el botón.
  */
 function avisoTarjeta(o, ctx) {
-  const f = frescura(o, ctx);
-  const web = esc(ctx.fuentes?.get(o.fuente) ?? o.fuente);
   return [
-    f?.desactualizada && `<span class="insignia insignia--alerta comprobada--antigua" title="Sin comprobar en ${web} desde ${esc(f.texto)}: puede haber cambiado o terminado. Visto por última vez el ${esc(f.cuando)}">${icono('alerta')}Puede haber terminado</span>`,
+    textoComprobada(o, ctx, { corto: true }),
     o.afiliado && `<span class="insignia aviso-afiliado" title="${esc(TEXTO_AFILIADO)}">${icono('enlace')}Enlace de afiliado</span>`,
   ].filter(Boolean).join('');
 }
 
 /**
- * Cuándo se vio la oferta en su web por última vez y si ya puede estar desactualizada.
- * @returns {{texto: string, cuando: string, desactualizada: boolean}|null}
+ * Cuándo se vio la oferta en su web por última vez (la lectura real de esa web en la que
+ * salía con este precio) y en qué estado queda según la política de vigencia (vigencia.js).
+ * @returns {{texto: string, cuando: string, desactualizada: boolean, conFechas: boolean}|null}
  */
 export function frescura(o, ctx = {}) {
   const vista = Date.parse(o.vistaUltima);
@@ -672,18 +680,34 @@ export function frescura(o, ctx = {}) {
   return {
     texto: haceCuanto(o.vistaUltima, ahora),
     cuando: new Date(vista).toLocaleString('es-ES', { timeZone: 'Europe/Madrid', dateStyle: 'medium', timeStyle: 'short' }),
-    desactualizada: sinComprobar(o, { ahora, intervalos: ctx.intervalos }),
+    desactualizada: sinComprobar(o, { ahora, revision: ctx.revision, intervalos: ctx.intervalos }),
+    // Con fechas concretas, su web la mostraba para esos días con ese precio: hay plazas confirmadas entonces.
+    conFechas: Boolean(diaDeSalida(o)),
   };
 }
 
-/** «Comprobada en Weekendesk hace 2 h» o el aviso de que puede haber cambiado. */
-export function textoComprobada(o, ctx) {
+/**
+ * Tres cosas distintas, con palabras distintas (ninguna promete plazas que no se han visto):
+ *  - «Sin confirmar»: su web no la ha vuelto a mostrar en el tiempo previsto;
+ *  - «Fechas comprobadas hace…»: con días concretos, su web la ofrecía para esos días a ese precio;
+ *  - «Precio visto hace…»: sin días concretos, el precio «desde»; las plazas, en su web.
+ * `corto`: la versión de la tarjeta (una línea).
+ */
+export function textoComprobada(o, ctx, { corto = false } = {}) {
   const f = frescura(o, ctx);
   if (!f) return '';
   const web = esc(ctx.fuentes?.get(o.fuente) ?? o.fuente);
-  return f.desactualizada
-    ? `<p class="dato-extra comprobada comprobada--antigua" title="Visto por última vez el ${esc(f.cuando)}">${conIcono('alerta', `Sin comprobar en ${web} desde ${esc(f.texto)}: puede haber cambiado o terminado`)}</p>`
-    : `<p class="dato-extra comprobada" title="${esc(f.cuando)}">Comprobada en ${web} ${esc(f.texto)}</p>`;
+  if (f.desactualizada) {
+    const largo = `Sin confirmar: ${web} no la muestra desde ${esc(f.texto)} (visto por última vez el ${esc(f.cuando)}). Puede haber cambiado de precio o haberse agotado.`;
+    return corto
+      ? `<span class="insignia insignia--alerta comprobada comprobada--antigua" title="${largo}">${icono('alerta')}Sin confirmar · visto ${esc(f.texto)}</span>`
+      : `<p class="dato-extra comprobada comprobada--antigua">${conIcono('alerta', largo)}</p>`;
+  }
+  const largo = f.conFechas
+    ? `Fechas y precio comprobados en ${web} ${esc(f.texto)} (${esc(f.cuando)}).`
+    : `Precio visto en ${web} ${esc(f.texto)} (${esc(f.cuando)}). Las plazas para tus fechas se confirman en su web.`;
+  if (corto) return `<span class="comprobada comprobada--tarjeta" title="${largo}">${icono('check')}${f.conFechas ? 'Fechas comprobadas' : 'Precio visto'} ${esc(f.texto)}</span>`;
+  return `<p class="dato-extra comprobada">${largo}</p>`;
 }
 
 /** El coste del viaje completo con tu salida, viajeros y noches (coste.js). */
@@ -848,7 +872,8 @@ export function textoAyudaUbicacion(punto, origen, salida = null) {
     : `Midiendo desde ${desde.nombre} con los km y el tiempo reales por carretera (mientras llegan, aproximados).`;
 }
 
-export function insigniaEstado(estado) {
-  const { texto, clase } = ESTADOS_FUENTE[estado] ?? { texto: estado, clase: 'pendiente' };
+export function insigniaEstado(estado, rotulo = null) {
+  const { texto: porDefecto, clase } = ESTADOS_FUENTE[estado] ?? { texto: estado, clase: 'pendiente' };
+  const texto = rotulo ?? porDefecto;
   return `<span class="estado estado--${clase}"><span class="punto" aria-hidden="true"></span>${esc(texto)}</span>`;
 }

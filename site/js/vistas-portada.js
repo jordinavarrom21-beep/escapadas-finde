@@ -198,11 +198,11 @@ export function resumenViaje(e) {
 
 /** Una sola línea: cuántas ofertas, cuándo se revisaron y cómo están las webs (lo mismo que el pie). */
 function lineaConfianza(e) {
-  const webs = estadoWebs(e.datos.fuentes, e.ahora);
+  const webs = e.webs ?? estadoWebs(e.datos.fuentes, e.ahora);
   const nombres = webs.problemas.map((f) => f.nombre).join(', ');
   return `<p class="portada__confianza${webs.error ? ' portada__confianza--aviso' : ''}"><span class="punto" aria-hidden="true"></span>
-  <span>${esc(e.datos.ofertas.length.toLocaleString('es-ES'))} ofertas · revisadas ${esc(haceCuanto(e.datos.generado, e.ahora))}</span>
-  ${e.propietario ? `<a href="#/fuentes"${nombres ? ` title="${esc(nombres)}"` : ''}>${webs.error ? icono('alerta') : ''}${esc(webs.texto)}</a>` : ''}
+  <span>${esc(e.datos.ofertas.length.toLocaleString('es-ES'))} ofertas vigentes · revisadas ${esc(haceCuanto(e.datos.generado, e.ahora))}</span>
+  <a href="#/fuentes"${nombres ? ` title="${esc(nombres)}"` : ''}>${webs.error ? icono('alerta') : ''}${esc(webs.texto)}</a>
   <a href="#/ayuda">Cómo funciona</a></p>`;
 }
 
