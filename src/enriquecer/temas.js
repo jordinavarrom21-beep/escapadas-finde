@@ -1,12 +1,14 @@
 /**
- * Clasificador por reglas (sin red): temáticas, régimen, noches y transporte a
- * partir del título, la descripción, las etiquetas y el lugar de la oferta.
+ * Clasificador por reglas (sin red): temáticas, régimen, noches y transporte a partir del
+ * título y la descripción de la oferta (el régimen también de sus etiquetas; el transporte,
+ * también del lugar).
  */
 import { normalizarTexto } from '../util/xml.js';
 
 /** Palabras clave por tema, sin tildes. Admiten sintaxis de expresión regular (\w*). */
 export const REGLAS_TEMAS = {
-  spa: ['spa', 'balneario\\w*', 'wellness', 'termal\\w*', 'jacuzzi', 'hidromasaje', 'circuito de aguas', 'masajes?', 'relax'],
+  // Spa de verdad: «relax», «masajes» o un jacuzzi en la habitación no son un spa.
+  spa: ['spa', 'balneario\\w*', 'wellness', 'termal\\w*', 'termas', 'circuito (?:de aguas|termal|hidrotermal|spa)', 'talasoterapia', 'caldea'],
   romantico: ['romantic\\w*', 'parejas?', 'solo adultos', 'solo para adultos', 'adults only', 'lovebox', 'san valentin', 'luna de miel'],
   rural: ['rural\\w*', 'montana\\w*', 'pirineo\\w*', 'naturaleza', 'bosques?', 'parque natural', 'valles?', 'masia', 'sierra', 'hiking'],
   // «Isla Mágica» es un parque de Sevilla, no una isla.
@@ -61,9 +63,6 @@ const PATRONES_TEMAS = Object.entries(REGLAS_TEMAS).map(([tema, lista]) => [tema
 const PATRON_CIUDADES = palabras(CIUDADES);
 const PATRON_SOL = palabras(DESTINOS_SOL);
 
-/** Temas que solo cuentan si aparecen en el título o la descripción: en las etiquetas suelen ser fechas de disponibilidad («Navidad»). */
-const TEMAS_SOLO_TEXTO = new Set(['eventos']);
-
 function textoDe(oferta) {
   const { titulo, descripcion, etiquetas = [], lugar } = oferta;
   return normalizarTexto([titulo, descripcion, ...etiquetas, lugar?.nombre, lugar?.region].filter(Boolean).join(' · '));
@@ -73,14 +72,19 @@ function textoDe(oferta) {
 const NEGACIONES = /\b(?:no|sin)\s+(?:se\s+)?(?:admite[ns]?|acepta[ns]?|permite[ns]?)?\s*(?:ninos?|mascotas?|perros?|animales)(?:\s*(?:,|ni|y|o)\s*(?:ninos?|mascotas?|perros?|animales))*\b/g;
 const SOLO_ADULTOS = /\b(?:solo (?:para )?adultos|adults only)\b/;
 
-function detectarTemas(texto, oferta) {
+/**
+ * Los temas salen solo del título y la descripción. Las etiquetas de muchas webs son su menú
+ * de navegación («Spa», «Mascotas», «Románticos», «Navidad»…) o fechas de disponibilidad, y el
+ * nombre de la zona no dice qué es la oferta: con ellos, un hotel de Andorra con «solo
+ * alojamiento + parking + miniclub» salía con spa, mascotas y romántico.
+ */
+function detectarTemas(oferta) {
   const principal = normalizarTexto(`${oferta.titulo} · ${oferta.descripcion}`).replace(NEGACIONES, ' ');
-  const afirmado = texto.replace(NEGACIONES, ' ');
   const temas = PATRONES_TEMAS
-    .filter(([tema, patron]) => patron.test(TEMAS_SOLO_TEXTO.has(tema) ? principal : afirmado))
+    .filter(([, patron]) => patron.test(principal))
     .map(([tema]) => tema)
     // Un sitio solo para adultos no es un plan con niños.
-    .filter((tema) => tema !== 'familia' || !SOLO_ADULTOS.test(afirmado));
+    .filter((tema) => tema !== 'familia' || !SOLO_ADULTOS.test(principal));
   if (oferta.tipo === 'vuelo') {
     const destino = normalizarTexto(`${oferta.titulo} ${oferta.lugar?.nombre ?? ''}`);
     if (PATRON_CIUDADES.test(destino)) temas.push('ciudad');
@@ -103,10 +107,16 @@ function detectarNoches(texto) {
   return /\b(fin de semana|finde|weekend)\b/.test(texto) ? 2 : null;
 }
 
-function detectarTransporte(texto, oferta) {
+/**
+ * Cómo se llega. Del título, la descripción y el lugar (no de las etiquetas, que son el menú de
+ * la web). Ferry solo si lo dice («ferry», «naviera»): «paseo en barco por el Guadalquivir» es
+ * una actividad, no el transporte (salía en «sin coche» como «En ferry»).
+ */
+function detectarTransporte(oferta) {
   if (oferta.tipo === 'vuelo') return 'avion';
+  const texto = normalizarTexto([oferta.titulo, oferta.descripcion, oferta.lugar?.nombre, oferta.lugar?.region].filter(Boolean).join(' · '));
   if (/\b(vuelos? incluidos?|con vuelos?|vuelo \+ hotel|vuelo y hotel|flights? (from|\+)|avion incluido)\b/.test(texto)) return 'avion';
-  if (/\b(ferry|en barco)\b/.test(texto)) return 'ferry';
+  if (/\b(ferry|ferris|ferries|naviera)\b/.test(texto)) return 'ferry';
   if (/\b(tren|ave|avlo|renfe|ouigo|iryo)\b/.test(texto)) return 'tren';
   if (/\b(autobus|flixbus|alsa)\b/.test(texto)) return 'bus';
   const pais = normalizarTexto(oferta.lugar?.pais ?? '');
@@ -121,12 +131,12 @@ function detectarTransporte(texto, oferta) {
 export function clasificar(oferta) {
   const texto = textoDe(oferta);
   return {
-    temas: detectarTemas(texto, oferta),
+    temas: detectarTemas(oferta),
     regimen: REGIMENES.find(([, patron]) => patron.test(texto))?.[0] ?? null,
     // Un vuelo o una actividad sin alojamiento no tiene noches: «2 días de forfait» no es 1 noche.
     noches: oferta.tipo === 'vuelo' || (oferta.tipo === 'actividad' && !oferta.alojamiento)
       ? null : detectarNoches(normalizarTexto(`${oferta.titulo} · ${oferta.descripcion}`)),
-    transporte: detectarTransporte(texto, oferta),
+    transporte: detectarTransporte(oferta),
   };
 }
 

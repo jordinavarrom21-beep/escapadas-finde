@@ -2,7 +2,8 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-import fuente, { parsear } from '../src/fuentes/buscounchollo.js';
+import fuente, { MAXIMO_ETIQUETAS_TEMA, etiquetasDeNavegacion, parsear } from '../src/fuentes/buscounchollo.js';
+import { aplicarClasificacion } from '../src/enriquecer/temas.js';
 import { validarOferta } from '../src/modelo.js';
 
 const XML = readFileSync(new URL('./fixtures/buscounchollo-rss.xml', import.meta.url), 'utf8');
@@ -118,18 +119,28 @@ describe('buscounchollo: régimen', () => {
 describe('buscounchollo: temas', () => {
   const temas = (id) => [...oferta(id).temas].sort();
 
-  it('mapea las etiquetas a los temas del contrato', () => {
-    assert.deepEqual(temas('39644'), ['familia', 'mascotas', 'rural', 'spa']);
-    assert.deepEqual(temas('39639'), ['parques', 'playa']);
-    assert.deepEqual(temas('39222'), ['eventos', 'parques', 'playa']);
-    assert.deepEqual(temas('39586'), ['ciudad', 'parques']);
-    assert.deepEqual(temas('39628'), ['romantico', 'rural']);
-    assert.deepEqual(temas('39646'), ['aventura', 'playa', 'romantico']);
+  it('las etiquetas de navegación no dan temas: más de 8 o regímenes que se contradicen', () => {
+    assert.equal(etiquetasDeNavegacion(['Spa', 'Escapada rural']), false);
+    assert.equal(etiquetasDeNavegacion(Array.from({ length: MAXIMO_ETIQUETAS_TEMA + 1 }, (_, i) => `Etiqueta ${i}`)), true);
+    assert.equal(etiquetasDeNavegacion(['Solo alojamiento', 'Media pensión']), true);
+    // Todas las del feed traen el menú entero (15–40 etiquetas): sus temas salen del texto.
+    assert.ok(ofertas.every((o) => etiquetasDeNavegacion(o.etiquetas)));
+    assert.deepEqual(temas('39644'), []);
+    assert.deepEqual(temas('39628'), []);
+  });
+
+  it('con el texto, los temas son los de la oferta y no los del menú', () => {
+    const conTexto = (id) => aplicarClasificacion(structuredClone(oferta(id))).temas.sort();
+    // «… a un paso de Sort con Spa incluido»: spa por el título; ya no mascotas ni familia.
+    assert.deepEqual(conTexto('39644'), ['rural', 'spa']);
+    // «… hotel 4* Adults Only»: romántico, pero no rural por el menú.
+    assert.deepEqual(conTexto('39628'), ['romantico']);
+    assert.deepEqual(conTexto('39639'), ['parques', 'playa']);
   });
 
   it('añade los temas del campo <type>', () => {
-    assert.deepEqual(temas('39603'), ['gastronomia', 'romantico']);
-    assert.deepEqual(temas('39387'), ['ciudad', 'gastronomia', 'mascotas', 'rural']);
+    assert.deepEqual(temas('39603'), ['gastronomia']);
+    assert.deepEqual(temas('39387'), ['ciudad', 'gastronomia']);
   });
 
   it('no confunde «España» con spa ni PortAventura con aventura', () => {

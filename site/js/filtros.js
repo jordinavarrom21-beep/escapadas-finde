@@ -12,6 +12,16 @@ import {
   ETIQUETAS_ALOJAMIENTO, ETIQUETAS_REGIMEN, ETIQUETAS_TIPO, ETIQUETAS_TRANSPORTE, TIPOS_EVENTO, duracion, euros, normalizar,
 } from './formato.js';
 
+/**
+ * La comparación con lo normal solo vale con ofertas de verdad parecidas: escapadas del mismo tema
+ * y zona, o vuelos de la misma ruta. Con un grupo amplio («escapadas, por persona y noche»: 182
+ * de todo tipo en Andorra) «Un 59 % por debajo de lo normal» parecía un descuento que no existe.
+ */
+export function referenciaPrecisa(o) {
+  const r = o.referencia;
+  return r?.ahorroPct > 0 && /^(?:escapada|vuelo):/.test(r.grupo ?? '') ? r : null;
+}
+
 export const VISTAS = ['finde', 'vuelos', 'escapadas', 'actividades', 'mapa', 'calendario', 'puentes', 'vigilados', 'fuentes', 'buscar', 'comparar', 'mis', 'ayuda'];
 export const POR_PAGINA = 12;
 
@@ -258,9 +268,16 @@ export function duracionActividad(o) {
   return Number.isFinite(minutos) && minutos > 0 ? minutos : null;
 }
 
-/** ¿Se vio por primera vez después de `referencia` (ISO)? */
+/**
+ * Desde cuándo se conoce la oferta: el escaneo la adelanta si su alojamiento ya estaba en otra
+ * oferta o ya tenía precios guardados (`conocidaDesde`); si no, la primera vez que se vio.
+ */
+export const conocidaDesde = (oferta) => oferta.conocidaDesde ?? oferta.vistaPrimera;
+
+/** ¿Se conoce desde después de `referencia` (ISO)? */
 export function esNovedad(oferta, referencia) {
-  return Boolean(referencia && oferta.vistaPrimera) && Date.parse(oferta.vistaPrimera) > Date.parse(referencia);
+  const desde = conocidaDesde(oferta);
+  return Boolean(referencia && desde) && Date.parse(desde) > Date.parse(referencia);
 }
 
 /** Referencia para las novedades: la última visita o, la primera vez, 24 h antes de generar los datos. */
@@ -721,7 +738,8 @@ const comparadoresEscapadas = (distancias, costes, desdeSalida = distancias) => 
   puntuacion: (a, b) => porPuntuacion(a, b) || ascendente(a.precio, b.precio),
   precio: porPrecio,
   noche: (a, b) => ascendente(a.precioNoche, b.precioNoche) || porPuntuacion(a, b),
-  ahorro: (a, b) => descendente(a.referencia?.ahorroPct, b.referencia?.ahorroPct) || porPuntuacion(a, b),
+  // Solo las que se comparan con ofertas de verdad parecidas (la misma regla que su insignia).
+  ahorro: (a, b) => descendente(referenciaPrecisa(a)?.ahorroPct, referenciaPrecisa(b)?.ahorroPct) || porPuntuacion(a, b),
   valoracion: (a, b) => descendente(a.valoracion?.nota, b.valoracion?.nota) || porPuntuacion(a, b),
   distancia: (a, b) => {
     const [da, db] = [distancias.get(a.id), distancias.get(b.id)];
@@ -730,7 +748,7 @@ const comparadoresEscapadas = (distancias, costes, desdeSalida = distancias) => 
   },
   // Por tipo de alojamiento en el orden de ALOJAMIENTOS; sin tipo conocido, al final.
   alojamiento: (a, b) => ascendente(posicionAlojamiento(a), posicionAlojamiento(b)) || porPuntuacion(a, b),
-  novedad: (a, b) => ascendente(b.vistaPrimera, a.vistaPrimera) || porPuntuacion(a, b),
+  novedad: (a, b) => ascendente(conocidaDesde(b), conocidaDesde(a)) || porPuntuacion(a, b),
 });
 
 /**
@@ -1174,7 +1192,7 @@ export const ATAJOS_ESCAPADAS = [
   { texto: 'Sin coche', icono: 'tren', params: { sincoche: '1' } },
   { texto: 'Menos de 100 € por persona', icono: 'cartera', params: { pres: '100', prespor: 'persona', orden: 'total' } },
   // «Lo más barato», «Lo más cómodo» y «Por debajo de lo normal» solo ordenaban: ya están en los
-  // órdenes de encima de los resultados («Viaje más barato», «Más cerca», «Más rebajadas»).
+  // órdenes de encima de los resultados («Viaje más barato», «Más cerca», «Más baratas que la media»).
   { texto: 'Spa a menos de 2 h', icono: 'tema-spa', params: { temas: 'spa', h: '2' } },
   { texto: 'Niños gratis o con descuento', icono: 'tema-familia', params: { ninos: 'ventaja' } },
   { texto: 'Con conciertos o fiestas cerca', icono: 'tema-eventos', params: { evtipo: 'todos' } },

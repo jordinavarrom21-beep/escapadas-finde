@@ -13,7 +13,7 @@ import { escanear } from '../src/core/scan-pipeline.js';
 import { procesarEmails } from '../src/emails/decidir.js';
 import { obtenerFestivos } from '../src/enriquecer/festivos.js';
 import { puntuar } from '../src/enriquecer/puntuacion.js';
-import { calcularReferencia } from '../src/enriquecer/referencia.js';
+import { MINIMO_GRUPO, calcularReferencia } from '../src/enriquecer/referencia.js';
 import { compactar } from '../src/historial.js';
 import * as back from '../src/util/fechas.js';
 import * as panel from '../site/js/fechas.js';
@@ -96,12 +96,14 @@ describe('auditoría: el calendario de los emails, en hora de Madrid', () => {
 describe('auditoría: un escaneo con los enriquecedores de verdad', () => {
   test('precio imposible fuera de la referencia, duplicados, vigilados, historial, caché y festivos del año siguiente', async () => {
     const lugar = { nombre: 'Besalú', region: 'Girona', pais: 'España' };
-    const nombres = ['Can Uno', 'Can Dos', 'Can Tres', 'Can Cuatro', 'Can Cinco'];
+    // Las justas para que el grupo preciso (escapada:spa:girona) tenga mediana.
+    const nombres = ['Uno', 'Dos', 'Tres', 'Cuatro', 'Cinco', 'Seis', 'Siete', 'Ocho', 'Nueve', 'Diez', 'Once', 'Doce', 'Trece', 'Catorce', 'Quince']
+      .slice(0, MINIMO_GRUPO).map((n) => `Can ${n}`);
     const hotel = (fuenteId, id, titulo, precio) => oferta({
       id: `${fuenteId}:${id}`, fuente: fuenteId, tipo: 'hotel', unidad: 'pp/noche', temas: ['spa'], titulo, precio, lugar,
     });
     const a = fuente('a', async () => ({
-      ofertas: [60, 70, 80, 90, 100].map((p, i) => hotel('a', i, `Hotel ${nombres[i]} Mas`, p)).concat(hotel('a', 'mal', 'Hotel Imposible Mas', 2)),
+      ofertas: nombres.map((nombre, i) => hotel('a', i, `Hotel ${nombre} Mas`, 60 + i * 5)).concat(hotel('a', 'mal', 'Hotel Imposible Mas', 2)),
     }));
     const b = fuente('b', async () => ({ ofertas: [hotel('b', 'uno', 'Can Uno Mas 4*', 65)] }));
     const ahora = new Date('2026-10-01T08:00:00Z');
@@ -119,9 +121,9 @@ describe('auditoría: un escaneo con los enriquecedores de verdad', () => {
     assert.equal(mala.precio, null, 'revisarPrecios está enganchado');
     assert.ok(mala.etiquetas.includes('precio-dudoso'));
     assert.equal(mala.referencia, null);
-    assert.equal(porId.get('a:0').referencia.n, 6, 'revisarPrecios va antes: el precio de 2 € no entra en la mediana');
+    assert.equal(porId.get('a:0').referencia.n, MINIMO_GRUPO + 1, 'revisarPrecios va antes: el precio de 2 € no entra en la mediana');
     assert.ok(porId.get('b:uno').etiquetas.includes('duplicada'), 'marcarEquivalentes está enganchado');
-    assert.equal(salida.vigilados.vigilados[0].coincidencias.length, 6, 'la copia duplicada (b:uno) no avisa dos veces');
+    assert.equal(salida.vigilados.vigilados[0].coincidencias.length, MINIMO_GRUPO + 1, 'la copia duplicada (b:uno) no avisa dos veces');
     assert.equal(historial['viejo:1'], undefined, 'compactar está enganchado');
     assert.deepEqual(Object.keys(cache.exportar()).filter((k) => k.startsWith('tiempo:x')), [], 'la caché se poda');
     assert.deepEqual(anios, [2026, 2027], 'a 120 días vista hacen falta los festivos del año que viene');
@@ -179,8 +181,10 @@ describe('auditoría: puntuación en sus casos límite', () => {
     const base = { tipo: 'hotel', unidad: 'pp/noche', precio: 50 };
     const [reciente, deAyer, vieja] = [1, 48, 80].map((horas) => oferta({ ...base, vistaPrimera: enHoras(-horas).toISOString() }));
     const [cerca, medio, lejos] = [120, 180, 181].map((cocheMin) => oferta({ ...base, cocheMin }));
-    const [esteFinde, otroFinde] = ['2026-09-18', '2026-09-25'].map((findeId) => oferta({ ...base, fechas: { findeId } }));
-    const todas = [reciente, deAyer, vieja, cerca, medio, lejos, esteFinde, otroFinde];
+    const [esteFinde, otroFinde] = ['2026-09-18', '2026-09-25'].map((findeId) => oferta({ ...base, fechas: { findeId, salida: findeId } }));
+    // Con fechas flexibles vale para cualquier finde: no suma por «el finde que viene» ni por un puente.
+    const flexible = oferta({ ...base, fechas: { findeId: '2026-09-18', puenteId: 'pilar' } });
+    const todas = [reciente, deAyer, vieja, cerca, medio, lejos, esteFinde, otroFinde, flexible];
     puntuar(todas, AJUSTES, { ahora: AHORA, findeActual: '2026-09-18' });
     // Todas cuestan lo mismo: empate en la posición media = 22,5 de precio, más lo suyo
     // (22,5 se redondea a 23: la diferencia con 25 es 2).
@@ -188,7 +192,7 @@ describe('auditoría: puntuación en sus casos límite', () => {
     assert.equal(precio, 23);
     assert.deepEqual([reciente, deAyer].map((o) => o.puntuacion - precio), [10, 5]);
     assert.deepEqual([cerca, medio, lejos].map((o) => o.puntuacion - precio), [5, 2, 0]);
-    assert.deepEqual([esteFinde, otroFinde].map((o) => o.puntuacion - precio), [5, 0]);
+    assert.deepEqual([esteFinde, otroFinde, flexible].map((o) => o.puntuacion - precio), [5, 0, 0]);
   });
 });
 
@@ -228,15 +232,16 @@ describe('auditoría: las constantes probadas en su borde', () => {
     assert.deepEqual(Object.keys(estado.emails.alertados).sort(), ['f:hace10', 'f:hace29']);
   });
 
-  test('referencia: con 4 ofertas parecidas no hay mediana; con 5, sí', () => {
+  test(`referencia: con ${MINIMO_GRUPO - 1} ofertas parecidas no hay mediana; con ${MINIMO_GRUPO}, sí`, () => {
     const lugar = { nombre: 'Girona', region: 'Girona', pais: 'España' };
     const noche = (precio) => oferta({ tipo: 'escapada', temas: ['spa'], lugar, precio, unidad: 'pp/noche' });
-    const cuatro = [40, 50, 60, 70].map(noche);
-    calcularReferencia(cuatro);
-    assert.ok(cuatro.every((o) => o.referencia === null));
-    const cinco = [40, 50, 60, 70, 80].map(noche);
-    calcularReferencia(cinco);
-    assert.ok(cinco.every((o) => o.referencia?.n === 5));
+    const precios = (n) => Array.from({ length: n }, (_, i) => 40 + i * 5);
+    const pocas = precios(MINIMO_GRUPO - 1).map(noche);
+    calcularReferencia(pocas);
+    assert.ok(pocas.every((o) => o.referencia === null));
+    const justas = precios(MINIMO_GRUPO).map(noche);
+    calcularReferencia(justas);
+    assert.ok(justas.every((o) => o.referencia?.n === MINIMO_GRUPO));
   });
 
   test('festivos: con Nager.at caído se usan los guardados aunque tengan más de 7 días', async () => {

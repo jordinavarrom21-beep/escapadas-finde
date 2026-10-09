@@ -29,7 +29,7 @@ export const ETIQUETAS_ORDEN = {
   comodo: 'Más cómodo (menos viaje)',
   precio: 'Precio publicado (sin igualar unidades)',
   noche: 'Precio por persona y noche',
-  ahorro: 'Más por debajo de lo normal',
+  ahorro: 'Más baratas que la media de parecidas',
   valoracion: 'Mejor valoradas',
   distancia: 'Distancia (más cerca primero)',
   alojamiento: 'Tipo de alojamiento',

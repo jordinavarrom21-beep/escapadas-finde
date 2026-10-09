@@ -206,7 +206,8 @@ export function vistaAyuda(e) {
 <section class="seccion">
   <h2 class="subtitulo">Preguntas frecuentes</h2>
   ${pregunta('¿De dónde salen las ofertas?', `<p>De webs de viajes y comunidades de chollos públicas. Solo se leen las páginas que esas webs permiten leer. Cada oferta dice en qué web está publicada y cuándo se vio allí por última vez; si su web no la ha vuelto a mostrar en el tiempo previsto, sale como «Sin confirmar».</p><p>${esc(enumerar(webs))}. <a href="#/fuentes">Estado de cada web</a></p>`)}
-  ${pregunta('¿Qué es el «Valor» de cada oferta?', `<p>Un valor de 0 a 100 de lo buena que es la oferta como chollo (no es la opinión de los clientes, que va de 0 a 10). ${esc(nota)}. Un <strong>Chollazo</strong> está muy por debajo de lo normal para ofertas parecidas.</p>`)}
+  ${pregunta('¿Qué es el «Valor» de cada oferta?', `<p>Un valor de 0 a 100 de lo buena que es la oferta como chollo (no es la opinión de los clientes, que va de 0 a 10). ${esc(nota)}.</p>`)}
+  ${pregunta('¿Cuándo es un «Chollazo»?', reglaChollazo(e.datos.chollazos))}
   ${pregunta('¿Qué significan las estrellas y las opiniones?', '<p>«★ 8,2 Muy bien · 266 opiniones» es la valoración de otros clientes en la web de la oferta, de 0 a 10. Las estrellas (4★) son la categoría del hotel.</p>')}
   ${pregunta('¿Por qué hay precios «por persona», «por noche» o «en total»?', '<p>Cada web publica el precio a su manera. Por eso cada oferta dice a qué corresponde y, cuando se puede, se pasa a <strong>por persona y noche</strong> para compararlas, y se calcula <strong>el viaje completo</strong> para tus viajeros, con la gasolina estimada si vas en coche.</p>')}
   ${pregunta('¿Las fechas son exactas?', '<p>Muchas ofertas son de <strong>fechas flexibles</strong>: valen cualquier día hasta que caducan, según disponibilidad. Las de <strong>fechas cerradas</strong> dicen el día exacto. Si buscas unas fechas, los buscadores (y algunas webs) se abren ya con ellas.</p>')}
@@ -226,6 +227,22 @@ export function vistaAyuda(e) {
 </section>
 ${seccionAvisoLegal(e)}
 </div>`;
+}
+
+/**
+ * La regla real del «Chollazo» (src/enriquecer/puntuacion.js, motivoChollazo), con los límites de
+ * los ajustes que publica el escaneo. Cada chollazo dice en su ficha cuál de ellas cumple.
+ */
+export function reglaChollazo(u) {
+  if (!u) return '<p>Cuando la oferta está muy por debajo de lo normal. Su ficha dice exactamente por qué.</p>';
+  const importe = (n) => `${n.toLocaleString('es-ES')} €`;
+  return `<p>Cuando cumple <strong>una</strong> de estas condiciones (su ficha dice cuál):</p>
+  <ul>
+    <li>la web la publica como <strong>error de tarifa</strong>;</li>
+    <li>un <strong>vuelo de ida y vuelta</strong> por ${esc(importe(u.vueloMax))} o menos por persona;</li>
+    <li>una <strong>escapada</strong> por ${esc(importe(u.escapadaNocheMax))} o menos <strong>por persona y noche</strong> (si el precio es por habitación o total, repartido entre 2 personas);</li>
+    <li>un <strong>Valor de ${esc(String(u.puntuacionMin))}</strong> o más sobre 100.</li>
+  </ul>`;
 }
 
 /**
@@ -264,7 +281,7 @@ function seccionAvisoLegal(e) {
   <h2 class="subtitulo">Aviso legal</h2>
   ${datos}
   <p>Escapadas Finde es un buscador de ofertas de viaje publicadas por otras webs. No vende viajes ni hace reservas: el precio, la disponibilidad y las condiciones los fija y los confirma siempre la web de cada oferta. Algunos enlaces son de afiliado y, si reservas por ellos, esa web puede pagarnos una comisión; no cambia tu precio ni el orden de las ofertas.</p>
-  <p>Las ofertas, fotos y marcas son de sus webs y dueños. Se revisan cada 15 minutos, pero pueden cambiar o terminar antes: comprueba siempre la oferta antes de reservar.</p>
+  <p>Las ofertas y marcas son de sus webs y dueños. Las fotos son de Wikimedia Commons (con su autor y licencia en la ficha) o de webs que permiten usarlas; si no hay ninguna, se ve una ilustración. Las ofertas se revisan cada 15 minutos, pero pueden cambiar o terminar antes: comprueba siempre la oferta antes de reservar.</p>
 </section>`;
 }
 
@@ -329,7 +346,7 @@ export function avisosDeBusquedas(e) {
   return (e.busquedas ?? []).map((busqueda) => {
     const lista = resultadosDeBusqueda(e, busqueda);
     const desde = Date.parse(busqueda.visto ?? '');
-    const nuevas = Number.isFinite(desde) ? lista.filter((o) => Date.parse(o.vistaPrimera) > desde) : [];
+    const nuevas = Number.isFinite(desde) ? lista.filter((o) => Date.parse(o.conocidaDesde ?? o.vistaPrimera) > desde) : [];
     return { busqueda, lista, nuevas };
   });
 }

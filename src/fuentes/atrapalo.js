@@ -36,7 +36,6 @@ const PAGINAS = [
 
 /** Categorías de la web → temas del contrato. */
 const TEMAS_POR_CATEGORIA = {
-  relax: ['spa'],
   balneario: ['spa'],
   romantica: ['romantico'],
   'aventura y emocion': ['aventura'],

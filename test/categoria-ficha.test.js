@@ -101,7 +101,7 @@ describe('ficha: rica y coherente', () => {
     assert.match(html, /class="ficha__opiniones"[^]*<strong>8,8<\/strong>[^]*Muy bien[^]*5 opiniones de clientes en Weekendesk\. Solo 5 opiniones[^]*Ver opiniones en Weekendesk/);
     assert.match(html, /<dt>Alojamiento<\/dt><dd>Hotel 4★ · solo adultos/);
     assert.match(html, /<dt>Por persona y noche<\/dt><dd>45\s€ \(90\s€ en total, para 1 noche y 2 personas\)/);
-    assert.match(html, /<dt>Precio habitual<\/dt><dd>58\s€: lo normal en escapadas románticas en Cataluña, por persona y noche \(mediana de 14 ofertas\)/);
+    assert.match(html, /<dt>Media de las parecidas<\/dt><dd>58\s€ en escapadas románticas en Cataluña, por persona y noche \(con 14 ofertas\)/);
   });
 
   it('lo que incluye, como lista; sin repetir el título', () => {

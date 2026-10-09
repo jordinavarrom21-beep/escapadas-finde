@@ -64,7 +64,7 @@ describe('parsear (páginas reales de Cataluña)', () => {
     assert.deepEqual(lloret.temas, ['romantico', 'spa', 'playa']);
     assert.deepEqual(lloret.lugar, { nombre: 'Lloret de Mar', region: 'Cataluña', pais: 'España', codigoPais: 'ES', lat: null, lon: null, iata: null });
     assert.match(lloret.descripcion, /^Augusta Club & Spa \+16 \(4\*, 8,2\/10 en 17 opiniones\) · 1 noche/);
-    for (const etiqueta of ['Venta flash', 'Hotel 4*', 'Acceso al spa']) assert.ok(lloret.etiquetas.includes(etiqueta), etiqueta);
+    for (const etiqueta of ['Venta flash', '4*', 'Acceso al spa']) assert.ok(lloret.etiquetas.includes(etiqueta), etiqueta);
 
     const dosNoches = baratas.find((o) => o.id === 'weekendesk:12558693');
     assert.equal(dosNoches.noches, 2);
@@ -101,7 +101,7 @@ describe('el formato nuevo de Weekendesk (Next.js App Router, desde el 7/10/2026
     assert.equal(augusta.establecimiento, 'Augusta Club & Spa +16');
     assert.deepEqual([augusta.lugar.nombre, augusta.valoracion], ['Lloret de Mar', { nota: 8.3, n: 15 }]);
     assert.match(augusta.url, /^https:\/\/www\.weekendesk\.es\/fin-de-semana\/21843318\//);
-    assert.ok(augusta.etiquetas.includes('Venta flash') && augusta.etiquetas.includes('Hotel 4*'));
+    assert.ok(augusta.etiquetas.includes('Venta flash') && augusta.etiquetas.includes('4*'));
   });
   it('una página con trozos de Next.js pero sin hoteles falla claro', () => {
     const vacia = '<script>self.__next_f.push([1,"{\\"value\\":{\\"breadcrumb\\":[]}}"])</script>';

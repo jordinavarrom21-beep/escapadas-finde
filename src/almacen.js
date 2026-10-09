@@ -175,6 +175,28 @@ export function guardarJson(ruta, datos, { legible = false } = {}) {
  * `vistaUltima` y, con `reemplazar`, borra las ofertas de la fuente que ya no aparecen.
  * @returns {{nuevas: number, total: number, borradas: number}}
  */
+/**
+ * Lo que dice la propia web de cada oferta y luego completa el enriquecimiento (temas,
+ * transporte, alojamiento…). Se guarda tal cual llega para recalcularlo en cada escaneo: si no,
+ * lo deducido con reglas de antes (un «spa» de una etiqueta de menú) se quedaba para siempre en
+ * las ofertas que su web no vuelve a publicar en cada lectura.
+ */
+export const CAMPOS_DE_LA_FUENTE = ['tipo', 'titulo', 'temas', 'transporte', 'regimen', 'noches', 'alojamiento', 'estrellas', 'unidad', 'fechas'];
+const deLaFuente = (oferta) => Object.fromEntries(CAMPOS_DE_LA_FUENTE.map((campo) => [campo, structuredClone(oferta[campo] ?? null)]));
+
+const VACIOS = { temas: [], fechas: { salida: null, vuelta: null, findeId: null, puenteId: null } };
+
+/** Vuelve a dejar la oferta como la dio su web (antes de enriquecerla otra vez). */
+export function restaurarDeLaFuente(oferta) {
+  if (!oferta.deLaFuente) return oferta;
+  for (const campo of CAMPOS_DE_LA_FUENTE) {
+    if (!(campo in oferta.deLaFuente)) continue;
+    const valor = structuredClone(oferta.deLaFuente[campo]);
+    oferta[campo] = valor ?? structuredClone(VACIOS[campo] ?? null);
+  }
+  return oferta;
+}
+
 export function fusionar(estado, fuenteId, { ofertas, reemplazar = false }, ahora) {
   const iso = ahora.toISOString();
   const recibidas = new Set(ofertas.map((o) => o.id));
@@ -192,7 +214,7 @@ export function fusionar(estado, fuenteId, { ofertas, reemplazar = false }, ahor
   for (const oferta of ofertas) {
     const previa = estado.ofertas[oferta.id];
     if (!previa) nuevas++;
-    estado.ofertas[oferta.id] = { ...oferta, vistaPrimera: previa?.vistaPrimera ?? iso, vistaUltima: iso };
+    estado.ofertas[oferta.id] = { ...oferta, deLaFuente: deLaFuente(oferta), vistaPrimera: previa?.vistaPrimera ?? iso, vistaUltima: iso };
   }
   return { nuevas, total: ofertas.length, borradas };
 }

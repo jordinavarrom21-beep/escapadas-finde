@@ -42,7 +42,8 @@ const REGIMENES = [
 // marketing («Black Friday», «Navidad», «Última hora»…) no se traducen.
 const TEMAS_POR_TEMATICA = [
   [/romantic|love room|san valentin/, 'romantico'],
-  [/\bspa\b|relax|balneario|masaje|termal/, 'spa'],
+  // Spa de verdad: «relax» o «masaje» no lo son.
+  [/\bspa\b|balneario|termal/, 'spa'],
   [/playa/, 'playa'],
   [/gastronom|gourmet|enoturismo|vino|bodega/, 'gastronomia'],
   [/ninos|familia/, 'familia'],
@@ -249,7 +250,8 @@ function etiquetasDe(resultado, hotel, etiquetasPagina) {
     resultado.lastMinute ? 'Último minuto' : null,
     resultado.hasExtraNightDiscount ? 'Noche adicional con descuento' : null,
     resultado.cancellationPolicy?.freeCancellation ? 'Cancelación gratuita' : null,
-    hotel.stars > 0 ? `Hotel ${hotel.stars}*` : null,
+    // «3*», no «Hotel 3*»: también son de aparthoteles y apartamentos, y «Hotel» los daba por hotel.
+    hotel.stars > 0 ? `${hotel.stars}*` : null,
     ...(resultado.headwords ?? []),
   ];
   return [...new Set(etiquetas.filter(Boolean).map(limpiar))];

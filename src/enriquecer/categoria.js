@@ -25,6 +25,9 @@ const NEGRITA = /(?:^|[\s·(])\*\*[a-z0-9]/;
 /** Lo que parece estrellas pero es una valoración de clientes. */
 const VALORACION = /\b(?:resenas|valoraciones|opiniones|puntuacion|reviews?)\b[^·.]{0,20}$/;
 
+/** Alojamientos a los que no se les ponen estrellas. */
+const SIN_ESTRELLAS = ['apartamento', 'casa-rural'];
+
 const SOLO_ADULTOS = /\b(?:solo (?:para )?adultos|adults only|only adults|mayores de 1[68] anos)\b/;
 
 /**
@@ -57,6 +60,9 @@ export function esSoloAdultos(oferta) {
  */
 export function aplicarCategoria(oferta) {
   oferta.estrellas ??= detectarEstrellas(oferta);
+  // Un apartamento o una casa rural no tienen las estrellas de un hotel: las que trae la oferta
+  // son del aparthotel o de la web, y «★★★» hacía creer que era un hotel.
+  if (SIN_ESTRELLAS.includes(oferta.alojamiento)) oferta.estrellas = null;
   if (oferta.estrellas != null && !oferta.alojamiento && !['vuelo', 'actividad', 'crucero'].includes(oferta.tipo)) oferta.alojamiento = 'hotel';
   const adultos = esSoloAdultos(oferta);
   const tiene = oferta.etiquetas.includes('solo-adultos');

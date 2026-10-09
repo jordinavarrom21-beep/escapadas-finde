@@ -232,9 +232,19 @@ function contarClic(enlace) {
   navigator.sendBeacon(destino, JSON.stringify({ proveedor: clic, enlace: clicTipo, oferta: clicOferta, vista: vistaActual }));
 }
 
+/** «Contacto» en el pie, con el email del aviso legal (config/ajustes.json → legal), si lo hay. */
+function pintarContacto() {
+  const pie = $('#contacto-pie');
+  const email = estado.datos.legal?.email;
+  if (!pie) return;
+  pie.hidden = !email;
+  if (email) pie.querySelector('a').href = `mailto:${email}`;
+}
+
 function pintarCabecera() {
   pintarReloj();
   pintarAvisoComercial();
+  pintarContacto();
   pintarBotonViaje();
   // El estado de las webs va en el pie, con la misma frase (estado.webs) que la portada y
   // «Estado de las webs».

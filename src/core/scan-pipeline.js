@@ -6,7 +6,7 @@
 import { performance } from 'node:perf_hooks';
 import { legalParaPanel } from '../legal.js';
 import { Cache } from '../cache.js';
-import { estadoInicial, fusionar, podar } from '../almacen.js';
+import { estadoInicial, fusionar, podar, restaurarDeLaFuente } from '../almacen.js';
 import { FUENTES } from '../fuentes/index.js';
 import { TEMAS, completarOferta } from '../modelo.js';
 import { normalizarTexto } from '../util/xml.js';
@@ -15,7 +15,10 @@ import { aplicarAlojamiento } from '../enriquecer/alojamiento.js';
 import { aplicarNinos } from '../enriquecer/ninos.js';
 import { aplicarCategoria } from '../enriquecer/categoria.js';
 import { aplicarZona } from '../enriquecer/zona.js';
-import { clasificarVueloSinFecha } from '../enriquecer/vuelos.js';
+import { clasificarVueloSinFecha, otraSalida } from '../enriquecer/vuelos.js';
+import { aplicarFechasDelTexto } from '../enriquecer/fechas-texto.js';
+import { formatearToponimo } from '../util/toponimos.js';
+import { limpiarTitulo } from '../enriquecer/titulos.js';
 import { aplicarAfiliacion, proveedoresActivos } from '../afiliacion.js';
 import { conProgramasAwin, programasAwin } from '../awin.js';
 import { enlacesPara } from '../enriquecer/enlaces.js';
@@ -27,9 +30,9 @@ import { marcarEquivalentes } from '../enriquecer/duplicados.js';
 import { anadirTiempo } from '../enriquecer/tiempo.js';
 import { anadirEventos } from '../enriquecer/eventos.js';
 import { comprobarVigencia } from '../enriquecer/vigencia.js';
-import { anadirFotos } from '../enriquecer/fotos.js';
+import { anadirFotos, quitarFotoSinPermiso } from '../enriquecer/fotos.js';
 import { anadirResumenes } from '../enriquecer/resumenes.js';
-import { precioPorPersonaNoche, puntuar } from '../enriquecer/puntuacion.js';
+import { anotarConocidaDesde, precioPorPersonaNoche, puntuar } from '../enriquecer/puntuacion.js';
 import { claveSerie, compactar, registrarPrecios, seriesPara } from '../historial.js';
 import { coincide, contextoVigilados } from '../vigilados.js';
 import { procesarEmails } from '../emails/decidir.js';
@@ -362,15 +365,33 @@ export async function escanear({
   // Se completan por si vienen de un estado guardado antes de añadir campos nuevos.
   for (const [id, oferta] of Object.entries(estado.ofertas)) estado.ofertas[id] = completarOferta(oferta);
   const ofertas = Object.values(estado.ofertas);
+  const fotosConPermiso = new Set(ajustes.fotos?.fuentesConPermiso ?? []);
   for (const oferta of ofertas) {
+    // Cada escaneo parte de lo que dijo su web: las reglas de ahora valen también para lo guardado.
+    restaurarDeLaFuente(oferta);
+    // Solo las fotos de las webs que dan permiso; las demás, de Wikimedia (anadirFotos).
+    quitarFotoSinPermiso(oferta, fotosConPermiso);
     m.clasificarVueloSinFecha(oferta);
+    // Sale de otra ciudad (Madrid…): ni guías ni viaje completo desde tu origen.
+    oferta.otraSalida = otraSalida(oferta, { origen: ajustes.origen, aeropuertos: ajustes.vuelos.aeropuertos });
+    aplicarFechasDelTexto(oferta, hoy);
     m.aplicarClasificacion(oferta);
     aplicarNinos(oferta);
-    aplicarCategoria(oferta);
+    // El tipo de alojamiento antes que la categoría: si no, las estrellas («Hotel 3*» de Weekendesk)
+    // lo daban por hotel y ya no se leía «apartamento» en el título.
     m.aplicarAlojamiento(oferta);
+    aplicarCategoria(oferta);
+    // «LA MASSANA», «Vall D'aran» → «La Massana», «Vall d'Aran».
+    if (oferta.lugar?.nombre) oferta.lugar.nombre = formatearToponimo(oferta.lugar.nombre);
     m.aplicarZona(oferta);
     oferta.precioNoche = precioPorPersonaNoche(oferta, ajustes.viajeros ?? 2);
     Object.assign(oferta.fechas, m.asignarFechas(oferta, findes, puentes));
+    // Al final, para que lo anterior lea el título tal cual: sin emojis, gritos ni precios.
+    const limpio = limpiarTitulo(oferta.titulo);
+    if (limpio !== oferta.titulo) {
+      oferta.tituloOriginal = oferta.titulo;
+      oferta.titulo = limpio;
+    }
   }
   await m.geolocalizar(ofertas, crearCtx('geo'));
   await m.calcularCoche(ofertas, crearCtx('coche'));
@@ -391,6 +412,7 @@ export async function escanear({
   for (const oferta of ofertas) aplicarAfiliacion(oferta, { activos: afiliados, patrocinadas: afiliacion.patrocinadas ?? [], ahora });
   m.registrarPrecios(historial, ofertas, ahora);
   m.compactar(historial, ahora, { idsVivos: ofertas.flatMap((o) => [o.id, claveSerie(o)]) });
+  anotarConocidaDesde(ofertas, historial, claveSerie);
   m.puntuar(ofertas, ajustes, { ahora, findeActual: findes[0]?.id ?? null });
   ofertas.sort((a, b) => b.puntuacion - a.puntuacion);
 
@@ -412,6 +434,11 @@ export async function escanear({
       coche: {
         consumoL100km: ajustes.coche.consumoL100km, precioLitro: precioLitro ?? ajustes.coche.precioLitro, carburante: ajustes.coche.carburante,
         precioMedio: precioLitro != null && precioLitro !== ajustes.coche.precioLitro ? { provincia: ajustes.origen.nombre } : null,
+      },
+      // Las reglas del «Chollazo» (motivoChollazo), para que «Cómo funciona» explique las de verdad.
+      chollazos: {
+        vueloMax: ajustes.emails.chollazos.vueloMax, escapadaNocheMax: ajustes.emails.chollazos.escapadaNocheMax,
+        puntuacionMin: ajustes.emails.chollazos.puntuacionMin,
       },
       temas: TEMAS, findes, puentes, fuentes: estadoFuentes, ofertas,
     },

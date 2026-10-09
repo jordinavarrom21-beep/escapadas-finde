@@ -6,7 +6,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-import { ALOJAMIENTOS, ORDENES_ESCAPADAS, buscarEscapadas, leerFiltrosEscapadas, medirDistancias } from '../site/js/filtros.js';
+import { ALOJAMIENTOS, ORDENES_ESCAPADAS, buscarEscapadas, leerFiltrosEscapadas, medirDistancias, referenciaPrecisa } from '../site/js/filtros.js';
 import { ETIQUETAS_ORDEN, contextoBusqueda, ctxTarjetas } from '../site/js/vistas-comun.js';
 import { costeDe } from '../site/js/plantillas.js';
 
@@ -47,7 +47,8 @@ describe('ordenar escapadas', () => {
       comodo: (r) => [r.ofertas.map((o) => r.desdeSalida.get(o.id)?.minutos), subiendo],
       precio: (r) => [r.ofertas.map((o) => o.precio), subiendo],
       noche: (r) => [r.ofertas.map((o) => o.precioNoche), subiendo],
-      ahorro: (r) => [r.ofertas.map((o) => o.referencia?.ahorroPct), bajando],
+      // Solo cuenta la comparación con ofertas de verdad parecidas (la de la insignia).
+      ahorro: (r) => [r.ofertas.map((o) => referenciaPrecisa(o)?.ahorroPct), bajando],
       valoracion: (r) => [r.ofertas.map((o) => o.valoracion?.nota), bajando],
       distancia: (r) => [r.ofertas.map((o) => r.distancias.get(o.id)?.minutos), subiendo],
       alojamiento: (r) => [r.ofertas.map((o) => (ALOJAMIENTOS.includes(o.alojamiento) ? ALOJAMIENTOS.indexOf(o.alojamiento) : null)), subiendo],

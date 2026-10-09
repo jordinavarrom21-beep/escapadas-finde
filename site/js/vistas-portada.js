@@ -416,7 +416,10 @@ export function eventosCerca(e, periodo = {}, { max = FILAS_IDEAS, horas = HORAS
  */
 export function filaEvento(ev) {
   const tipo = TIPOS_EVENTO[ev.tipo]?.[0] ?? 'Evento';
-  const donde = ev.oferta.lugar?.nombre ? ` · ${esc(ev.oferta.lugar.nombre)}` : '';
+  // Dónde es el evento (no la escapada de al lado, que abre el enlace): «Temporada Alta» en
+  // Palafrugell salía en Platja d'Aro.
+  const sitio = ev.municipio ?? ev.oferta.lugar?.nombre;
+  const donde = sitio ? ` · ${esc(sitio)}` : '';
   const [dia, numero, mes] = etiquetaDia(ev.fecha).split(' ');
   const dormir = typeof ev.oferta.precio === 'number' && ev.oferta.precio > 0 ? `<span class="idea__precio idea__precio--dormir"><small>dormir desde</small>${precioCorto(ev.oferta)}</span>` : '';
   return `<li class="idea idea--evento"><span class="idea__foto idea__fecha" aria-hidden="true"><small>${esc(dia)}</small><strong>${esc(numero)}</strong><small>${esc(mes)}</small></span>
