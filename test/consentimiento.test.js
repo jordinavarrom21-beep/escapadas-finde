@@ -1,6 +1,6 @@
 /**
  * Google Ads con aviso de cookies: sin «googleAds» en config/ajustes.json la web queda como
- * siempre (sin cookies ni nada de Google); con él, la etiqueta que lee anuncios.js, la CSP
+ * siempre (sin cookies ni nada de Google); con él, la etiqueta que lee consentimiento.js, la CSP
  * abierta solo a lo que necesita Google y la privacidad que lo explica.
  */
 import { describe, it } from 'node:test';
@@ -16,7 +16,7 @@ import { vistaAyuda } from '../site/js/vistas.js';
 import { estadoPanel } from './ayudas-panel.js';
 
 const INDICE = readFileSync(new URL('../site/index.html', import.meta.url), 'utf8');
-const ANUNCIOS = readFileSync(new URL('../site/js/anuncios.js', import.meta.url), 'utf8');
+const CONSENTIMIENTO = readFileSync(new URL('../site/js/consentimiento.js', import.meta.url), 'utf8');
 const ADS = { id: 'AW-123456789', conversion: 'AW-123456789/AbC-d_1' };
 const csp = (html) => Object.fromEntries(html.match(/http-equiv="Content-Security-Policy" content="([^"]*)"/)[1].split('; ').map((d) => [d.split(' ')[0], d.split(' ').slice(1)]));
 
@@ -97,33 +97,33 @@ describe('Google Ads en la web publicada', () => {
   });
 });
 
-describe('aviso de cookies (anuncios.js)', () => {
-  const entre = (desde, hasta) => ANUNCIOS.slice(ANUNCIOS.indexOf(desde), ANUNCIOS.indexOf(hasta));
+describe('aviso de cookies (consentimiento.js)', () => {
+  const entre = (desde, hasta) => CONSENTIMIENTO.slice(CONSENTIMIENTO.indexOf(desde), CONSENTIMIENTO.indexOf(hasta));
   it('nada de Google hasta aceptar: consentimiento denegado de serie y gtag.js solo dentro de activar()', () => {
-    assert.match(ANUNCIOS, /gtag\('consent', 'default', \{ ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied', analytics_storage: 'denied' \}\)/);
+    assert.match(CONSENTIMIENTO, /gtag\('consent', 'default', \{ ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied', analytics_storage: 'denied' \}\)/);
     assert.match(entre('function cargarGtag(', 'function activar('), /googletagmanager\.com\/gtag\/js/);
-    assert.equal(ANUNCIOS.match(/googletagmanager\.com\/gtag\/js/g).length, 1);
+    assert.equal(CONSENTIMIENTO.match(/googletagmanager\.com\/gtag\/js/g).length, 1);
     // Se carga desde activar() y solo con el permiso de cada uno (Ads o la medición).
     const activar = entre('function activar(', 'function retirar(');
-    assert.equal(ANUNCIOS.match(/cargarGtag\(/g).length, 3);
+    assert.equal(CONSENTIMIENTO.match(/cargarGtag\(/g).length, 3);
     assert.equal(activar.match(/cargarGtag\(/g).length, 2);
     assert.match(activar, /const anuncios = Boolean\(id && acepta\.includes\('google-ads'\)\);/);
   });
   it('«Rechazar» y «Aceptar» en el mismo aviso, y la conversión solo con permiso', () => {
-    assert.match(ANUNCIOS, /data-cookies="no">Rechazar</);
-    assert.match(ANUNCIOS, /data-cookies="si">Aceptar</);
-    assert.match(ANUNCIOS, /conversion && activo\.has\('google-ads'\) && permitido\('google-ads'\)/);
+    assert.match(CONSENTIMIENTO, /data-cookies="no">Rechazar</);
+    assert.match(CONSENTIMIENTO, /data-cookies="si">Aceptar</);
+    assert.match(CONSENTIMIENTO, /conversion && activo\.has\('google-ads'\) && permitido\('google-ads'\)/);
     // Sin localStorage, la elección vale durante la visita.
-    assert.match(ANUNCIOS, /eleccionVisita = acepta/);
+    assert.match(CONSENTIMIENTO, /eleccionVisita = acepta/);
   });
   it('con más de una finalidad, «Configurar»: una casilla por cada una, sin marcar de entrada', () => {
-    assert.match(ANUNCIOS, /const variasFinalidades = FINALIDADES\.length > 1;/);
-    assert.match(ANUNCIOS, /data-cookies="\$\{configurando \? 'guardar' : 'elegir'\}"/);
-    assert.match(ANUNCIOS, /opciones\(anterior \?\? \[\]\)/);
-    assert.match(ANUNCIOS, /acepta\.includes\(f\.clave\) \? ' checked' : ''/);
+    assert.match(CONSENTIMIENTO, /const variasFinalidades = FINALIDADES\.length > 1;/);
+    assert.match(CONSENTIMIENTO, /data-cookies="\$\{configurando \? 'guardar' : 'elegir'\}"/);
+    assert.match(CONSENTIMIENTO, /opciones\(anterior \?\? \[\]\)/);
+    assert.match(CONSENTIMIENTO, /acepta\.includes\(f\.clave\) \? ' checked' : ''/);
   });
   it('la página lo carga y el pie tiene dónde poner «Cookies»', () => {
-    assert.match(INDICE, /<script src="js\/anuncios\.js" defer><\/script>/);
+    assert.match(INDICE, /<script src="js\/consentimiento\.js" defer><\/script>/);
     assert.match(INDICE, /<span data-sin-cookies>Sin cookies ni seguimiento<\/span>/);
   });
   it('la privacidad dice la verdad en los dos casos', () => {

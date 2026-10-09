@@ -68,11 +68,11 @@ let origenFicha = null;
  * esa web no responde, se usa la copia que lleva el propio hosting.
  */
 const DATOS_REMOTOS = document.querySelector('meta[name="escapadas-datos"]')?.content || null;
-/** Con Google Analytics, Google Ads o Travelpayouts Drive configurados (ver anuncios.js), la privacidad lo explica. */
+/** Con Google Analytics, Google Ads o Travelpayouts Drive configurados (ver consentimiento.js), la privacidad lo explica. */
 const GOOGLE_ANALYTICS = Boolean(document.querySelector('meta[name="escapadas-google-analytics"]'));
 /**
  * Lo que se hace en la web (abrir una oferta, guardarla, buscar, compartir), para la medición:
- * anuncios.js lo envía a Google Analytics solo si se ha aceptado. Nada personal.
+ * consentimiento.js lo envía a Google Analytics solo si se ha aceptado. Nada personal.
  */
 const medir = (evento, datos = {}) => window.dispatchEvent(new CustomEvent('escapadas:medir', { detail: { evento, datos } }));
 /** La oferta tal como se mide: de qué web es, qué es, dónde y por cuánto. */
@@ -481,7 +481,7 @@ function render({ enfocar = true } = {}) {
   }
   // «#/ayuda?seccion=privacidad»: directo a esa sección.
   if (params.seccion) principal.querySelector(`#${CSS.escape(params.seccion)}`)?.scrollIntoView();
-  // Otra sección (o la primera): anuncios.js la cuenta como visita si se acepta la medición.
+  // Otra sección (o la primera): consentimiento.js la cuenta como visita si se acepta la medición.
   if (cambiaVista) window.dispatchEvent(new CustomEvent('escapadas:vista', { detail: vista }));
 }
 
@@ -1308,7 +1308,7 @@ async function iniciar() {
     falloAlArrancar('No se ha podido mostrar la web', 'Ha fallado algo al preparar las ofertas. «Reintentar» descarga de nuevo la versión publicada.');
     return;
   }
-  // Para tema.js (ya no hace falta avisar de que no arranca) y anuncios.js (Drive, después).
+  // Para tema.js (ya no hace falta avisar de que no arranca) y consentimiento.js (Drive, después).
   window.escapadasListo = true;
   window.dispatchEvent(new Event('escapadas:listo'));
   setInterval(pintarReloj, 30_000);

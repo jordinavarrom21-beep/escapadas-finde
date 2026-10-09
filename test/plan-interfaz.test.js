@@ -7,12 +7,14 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
+import { readFileSync } from 'node:fs';
+
 import { MAXIMO_DIAS, ROTULOS_FECHAS, camposFechas, elegirDia, htmlCalendario, textoNoches } from '../site/js/selector-fechas.js';
 import { nombreSiguienteFinde } from '../site/js/fechas.js';
-import { actividadesCerca } from '../site/js/filtros.js';
+import { actividadesCerca, buscarEscapadas, leerFiltrosEscapadas } from '../site/js/filtros.js';
 import { motivosNota } from '../site/js/nota.js';
 import {
-  avisoEquipaje, botonDescartar, enlaceOferta, esFreeTour, mesesDelTexto, textoFechas, textoGratis, textoTendencia,
+  altFoto, avisoEquipaje, botonDescartar, enlaceOferta, esFreeTour, mesesDelTexto, textoFechas, textoGratis, textoTendencia,
 } from '../site/js/plantillas.js';
 import { vistaFuentes } from '../site/js/vistas-info.js';
 import { diasConNombre } from '../src/util/fechas.js';
@@ -129,5 +131,39 @@ describe('plan F4: webs', () => {
     assert.match(html, /href="https:\/\/t\.me\/canal_chollos\/"[^>]*>t\.me\/canal_chollos</);
     assert.match(html, /<h2 id="fuentes-pausa">En pausa<\/h2>[^]*<li><strong>Ryanair<\/strong>[^]*<li><strong>Google Flights<\/strong>/);
     assert.ok(!/<th scope="row">Ryanair/.test(html), 'en pausa no es «con problemas»');
+  });
+});
+
+describe('plan F4: técnico (tarea 40)', () => {
+  const leer = (ruta) => readFileSync(new URL(`../${ruta}`, import.meta.url), 'utf8');
+
+  it('las fotos de las ofertas dicen de qué son; el logo, no (su nombre va al lado)', () => {
+    assert.equal(altFoto({ titulo: 'Casa rural con chimenea', lugar: { nombre: 'Olot' } }), 'Casa rural con chimenea, Olot');
+    assert.equal(altFoto({ titulo: 'Vuelos a Roma' }), 'Vuelos a Roma');
+    assert.match(leer('site/index.html'), /<img src="icono\.svg" alt="" width="36" height="36">/);
+  });
+
+  it('la búsqueda mira el nombre del alojamiento y no la descripción (va en detalles.json, solo para la ficha)', () => {
+    const base = { tipo: 'hotel', temas: [], puntuacion: 50, precio: 90, etiquetas: [], fechas: {} };
+    const ofertas = [
+      { ...base, id: 'can', titulo: 'Casa rural en la Garrotxa', establecimiento: 'Can Salvà' },
+      { ...base, id: 'desc', titulo: 'Hotel en Girona', descripcion: 'A 20 minutos de Can Salvà' },
+    ];
+    const ids = buscarEscapadas(ofertas, leerFiltrosEscapadas({ q: 'salva' }), { origen: { lat: 41.39, lon: 2.17 } }).ofertas.map((o) => o.id);
+    assert.deepEqual(ids, ['can']);
+  });
+
+  it('sin JavaScript, la portada lo dice y lleva a las guías', () => {
+    const html = leer('site/index.html');
+    const aviso = html.match(/<noscript>([^]*?)<\/noscript>/)?.[1] ?? '';
+    assert.match(aviso, /El panel necesita JavaScript/);
+    for (const guia of ['escapadas/', 'vuelos/', 'actividades/gratis/']) assert.ok(aviso.includes(`href="${guia}"`), guia);
+    assert.match(leer('site/css/estilos.css'), /html:not\(\.js\) \.cargando \{ display: none; \}/);
+  });
+
+  it('el aviso de cookies se llama consentimiento.js (los bloqueadores cortaban «anuncios»)', () => {
+    assert.match(leer('site/index.html'), /<script src="js\/consentimiento\.js" defer><\/script>/);
+    assert.match(leer('site/sw.js'), /'js\/consentimiento\.js'/);
+    for (const ruta of ['site/index.html', 'site/sw.js', 'scripts/preparar-web.js']) assert.ok(!leer(ruta).includes('anuncios.js'), ruta);
   });
 });

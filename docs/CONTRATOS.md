@@ -43,7 +43,7 @@ un `try/catch`, registran el error con `ctx.log` y descartan solo esa oferta.
 | `id` | fuente | `"<fuente>:<id estable>"`. Debe ser el mismo entre ejecuciones para la misma oferta |
 | `fuente` | fuente | id de la fuente (`ryanair`, `buscounchollo`…) |
 | `tipo` | fuente | `vuelo` \| `escapada` \| `hotel` \| `paquete` |
-| `titulo`, `descripcion` | fuente | texto plano; descripción recortada a ≤ 300 caracteres con `recortar` |
+| `titulo`, `descripcion` | fuente | texto plano; descripción recortada a ≤ 300 caracteres con `recortar`. En el panel, la descripción va en `detalles.json` (solo la lee la ficha) y la de las webs de chollos no se publica (`src/panel-datos.js`); `ofertas.json` va sin los campos `null` |
 | `url` | fuente | enlace a la oferta original (sin parámetros de seguimiento) |
 | `imagen` | fuente | URL absoluta o `null` |
 | `precio` | fuente | número en EUR o `null` si no hay precio |

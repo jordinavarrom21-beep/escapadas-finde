@@ -364,10 +364,15 @@ export function encajeEnRango(o, rango) {
 }
 
 const indiceTexto = new WeakMap();
-/** Texto de la oferta sin tildes ni mayúsculas y sus palabras (lo que va entre espacios y signos). */
+/**
+ * Texto de la oferta sin tildes ni mayúsculas y sus palabras (lo que va entre espacios y signos).
+ * Sin la descripción: va en detalles.json y solo llega al abrir una ficha (con ella, la misma
+ * búsqueda daba más o menos resultados según se hubiera abierto una ficha o no). El nombre del
+ * alojamiento sí («Destino u hotel»).
+ */
 function textoDe(o) {
   if (!indiceTexto.has(o)) {
-    const partes = [o.titulo, o.descripcion, o.lugar?.nombre, o.lugar?.region, o.lugar?.pais,
+    const partes = [o.titulo, o.establecimiento, o.lugar?.nombre, o.lugar?.region, o.lugar?.pais,
       o.vuelo?.origen, o.vuelo?.destino, o.fuente, o.alojamiento, ...(o.etiquetas ?? [])];
     const texto = normalizar(partes.filter(Boolean).join(' '));
     indiceTexto.set(o, { texto, palabras: texto.split(/[^a-z0-9]+/).filter(Boolean) });

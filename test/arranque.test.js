@@ -62,7 +62,7 @@ describe('arranque de la web', () => {
     assert.match(tema, /caches\.delete/);
     assert.match(leer('js/app.js'), /window\.escapadasListo = true;\n\s*window\.dispatchEvent\(new Event\('escapadas:listo'\)\)/);
     // Drive y Google, con permiso ya dado, esperan a que haya ofertas en pantalla.
-    assert.match(leer('js/anuncios.js'), /else if \(acepta\.length\) despuesDelPanel\(\(\) => activar\(acepta\)\)/);
+    assert.match(leer('js/consentimiento.js'), /else if \(acepta\.length\) despuesDelPanel\(\(\) => activar\(acepta\)\)/);
   });
 
   it('sin saltos al pintar (CLS): la vista se sabe desde el principio y el hueco se reserva mientras carga', () => {

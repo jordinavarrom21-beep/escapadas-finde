@@ -9,7 +9,7 @@ import { duracionActividad, sufijoSerie } from './filtros.js';
 import { escena, icono, tipoEscena } from './iconos.js';
 import { motivosNota } from './nota.js';
 import {
-  QUE_MIDE_LA_NOTA, TEXTO_AFILIADO, adjetivoNota, avisoEquipaje, barraCoste, botonComparar, botonDescartar, botonFavorito,
+  QUE_MIDE_LA_NOTA, TEXTO_AFILIADO, adjetivoNota, altFoto, avisoEquipaje, barraCoste, botonComparar, botonDescartar, botonFavorito,
   botonesMiEstado, busquedaPara, certeza, claseParte, colorTema, comparativa, conFechasDeViaje, conIcono,
   conTransporteIncluido, costeDe, enlaceConBusqueda, enlaceOferta, esPrecioDesde, eventos, eventosDe,
   fiabilidadOpiniones, filaActividad, insignias, loMismo, nivelNota, nombreWeb, notaFechasOferta, porNoche, precio,
@@ -329,7 +329,7 @@ export function contenidoFicha(o, ctx) {
     <p class="tarjeta__lugar">${textoLugar(o)}</p>
     ${resumenFicha(o)}
   </header>
-  <div class="ficha__media">${escena(tipoEscena(o))}${imagen ? `<img class="ficha__imagen" src="${esc(imagen)}" alt="" referrerpolicy="no-referrer">` : ''}${creditoFoto(o)}</div>
+  <div class="ficha__media">${escena(tipoEscena(o))}${imagen ? `<img class="ficha__imagen" src="${esc(imagen)}" alt="${esc(altFoto(o))}" referrerpolicy="no-referrer">` : ''}${creditoFoto(o)}</div>
   <div class="insignias">${insignias(o, ctx)}</div>
   ${vueloFicha(o)}
   ${o.resumen ? `<p class="ficha__resumen-ia"><strong>En una frase:</strong> ${esc(o.resumen)} <span class="suave">(resumen automático del texto de la web)</span></p>` : ''}

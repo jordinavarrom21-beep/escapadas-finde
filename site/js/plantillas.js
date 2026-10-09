@@ -348,7 +348,7 @@ export function botonDescartar(o) {
  * Un enlace pagado (afiliado o patrocinado) lleva rel="sponsored", como piden los buscadores. Sin
  * «noreferrer»: la web de destino ve que la visita viene de aquí (solo el dominio, por la
  * Referrer-Policy), lo que cuenta al pedir sus programas de afiliación. «noopener» se queda.
- * Con Travelpayouts Drive aceptado, anuncios.js añade «sponsored» a todos (Drive los convierte).
+ * Con Travelpayouts Drive aceptado, consentimiento.js añade «sponsored» a todos (Drive los convierte).
  */
 export const relEnlace = (pagado) => (pagado ? 'sponsored noopener' : 'noopener');
 
@@ -535,11 +535,19 @@ export function textoLugar(o) {
   return `${esc(l.nombre)}${zona ? `<span class="suave">, ${esc(zona)}</span>` : ''}`;
 }
 
+/**
+ * Texto alternativo de la foto de una oferta: «título, lugar» (antes alt="": quien no ve la
+ * foto no sabía de qué era). El logo sí va con alt="": su nombre ya está escrito al lado.
+ */
+export function altFoto(o) {
+  return [tituloLegible(o.titulo ?? ''), o.lugar?.nombre].filter(Boolean).join(', ');
+}
+
 /** La foto de la oferta, con la ilustración debajo por si no hay foto o no carga. */
 function mediaOferta(o) {
   const url = urlSegura(o.imagen);
   const credito = o.imagenCredito?.texto ? ` title="${esc(o.imagenCredito.texto)}"` : '';
-  return `${escena(tipoEscena(o))}${url ? `<img class="tarjeta__imagen" src="${esc(url)}" alt=""${credito} loading="lazy" decoding="async" referrerpolicy="no-referrer" width="480" height="300">` : ''}`;
+  return `${escena(tipoEscena(o))}${url ? `<img class="tarjeta__imagen" src="${esc(url)}" alt="${esc(altFoto(o))}"${credito} loading="lazy" decoding="async" referrerpolicy="no-referrer" width="480" height="300">` : ''}`;
 }
 
 /** Lo que va sobre la foto: sello, favorito, tiempo en coche y el tiempo que hará. */

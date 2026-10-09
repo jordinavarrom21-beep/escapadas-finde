@@ -1,6 +1,6 @@
 /**
  * Google Analytics 4, solo con permiso: sin «googleAnalytics» en config/ajustes.json la web queda
- * como siempre; con el ID de medición (G-…), la etiqueta que lee anuncios.js (lo carga al aceptar
+ * como siempre; con el ID de medición (G-…), la etiqueta que lee consentimiento.js (lo carga al aceptar
  * la medición), la CSP abierta solo a Analytics, las guías con el mismo aviso, una visita por
  * sección del panel y la privacidad que lo explica.
  */
@@ -18,7 +18,7 @@ import { vistaAyuda } from '../site/js/vistas.js';
 import { estadoPanel } from './ayudas-panel.js';
 
 const INDICE = readFileSync(new URL('../site/index.html', import.meta.url), 'utf8');
-const ANUNCIOS = readFileSync(new URL('../site/js/anuncios.js', import.meta.url), 'utf8');
+const CONSENTIMIENTO = readFileSync(new URL('../site/js/consentimiento.js', import.meta.url), 'utf8');
 const APP = readFileSync(new URL('../site/js/app.js', import.meta.url), 'utf8');
 const GA = 'G-AB12CD34EF';
 const ADS = { id: 'AW-123456789', conversion: 'AW-123456789/AbC-d_1' };
@@ -76,7 +76,7 @@ describe('Google Analytics en la portada (index.html)', () => {
   it('con él: la etiqueta y la CSP abierta a Analytics (gtag.js y los envíos de cada región), lo demás igual', () => {
     const html = ponerGoogleAnalytics(INDICE, GA);
     assert.match(html, /<meta name="escapadas-google-analytics" content="G-AB12CD34EF">/);
-    // El ID va en la etiqueta, no como <script>: lo carga anuncios.js al aceptar.
+    // El ID va en la etiqueta, no como <script>: lo carga consentimiento.js al aceptar.
     assert.doesNotMatch(html, /<script[^>]*googletagmanager/);
     const directivas = csp(html);
     assert.ok(directivas['script-src'].includes('https://*.googletagmanager.com'));
@@ -111,7 +111,7 @@ describe('Google Analytics en las guías para buscadores', () => {
     const { ruta, contenido } = unaGuia();
     const html = ponerAnaliticaGuia(contenido, GA);
     const raiz = '../'.repeat(ruta.split('/').length - 1);
-    assert.ok(html.includes(`<script src="${raiz}js/anuncios.js" defer></script>\n</head>`));
+    assert.ok(html.includes(`<script src="${raiz}js/consentimiento.js" defer></script>\n</head>`));
     assert.match(html, /<meta name="escapadas-google-analytics" content="G-AB12CD34EF">/);
     const directivas = csp(html);
     assert.deepEqual(directivas['script-src'], ["'self'", 'https://*.googletagmanager.com']);
@@ -121,10 +121,10 @@ describe('Google Analytics en las guías para buscadores', () => {
     assert.equal(ponerAnaliticaGuia(contenido, null), contenido);
   });
 
-  it('con Drive también: un solo anuncios.js y un solo «Cookies», en el orden que sea', () => {
+  it('con Drive también: un solo consentimiento.js y un solo «Cookies», en el orden que sea', () => {
     const { contenido } = unaGuia();
     for (const html of [ponerAnaliticaGuia(ponerDriveGuia(contenido, DRIVE), GA), ponerDriveGuia(ponerAnaliticaGuia(contenido, GA), DRIVE)]) {
-      assert.equal(veces(html, 'js/anuncios.js'), 1);
+      assert.equal(veces(html, 'js/consentimiento.js'), 1);
       assert.equal(veces(html, 'data-abrir-cookies'), 1);
       assert.match(html, /escapadas-drive/);
       assert.match(html, /escapadas-google-analytics/);
@@ -153,15 +153,15 @@ describe('Google Analytics en las guías para buscadores', () => {
   });
 });
 
-describe('la medición en la web (anuncios.js y app.js)', () => {
-  const entre = (desde, hasta) => ANUNCIOS.slice(ANUNCIOS.indexOf(desde), ANUNCIOS.indexOf(hasta));
+describe('la medición en la web (consentimiento.js y app.js)', () => {
+  const entre = (desde, hasta) => CONSENTIMIENTO.slice(CONSENTIMIENTO.indexOf(desde), CONSENTIMIENTO.indexOf(hasta));
 
   it('Analytics solo con su permiso, sin la visita automática y nunca para quien administra la web', () => {
     const activar = entre('function activar(', 'function retirar(');
     assert.match(activar, /const medir = Boolean\(analitica && acepta\.includes\('analytics'\) && !esPropietario\(\)\);/);
     assert.match(activar, /analytics_storage: medir \? 'granted' : 'denied'/);
     assert.match(activar, /gtag\('config', analitica, \{ send_page_view: false \}\);/);
-    assert.match(ANUNCIOS, /localStorage\.getItem\('escapadas:propietario'\) === '1'/);
+    assert.match(CONSENTIMIENTO, /localStorage\.getItem\('escapadas:propietario'\) === '1'/);
   });
 
   it('una visita por sección del panel, sin filtros ni búsquedas en la dirección', () => {
@@ -171,17 +171,17 @@ describe('la medición en la web (anuncios.js y app.js)', () => {
     assert.match(visita, /`\$\{location\.origin\}\$\{location\.pathname\}\$\{location\.search\}#\/\$\{vista\}`/);
     assert.match(visita, /if \(direccion === anterior\) return;/);
     assert.match(visita, /\.\.\.\(anterior \? \{ page_referrer: anterior \} : \{\}\)/);
-    assert.match(ANUNCIOS, /window\.addEventListener\('escapadas:vista', visita\);/);
+    assert.match(CONSENTIMIENTO, /window\.addEventListener\('escapadas:vista', visita\);/);
     // app.js avisa solo al cambiar de sección (filtrar no es otra visita).
     assert.match(APP, /if \(cambiaVista\) window\.dispatchEvent\(new CustomEvent\('escapadas:vista', \{ detail: vista \}\)\);/);
   });
 
   it('el clic en una oferta se mide con la web de destino, solo con permiso', () => {
-    assert.match(ANUNCIOS, /if \(midiendo\(\)\) \{\n\s*gtag\('event', 'clic_oferta', \{ send_to: analitica, web: oferta\.dataset\.clic,/);
+    assert.match(CONSENTIMIENTO, /if \(midiendo\(\)\) \{\n\s*gtag\('event', 'clic_oferta', \{ send_to: analitica, web: oferta\.dataset\.clic,/);
   });
 
   it('abrir, guardar, buscar y compartir: app.js lo avisa y solo se envía con permiso', () => {
-    assert.match(ANUNCIOS, /window\.addEventListener\('escapadas:medir', \(\{ detail \}\) => \{\n\s*if \(midiendo\(\) && detail\?\.evento\)/);
+    assert.match(CONSENTIMIENTO, /window\.addEventListener\('escapadas:medir', \(\{ detail \}\) => \{\n\s*if \(midiendo\(\) && detail\?\.evento\)/);
     for (const evento of ["medir('ver_oferta'", "medir('guardar_oferta'", "medir('search', { search_term: q.slice(0, 80) })", "medir('share'"]) assert.ok(APP.includes(evento), evento);
     // De la oferta, nada personal: la web, qué es, dónde y el precio.
     assert.match(APP, /const datosOferta = \(o\) => \(\{ web: o\.fuente, tipo: o\.tipo, destino: o\.lugar\?\.nombre \?\? '',/);

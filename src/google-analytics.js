@@ -3,7 +3,7 @@
  * despliegue (scripts/preparar-web.js): `"googleAnalytics": "G-XXXXXXXXXX"`, el ID de medición
  * del flujo de datos web (Administrar → Flujos de datos). No es un secreto: va en la página.
  *
- * Solo con permiso: va en el mismo aviso de cookies que Google Ads y Drive (site/js/anuncios.js)
+ * Solo con permiso: va en el mismo aviso de cookies que Google Ads y Drive (site/js/consentimiento.js)
  * y no se carga nada de Google hasta que el visitante acepta la medición. Vacío: no hay analítica.
  */
 const ID = /^G-[A-Z0-9]{4,}$/;
