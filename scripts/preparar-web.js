@@ -206,9 +206,10 @@ export function ponerGoogleAds(html, googleAds) {
  * otro dominio, la consola del navegador lo dice («Refused to connect…»).
  */
 const DRIVE_CONEXIONES = ['https://mn-tz.com', 'https://emrld.cc', 'https://www.travelpayouts.com'];
-function cspDrive(url) {
+/** Su script, sus estilos (los precarga del mismo sitio: sin style-src, «Unable to preload CSS») y sus llamadas. */
+export function cspDrive(url) {
   const { origin } = new URL(url);
-  return { 'script-src': [origin], 'connect-src': [origin, ...DRIVE_CONEXIONES] };
+  return { 'script-src': [origin], 'style-src': [origin], 'connect-src': [origin, ...DRIVE_CONEXIONES] };
 }
 
 /**
@@ -239,7 +240,8 @@ export function ponerDriveGuia(html, drive) {
   const raiz = html.match(/<link rel="stylesheet" href="([^"]*)css\/estilos\.css">/)?.[1];
   if (raiz == null) return html;
   // Sus previsualizaciones llevan sus propios estilos (en shadow DOM), como en la portada.
-  const conDrive = ajustarCsp(conAvisoCookies(html, raiz), { ...cspDrive(url), 'style-src': ["'unsafe-inline'"] }, true)
+  const csp = cspDrive(url);
+  const conDrive = ajustarCsp(conAvisoCookies(html, raiz), { ...csp, 'style-src': [...csp['style-src'], "'unsafe-inline'"] }, true)
     .replace(META_CSP, `$1\n<meta name="escapadas-drive" content="${url}">`);
   // El mismo aviso que el pie del panel (app.js): con Drive, tras aceptar, hay enlaces de afiliado.
   return conDrive.replace(PIE_GUIA, (todo, antes, cierre) => `${antes} ${AVISO_DRIVE} No cambia tu precio ni el orden de las ofertas.${cierre}`);
@@ -355,8 +357,8 @@ function entreMarcas(html, marca, contenido) {
  * La portada para quien no ejecuta el panel (bloque de src/paginas.js) y, con la dirección,
  * los datos estructurados de la web en el <head>. Se puede repetir sin duplicar nada.
  */
-export function ponerPortada(html, bloque, base = null) {
-  return entreMarcas(entreMarcas(html, 'portada-estatica', bloque), 'datos-estructurados', base ? `  ${estructuradosPortada(base)}` : '');
+export function ponerPortada(html, bloque, base = null, destacadas = []) {
+  return entreMarcas(entreMarcas(html, 'portada-estatica', bloque), 'datos-estructurados', base ? `  ${estructuradosPortada(base, destacadas)}` : '');
 }
 
 /**
@@ -502,9 +504,9 @@ export function prepararWeb({ dir = 'site', base = null, version = null, conHtac
   const rutaOfertas = path.join(dir, 'data', 'ofertas.json');
   const datosPanel = existsSync(rutaOfertas) ? JSON.parse(readFileSync(rutaOfertas, 'utf8')) : null;
   if (datosPanel?.origen && Array.isArray(datosPanel.ofertas)) {
-    const { portada } = generarPaginas(datosPanel, { base });
+    const { portada, destacadas } = generarPaginas(datosPanel, { base });
     const indice = path.join(dir, 'index.html');
-    writeFileSync(indice, ponerPortada(readFileSync(indice, 'utf8'), portada, base));
+    writeFileSync(indice, ponerPortada(readFileSync(indice, 'utf8'), portada, base, destacadas));
     hecho.push('portada para buscadores');
   }
   if (conHtaccess) {

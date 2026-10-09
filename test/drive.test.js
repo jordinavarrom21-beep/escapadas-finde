@@ -76,6 +76,8 @@ describe('Travelpayouts Drive en la portada (index.html)', () => {
     assert.doesNotMatch(html, /<script[^>]*emrldco/);
     const directivas = csp(html);
     assert.ok(directivas['script-src'].includes('https://emrldco.com'));
+    // Sin esto, la consola decía «Unable to preload CSS for https://emrldco.com/assets/tooltip-….css».
+    assert.ok(directivas['style-src'].includes('https://emrldco.com'), 'sus estilos');
     for (const origen of ['https://emrldco.com', 'https://mn-tz.com', 'https://emrld.cc', 'https://www.travelpayouts.com']) assert.ok(directivas['connect-src'].includes(origen), origen);
     assert.ok(directivas['script-src'].includes('https://cdnjs.cloudflare.com'));
     assert.ok(directivas['connect-src'].includes('https://photon.komoot.io'));
@@ -89,6 +91,7 @@ describe('Travelpayouts Drive en la portada (index.html)', () => {
     const otra = ponerDrive(una, 'https://otro-cdn.com/a.js?t=1');
     assert.ok(csp(otra)['script-src'].includes('https://otro-cdn.com'));
     assert.ok(!csp(otra)['script-src'].includes('https://emrldco.com'));
+    assert.ok(csp(otra)['style-src'].includes('https://otro-cdn.com') && !csp(otra)['style-src'].includes('https://emrldco.com'));
     assert.equal(ponerDrive(una, null), INDICE);
   });
 
@@ -114,7 +117,7 @@ describe('Travelpayouts Drive en las guías para buscadores', () => {
     assert.ok(directivas['connect-src'].includes('https://emrldco.com'));
     assert.ok(directivas['connect-src'].includes('https://www.travelpayouts.com'), 'su comprobación de dueño (editor visual)');
     // Las vistas previas de Drive traen sus estilos en línea; scripts en línea, ninguno.
-    assert.deepEqual(directivas['style-src'], ["'self'", "'unsafe-inline'"]);
+    assert.deepEqual(directivas['style-src'], ["'self'", 'https://emrldco.com', "'unsafe-inline'"], 'sus estilos y los de sus previsualizaciones');
     assert.ok(!directivas['script-src'].includes("'unsafe-inline'"));
     // El mismo aviso que el pie del panel (un solo texto, AVISO_DRIVE).
     assert.ok(html.includes(`<a href="#" data-abrir-cookies>Cookies</a>. ${AVISO_DRIVE} No cambia tu precio ni el orden de las ofertas.</p>`));

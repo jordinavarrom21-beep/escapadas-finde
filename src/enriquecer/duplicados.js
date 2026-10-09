@@ -11,6 +11,7 @@
 import { normalizarTexto } from '../util/xml.js';
 import { distanciaKm } from './geo.js';
 import { precioPorPersonaNoche } from './puntuacion.js';
+import { deWebDeChollos } from '../fuentes/chollos.js';
 
 export const ETIQUETA_DUPLICADA = 'duplicada';
 
@@ -96,6 +97,21 @@ function mismoSitio(a, b) {
 function valorComparable(oferta) {
   const noche = oferta.precioNoche ?? precioPorPersonaNoche(oferta);
   return noche ?? oferta.precio ?? Infinity;
+}
+
+/** Un precio comparable igual a otro (hasta 1 € o un 2 % de diferencia, lo que sea más). */
+const mismoPrecio = (a, b) => Math.abs(valorComparable(a) - valorComparable(b)) <= Math.max(1, 0.02 * valorComparable(b));
+
+/**
+ * La que queda a la vista de un grupo ya ordenado de más barata a más cara: la más barata; pero
+ * si es de una web de chollos y una web directa la tiene al mismo precio, la directa (el botón
+ * lleva a quien vende, no a quien la ha reenviado). Ni la nota ni el orden cambian por esto.
+ */
+function elegirVisible(ordenadas) {
+  const [primera] = ordenadas;
+  if (!deWebDeChollos(primera)) return ordenadas;
+  const directa = ordenadas.find((o) => !deWebDeChollos(o) && mismoPrecio(o, primera));
+  return directa ? [directa, ...ordenadas.filter((o) => o !== directa)] : ordenadas;
 }
 
 /** Lo que el panel necesita para comparar: web, precio, unidad, precio por persona y noche y enlace. */
@@ -218,7 +234,7 @@ export function marcarEquivalentes(ofertas, { webs = new Map() } = {}) {
   }
 
   for (const grupo of agrupar(ofertas)) {
-    const [mejor, ...resto] = [...grupo].sort((a, b) => valorComparable(a) - valorComparable(b));
+    const [mejor, ...resto] = elegirVisible([...grupo].sort((a, b) => valorComparable(a) - valorComparable(b)));
     // Dos ofertas de la misma web son cosas distintas (otra habitación, otro régimen): la
     // hermana de la más barata no se esconde como «duplicada», aunque haya una tercera web.
     const repetidas = resto.filter((oferta) => oferta.fuente !== mejor.fuente);

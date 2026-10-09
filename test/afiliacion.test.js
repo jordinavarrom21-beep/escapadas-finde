@@ -39,7 +39,7 @@ describe('afiliación', () => {
     assert.equal(o.urlReserva, 'https://www.civitatis.com/es/barcelona/visita/?aid=123');
     assert.equal(o.enlaces[0].afiliado, 'civitatis');
     const html = tarjeta(o, ctx);
-    assert.match(html, /href="https:\/\/www\.civitatis\.com\/es\/barcelona\/visita\/\?aid=123"[^>]*rel="sponsored noopener noreferrer"/);
+    assert.match(html, /href="https:\/\/www\.civitatis\.com\/es\/barcelona\/visita\/\?aid=123"[^>]*rel="sponsored noopener"/);
     assert.match(html, /Enlace de afiliado/);
     const ficha = contenidoFicha(o, ctx);
     assert.match(ficha, /Actividades en Civitatis <span class="suave">\(afiliado\)<\/span>/);

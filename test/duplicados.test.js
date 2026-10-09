@@ -40,6 +40,20 @@ describe('duplicados: marcarEquivalentes', () => {
     assert.deepEqual(cara.etiquetas, ['duplicada']);
   });
 
+  it('a igual precio, queda a la vista la web que la vende y no la de chollos que la reenvía', () => {
+    const chollo = casa({ fuente: 'chollometro', titulo: 'Hotel Mas Bassó', precio: 100 });
+    const directa = casa({ fuente: 'weekendesk', titulo: 'Mas Bassó 4*', precio: 101 });
+    marcarEquivalentes([chollo, directa]);
+    assert.deepEqual(directa.etiquetas, [], 'el botón lleva a Weekendesk');
+    assert.deepEqual(chollo.etiquetas, ['duplicada']);
+    // Si la de chollos es claramente más barata, se queda ella: es la mejor para quien busca.
+    const barata = casa({ fuente: 'chollometro', titulo: 'Hotel Can Puig', precio: 80 });
+    const otra = casa({ fuente: 'weekendesk', titulo: 'Can Puig', precio: 100 });
+    marcarEquivalentes([barata, otra]);
+    assert.deepEqual(barata.etiquetas, []);
+    assert.deepEqual(otra.etiquetas, ['duplicada']);
+  });
+
   it('compara por precio por persona y noche, no por precio a secas', () => {
     const dosNoches = casa({ fuente: 'atrapalo', titulo: 'Mas Bassó', precio: 180, unidad: 'total', noches: 2 });
     const unaNoche = casa({ fuente: 'weekendesk', titulo: 'Hotel Mas Bassó', precio: 100 });

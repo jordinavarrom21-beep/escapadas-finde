@@ -54,14 +54,14 @@ describe('coste total en el panel', async () => {
   const conCoche = { ...datos, coche: { consumoL100km: 6.5, precioLitro: 1.8 } };
   const e = { ...estado(), datos: conCoche };
 
-  it('las escapadas se pueden ordenar por coste total y las que no tienen total van al final', () => {
+  it('«Viaje más barato» ordena por persona y noche y las que no lo permiten van al final', () => {
     const { ofertas, costes } = buscarEscapadas(conCoche.ofertas, leerFiltrosEscapadas({ orden: 'total' }), contextoBusqueda(e));
-    const totales = ofertas.map((o) => costes.get(o.id).total);
+    const totales = ofertas.map((o) => costes.get(o.id).porPersonaNoche);
     const conTotal = totales.filter((t) => t != null);
     assert.ok(conTotal.length > 0, 'la fixture tiene ofertas con total');
     assert.deepEqual(conTotal, [...conTotal].sort((a, b) => a - b), 'de menor a mayor');
     assert.ok(totales.indexOf(null) === -1 || totales.slice(totales.indexOf(null)).every((t) => t == null), 'sin total, al final');
-    assert.match(resultadosEscapadas(e, { orden: 'total' }), /Ordenadas por lo que cuesta el viaje completo desde Barcelona para 3 personas/);
+    assert.match(resultadosEscapadas(e, { orden: 'total' }), /Ordenadas por lo que cuesta el viaje completo por persona y noche desde Barcelona para 3 personas/);
   });
 
   it('la tarjeta enseña el total y la ficha su desglose con lo estimado', () => {
@@ -70,7 +70,7 @@ describe('coste total en el panel', async () => {
     const ctx = ctxTarjetas(e);
     const html = tarjeta(primera, ctx);
     // El precio comparable: por persona (lo que ordena «Viaje más barato» y el presupuesto por persona) y el total del grupo.
-    assert.match(html, /class="dato-extra coste-total" title="[^"]*\d+\s€\/persona[^"]*La oferta la cobra la web[^]*?Viaje completo( estimado)?<\/span> <strong>(≈ )?\d+\s€<\/strong> <span class="coste-total__unidad">por persona<\/span> <span class="coste-total__grupo">\((≈ )?[\d.]+\s€ para 3 personas\)<\/span>/);
+    assert.match(html, /class="dato-extra coste-total" title="[^"]*\d+\s€\/persona[^"]*La oferta la cobra la web[^]*?Viaje completo( estimado)?<\/span> <strong>(≈ )?\d+\s€<\/strong> <span class="coste-total__unidad">por persona(?: · \d+ noches?)?<\/span> <span class="coste-total__grupo">\((≈ )?[\d.]+\s€ para 3 personas\)<\/span>/);
     // El desglose (barra y leyenda), solo en la ficha.
     assert.ok(!html.includes('coste__barra'));
     // Primero y en grande el precio de la oferta, rotulado con su web; debajo, el viaje completo.

@@ -42,7 +42,8 @@ describe('ordenar escapadas', () => {
 
   it('cada orden es monótono en lo que dice ordenar', () => {
     const casos = {
-      total: (r) => [r.ofertas.map((o) => r.costes.get(o.id).total), subiendo],
+      // «Viaje más barato»: por persona y noche, para comparar estancias de distinta duración.
+      total: (r) => [r.ofertas.map((o) => r.costes.get(o.id).porPersonaNoche), subiendo],
       persona: (r) => [r.ofertas.map((o) => r.costes.get(o.id).porPersona), subiendo],
       comodo: (r) => [r.ofertas.map((o) => r.desdeSalida.get(o.id)?.minutos), subiendo],
       precio: (r) => [r.ofertas.map((o) => o.precio), subiendo],

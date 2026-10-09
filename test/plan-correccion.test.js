@@ -18,8 +18,9 @@ import { WEBS_DE_CHOLLOS } from '../src/fuentes/chollos.js';
 import { definiciones, htmlPagina } from '../src/paginas.js';
 import { formatearToponimo } from '../src/util/toponimos.js';
 import { validarAjustes } from '../src/ajustes.js';
-import { costeViaje } from '../site/js/coste.js';
-import { esNovedad } from '../site/js/filtros.js';
+import { costeViaje, peajesDesde } from '../site/js/coste.js';
+import { buscarEscapadas, encajaNoches, esNovedad, leerFiltrosEscapadas, nochesFijadas } from '../site/js/filtros.js';
+import { cargarPeajes, problemasPeajes } from '../src/peajes.js';
 import { reglaChollazo } from '../site/js/vistas-info.js';
 import { AHORA, AJUSTES, oferta } from './ayudas.js';
 
@@ -236,5 +237,63 @@ describe('plan: legal y contenido de terceros', () => {
     const opciones = { raiz: '../', generado: AHORA.toISOString(), total: 0 };
     assert.match(htmlPagina(d, [], { ...opciones, contacto: 'hola@escapadasfinde.com' }), /<a href="mailto:hola@escapadasfinde\.com">Contacto<\/a>/);
     assert.ok(!htmlPagina(d, [], opciones).includes('mailto:'));
+  });
+});
+
+describe('plan: viaje completo con la misma base', () => {
+  const coche = { consumoL100km: 6.5, precioLitro: 1.5 };
+  const distancia = { km: 100, kmCoche: 150, minutos: 120 };
+
+  it('da el coste por persona y noche para comparar estancias de distinta duración', () => {
+    const paquete = costeViaje(oferta({ tipo: 'paquete', precio: 43, unidad: 'pp', noches: 1 }), { viajeros: 2, noches: 2, distancia, coche });
+    const casa = costeViaje(oferta({ tipo: 'hotel', precio: 62, unidad: 'pp/noche' }), { viajeros: 2, noches: 2, distancia, coche });
+    assert.equal(paquete.noches, 1);
+    assert.equal(casa.noches, 2);
+    assert.equal(paquete.porPersonaNoche, paquete.porPersona);
+    assert.equal(casa.porPersonaNoche, Math.round((casa.porPersona / 2) * 100) / 100);
+    assert.equal(costeViaje(oferta({ tipo: 'paquete', precio: 300, unidad: 'pp' }), { distancia, coche }).porPersonaNoche, null, 'sin saber las noches, no');
+  });
+
+  it('«Viaje más barato» ordena por persona y noche y, con noches fijadas, primero las que encajan', () => {
+    const ctx = { viajeros: 2, noches: 2, origen: { nombre: 'Barcelona', lat: 41.39, lon: 2.17 }, coche };
+    const lugar = { nombre: 'Vic', lat: 41.93, lon: 2.25 };
+    const corta = oferta({ tipo: 'paquete', precio: 60, unidad: 'pp', noches: 1, lugar, alojamiento: 'hotel' });
+    const larga = oferta({ tipo: 'paquete', precio: 100, unidad: 'pp', noches: 2, lugar, alojamiento: 'hotel' });
+    const porNoche = oferta({ tipo: 'hotel', precio: 45, unidad: 'pp/noche', lugar, alojamiento: 'hotel' });
+    const orden = (params) => buscarEscapadas([corta, larga, porNoche], leerFiltrosEscapadas({ orden: 'total', ...params }), ctx).ofertas.map((o) => o.id);
+    // 60/1 noche es más caro por noche que 100/2 y que 45 por noche.
+    assert.deepEqual(orden({}), [porNoche.id, larga.id, corta.id]);
+    assert.deepEqual(orden({ desde: '2026-10-16', hasta: '2026-10-17' }), [porNoche.id, corta.id, larga.id], 'con 1 noche fijada, primero las de 1 noche (y las de precio por noche)');
+    assert.equal(nochesFijadas(leerFiltrosEscapadas({ desde: '2026-10-16', hasta: '2026-12-25' })), null, 'un periodo largo no fija noches');
+    assert.equal(encajaNoches(larga, 3, { oMas: true }), false);
+  });
+
+  it('peajes conocidos: el Túnel del Cadí hacia Andorra desde Barcelona se nombra junto a la gasolina', () => {
+    const peajes = cargarPeajes(new URL('../config/peajes.json', import.meta.url), () => {});
+    assert.deepEqual(problemasPeajes(peajes), []);
+    const arinsal = oferta({ tipo: 'hotel', precio: 30, unidad: 'pp/noche', lugar: ANDORRA.lugar ? { ...ANDORRA.lugar, codigoPais: 'AD' } : null });
+    const desdeBarcelona = peajesDesde(peajes, { lat: 41.3874, lon: 2.1686 });
+    const c = costeViaje(arinsal, { distancia, coche, peajes: desdeBarcelona });
+    assert.deepEqual(c.aviso, ['+ peaje del Túnel del Cadí si vas por él (no incluido)']);
+    assert.ok(!c.supuestos.includes('sin peajes'));
+    assert.ok(c.total != null, 'sin importe conocido, el total se da igual (y se avisa)');
+    // Desde Girona la ruta no pasa por el Cadí.
+    assert.deepEqual(peajesDesde(peajes, { lat: 41.98, lon: 2.82 }), []);
+    // Con importe, se suma ida y vuelta.
+    const conImporte = costeViaje(arinsal, { distancia, coche, peajes: [{ ...desdeBarcelona[0], importe: 13 }] });
+    assert.equal(conImporte.partes.at(-1).eur, 26);
+    assert.equal(Math.round(conImporte.total - c.total), 26);
+    // Lejos de sus zonas, nada.
+    assert.deepEqual(costeViaje(oferta({ tipo: 'hotel', precio: 30, unidad: 'pp/noche', lugar: { nombre: 'Sitges', lat: 41.23, lon: 1.81 } }), { distancia, coche, peajes: desdeBarcelona }).aviso, []);
+    assert.equal(problemasPeajes([{ nombre: 'X', importe: -1, desde: {}, zonas: [] }]).length, 3);
+  });
+
+  it('guía «sin coche»: primero las que incluyen el transporte (con total) y la intro no promete lo que no hay', () => {
+    const datos = { origen: { nombre: 'Barcelona', lat: 41.39, lon: 2.17 }, ofertas: [] };
+    const guia = definiciones(datos).find((d) => d.ruta === 'escapadas/sin-coche');
+    assert.match(guia.intro, /^Se llega sin coche\. El transporte va aparte salvo que la oferta diga que está incluido\./);
+    const enTren = oferta({ tipo: 'escapada', transporte: 'tren', precio: 40, unidad: 'pp/noche', alojamiento: 'hotel' });
+    const paquete = oferta({ tipo: 'paquete', transporte: 'avion', precio: 300, unidad: 'pp', noches: 2, alojamiento: 'hotel' });
+    assert.deepEqual([enTren, paquete].sort(guia.orden).map((o) => o.id), [paquete.id, enTren.id]);
   });
 });

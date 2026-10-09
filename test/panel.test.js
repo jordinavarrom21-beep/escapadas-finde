@@ -649,7 +649,7 @@ describe('comparar precios del mismo alojamiento', () => {
 
   it('la tarjeta dice si es la más barata, si hay otra web más barata o si cuesta lo mismo', () => {
     assert.match(tarjeta(casa({ equivalentes: [otra] }), ctx),
-      /La más barata de 2 webs<\/strong>: en <a href="https:\/\/www\.escapadarural\.com[^"]*" target="_blank" rel="noopener noreferrer">Escapada Rural<\/a>, 40\s€ \(13\s€ más\)/);
+      /La más barata de 2 webs<\/strong>: en <a href="https:\/\/www\.escapadarural\.com[^"]*" target="_blank" rel="noopener">Escapada Rural<\/a>, 40\s€ \(13\s€ más\)/);
     const cara = casa({ fuente: 'escapadarural', id: 'escapadarural:2', precio: 40, precioNoche: 40, equivalentes: [{ ...otra, id: 'tuscasasrurales:1', fuente: 'tuscasasrurales', precio: 27, precioNoche: 27 }] });
     assert.match(tarjeta(cara, ctx), /Más barata en <a[^>]*>Tus Casas Rurales<\/a><\/strong>: 27\s€ por persona y noche \(13\s€ menos\)/);
     assert.match(tarjeta(casa({ equivalentes: [{ ...otra, precio: 27.4, precioNoche: 27.4 }] }), ctx), /Mismo precio en <a[^>]*>Escapada Rural<\/a>/);
@@ -669,7 +669,7 @@ describe('comparar precios del mismo alojamiento', () => {
     assert.deepEqual(filas, [['Tus Casas Rurales', 'comparador__fila--mejor'], ['Escapada Rural', 'comparador__fila--actual']]);
     assert.match(comparador, /Más barata<\/span>/);
     assert.match(comparador, /40\s€<\/strong> <span class="comparador__dif">\+13\s€<\/span>/);
-    assert.match(comparador, /href="https:\/\/www\.tuscasasrurales\.com\/cal-saragossa\?aff=1" target="_blank" rel="sponsored noopener noreferrer"[^>]*>Ver <span class="suave">\(afiliado\)<\/span>/);
+    assert.match(comparador, /href="https:\/\/www\.tuscasasrurales\.com\/cal-saragossa\?aff=1" target="_blank" rel="sponsored noopener"[^>]*>Ver <span class="suave">\(afiliado\)<\/span>/);
     assert.match(comparador, /En <strong>Tus Casas Rurales<\/strong> ahorras ≈ 13\s€ por persona y noche \(≈ 52\s€ para 2 personas y 2 noches\)/);
     assert.match(html, /Los enlaces marcados «\(afiliado\)» son de afiliado/, 'el aviso de afiliado también cuenta el comparador');
 

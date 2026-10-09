@@ -30,6 +30,8 @@ function costeFicha(o, ctx) {
   // Cada parte: qué es y cuánto en una línea; debajo, la cuenta con la que sale.
   const filas = c.partes.map((p, i) => `<li class="coste__parte"><span class="coste__concepto"><i class="coste__muestra coste__muestra--${claseParte(p, i)}" aria-hidden="true"></i>${esc(p.concepto)}${p.estimado ? ' <span class="etiqueta-estimado">estimado</span>' : ''}</span><span class="coste__importe">${p.estimado ? '≈ ' : ''}${euros(p.eur)}</span><span class="coste__calculo">${esc(p.calculo ?? p.detalle)}</span></li>`).join('');
   const falta = c.falta.length ? `<p class="coste__falta">Para dar un total falta saber ${esc(enumerar(c.falta))}.</p>` : '';
+  // «+ peaje del Túnel del Cadí si vas por él (no incluido)»: junto a la gasolina, sin sumarlo.
+  const aviso = c.aviso?.length ? `<p class="coste__falta">${esc(c.aviso.join(' · '))}</p>` : '';
   const supuestos = c.supuestos.length ? `<p class="suave">Supone: ${esc(c.supuestos.join('; '))}. Desde ${esc(ctx.desde ?? '')}.</p>` : '';
   const gasolina = c.partes.some((p) => p.concepto.startsWith('Gasolina')) ? `<p class="suave">${esc(textoPrecioLitro(ctx.coche))}</p>` : '';
   const detalle = [contar(c.viajeros, 'persona'), c.noches && contar(c.noches, 'noche'), c.viajeros > 1 && `${euros(Math.round(c.porPersona))} por persona`].filter(Boolean).join(' · ');
@@ -39,7 +41,7 @@ function costeFicha(o, ctx) {
   return `<section class="ficha__coste" aria-labelledby="ficha-coste-titulo">
   <h3 id="ficha-coste-titulo">${icono('cartera')}Coste del viaje</h3>
   ${grande}
-  ${filas ? `<ul class="coste">${filas}</ul>` : ''}${gasolina}
+  ${filas ? `<ul class="coste">${filas}</ul>` : ''}${gasolina}${aviso}
   ${falta}${supuestos}
   <p><button type="button" class="boton boton--suave boton--mini" data-mi-viaje>Cambiar salida, viajeros o noches</button></p>
 </section>`;

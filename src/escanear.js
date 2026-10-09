@@ -14,6 +14,7 @@ import { cargarEstado, cargarJson, guardarJson } from './almacen.js';
 import { cargarAjustes } from './ajustes.js';
 import { cargarVigilados } from './vigilados.js';
 import { cargarAfiliacion } from './afiliacion.js';
+import { cargarPeajes } from './peajes.js';
 import { MODULOS, escanear, urlPanel } from './core/scan-pipeline.js';
 import { FUENTES } from './fuentes/index.js';
 import { separarDatosPanel } from './panel-datos.js';
@@ -27,6 +28,7 @@ const RUTAS = {
   ajustes: 'config/ajustes.json',
   vigilados: 'config/vigilados.json',
   afiliacion: 'config/afiliacion.json',
+  peajes: 'config/peajes.json',
   estado: 'data/estado.json',
   cache: 'data/cache.json',
   historial: 'data/historial.json',
@@ -167,6 +169,7 @@ async function principal() {
     ajustes,
     vigilados,
     afiliacion,
+    peajes: cargarPeajes(ruta('peajes')),
     // cargarEstado migra, valida y, si hace falta, recupera la copia anterior.
     estado: cargarEstado(ruta('estado')),
     cache: new Cache(leerDatos(ruta('cache'), {})),

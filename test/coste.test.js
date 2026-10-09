@@ -19,7 +19,9 @@ describe('coste del viaje completo', () => {
     assert.equal(c.estimado, 29.25);
     assert.deepEqual(c.falta, []);
     assert.ok(c.supuestos.some((s) => s.startsWith('2 noches (la oferta no lo fija)')));
-    assert.ok(c.supuestos.some((s) => /sin peajes ni aparcamiento/.test(s)));
+    assert.ok(c.supuestos.some((s) => /sin aparcamiento/.test(s)));
+    assert.ok(c.supuestos.includes('sin peajes'), 'sin peajes conocidos en la ruta');
+    assert.deepEqual(c.aviso, []);
     assert.equal(resumenCoste(c), '≈ 269 € en total para 4 personas · 67 €/persona');
   });
 

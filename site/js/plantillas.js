@@ -338,8 +338,13 @@ export function botonDescartar(o) {
   return `<button type="button" class="boton-icono boton-icono--mini boton-descartar" data-descartar="${esc(o.id)}" title="Ocultar esta oferta" aria-label="Ocultar esta oferta: ${esc(o.titulo)}">${icono('cerrar')}</button>`;
 }
 
-/** Un enlace pagado (afiliado o patrocinado) lleva rel="sponsored", como piden los buscadores. */
-export const relEnlace = (pagado) => (pagado ? 'sponsored noopener noreferrer' : 'noopener noreferrer');
+/**
+ * Un enlace pagado (afiliado o patrocinado) lleva rel="sponsored", como piden los buscadores. Sin
+ * «noreferrer»: la web de destino ve que la visita viene de aquí (solo el dominio, por la
+ * Referrer-Policy), lo que cuenta al pedir sus programas de afiliación. «noopener» se queda.
+ * Con Travelpayouts Drive aceptado, anuncios.js añade «sponsored» a todos (Drive los convierte).
+ */
+export const relEnlace = (pagado) => (pagado ? 'sponsored noopener' : 'noopener');
 
 /** Atributos para contar el clic (proveedor, tipo de enlace y tipo de oferta), sin datos personales. */
 const atributosClic = (o, afiliado) => ` data-clic="${esc(o.fuente)}" data-clic-tipo="${afiliado ? 'afiliado' : o.patrocinada ? 'patrocinado' : 'normal'}" data-clic-oferta="${esc(o.tipo)}"`;
@@ -697,6 +702,7 @@ export function textoComprobada(o, ctx, { corto = false } = {}) {
 /** El coste del viaje completo con tu salida, viajeros y noches (coste.js). */
 export const costeDe = (o, ctx) => costeViaje(o, {
   viajeros: ctx.viajeros ?? undefined, noches: ctx.noches ?? undefined, distancia: (ctx.distanciasCoste ?? ctx.distancias)?.get(o.id), coche: ctx.coche,
+  peajes: ctx.peajes ?? [],
 });
 
 /** «Alojamiento 240 € + Gasolina ≈ 29 € (estimado)» para el título de la línea del total. */
@@ -707,14 +713,16 @@ const desgloseCorto = (c) => c.partes.map((p) => `${p.concepto} ${p.estimado ? '
  * escaneo (solo desde su origen), y si tampoco, nada.
  */
 /**
- * Lo que se ha supuesto, en corto, para la tarjeta: «Desde Barcelona, en coche · 2 noches».
- * Las noches solo si las pone tu viaje (la oferta no las fija).
+ * Lo que se ha supuesto, en corto, para la tarjeta: «Desde Barcelona, en coche · las noches de tu
+ * viaje» (esto último si la oferta no fija las noches y se cuentan las tuyas).
  */
 function supuestosCortos(o, c, ctx) {
   const enCoche = c.partes.some((p) => p.concepto.startsWith('Gasolina'));
   const desde = ctx.desde ? `Desde ${ctx.desde}${enCoche ? ', en coche' : ''}` : enCoche ? 'En coche' : '';
-  const noches = !o.noches && c.noches ? contar(c.noches, 'noche') : '';
-  return [desde, noches].filter(Boolean).join(' · ');
+  const noches = !o.noches && c.noches ? 'las noches de tu viaje' : '';
+  // «+ peaje del Túnel del Cadí» (config/peajes.json), sin el «si vas por él (no incluido)».
+  const peajes = (c.aviso ?? []).map((a) => a.replace(/ si vas por él \(no incluido\)$/, ''));
+  return [desde, noches, ...peajes].filter(Boolean).join(' · ');
 }
 
 /**
@@ -733,9 +741,11 @@ function lineaCoste(o, ctx) {
   const titulo = `${resumenCoste(c)}. ${desgloseCorto(c)}. La oferta la cobra la web que la publica; el resto es una estimación. Supone: ${c.supuestos.join('; ')}.`;
   const supuestos = supuestosCortos(o, c, ctx);
   const aprox = c.estimado ? '≈ ' : '';
+  // Las noches junto al total: «≈ 43 € por persona · 1 noche» no se compara a ciegas con uno de 2.
+  const noches = c.noches ? ` · ${contar(c.noches, 'noche')}` : '';
   const porPersona = c.viajeros > 1
-    ? `<strong>${aprox}${esc(euros(Math.round(c.porPersona)))}</strong> <span class="coste-total__unidad">por persona</span> <span class="coste-total__grupo">(${aprox}${esc(euros(Math.round(c.total)))} para ${esc(contar(c.viajeros, 'persona'))})</span>`
-    : `<strong>${aprox}${esc(euros(Math.round(c.total)))}</strong>`;
+    ? `<strong>${aprox}${esc(euros(Math.round(c.porPersona)))}</strong> <span class="coste-total__unidad">por persona${esc(noches)}</span> <span class="coste-total__grupo">(${aprox}${esc(euros(Math.round(c.total)))} para ${esc(contar(c.viajeros, 'persona'))})</span>`
+    : `<strong>${aprox}${esc(euros(Math.round(c.total)))}</strong>${noches ? ` <span class="coste-total__unidad">${esc(noches.slice(3))}</span>` : ''}`;
   return `<div class="dato-extra coste-total" title="${esc(titulo)}">
     <p class="coste-total__cifra"><span class="coste-total__etiqueta">Viaje completo${c.estimado ? ' estimado' : ''}</span> ${porPersona}</p>
     ${supuestos ? `<span class="coste-total__supuestos">${esc(supuestos)}</span>` : ''}

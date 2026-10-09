@@ -434,7 +434,7 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 
 /* ── Portada ──────────────────────────────────────────────────────────────── */
 
-.portada .titulo-vista { margin: 0; font-size: clamp(2rem, 4.4vw, 3.2rem); line-height: 1.02; letter-spacing: -0.035em; }
+.portada .titulo-vista { margin: 0; font-size: clamp(1.8rem, 3.8vw, 2.7rem); line-height: 1.05; letter-spacing: -0.03em; }
 .portada .titulo-vista em { font-style: normal; color: var(--acento); }
 
 .buscador-finde {
@@ -1550,7 +1550,7 @@ body:has([data-plegable-movil][open]) .barra-comparar [data-abrir-filtros] { dis
 /* Inicio: «¿Qué buscas?» con tres opciones grandes, y lo demás plegado debajo. */
 /* Al ancho de la página, como «Lo mejor para este finde» de debajo (antes se quedaba más estrecho). */
 .portada { display: grid; gap: 16px; }
-.portada__intro { margin: -8px 0 4px; color: var(--texto-suave); font-size: 1rem; }
+.portada__intro { margin: -6px 0 4px; color: var(--texto); font-size: 1.15rem; font-weight: 600; }
 /* Tu viaje, una sola vez: «Barcelona · 2 personas · 2 noches» con «Cambiar». */
 .viaje-resumen {
   justify-self: start; display: inline-flex; align-items: center; gap: 10px; max-width: 100%; min-height: 48px;
