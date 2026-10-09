@@ -193,6 +193,11 @@ export function vistaAyuda(e) {
   // Una sola cifra en toda la web: las webs del registro que se consultan (Estado, portada, guías y metas).
   const webs = resumenFuentes(e.datos.fuentes ?? []).activas;
   const nombresWebs = (e.datos.fuentes ?? []).filter((f) => !['desactivada', 'bloqueada'].includes(f.estado)).map((f) => f.nombre);
+  // Con APIFY_TOKEN, parte de los datos de Google llegan a través de Apify (src/util/apify.js): se dice.
+  const conApify = (e.datos.fuentes ?? []).some((f) => f.id === 'googleflights' && (f.estado === 'ok' || f.ultimoOk));
+  const deApify = conApify
+    ? ' Los vuelos de Google Flights, las notas de Google Maps de los alojamientos cuya web no publica opiniones y los precios de Google Hoteles de la ficha no los lee esta web: llegan a través de Apify, un proveedor de datos externo.'
+    : '';
   const pregunta = (titulo, cuerpo) => `<details class="ayuda-pregunta"><summary>${titulo}</summary><div>${cuerpo}</div></details>`;
   const nota = QUE_MIDE_LA_NOTA.replace(/^Lo bueno que es como chollo: /, 'Cuenta ').replace(/\.$/, '');
   return `<h1 class="titulo-vista" tabindex="-1">Cómo funciona</h1>
@@ -208,10 +213,10 @@ export function vistaAyuda(e) {
 </section>
 <section class="seccion">
   <h2 class="subtitulo">Preguntas frecuentes</h2>
-  ${pregunta('¿De dónde salen las ofertas?', `<p>De webs de viajes y comunidades de chollos públicas. Solo se leen las páginas que esas webs permiten leer. Cada oferta dice en qué web está publicada y cuándo se vio allí por última vez; si su web no la ha vuelto a mostrar en el tiempo previsto, sale como «Sin confirmar».</p><p>${esc(enumerar(nombresWebs))}. <a href="#/fuentes">Estado de cada web</a></p>`)}
+  ${pregunta('¿De dónde salen las ofertas?', `<p>De webs de viajes y comunidades de chollos públicas. De ellas solo se leen las páginas que permiten leer.${deApify} Cada oferta dice en qué web está publicada y cuándo se vio allí por última vez; si su web no la ha vuelto a mostrar en el tiempo previsto, sale como «Sin confirmar».</p><p>${esc(enumerar(nombresWebs))}. <a href="#/fuentes">Estado de cada web</a></p>`)}
   ${pregunta('¿Qué es el «Valor» de cada oferta?', `<p>Un valor de 0 a 100 de lo buena que es la oferta como chollo (no es la opinión de los clientes, que va de 0 a 10). ${esc(nota)}.</p>`)}
   ${pregunta('¿Cuándo es un «Chollazo»?', reglaChollazo(e.datos.chollazos))}
-  ${pregunta('¿Qué significan las estrellas y las opiniones?', '<p>«★ 8,2 Muy bien · 266 opiniones» es la valoración de otros clientes en la web de la oferta, de 0 a 10. Las estrellas (4★) son la categoría del hotel.</p>')}
+  ${pregunta('¿Qué significan las estrellas y las opiniones?', '<p>«★ 8,2 Muy bien · 266 opiniones» es la valoración de otros clientes en la web de la oferta, de 0 a 10. Si esa web no publica opiniones, puede ser la de Google Maps (sus estrellas de 1 a 5, pasadas a 0–10), y entonces dice «en Google». Las estrellas (4★) son la categoría del hotel.</p>')}
   ${pregunta('¿Por qué hay precios «por persona», «por noche» o «en total»?', '<p>Cada web publica el precio a su manera. Por eso cada oferta dice a qué corresponde y, cuando se puede, se pasa a <strong>por persona y noche</strong> para compararlas, y se calcula <strong>el viaje completo</strong> para tus viajeros, con la gasolina estimada si vas en coche.</p>')}
   ${pregunta('¿Las fechas son exactas?', '<p>Muchas ofertas son de <strong>fechas flexibles</strong>: valen cualquier día hasta que caducan, según disponibilidad. Las de <strong>fechas cerradas</strong> dicen el día exacto. Si buscas unas fechas, los buscadores (y algunas webs) se abren ya con ellas.</p>')}
   ${pregunta('¿Me avisa cuando salga algo que me interese?', '<p>En la web, sin email: monta tu búsqueda y pulsa «Guardar búsqueda». Cuando vuelvas, <a href="#/mis">Guardados</a> te dirá cuántas ofertas nuevas la cumplen (y el número del menú también).</p>')}

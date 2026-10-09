@@ -10,6 +10,7 @@ import escapadarural from './escapadarural.js';
 import ferryhopper from './ferryhopper.js';
 import flixbus from './flixbus.js';
 import fly4free from './fly4free.js';
+import googleflights from './googleflights.js';
 import grandvalira from './grandvalira.js';
 import guruwalk from './guruwalk.js';
 import holidayguru from './holidayguru.js';
@@ -40,7 +41,7 @@ export const FUENTES = [
   // Actividades y experiencias
   civitatis, guruwalk,
   // Transporte
-  wizzair, volotea, ouigo, flixbus, ferryhopper, renfe, ryanair,
+  wizzair, googleflights, volotea, ouigo, flixbus, ferryhopper, renfe, ryanair,
   // Comunidades y alertas
   chollometro, fly4free, buzon,
   // Canales públicos de Telegram

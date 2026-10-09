@@ -69,10 +69,33 @@
     "modelo": "claude-opus-5-5",
     "maxPorEscaneo": 40
   },
+  "apify": {
+    "presupuestoMensualUsd": 4.5,
+    "googleFlights": {
+      "aeropuertos": ["BCN"],
+      "findes": 6,
+      "destinosPorConsulta": 25,
+      "maxUsdPorConsulta": 0.01
+    },
+    "googleMaps": {
+      "activo": true,
+      "maxPorEscaneo": 5,
+      "maxPorDia": 10
+    },
+    "googleHoteles": {
+      "activo": true,
+      "maxPorDia": 2,
+      "diasValidez": 7
+    }
+  },
   "fuentes": {
     "wizzair": {
       "activa": true,
       "intervaloMin": 180
+    },
+    "googleflights": {
+      "activa": true,
+      "intervaloMin": 1440
     },
     "ryanair": {
       "activa": false,

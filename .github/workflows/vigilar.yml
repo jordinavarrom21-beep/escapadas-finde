@@ -100,6 +100,9 @@ jobs:
           TICKETMASTER_KEY: ${{ secrets.TICKETMASTER_KEY }}
           # Opcional: con tu clave de la API de Awin, se activan solos los programas en los que te acepten (src/awin.js).
           AWIN_API_TOKEN: ${{ secrets.AWIN_API_TOKEN }}
+          # Opcional y de pago (con tope mensual, config/ajustes.json → apify): vuelos de Google Flights,
+          # notas de Google Maps y precios de Google Hoteles a través de Apify (src/util/apify.js).
+          APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
           # Tu dominio (variable del repositorio, no secreto): enlaces de los emails, sitemap y robots.txt.
           PANEL_URL: ${{ vars.PANEL_URL }}
         run: npm run escanear -- ${{ inputs.forzar && '--forzar' || '' }}

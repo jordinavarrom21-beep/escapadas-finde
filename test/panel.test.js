@@ -904,3 +904,60 @@ describe('mis cosas: búsquedas guardadas que avisan', () => {
     assert.match(html, new RegExp(`data-ficha="${una.id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`));
   });
 });
+
+describe('datos de Google (Apify): Google Flights, notas de Google Maps y precios de Google Hoteles', () => {
+  const base = porId('chollometro:besalu-casa-rural-para-6-personas-por-18');
+  const fuentes = new Map([['muchoviaje', 'Muchoviaje'], ['googleflights', 'Google Flights']]);
+  const ctx = { temas, fuentes, favoritos: new Set(), historial: {}, viajeros: 2, noches: 2, distancias: new Map(), desde: origen.nombre };
+  const hotel = (campos) => ({
+    ...base, tipo: 'hotel', fuente: 'muchoviaje', id: 'muchoviaje:1', titulo: 'Guitart Central Park Aqua Resort', precio: 70, unidad: 'pp/noche',
+    precioNoche: 70, url: 'https://www.muchoviaje.com/hotel/guitart', urlReserva: null, afiliado: null, patrocinada: null,
+    enlaces: [], equivalentes: [], establecimiento: 'Guitart Central Park Aqua Resort', alojamiento: 'hotel', ...campos,
+  });
+
+  it('una nota de Google Maps dice que es de Google y enlaza a su ficha en Google Maps', () => {
+    const url = 'https://www.google.com/maps/search/?api=1&query=Guitart&query_place_id=ChIJASGBSzUXuxIRO5_rHuyEPAM';
+    const o = hotel({ valoracion: { nota: 8, n: 4091, fuente: 'google', url } });
+    const html = contenidoFicha(o, ctx);
+    assert.match(html, /4091 opiniones de clientes en Google Maps\./);
+    assert.match(html, /4 de 5 estrellas; Muchoviaje no publica opiniones de esta oferta/);
+    assert.match(html, /href="https:\/\/www\.google\.com\/maps\/search\/\?api=1&amp;query=Guitart[^"]*"[^>]*>Ver opiniones en Google Maps/);
+    assert.ok(!/Leer opiniones en Google</.test(html), 'sin el enlace repetido a Google');
+    assert.match(tarjeta(o, ctx), /title="Valoración de los clientes en Google Maps\.[^"]*"[^]*4091 opiniones en Google/);
+    // La nota de la propia web se sigue presentando como antes.
+    assert.match(contenidoFicha(hotel({ valoracion: { nota: 8.6, n: 12 } }), ctx), /12 opiniones de clientes en Muchoviaje\./);
+  });
+
+  it('los precios de Google Hoteles salen en «Comparar precios» como referencia, aunque no haya otras webs', () => {
+    const preciosGoogle = {
+      fecha: '2026-10-16', adultos: 2, minimo: 63,
+      proveedores: [{ nombre: 'Super.com', precio: 63, oficial: false }, { nombre: 'Booking.com', precio: 76, oficial: false }, { nombre: 'Guitart Hotels', precio: 89, oficial: true }],
+    };
+    const html = contenidoFicha(hotel({ preciosGoogle }), ctx);
+    const comparador = html.slice(html.indexOf('class="comparador"'), html.indexOf('</section>', html.indexOf('class="comparador"')));
+    assert.match(comparador, /En <strong>Google Hoteles<\/strong>, una noche en este hotel el vie 16 oct para 2 adultos cuesta desde <strong>63\s€<\/strong>/);
+    assert.match(comparador, /<li>Booking\.com: <strong>76\s€<\/strong><\/li>/);
+    assert.match(comparador, /<li>Guitart Hotels \(web oficial\): <strong>89\s€<\/strong><\/li>/);
+    assert.match(comparador, /Es una referencia: esta oferta puede ser para otras fechas o incluir más cosas/);
+    assert.ok(!/comparador__google/.test(contenidoFicha(hotel({}), ctx)), 'sin precios, nada');
+    const conEnlaces = contenidoFicha(hotel({ preciosGoogle, enlaces: [{ etiqueta: 'Este alojamiento en Booking', url: 'https://www.booking.com/searchresults.es.html?ss=Guitart', grupo: 'este-alojamiento' }] }), ctx);
+    assert.match(conEnlaces, /Búscalo también con tus fechas en:/, 'con precios de Google no dice «Solo lo hemos visto en…»');
+  });
+
+  it('un vuelo de Google Flights enseña el día, la duración y las escalas, sin una hora vacía', () => {
+    const vuelo = {
+      ...base, id: 'googleflights:BCN-PMI:2026-10-16:2026-10-18', fuente: 'googleflights', tipo: 'vuelo', titulo: 'Mallorca', precio: 36, unidad: 'i/v',
+      url: 'https://www.google.com/travel/flights/search?tfs=x', enlaces: [], equivalentes: [], establecimiento: null, valoracion: null,
+      lugar: { nombre: 'Mallorca', pais: 'España', iata: 'PMI', lat: 39.69, lon: 3.01 }, fechas: { salida: '2026-10-16', vuelta: '2026-10-18' },
+      vuelo: {
+        origen: 'BCN', destino: 'PMI', ida: { salida: '2026-10-16', escalas: 0, duracionMin: 60 }, vuelta: { salida: '2026-10-18' },
+        consultaId: 'BCN:2026-10-16:2026-10-18:normal', horarioIdeal: false, patron: 'vie-dom', nuevaRuta: false, directo: true, aerolinea: 'Ryanair',
+      },
+    };
+    const html = tarjeta(vuelo, ctx);
+    assert.match(html, /<dt>Ida<\/dt><dd>vie 16 oct · 1 h · <span class="suave">Directo<\/span><\/dd>/);
+    assert.match(html, /<dt>Vuelta<\/dt><dd>dom 18 oct<\/dd>/);
+    assert.ok(!/<strong><\/strong>/.test(html), 'sin hora no queda un hueco');
+    assert.match(html, /<p class="billete__aerolinea suave">Ryanair<\/p>/);
+  });
+});

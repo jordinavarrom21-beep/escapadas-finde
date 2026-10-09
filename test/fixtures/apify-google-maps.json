@@ -1,0 +1,52 @@
+[
+  {
+    "searchString": "Guitart Central Park Aqua Resort, Lloret de Mar",
+    "rank": 1,
+    "title": "Guitart Central Park Aqua Resort",
+    "categoryName": "Hotel",
+    "categories": [
+      "Hotel",
+      "Parque acuático"
+    ],
+    "address": "Carrer de Constantí Ribalaigua, 7, 17310 Lloret de Mar, Girona, España",
+    "city": "Lloret de Mar",
+    "postalCode": "17310",
+    "state": "Girona",
+    "countryCode": "ES",
+    "location": {
+      "lat": 41.6985995,
+      "lng": 2.8391036
+    },
+    "totalScore": 4,
+    "reviewsCount": 4091,
+    "placeId": "ChIJASGBSzUXuxIRO5_rHuyEPAM",
+    "url": "https://www.google.com/maps/search/?api=1&query=Guitart%20Central%20Park%20Aqua%20Resort&query_place_id=ChIJASGBSzUXuxIRO5_rHuyEPAM",
+    "permanentlyClosed": false,
+    "temporarilyClosed": false,
+    "website": "https://www.guitarthotels.com/es/hotel-guitart-central-park-aqua-resort/hotel-guitart-central-park-aqua-resort-lloret/?utm_source=bbdd-gu&utm_medium=gmb&utm_campaign=260302_bbdd-gu_gmb_es&utm_content=enl_bdy"
+  },
+  {
+    "searchString": "Can Panxa, Sant Pere de Vilamajor",
+    "rank": 1,
+    "title": "Can Panxa",
+    "categoryName": "Apartamento turístico",
+    "categories": [
+      "Apartamento turístico"
+    ],
+    "address": "08458, Barcelona, España",
+    "city": null,
+    "postalCode": null,
+    "state": "Barcelona",
+    "countryCode": "ES",
+    "location": {
+      "lat": 41.6972106,
+      "lng": 2.3826022
+    },
+    "totalScore": 3.9,
+    "reviewsCount": 98,
+    "placeId": "ChIJvf3HNX_OpBIR2kSI6fcJDQs",
+    "url": "https://www.google.com/maps/search/?api=1&query=Can%20Panxa&query_place_id=ChIJvf3HNX_OpBIR2kSI6fcJDQs",
+    "permanentlyClosed": false,
+    "temporarilyClosed": false
+  }
+]

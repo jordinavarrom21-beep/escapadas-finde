@@ -11,6 +11,7 @@ import { procesarEmails } from '../src/emails/decidir.js';
 import { alertaFuentes, precioLegible, resumenSemanal } from '../src/emails/plantillas.js';
 import { escanear, urlPanel } from '../src/escanear.js';
 import { ErrorRobots } from '../src/util/robots.js';
+import { ErrorPresupuesto } from '../src/util/apify.js';
 import { findesProximos } from '../src/util/fechas.js';
 import { AHORA, AJUSTES, oferta } from './ayudas.js';
 
@@ -258,6 +259,26 @@ describe('escanear', () => {
       ['desactivada', 'Probando'],
       ['error', 'La fuente no declara sus urls: no se puede comprobar robots.txt'],
     ]);
+  });
+
+  test('una fuente de pago sin presupuesto este mes queda «desactivada» (no caída) y conserva sus ofertas', async () => {
+    const estado = estadoInicial();
+    const guardada = oferta({ fuente: 'depago', precio: 40, unidad: 'i/v', tipo: 'vuelo' });
+    let pagar = true;
+    const depago = fuente('depago', async () => {
+      if (pagar) return { ofertas: [guardada] };
+      throw new ErrorPresupuesto('Presupuesto de Apify del mes agotado');
+    }, { modo: 'api' });
+    const comun = { ajustes, fuentes: [depago], http: sinRed, estado, env: {}, modulos, log: () => {} };
+    await escanear({ ...comun, ahora: AHORA, opciones: { sinEmails: true } });
+    pagar = false;
+    const { salida } = await escanear({ ...comun, ahora: enHoras(2), opciones: { sinEmails: true, forzar: true } });
+    const [f] = salida.ofertas.fuentes;
+    assert.equal(f.estado, 'desactivada');
+    assert.match(f.motivo, /Presupuesto de Apify/);
+    assert.equal(f.error, null);
+    assert.equal(f.desdeError, null, 'no avisa por email de fuente caída');
+    assert.equal(salida.ofertas.ofertas.length, 1, 'lo que ya tenía se queda');
   });
 
   test('el buzón no necesita urls ni robots.txt', async () => {
