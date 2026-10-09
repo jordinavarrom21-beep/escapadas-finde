@@ -105,6 +105,17 @@ describe('obtenerTexto', () => {
     assert.match(logs[0], /^reintento 1\/2 tras HTTP 503 \(web caída o en mantenimiento\), esperando [\d,]+ s$/);
   });
 
+  test('un error guarda el principio de lo que contesta la web (las APIs dicen ahí el motivo)', async () => {
+    const motivo = '{"error":{"type":"invalid-input","message":"Input is not valid"}}';
+    simularRed([respuesta(400, motivo)]);
+    const error = await obtenerTexto('https://api.apify.com/v2/acts/x/run-sync-get-dataset-items', { reintentos: 0 }).catch((e) => e);
+    assert.ok(error instanceof ErrorHttp);
+    assert.equal(error.cuerpo, motivo);
+    // Sin cuerpo legible, vacío (no rompe el error).
+    simularRed([{ ok: false, status: 400, headers: new Headers() }]);
+    assert.equal((await obtenerTexto(URL_FEED, { reintentos: 0 }).catch((e) => e)).cuerpo, '');
+  });
+
   test('un 500 agota los reintentos y lanza ErrorHttp con contexto', async () => {
     simularRed([respuesta(500)]);
     const { esperas, dormir } = cronometro();
