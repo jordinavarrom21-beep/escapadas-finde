@@ -5,7 +5,7 @@
  * total: mejor «falta saber cómo llegar» que un número que parezca exacto. Sin DOM.
  */
 
-import { FACTOR_CARRETERA } from './geo.js';
+import { FACTOR_CARRETERA, distanciaKm, tieneCoordenadas } from './geo.js';
 import { contar, euros, unDecimal } from './formato.js';
 
 /** Transporte que no es el coche propio. */
@@ -43,12 +43,27 @@ function parteOferta(o, { viajeros, noches }, supuestos) {
   }
 }
 
+/** ¿Está el lugar en la zona? Una caja [sur, oeste, norte, este] o un país. */
+function enZona(lugar, zona) {
+  if (zona.codigoPais) return lugar.codigoPais === zona.codigoPais;
+  const [sur, oeste, norte, este] = zona.caja ?? [];
+  return tieneCoordenadas(lugar) && lugar.lat >= sur && lugar.lat <= norte && lugar.lon >= oeste && lugar.lon <= este;
+}
+
+/** Los peajes (config/peajes.json) que salen de cerca de `salida`: los que pueden estar en tus rutas. */
+export const peajesDesde = (peajes, salida) => (Array.isArray(peajes) && tieneCoordenadas(salida)
+  ? peajes.filter((p) => distanciaKm(salida, p.desde) <= p.desde.radioKm)
+  : []);
+
+/** Los peajes de la ruta habitual hasta la oferta, de los que salen de tu zona. */
+export const peajesDe = (o, peajes = []) => (o.lugar ? peajes.filter((p) => p.zonas.some((z) => enZona(o.lugar, z))) : []);
+
 /** Gasolina de ida y vuelta desde la salida, si se va en coche y se sabe la distancia. */
 function parteCoche(o, distancia, coche, supuestos) {
   if (!distancia || distancia.minutos == null || !coche?.consumoL100km || !coche?.precioLitro) return null;
   const km = distancia.kmCoche ?? distancia.km * FACTOR_CARRETERA;
   const l = (2 * km * coche.consumoL100km) / 100;
-  supuestos.push(`un coche para todos, ${litros(coche.consumoL100km)} l/100 km a ${euros(coche.precioLitro)}/l${distancia.kmCoche == null ? ', distancia por carretera estimada' : ''}; sin peajes ni aparcamiento`);
+  supuestos.push(`un coche para todos, ${litros(coche.consumoL100km)} l/100 km a ${euros(coche.precioLitro)}/l${distancia.kmCoche == null ? ', distancia por carretera estimada' : ''}; sin aparcamiento`);
   return {
     concepto: 'Gasolina (ida y vuelta)', eur: l * coche.precioLitro, estimado: true,
     detalle: `${Math.round(2 * km)} km · ${litros(l)} l`,
@@ -60,21 +75,27 @@ function parteCoche(o, distancia, coche, supuestos) {
 /**
  * @param {object} o oferta
  * @param {{viajeros: number, noches: number, distancia?: object, coche?: {consumoL100km: number, precioLitro: number}}} ctx
- * @returns {{partes: object[], total: number|null, porPersona: number|null, estimado: number, falta: string[], supuestos: string[], viajeros: number, noches: number|null}}
+ * @returns {{partes: object[], total: number|null, porPersona: number|null, porPersonaNoche: number|null, estimado: number, falta: string[], supuestos: string[], viajeros: number, noches: number|null}}
  */
-export function costeViaje(o, { viajeros = 2, noches = 2, distancia = null, coche = null } = {}) {
+export function costeViaje(o, { viajeros = 2, noches = 2, distancia = null, coche = null, peajes = [] } = {}) {
   const supuestos = [];
   const falta = [];
+  // Lo que se sabe que falta sumar pero no impide dar un total («+ peaje del Túnel del Cadí»).
+  const aviso = [];
   const resultado = (partes) => {
     const total = falta.length ? null : redondear(partes.reduce((suma, p) => suma + p.eur, 0));
+    // Las noches supuestas solo cuentan si el precio es por noche; si no, no se sabe.
+    const nochesViaje = esBillete(o) ? null : o.noches ?? (['pp/noche', 'noche'].includes(o.unidad) ? noches : null);
+    const porPersona = total == null ? null : redondear(total / viajeros);
     return {
       partes: partes.map((p) => ({ estimado: false, ...p, eur: redondear(p.eur) })),
       total,
-      porPersona: total == null ? null : redondear(total / viajeros),
+      porPersona,
+      // La misma base para todas: un paquete de 1 noche no gana a una casa de 2 por ser más corto.
+      porPersonaNoche: porPersona != null && nochesViaje > 0 ? redondear(porPersona / nochesViaje) : null,
       estimado: redondear(partes.filter((p) => p.estimado).reduce((suma, p) => suma + p.eur, 0)),
-      falta, supuestos, viajeros,
-      // Las noches supuestas solo cuentan si el precio es por noche; si no, no se sabe.
-      noches: esBillete(o) ? null : o.noches ?? (['pp/noche', 'noche'].includes(o.unidad) ? noches : null),
+      falta, supuestos, aviso, viajeros,
+      noches: nochesViaje,
     };
   };
   if (typeof o.precio !== 'number' || o.precio <= 0) {
@@ -114,8 +135,17 @@ export function costeViaje(o, { viajeros = 2, noches = 2, distancia = null, coch
     falta.push('cómo llegar (no hay ruta en coche calculada)');
     return resultado(partes);
   }
+  // Peajes de la ruta habitual: con importe, se suman (ida y vuelta); sin él, se nombran.
+  const deLaRuta = peajesDe(o, peajes);
+  const conImporte = deLaRuta.filter((p) => p.importe > 0);
+  const sinImporte = deLaRuta.filter((p) => !(p.importe > 0));
+  const partesPeaje = conImporte.map((p) => ({
+    concepto: `Peaje ${p.nombre} (ida y vuelta)`, eur: 2 * p.importe, estimado: true, detalle: `${euros(p.importe)} × 2`,
+  }));
+  if (sinImporte.length) aviso.push(...sinImporte.map((p) => `+ peaje del ${p.nombre} si vas por él (no incluido)`));
+  if (!deLaRuta.length) supuestos.push('sin peajes');
   supuestos.push('sin actividades ni comidas que no incluya la oferta');
-  return resultado([...partes, gasolina]);
+  return resultado([...partes, gasolina, ...partesPeaje]);
 }
 
 /** «≈ 312 € para 2 personas · 156 €/persona» para la tarjeta, o '' si no hay total. */

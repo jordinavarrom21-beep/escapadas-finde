@@ -18,7 +18,7 @@ export const TEXTOS_GUIAS = {
     titulo: 'Cómo elegir una escapada de fin de semana desde {desde}',
     parrafos: [
       'Desde {desde} hay escapadas para todos los gustos a menos de tres horas: la Costa Brava y la Costa Daurada para el mar, el Pirineo y el Montseny para la montaña, la Garrotxa y el Priorat para el turismo rural y el vino, y ciudades como Girona, Tarragona o Andorra para un plan más urbano.',
-      'Aquí están las escapadas que vigilamos, de la más barata a la más cara según lo que cuesta el viaje entero para dos personas: el precio de la oferta y, si se va en coche, la gasolina de ida y vuelta desde {desde}. Así una casa rural a 40 minutos y un hotel a cinco horas se comparan con el mismo criterio.',
+      'Aquí están las escapadas que vigilamos ordenadas por su Valor: lo que cuesta frente a ofertas parecidas, las fechas, el tiempo de viaje y las opiniones. Cada una lleva lo que cuesta el viaje entero para dos personas (el precio de la oferta y, si se va en coche, la gasolina de ida y vuelta desde {desde}), así una casa rural a 40 minutos y un hotel a cinco horas se comparan con el mismo criterio.',
       'Si ya sabes qué buscas, las guías de abajo filtran por temática (spa, playa, con niños, con perro…), por distancia en coche o por zona. Para combinar varios filtros a la vez, con mapa y comparación, ábrelo en el panel.',
     ],
     consejos: [
@@ -243,7 +243,7 @@ export const TEXTOS_GUIAS = {
   },
   vuelos: {
     parrafos: [
-      'Chollos de vuelos que salen de {desde}, recogidos de blogs y comunidades de viajeros que publican tarifas especialmente baratas. Son precios de ida y vuelta o por trayecto, sin fechas fijas: la disponibilidad se confirma en la web de cada chollo.',
+      'Vuelos baratos desde los aeropuertos de {desde}: arriba, vuelos de ida y vuelta con fecha y precio que comprobamos en las aerolíneas (uno por destino, el más barato); debajo, chollos que publican blogs y comunidades de viajeros, con precios de ida y vuelta o por trayecto pero sin fechas fijas.',
       'Los vuelos baratos duran poco. Si ves uno que te encaja, compruébalo enseguida y fíjate en el equipaje incluido, que es lo que más cambia el precio final.',
     ],
   },
@@ -255,33 +255,39 @@ export const TEXTOS_GUIAS = {
   },
   'escapadas/cataluna': {
     parrafos: [
-      'Escapadas por Cataluña desde {desde}: costa, Pirineo, viñedos y pueblos medievales casi todo a menos de tres horas. Es la opción que mejor aprovecha un fin de semana porque se pierde poco tiempo en la carretera.',
+      'Escapadas por Cataluña desde {desde}: costa, Pirineo, viñedos y pueblos medievales, casi todo a menos de tres horas. Es la opción que mejor aprovecha un fin de semana, porque se pierde poco tiempo en la carretera y se puede salir el viernes por la tarde.',
+      'Cada zona tiene su momento. La Costa Brava y la Costa Daurada son para el buen tiempo, y fuera de julio y agosto bajan mucho de precio. El Pirineo de Girona y Lleida es para la nieve en invierno y el senderismo el resto del año. El Penedès, el Priorat y el Empordà, para el vino y la gastronomía. La Garrotxa, el Montseny y el Berguedà, para el turismo rural cerca de casa.',
       'Para afinar por provincia, mira las guías de Girona, Tarragona, Lleida y la provincia de Barcelona.',
     ],
   },
   'escapadas/girona': {
     parrafos: [
       'Escapadas en la provincia de Girona: la Costa Brava, el Empordà, la Garrotxa y sus volcanes, el Ripollès y la Cerdanya en el Pirineo, y la propia ciudad de Girona. Desde {desde} se llega a casi todo en menos de dos horas.',
+      'Es la provincia con más variedad para un fin de semana. En la costa hay calas, pueblos marineros como Cadaqués, Calella de Palafrugell o Tossa y muchos apartamentos que fuera del verano salen baratos. En el interior, casas rurales y masías en la Garrotxa y el Empordà, con pueblos medievales como Besalú o Pals. Y en el Pirineo, estaciones de esquí en invierno y rutas de montaña el resto del año. Si vas a la Cerdanya, ten en cuenta que la ruta más habitual desde {desde} pasa por el peaje del Túnel del Cadí.',
     ],
   },
   'escapadas/barcelona': {
     parrafos: [
       'Escapadas sin salir de la provincia de Barcelona: el Montseny, el Maresme, el Penedès, el Garraf, el Berguedà y el Lluçanès, entre otros. Ideales para irse el sábado y volver el domingo sin pasar horas en el coche.',
+      'Al estar tan cerca, la gasolina pesa poco en el precio del viaje completo y muchas escapadas salen por menos que una cena fuera para dos. El Montseny y el Lluçanès son para casas rurales y naturaleza; el Penedès, para visitar bodegas de cava y vino; el Maresme y el Garraf, para la playa sin ir lejos; y el Berguedà, para la montaña prepirenaica, con pueblos como Bagà o Castellar de n\'Hug. Varias de estas zonas tienen además tren de cercanías desde {desde}.',
     ],
   },
   'escapadas/tarragona': {
     parrafos: [
       'Escapadas en la provincia de Tarragona desde {desde}: la Costa Daurada, el Priorat y el Montsant, el Delta de l\'Ebre, la Tarragona romana y los pueblos del interior.',
+      'La costa, de Cunit a Salou y Cambrils, tiene hoteles y apartamentos a una hora y poco por la autopista, y es también la zona de PortAventura. El Priorat y el Montsant son para el vino y los pueblos de piedra, como Siurana. El Delta de l\'Ebre, a unas dos horas, es para ver aves, ir en bicicleta entre arrozales y comer bien. Y la ciudad de Tarragona tiene uno de los conjuntos romanos mejor conservados de la península. Primavera y otoño son las mejores épocas para casi todo.',
     ],
   },
   'escapadas/lleida': {
     parrafos: [
       'Escapadas en la provincia de Lleida desde {desde}: el Pirineo (Vall d\'Aran, Pallars, Alt Urgell), deportes de aventura, estaciones de esquí y pueblos de montaña. Es la provincia más lejana de Cataluña, ideal para fines de semana largos.',
+      'En invierno mandan las estaciones de esquí, como Baqueira o Port Ainé, y los hoteles de montaña. En primavera y verano, el rafting en la Noguera Pallaresa, el Parque Nacional de Aigüestortes y las iglesias románicas de la Vall de Boí, Patrimonio de la Humanidad. La plana de Lleida, más cerca, tiene turismo rural, castillos y el pantano de Camarasa. Para el Pirineo, cuenta con tres horas o más de coche: compensa salir el viernes.',
     ],
   },
   'escapadas/andorra': {
     parrafos: [
       'Escapadas a Andorra desde {desde}: nieve en invierno, montaña y senderismo en verano, y compras todo el año. Se llega en unas tres horas por carretera.',
+      'En invierno, Grandvalira y Vallnord-Pal Arinsal son las grandes estaciones de esquí, y muchos hoteles venden paquetes con el forfait. El resto del año, rutas de montaña y lagos, el balneario de Caldea en Escaldes y hoteles de montaña a buen precio fuera de temporada. Hay dos rutas habituales desde {desde}: por la Seu d\'Urgell, sin peajes, o por el Túnel del Cadí, que es de pago.',
       'Andorra no está en la Unión Europea: lleva el DNI o pasaporte y revisa los límites de lo que puedes traer de vuelta.',
     ],
   },

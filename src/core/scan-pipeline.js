@@ -317,7 +317,7 @@ function estadoParaPanel(fuentes, estado, ajustes) {
 export async function escanear({
   ajustes, vigilados = [], estado = estadoInicial(), cache = new Cache(), historial = {},
   fuentes = FUENTES, http = clienteHttp, ahora = new Date(), opciones = {}, env = process.env, afiliacion = {},
-  modulos = {}, log = console.log,
+  peajes = [], modulos = {}, log = console.log,
 }) {
   const m = { ...MODULOS, ...modulos };
   const conPrefijo = (prefijo) => (mensaje) => log(`[${prefijo}] ${mensaje}`);
@@ -435,6 +435,9 @@ export async function escanear({
         consumoL100km: ajustes.coche.consumoL100km, precioLitro: precioLitro ?? ajustes.coche.precioLitro, carburante: ajustes.coche.carburante,
         precioMedio: precioLitro != null && precioLitro !== ajustes.coche.precioLitro ? { provincia: ajustes.origen.nombre } : null,
       },
+      // Peajes conocidos de las rutas habituales (config/peajes.json): el panel los tiene en cuenta
+      // en el viaje completo en coche si sales de su zona.
+      peajes,
       // Las reglas del «Chollazo» (motivoChollazo), para que «Cómo funciona» explique las de verdad.
       chollazos: {
         vueloMax: ajustes.emails.chollazos.vueloMax, escapadaNocheMax: ajustes.emails.chollazos.escapadaNocheMax,

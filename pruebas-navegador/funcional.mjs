@@ -34,6 +34,8 @@ await ir(p, 'finde');
 // Sin «Sugerencia de hoy»: la primera escapada de «Lo mejor para este finde» hace sus veces en las pruebas.
 const primeraIdea = '.ideas__columna:first-child .idea:not(.idea--evento) .enlace-ficha';
 const hayDestacado = await p.locator(primeraIdea).count() > 0;
+// El H1 que lee Google con la página cargada es el mismo que trae el HTML (no «¿Qué quieres organizar?»).
+ok(/^Escapadas de fin de semana desde /.test((await p.locator('h1').first().textContent()).trim()) && (await p.locator('h1').count()) === 1, 'portada: un solo H1, «Escapadas de fin de semana desde …»');
 ok(!(await p.locator('.portada__destacado, .sugerencia').count()), 'portada: sin «Sugerencia de hoy»');
 ok((await p.locator('.buscador-finde input[name="cuando"]').count()) >= 3, 'portada: opciones de «¿Cuándo?»');
 ok((await p.locator('.organizar input[name="que"]').count()) === 3, 'portada: «¿Qué buscas?» con escapadas, vuelos y planes');
@@ -249,6 +251,36 @@ await p.waitForTimeout(200);
 ok(!(await p.locator('#ficha[open]').count()), 'ficha: se cierra con su botón');
 ok(await p.evaluate(() => document.activeElement?.classList.contains('enlace-ficha')), 'ficha: el foco vuelve a la tarjeta');
 ok((await p.locator(`#resultados .tarjeta:has([data-ficha="${idFicha}"]) .insignia--mio`).count()) === 1, 'mis estados: la tarjeta dice «Reservada»');
+// La ficha tiene su dirección (#/oferta/<id>): se puede compartir, «atrás» la cierra y la lista sigue igual.
+const hashLista = await p.evaluate(() => location.hash);
+await p.locator('#resultados .enlace-ficha').nth(1).click();
+await p.waitForSelector('#ficha[open]');
+const idSegunda = await p.locator('#ficha [data-descartar]').getAttribute('data-descartar');
+const hashFicha = `#/oferta/${encodeURIComponent(idSegunda)}`;
+ok((await p.evaluate(() => location.hash)) === hashFicha, 'ficha: su dirección es #/oferta/<id>');
+const tarjetasAntes = await tarjetas(p);
+await p.goBack();
+await p.waitForTimeout(300);
+ok(!(await p.locator('#ficha[open]').count()) && (await p.evaluate(() => location.hash)) === hashLista && (await tarjetas(p)) === tarjetasAntes, 'ficha: «atrás» la cierra y vuelve a la misma lista');
+await p.goForward();
+await p.waitForSelector('#ficha[open]');
+ok((await p.locator('#ficha [data-descartar]').getAttribute('data-descartar')) === idSegunda, 'ficha: «adelante» la vuelve a abrir');
+await p.locator('#ficha [data-cerrar-ficha]').click();
+await p.waitForTimeout(300);
+ok((await p.evaluate(() => location.hash)) === hashLista, 'ficha: al cerrarla, la dirección vuelve a ser la de la lista');
+{
+  const directa = await pagina(c);
+  await directa.goto(`${BASE}${hashFicha}`);
+  await directa.waitForSelector('#ficha[open]', { timeout: 10000 }).catch(() => {});
+  ok((await directa.locator('#ficha[open] [data-descartar]').getAttribute('data-descartar').catch(() => null)) === idSegunda, 'ficha: su enlace la abre al cargar la web');
+  await directa.locator('#ficha [data-cerrar-ficha]').click();
+  await directa.waitForTimeout(300);
+  ok((await directa.evaluate(() => location.hash)) === '#/finde' && (await directa.locator('.portada').count()) === 1, 'ficha: cerrarla desde el enlace deja la portada');
+  await directa.goto(`${BASE}#/oferta/no-existe`);
+  await directa.waitForTimeout(500);
+  ok(!(await directa.locator('#ficha[open]').count()), 'ficha: el enlace de una oferta que ya no está no abre nada');
+  await directa.close();
+}
 
 // ── Tu viaje ──
 await p.locator('#boton-viaje').click();

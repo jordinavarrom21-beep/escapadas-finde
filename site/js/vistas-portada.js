@@ -479,8 +479,8 @@ export function vistaFinde(e, params = {}) {
   const vistos = new Set();
   return `<section class="portada">
   ${resumenViaje(e)}
-  <h1 class="titulo-vista" tabindex="-1">¿Qué quieres <em>organizar</em>?</h1>
-  <p class="portada__intro">Elige las fechas y el tipo de oferta. Puedes cambiarlo antes de ver resultados.</p>
+  <h1 class="titulo-vista" tabindex="-1">Escapadas de fin de semana desde <em>${esc(nombreSalida(e))}</em></h1>
+  <p class="portada__intro">¿Qué quieres organizar?</p>
   ${buscadorFinde(e)}
   ${lineaConfianza(e)}
 </section>

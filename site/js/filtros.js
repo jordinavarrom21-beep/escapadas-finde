@@ -728,9 +728,34 @@ function calidadPrecio(o, costes) {
 const cabeEnPresupuesto = (coste, f) => coste?.total != null
   && (f.presupuestoPor === 'persona' ? coste.porPersona : coste.total) <= f.presupuesto;
 
-const comparadoresEscapadas = (distancias, costes, desdeSalida = distancias) => ({
-  // Sin total (falta precio, unidad o cómo llegar) van al final: no se comparan con lo que sí lo tiene.
-  total: (a, b) => ascendente(costes.get(a.id)?.total, costes.get(b.id)?.total) || porPuntuacion(a, b),
+/**
+ * Las noches que ha fijado quien busca: el filtro «Noches que incluye la oferta» o, con fecha de
+ * entrada y de salida, las que hay entre ellas (de 1 a 7; más es un periodo de búsqueda). null si no.
+ */
+export function nochesFijadas(f) {
+  if (f.noches) return f.noches;
+  const noches = f.desde && f.hasta ? diasEntre(f.desde, f.hasta) : null;
+  return noches >= 1 && noches <= 7 ? noches : null;
+}
+
+/** ¿Encaja con esas noches? Las de precio por noche, sí (se cuentan con las tuyas); las de noches fijas, si son esas. */
+export function encajaNoches(o, noches, { oMas = false } = {}) {
+  if (noches == null) return true;
+  if (!o.noches) return ['pp/noche', 'noche'].includes(o.unidad);
+  return oMas ? o.noches >= noches : o.noches === noches;
+}
+
+const comparadoresEscapadas = (distancias, costes, desdeSalida = distancias, f = {}) => ({
+  // «Viaje más barato»: por persona y noche, para comparar estancias de distinta duración. Si has
+  // fijado las noches, primero las que encajan. Sin total (falta precio, unidad o cómo llegar) o sin
+  // saber las noches, al final: no se comparan con lo que sí lo tiene.
+  total: (a, b) => {
+    const noches = nochesFijadas(f);
+    const encaja = (o) => (encajaNoches(o, noches, { oMas: f.noches === 3 }) ? 0 : 1);
+    return encaja(a) - encaja(b)
+      || ascendente(costes.get(a.id)?.porPersonaNoche, costes.get(b.id)?.porPersonaNoche)
+      || ascendente(costes.get(a.id)?.total, costes.get(b.id)?.total) || porPuntuacion(a, b);
+  },
   persona: (a, b) => ascendente(costes.get(a.id)?.porPersona, costes.get(b.id)?.porPersona) || porPuntuacion(a, b),
   comodo: porComodidad(desdeSalida),
   // Calidad/precio: nota sobre 10 por cada 100 € por persona. Sin nota o sin total, al final.
@@ -763,13 +788,13 @@ export function buscarEscapadas(ofertas, f, ctx) {
   const distancias = f.punto ? medirDistancias(ofertas, f.punto, ctx.origen) : desdeSalida;
   let lista = ofertas.filter((o) => esEscapada(o) && cumpleEscapada(o, f, ctx, distancias.get(o.id)));
   const costes = new Map(f.presupuesto || ['total', 'persona', 'calidad'].includes(f.orden)
-    ? lista.map((o) => [o.id, costeViaje(o, { viajeros: ctx.viajeros, noches: ctx.noches, distancia: desdeSalida.get(o.id), coche: ctx.coche })])
+    ? lista.map((o) => [o.id, costeViaje(o, { viajeros: ctx.viajeros, noches: ctx.noches, distancia: desdeSalida.get(o.id), coche: ctx.coche, peajes: ctx.peajes })])
     : []);
   // Con presupuesto solo entran las que tienen un total que se puede comprobar.
   const sinTotal = f.presupuesto ? lista.filter((o) => costes.get(o.id).total == null).length : 0;
   if (f.presupuesto) lista = lista.filter((o) => cabeEnPresupuesto(costes.get(o.id), f));
   if (f.sinUbicacion) lista = lista.filter((o) => !distancias.has(o.id));
-  const comparador = comparadoresEscapadas(distancias, costes, desdeSalida)[f.orden] ?? porPuntuacion;
+  const comparador = comparadoresEscapadas(distancias, costes, desdeSalida, f)[f.orden] ?? porPuntuacion;
   return { ofertas: alFinalSinComprobar(lista.sort(comparador), ctx), distancias, desdeSalida, costes, sinTotal };
 }
 

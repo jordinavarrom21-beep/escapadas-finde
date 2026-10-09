@@ -129,6 +129,26 @@
     document.head.append(script);
   }
 
+  /**
+   * Con Drive aceptado, los enlaces a ofertas (los del panel llevan data-clic; los de las guías van
+   * en .fila-guia) pueden acabar siendo de afiliado: llevan rel="sponsored", también los que se
+   * pintan después.
+   */
+  const ENLACES_OFERTA = 'a[data-clic], .fila-guia a[target="_blank"]';
+  function marcarPatrocinados(raiz = document) {
+    for (const enlace of raiz.querySelectorAll?.(ENLACES_OFERTA) ?? []) enlace.relList.add('sponsored');
+  }
+  function vigilarEnlaces() {
+    marcarPatrocinados();
+    if (typeof MutationObserver === 'undefined' || !document.body) return;
+    new MutationObserver((cambios) => {
+      for (const cambio of cambios) for (const nodo of cambio.addedNodes) if (nodo.nodeType === 1) {
+        if (nodo.matches?.(ENLACES_OFERTA)) nodo.relList.add('sponsored');
+        marcarPatrocinados(nodo);
+      }
+    }).observe(document.body, { childList: true, subtree: true });
+  }
+
   /** Pone en marcha lo aceptado (`acepta`) que aún no lo esté. */
   function activar(acepta) {
     if (drive && acepta.includes('drive') && !activo.has('drive')) {
@@ -137,6 +157,7 @@
       script.async = true;
       script.src = drive;
       document.head.append(script);
+      vigilarEnlaces();
     }
     if (!id && !analitica) return;
     const anuncios = Boolean(id && acepta.includes('google-ads'));

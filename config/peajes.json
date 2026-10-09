@@ -1,0 +1,14 @@
+{
+  "peajes": [
+    {
+      "id": "cadi",
+      "nombre": "Túnel del Cadí",
+      "importe": null,
+      "desde": { "nombre": "Barcelona", "lat": 41.3874, "lon": 2.1686, "radioKm": 40 },
+      "zonas": [
+        { "nombre": "Cerdanya", "caja": [42.3, 1.6, 42.55, 2.2] },
+        { "nombre": "Andorra", "codigoPais": "AD" }
+      ]
+    }
+  ]
+}

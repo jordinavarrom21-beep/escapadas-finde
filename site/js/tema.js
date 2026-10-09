@@ -16,7 +16,8 @@ document.documentElement.classList.add('js');
 // La vista que se va a pintar, ya desde el principio: en la portada la cabecera no lleva la
 // búsqueda ni «Tu salida» (estilos: body[data-vista="finde"]) y, si se quitaban al pintar, todo
 // lo de debajo subía de golpe (desplazamiento de contenido, CLS).
-document.documentElement.dataset.vistaInicial = location.hash.replace(/^#\/?/, '').split('?')[0] || 'finde';
+// El enlace de una ficha (#/oferta/<id>) abre la portada con la ficha encima.
+document.documentElement.dataset.vistaInicial = location.hash.startsWith('#/oferta/') ? 'finde' : location.hash.replace(/^#\/?/, '').split('?')[0] || 'finde';
 try {
   const tema = localStorage.getItem('escapadas:tema');
   if (tema === 'claro' || tema === 'oscuro') document.documentElement.dataset.theme = tema === 'claro' ? 'light' : 'dark';

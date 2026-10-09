@@ -471,7 +471,7 @@ function explicacionOrden(e, f, costes) {
   const para = `${contar(e.viaje?.viajeros ?? 2, 'persona')} y ${contar(e.viaje?.noches ?? 2, 'noche')} si la oferta no las fija`;
   const sinTotal = [...costes.values()].filter((c) => c.total == null).length;
   const textos = {
-    total: `Ordenadas por lo que cuesta el viaje completo desde ${desde} para ${para}: la oferta y, si vas en coche, la gasolina estimada (sin peajes ni aparcamiento).`,
+    total: `Ordenadas por lo que cuesta el viaje completo por persona y noche desde ${desde} para ${para}: la oferta y, si vas en coche, la gasolina estimada (sin aparcamiento; los peajes conocidos, avisados). Así una de 1 noche y otra de 2 se comparan igual; con fecha de entrada y salida, primero las que encajan con esas noches.`,
     persona: `Ordenadas por lo que cuesta el viaje completo por persona desde ${desde} (${para}): la oferta y, si vas en coche, la gasolina estimada.`,
     calidad: `Primero lo que más nota (sobre 10) da por cada euro por persona del viaje completo desde ${desde}. Sin nota o sin total, al final.`,
     comodo: `Primero lo que está a menos tiempo de ${desde}; a igualdad, lo que incluye más (régimen) y lo mejor valorado. Lo que no tiene tiempo de viaje conocido (islas, avión), al final.`,

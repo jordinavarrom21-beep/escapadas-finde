@@ -11,6 +11,7 @@ import {
 import { NOCHES, VIAJEROS, aeropuertosCercanos } from './viaje.js';
 import { icono } from './iconos.js';
 import { camposFechas } from './selector-fechas.js';
+import { peajesDesde } from './coste.js';
 
 /** Los filtros que van dentro de «Más filtros» (los de arriba se ven siempre). */
 export const FILTROS_SECUNDARIOS = [
@@ -23,7 +24,7 @@ export const HORAS_SORPRESA = 3;
 export const ACTIVIDADES_FINDE = 4;
 export const ETIQUETAS_ORDEN = {
   puntuacion: 'Valor de la oferta',
-  total: 'Coste total del viaje',
+  total: 'Viaje más barato (por persona y noche)',
   persona: 'Coste total por persona',
   calidad: 'Calidad/precio (nota por persona)',
   comodo: 'Más cómodo (menos viaje)',
@@ -81,6 +82,8 @@ export function formularioViaje(e) {
 /** Viajeros, noches y coche para calcular el coste del viaje. */
 export const datosViaje = (e) => ({
   viajeros: e.viaje?.viajeros ?? e.datos.viajeros ?? 2, noches: e.viaje?.noches ?? 2, coche: e.datos.coche ?? null,
+  // Los peajes conocidos (config/peajes.json) que pueden estar en tus rutas, según desde dónde sales.
+  peajes: peajesDesde(e.datos.peajes, puntoSalida(e)),
 });
 
 /** Contexto que necesitan las plantillas de tarjetas. */

@@ -336,8 +336,65 @@ function cerrarMenuMas(evento = null) {
 }
 
 /** La URL manda siempre; en las vistas con memoria, lo que trae se guarda como «lo último». */
+// ── La ficha con su propia dirección: #/oferta/<id> ─────────────────────────
+// Se puede compartir y se abre al cargar; «atrás» la cierra y vuelve a la lista tal como estaba.
+// No es una página indexable (serían 1.700 que caducan en días): para buscadores ya están las guías.
+const PREFIJO_OFERTA = '#/oferta/';
+const idDeHash = (hash) => (hash.startsWith(PREFIJO_OFERTA) ? decodeURIComponent(hash.slice(PREFIJO_OFERTA.length)) : null);
+/** La dirección de la lista que hay debajo de la ficha abierta (null si se entró directamente a la ficha). */
+let hashBajoFicha = null;
+/** Al cerrar la ficha se vuelve atrás en el historial: ese cambio de dirección no repinta la lista. */
+let volviendoDeFicha = false;
+/** La dirección de la vista que se ve: con una ficha abierta, la de la lista de debajo. */
+const hashVista = () => (idDeHash(location.hash) ? hashBajoFicha ?? hashPintado : location.hash);
+/** La dirección de lo último que se pintó (render): lo que hay debajo si se entra a una ficha sin lista. */
+let hashPintado = '#/finde';
+
+/** Abre la ficha y pone su dirección (la lista queda en el historial, para volver con «atrás»). */
+function abrirFichaConDireccion(id, disparador) {
+  if (idDeHash(location.hash) !== id) {
+    if (!idDeHash(location.hash)) hashBajoFicha = location.hash || '#/finde';
+    history.pushState(null, '', `${PREFIJO_OFERTA}${encodeURIComponent(id)}`);
+  }
+  return mostrarFicha(id, disparador);
+}
+
+/** Al cerrar la ficha, la dirección vuelve a ser la de la lista. */
+function quitarDireccionFicha() {
+  if (!idDeHash(location.hash)) return;
+  if (hashBajoFicha) {
+    volviendoDeFicha = true;
+    history.back();
+  } else {
+    // Se entró por el enlace de la ficha: debajo está lo último pintado (la portada), sin nada a lo que volver.
+    history.replaceState(null, '', hashPintado);
+  }
+}
+
+/** Un cambio de dirección: abrir la ficha de #/oferta/<id>, cerrarla con «atrás» o cambiar de vista. */
+function alCambiarDireccion() {
+  const id = idDeHash(location.hash);
+  if (id) {
+    if (!dialogo.open || fichaAbierta !== id) mostrarFicha(id);
+    return;
+  }
+  if (volviendoDeFicha) {
+    volviendoDeFicha = false;
+    hashBajoFicha = null;
+    return;
+  }
+  if (dialogo.open && hashBajoFicha && location.hash === hashBajoFicha) {
+    // «Atrás» con la ficha abierta: se cierra y la lista sigue como estaba.
+    hashBajoFicha = null;
+    dialogo.close();
+    return;
+  }
+  hashBajoFicha = null;
+  if (!location.hash || location.hash.startsWith('#/')) render();
+}
+
 function rutaActual() {
-  const ruta = leerRuta(location.hash);
+  const ruta = leerRuta(hashVista());
   if (VISTAS_CON_MEMORIA.includes(ruta.vista) && Object.keys(ruta.params).length) guardarFiltros(ruta.vista, ruta.params);
   return ruta;
 }
@@ -380,6 +437,7 @@ function anotarBusqueda(vista, params) {
 
 function render({ enfocar = true } = {}) {
   const { vista, params } = rutaActual();
+  hashPintado = hashVista() || '#/finde';
   anotarBusqueda(vista, params);
   const cambiaVista = vista !== vistaActual;
   // En el móvil, los filtros siguen como estaban si no se cambia de vista (un atajo no los abre).
@@ -482,7 +540,7 @@ function elegirFechas(caja, { cuando = '', desde = '', hasta = '' }) {
     fechasDePortada(caja, desde, hasta);
     return;
   }
-  const { vista, params } = leerRuta(location.hash);
+  const { vista, params } = leerRuta(hashVista());
   const clave = vista === 'vuelos' ? 'finde' : 'cuando';
   const avisoNoches = nochesDeFechas(desde, hasta);
   const formulario = principal.querySelector(`form[data-filtros="${CSS.escape(vista)}"]`);
@@ -581,7 +639,7 @@ function alCambiarFiltro(evento) {
 function verMas(boton) {
   const { mas: clave, desde } = boton.dataset;
   estado.paginas.set(clave, Number(desde) + POR_PAGINA);
-  const { vista, params } = leerRuta(location.hash);
+  const { vista, params } = leerRuta(hashVista());
   if (VISTAS_HTML[vista].resultados && $('#resultados')?.contains(boton)) actualizarResultados(vista, params);
   else render({ enfocar: false });
   document.querySelector(`[data-lista="${CSS.escape(clave)}"] > :nth-child(${Number(desde) + 1}) .enlace-ficha`)?.focus();
@@ -596,7 +654,7 @@ function otraSorpresa() {
   if (primera) bloque.hidden = false;
   else estado.salto += SALTO_SORPRESA;
   const contenedor = $('#sorpresa');
-  if (contenedor) contenedor.innerHTML = contenidoSorpresa(estado, leerRuta(location.hash).params);
+  if (contenedor) contenedor.innerHTML = contenidoSorpresa(estado, leerRuta(hashVista()).params);
   if (primera) bloque.scrollIntoView({ block: 'start', behavior: 'smooth' });
   anunciar(primera ? 'Tres planes para ti' : 'Tres planes nuevos');
 }
@@ -610,7 +668,7 @@ function guardarBusquedaActual(vista) {
     anunciar('Ponle un nombre a la búsqueda para poder guardarla.');
     return;
   }
-  estado.busquedas = guardarBusqueda({ nombre, vista, hash: location.hash || crearHash(vista, {}) });
+  estado.busquedas = guardarBusqueda({ nombre, vista, hash: hashVista() || crearHash(vista, {}) });
   render({ enfocar: false });
   anunciar(`Búsqueda «${nombre}» guardada: cuando vuelvas, en «Guardados» verás las ofertas nuevas que la cumplan.`);
 }
@@ -643,7 +701,7 @@ function copiarConSeleccion(texto) {
 }
 
 async function copiarVigilado(vista, boton) {
-  const { params } = leerRuta(location.hash);
+  const { params } = leerRuta(hashVista());
   const leer = { vuelos: leerFiltrosVuelos, actividades: leerFiltrosActividades }[vista] ?? leerFiltrosEscapadas;
   const filtros = leer(params);
   const json = JSON.stringify(criterioVigilado(nombreEscrito(), filtros, {
@@ -682,7 +740,7 @@ const VISTAS_CON_BARRA = ['escapadas', 'vuelos', 'actividades', 'mapa'];
 function pintarBarraComparar() {
   const barra = $('#barra-comparar');
   const n = estado.comparar.size;
-  const { params } = leerRuta(location.hash);
+  const { params } = leerRuta(hashVista());
   const acciones = [];
   if (esMovil() && VISTAS_CON_BARRA.includes(vistaActual)) {
     acciones.push(`<button type="button" class="boton boton--suave" data-abrir-filtros>${icono('filtros')}Filtros</button>`);
@@ -802,7 +860,7 @@ function alternarDescartada(id) {
   if (dialogo.open) dialogo.close();
   ocultarTarjetas(id);
   // Las descartadas se ocultan por defecto en todas las listas (salvo «sindesc=0»).
-  const { vista, params } = leerRuta(location.hash);
+  const { vista, params } = leerRuta(hashVista());
   if (VISTAS_HTML[vista].resultados) actualizarResultados(vista, params);
   anunciar('Oferta descartada. Para volver a verla, desmarca «Ocultar las descartadas y las no disponibles» en los filtros.');
 }
@@ -823,11 +881,20 @@ function cargarDetalles() {
   return detalles;
 }
 
+let fichaAbierta = null;
 async function mostrarFicha(id, disparador) {
   const oferta = estado.porId.get(id);
-  if (!oferta) return;
+  if (!oferta) {
+    // Un enlace a una oferta que ya no está (caducada o retirada): se avisa y se queda la lista.
+    if (idDeHash(location.hash)) {
+      quitarDireccionFicha();
+      anunciar('Esa oferta ya no está: ha caducado o su web la ha retirado.');
+    }
+    return;
+  }
+  fichaAbierta = id;
   await cargarDetalles();
-  const { vista, params } = leerRuta(location.hash);
+  const { vista, params } = leerRuta(hashVista());
   const { punto } = ['escapadas', 'mapa'].includes(vista) ? leerFiltrosEscapadas(params) : {};
   const distancias = punto ? medirDistancias([oferta], punto, estado.datos.origen) : estado.distanciasOrigen;
   origenFicha = disparador;
@@ -888,14 +955,14 @@ function aplicarViaje(salida, viaje) {
 
 /** «Usar …» de un enlace compartido: adopta su salida, viajeros y noches. */
 function usarViajeCompartido() {
-  const compartido = viajeDeParams(leerRuta(location.hash).params);
+  const compartido = viajeDeParams(leerRuta(hashVista()).params);
   if (!compartido) return;
   aplicarViaje(validarSalida(compartido.salida), validarViaje(compartido.viaje, estado.datos.viajeros));
 }
 
 /** Copia el enlace de la búsqueda con tu salida, viajeros y noches (quien lo abra elige si los usa). */
 async function compartirBusqueda(vista) {
-  const { params } = leerRuta(location.hash);
+  const { params } = leerRuta(hashVista());
   const hash = crearHash(vista, { ...params, ...paramsViaje(estado.salida, estado.viaje) });
   const enlace = `${location.origin}${location.pathname}${hash}`;
   medir('share', { method: 'enlace', content_type: vista });
@@ -911,7 +978,7 @@ function alternarMiEstado(id, nuevo) {
   guardarMisEstados(estado.misEstados);
   const marcado = estado.misEstados.get(id);
   document.querySelectorAll(`[data-mi-estado][data-oferta="${CSS.escape(id)}"]`).forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.miEstado === marcado)));
-  const { vista, params } = leerRuta(location.hash);
+  const { vista, params } = leerRuta(hashVista());
   if (VISTAS_HTML[vista].resultados) actualizarResultados(vista, params);
   anunciar(marcado === 'reservada' ? 'Marcada como reservada (solo en este navegador)' : marcado ? 'Marcada como no disponible: ya no sale en las listas (solo en este navegador; para verla, desmarca «Ocultar las descartadas y las no disponibles»)' : 'Marca quitada');
 }
@@ -937,7 +1004,7 @@ function manejarClic(evento) {
   else if ('vaciarComparar' in d) vaciarComparar();
   else if ('miViaje' in d) abrirViaje(objetivo);
   else if ('cerrarViaje' in d) dialogoViaje.close();
-  else if (d.ficha) mostrarFicha(d.ficha, objetivo);
+  else if (d.ficha) abrirFichaConDireccion(d.ficha, objetivo);
   else if (d.fav) alternarFavorito(d.fav);
   else if (d.descartar) alternarDescartada(d.descartar);
   else if ('mas' in d) verMas(objetivo);
@@ -1032,7 +1099,7 @@ function conectarEventos() {
   principal.addEventListener('change', (evento) => {
     const otro = evento.target.closest?.('[data-otro-orden]');
     if (!otro?.value) return;
-    location.hash = crearHash(otro.dataset.otroOrden, { ...leerRuta(location.hash).params, orden: otro.value });
+    location.hash = crearHash(otro.dataset.otroOrden, { ...leerRuta(hashVista()).params, orden: otro.value });
   });
   // El calendario de «Fecha de entrada» y «Fecha de salida» (Inicio, Explorar y Buscar).
   conectarCalendarios({
@@ -1054,7 +1121,7 @@ function conectarEventos() {
     }
   });
   // «#principal» (el enlace de saltar al contenido) no es una ruta: no se cambia de vista.
-  window.addEventListener('hashchange', () => { if (!location.hash || location.hash.startsWith('#/')) render(); });
+  window.addEventListener('hashchange', alCambiarDireccion);
   vigilarDesplazamiento();
   $('.saltar')?.addEventListener('click', (evento) => {
     evento.preventDefault();
@@ -1095,6 +1162,8 @@ function conectarEventos() {
   });
   dialogo.addEventListener('close', () => {
     liberarFicha();
+    fichaAbierta = null;
+    quitarDireccionFicha();
     // Si la lista se ha repintado con la ficha abierta (p. ej. al marcarla como reservada), el
     // botón que la abrió ya no existe: el foco va al de la misma oferta en la lista nueva.
     const mismo = origenFicha?.dataset?.ficha ? principal.querySelector(`[data-ficha="${CSS.escape(origenFicha.dataset.ficha)}"]`) : null;
@@ -1211,6 +1280,9 @@ async function iniciar() {
     pintarCabecera();
     pintarNovedades();
     render({ enfocar: false });
+    // Entrar por el enlace de una ficha (#/oferta/<id>): la portada debajo y la ficha abierta.
+    const id = idDeHash(location.hash);
+    if (id) mostrarFicha(id);
   } catch (error) {
     // Un dato inesperado o un módulo de otra versión: sin esto, «Cargando…» para siempre.
     console.error('No se ha podido pintar el panel:', error);
@@ -1246,7 +1318,7 @@ async function completarRutas() {
   guardarRutas(desde, estado.rutas);
   estado.distanciasOrigen = medirDistancias(estado.datos.todas, salida, estado.datos.origen, estado.rutas);
   // Sin molestar a quien está escribiendo o con la ficha abierta: los resultados, no el formulario.
-  const { vista, params } = leerRuta(location.hash);
+  const { vista, params } = leerRuta(hashVista());
   if (dialogo.open) return;
   if (VISTAS_HTML[vista]?.resultados && $('#resultados')) actualizarResultados(vista, params);
   else if (!ocupado()) render({ enfocar: false });
