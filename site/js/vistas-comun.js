@@ -3,20 +3,20 @@
  * las secciones, las pestañas y los campos de los formularios de filtros.
  */
 
-import { etiquetaDia, etiquetaRango, nombreFinde } from './fechas.js';
+import { etiquetaDia, nombreFinde, nombreSiguienteFinde } from './fechas.js';
 import { contar, escaparHtml as esc, haceCuanto } from './formato.js';
 import {
-  POR_PAGINA, TEXTO_PERIODO_PASADO, crearHash, destinosDe, leerFiltrosComunes, periodoPasado, rangoDe, resumenFuentes, salidaPuente,
+  POR_PAGINA, TEXTO_PERIODO_PASADO, crearHash, destinosDe, leerFiltrosComunes, periodoPasado, rangoDe, resumenFuentes, rutaDeVista, salidaPuente,
 } from './filtros.js';
 import { NOCHES, VIAJEROS, aeropuertosCercanos } from './viaje.js';
 import { icono } from './iconos.js';
-import { camposFechas } from './selector-fechas.js';
+import { ROTULOS_FECHAS, camposFechas } from './selector-fechas.js';
 import { peajesDesde } from './coste.js';
 
 /** Los filtros que van dentro de «Más filtros» (los de arriba se ven siempre). */
 export const FILTROS_SECUNDARIOS = [
   'pnMin', 'km', 'dto', 'pts', 'nota', 'regimen', 'aloj', 'est', 'transporte', 'fuente', 'tipo', 'pais', 'region',
-  'nuevas', 'fav', 'cho', 'baja', 'hist', 'sindesc', 'sinconf', 'dup', 'cru', 'cerradas', 'encaje',
+  'nuevas', 'fav', 'cho', 'baja', 'hist', 'sindesc', 'sinconf', 'dup', 'cru', 'cerradas', 'encaje', 'ninos', 'evtipo', 'noches',
 ];
 /** Los que van en «Más filtros» de la vista de vuelos. */
 export const FILTROS_MAS_VUELOS = ['dto', 'pts', 'cho', 'baja', 'hist', 'nuevas', 'fav', 'sindesc', 'sinconf', 'dup'];
@@ -28,7 +28,6 @@ export const ETIQUETAS_ORDEN = {
   persona: 'Coste total por persona',
   calidad: 'Calidad/precio (nota por persona)',
   comodo: 'Más cómodo (menos viaje)',
-  precio: 'Precio publicado (sin igualar unidades)',
   noche: 'Precio por persona y noche',
   ahorro: 'Más baratas que la media de parecidas',
   valoracion: 'Mejor valoradas',
@@ -154,7 +153,7 @@ export const selectorModo = `<div class="selector-modo" role="group" aria-label=
 /** Las pestañas de cada apartado del menú: Explorar, Fechas y Mis cosas. */
 export const PESTANAS = {
   // El Mapa no es otra categoría: es otra forma de ver las escapadas (conmutador Lista / Mapa).
-  explorar: ['Explorar', [['escapadas', 'Escapadas', 'escapadas'], ['vuelos', 'Vuelos y trenes', 'vuelos', 'Vuelos'], ['actividades', 'Planes', 'actividades']]],
+  explorar: ['Explorar', [['escapadas', 'Escapadas', 'escapadas'], ['vuelos', 'Vuelos y trenes', 'vuelos'], ['actividades', 'Planes', 'actividades']]],
   fechas: ['Fechas', [['calendario', 'Calendario', 'calendario'], ['puentes', 'Puentes', 'puentes']]],
   // Tres cosas distintas, cada una en su pestaña: lo que guardas, lo que buscas y lo que comparas.
   mis: ['Guardados', [['mis', 'Favoritos', 'corazon'], ['mis?ver=busquedas', 'Búsquedas guardadas', 'guardar', 'Búsquedas'], ['comparar', 'Comparar lado a lado', 'comparar', 'Comparar'], ['vigilados', 'Avisos por email', 'vigilados', 'Por email']]],
@@ -166,7 +165,7 @@ export function pestanas(apartado, activa, e = null) {
   // En el móvil, el nombre corto (si lo hay) para que quepan todas sin deslizar.
   const texto = (largo, corto) => (corto ? `<span class="solo-ancho">${largo}</span><span class="solo-estrecho">${corto}</span>` : `<span>${largo}</span>`);
   // `ruta` puede llevar parámetros («mis?ver=busquedas»): la vista es lo de antes del «?».
-  return `<nav class="pestanas" aria-label="${esc(nombre)}">${lista.map(([ruta, largo, ic, corto]) => `<a class="pestana" href="#/${ruta}"${ruta.includes('?') ? '' : ` data-vista="${ruta}"`}${corto ? ` aria-label="${esc(largo)}"` : ''}${ruta === activa ? ' aria-current="page"' : ''}>${icono(ic)}${texto(largo, corto)}</a>`).join('')}</nav>`;
+  return `<nav class="pestanas" aria-label="${esc(nombre)}">${lista.map(([ruta, largo, ic, corto]) => `<a class="pestana" href="#/${ruta.includes('?') ? ruta : rutaDeVista(ruta)}"${ruta.includes('?') ? '' : ` data-vista="${ruta}"`}${corto ? ` aria-label="${esc(largo)}"` : ''}${ruta === activa ? ' aria-current="page"' : ''}>${icono(ic)}${texto(largo, corto)}</a>`).join('')}</nav>`;
 }
 
 /**
@@ -225,7 +224,8 @@ export function estadoWebs(fuentes = [], ahora = new Date()) {
     : reintentando
       ? `${r.activas - reintentando} de ${contar(r.activas, 'web')} al día · ${reintentando} reintentando`
       : `Las ${contar(r.activas, 'web')} funcionan`;
-  return { texto, problemas, error: problemas.length > 0 };
+  // Arriba (en el Inicio) solo se avisa si falla más de una cuarta parte: el resto, en el pie y en Estado.
+  return { texto, problemas, error: problemas.length > 0, grave: problemas.length > r.activas / 4, activas: r.activas };
 }
 
 /**
@@ -289,8 +289,7 @@ export function etiquetaFinde(finde, puentes = []) {
  */
 export function campoTexto(f, ambito = '') {
   return `<label class="campo campo--ancho">${ambito ? `Buscar en ${ambito}` : 'Buscar palabras'}
-  <input type="search" name="q" value="${esc(f.q)}" placeholder="playa -crucero" autocomplete="off" enterkeyhint="search">
-  <span class="ayuda">Varias palabras a la vez; con «-» delante quitas resultados (<code>playa -crucero</code>).</span>
+  <input type="search" name="q" value="${esc(f.q)}" placeholder="Destino u hotel" autocomplete="off" enterkeyhint="search">
 </label>`;
 }
 
@@ -401,8 +400,9 @@ export function barraFechas(e, vista, params = {}, { cifras = new Map(), ayuda =
   const rapidas = [
     rapida('', 'Cualquier fecha'),
     ...(primero ? [rapida(relativo, `${esc(nombreFinde(e.hoy))} · ${esc(primero.etiqueta)}`)] : []),
-    ...(siguiente ? [rapida(siguiente.id, `El siguiente · ${esc(siguiente.etiqueta)}`, siguiente.puenteId ? ' chip--puente' : '')] : []),
-    ...(e.datos.puentes ?? []).map((p) => rapida(p.id, `${icono('puentes')}${esc(p.nombre)} · ${esc(etiquetaRango(salidaPuente(p), p.hasta))}`, ' chip--puente')),
+    ...(siguiente ? [rapida(siguiente.id, `${nombreSiguienteFinde(e.hoy)} · ${esc(siguiente.etiqueta)}`, siguiente.puenteId ? ' chip--puente' : '')] : []),
+    // Un puente se dice igual en todas partes: «vie 9 – lun 12 oct» (con la tarde del último laborable).
+    ...(e.datos.puentes ?? []).map((p) => rapida(p.id, `${icono('puentes')}${esc(p.nombre)} · ${esc(diasExplicitos(salidaPuente(p), p.hasta))}`, ' chip--puente')),
   ];
   // Junto a las fechas, sus noches (el atajo marcado ya dice si es «Este finde» o un puente).
   const resumen = f.pasado ? TEXTO_PERIODO_PASADO : null;
@@ -411,7 +411,7 @@ export function barraFechas(e, vista, params = {}, { cifras = new Map(), ayuda =
   return `<section class="fechas${f.pasado ? ' fechas--pasado' : ''}" data-fechas data-vista="${esc(vista)}" data-entrada="${esc(f.entrada)}" data-salida="${esc(f.salida)}" aria-labelledby="${id}-titulo">
   <h2 class="fechas__titulo" id="${id}-titulo">${icono('calendario')}¿Cuándo?</h2>
   <input type="hidden" name="${f.clave}" value="${esc(f.cuando)}"${deFormulario}><input type="hidden" name="desde" value="${esc(f.desde)}"${deFormulario}><input type="hidden" name="hasta" value="${esc(f.hasta)}"${deFormulario}>
-  ${camposFechas({ entrada: f.entrada, salida: f.salida, idPanel: `${id}-calendario`, resumen, quitar: elegido })}
+  ${camposFechas({ entrada: f.entrada, salida: f.salida, idPanel: `${id}-calendario`, resumen, quitar: elegido, rotulos: ROTULOS_FECHAS[vista] })}
   <div class="fechas__panel" id="${id}-calendario" data-fechas-panel role="group" aria-label="Calendario: elige la fecha de entrada y la de salida" hidden>
     <div data-calendario></div>${ayuda ? `<p class="ayuda fechas__ayuda">${ayuda}</p>` : ''}
   </div>

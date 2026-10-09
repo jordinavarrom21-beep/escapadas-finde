@@ -2,7 +2,7 @@
  * Festivos (nacionales, de la comunidad y locales), puentes y asignación de cada
  * oferta a su fin de semana o puente.
  */
-import { diaSemana, etiquetaRango, sumarDias } from '../util/fechas.js';
+import { diaSemana, diasConNombre, sumarDias } from '../util/fechas.js';
 
 const SIETE_DIAS_MS = 7 * 24 * 60 * 60 * 1000;
 const PRIORIDAD_AMBITO = { nacional: 0, autonomico: 1, local: 2 };
@@ -100,7 +100,8 @@ export function calcularPuentes(festivos, { desde, hasta }) {
         diasPuente: [...diasPuente].filter((d) => d >= bloque.desde && d <= bloque.hasta && !porFecha.has(d)).sort(),
         salidas: [sumarDias(bloque.desde, -1), bloque.desde],
         vuelta: bloque.hasta,
-        etiqueta: etiquetaRango(bloque.desde, bloque.hasta),
+        // Con la tarde del último laborable para salir, como en el panel: «vie 9 – lun 12 oct».
+        etiqueta: diasConNombre(sumarDias(bloque.desde, -1), bloque.hasta),
       });
     }
     fecha = sumarDias(fecha, 1);

@@ -97,7 +97,7 @@ const insigniaChollazo = (o, clase = 'insignia insignia--chollazo') => `<span cl
  * Las insignias de la oferta. En la tarjeta, el chollazo (o, si no lo es, lo que baja de lo
  * normal) va como sello sobre la foto: `enFoto` los quita de aquí para no repetirlos.
  */
-export function insignias(o, ctx, { enFoto = false } = {}) {
+export function insignias(o, ctx, { enFoto = false, sinBajada = false } = {}) {
   const etiquetas = o.etiquetas ?? [];
   const minimo = textoMinimo(o, ctx);
   const lista = [
@@ -108,7 +108,7 @@ export function insignias(o, ctx, { enFoto = false } = {}) {
     o.chollazo && !enFoto && insigniaChollazo(o),
     insigniaNinos(o),
     minimo && `<span class="insignia insignia--minimo" title="${esc(minimo.detalle)}">${esc(minimo.texto)}</span>`,
-    o.bajada > 0 && `<span class="insignia insignia--bajada" title="${esc(textoBajada(o))}">↓ ${bajadaCorta(o)}</span>`,
+    !sinBajada && o.bajada > 0 && `<span class="insignia insignia--bajada" title="${esc(textoBajada(o))}">↓ ${bajadaCorta(o)}</span>`,
     (!enFoto || o.chollazo) && insigniaReferencia(o),
     etiquetas.includes('error-tarifa') && `<span class="insignia insignia--alerta">${icono('alerta')}Error de tarifa</span>`,
     esDuplicada(o) && `<span class="insignia">${icono('repetir')}${o.equivalentes?.length ? 'Repetida en otra web' : 'Repetida en la misma web'}</span>`,
@@ -271,9 +271,14 @@ export function insigniaEvento(o, ctx = {}) {
   const ev = lista.find(preferido) ?? lista[0];
   if (!ev) return '';
   const [tipo, , ic] = TIPOS_EVENTO[ev.tipo] ?? TIPOS_EVENTO.otros;
-  const mas = lista.length > 1 ? ` y ${lista.length - 1} más` : '';
-  const dia = supuesto && ev.fecha ? ` · si vas el ${etiquetaDia(ev.fecha)}` : '';
-  return `<span class="insignia insignia--evento" title="${esc(`${ev.nombre}${ev.fecha ? ` · ${etiquetaDia(ev.fecha)}` : ''}${mas ? ` · ${lista.length} eventos cerca esos días` : ''}`)}">${icono(ic)}${esc(`${tipo} ${distanciaEvento(ev.km)}`.trim())}${esc(mas)}${esc(dia)}</span>`;
+  // «Concierto en Lloret el sáb 10 (+5 planes)»: dónde, cuándo y cuántos más hay cerca (antes,
+  // «Concierto aquí mismo y 5 más»).
+  // Sin municipio, el del alojamiento solo si el evento está al lado; si no, a cuántos km.
+  const sitio = ev.municipio ?? (ev.km == null || ev.km < 2 ? o.lugar?.nombre : null);
+  const donde = sitio ? ` en ${sitio}` : ev.km != null ? ` ${distanciaEvento(ev.km)}` : '';
+  const cuando = ev.fecha ? `${supuesto ? ' si vas el' : ' el'} ${etiquetaDia(ev.fecha)}` : '';
+  const mas = lista.length > 1 ? ` (+${contar(lista.length - 1, 'plan', 'planes')})` : '';
+  return `<span class="insignia insignia--evento" title="${esc(`${ev.nombre}${ev.fecha ? ` · ${etiquetaDia(ev.fecha)}` : ''}${mas ? ` · ${lista.length} eventos cerca esos días` : ''}`)}">${icono(ic)}${esc(`${tipo}${donde}${cuando}${mas}`)}</span>`;
 }
 
 /** Estrella y nota, con el número de opiniones en el título. */
@@ -335,7 +340,8 @@ export function botonesMiEstado(o, ctx) {
 
 /** ✕ para ocultar la oferta en este navegador. */
 export function botonDescartar(o) {
-  return `<button type="button" class="boton-icono boton-icono--mini boton-descartar" data-descartar="${esc(o.id)}" title="Ocultar esta oferta" aria-label="Ocultar esta oferta: ${esc(o.titulo)}">${icono('cerrar')}</button>`;
+  // Con su texto: la X sola no decía qué hacía.
+  return `<button type="button" class="boton-descartar" data-descartar="${esc(o.id)}" title="Ocultar esta oferta" aria-label="Ocultar esta oferta: ${esc(o.titulo)}">${icono('cerrar')}<span aria-hidden="true">Ocultar</span></button>`;
 }
 
 /**
@@ -349,7 +355,13 @@ export const relEnlace = (pagado) => (pagado ? 'sponsored noopener' : 'noopener'
 /** Atributos para contar el clic (proveedor, tipo de enlace y tipo de oferta), sin datos personales. */
 const atributosClic = (o, afiliado) => ` data-clic="${esc(o.fuente)}" data-clic-tipo="${afiliado ? 'afiliado' : o.patrocinada ? 'patrocinado' : 'normal'}" data-clic-oferta="${esc(o.tipo)}"`;
 
-export function enlaceOferta(o, texto = 'Ver oferta', ctx = {}) {
+/** Una sola etiqueta para salir a la oferta, en tarjetas y ficha: «Ver oferta en Weekendesk». */
+// La web, aparte: en una tarjeta estrecha pasa a otra línea o, si ni así cabe, se esconde (el
+// precio de encima ya dice «Precio en {web}»).
+export const textoVerOferta = (o, ctx = {}) => `Ver oferta<span class="boton__web"> en ${esc(ctx.fuentes?.get(o.fuente) ?? o.fuente)}</span>`;
+
+export function enlaceOferta(o, texto = null, ctx = {}) {
+  texto ??= textoVerOferta(o, ctx);
   const url = urlSegura(urlPropia(o, ctx));
   const pagado = Boolean(o.afiliado || o.patrocinada);
   return url ? `<a class="boton boton--primario" href="${esc(url)}" target="_blank" rel="${relEnlace(pagado)}"${atributosClic(o, o.afiliado)}><span class="boton__texto">${texto}</span>${icono('externo')}<span class="sr"> (se abre en otra pestaña${o.afiliado ? '; enlace de afiliado' : ''})</span></a>` : '';
@@ -357,6 +369,11 @@ export function enlaceOferta(o, texto = 'Ver oferta', ctx = {}) {
 
 /** «Enlace de afiliado» en la tarjeta; la explicación completa, en la ficha. */
 export const TEXTO_AFILIADO = 'Si reservas por este enlace, la web puede pagarnos una comisión. No cambia tu precio ni el orden de las ofertas.';
+
+/** Un free tour (Guruwalk, Civitatis): gratis, pero se deja propina al guía. */
+export const esFreeTour = (o) => o.precio === 0 && o.tipo === 'actividad' && (['guruwalk', 'civitatis'].includes(o.fuente) || /propina/i.test(o.precioTexto ?? ''));
+/** «Gratis (propina voluntaria)» en los free tours, igual en todas partes; «Gratis» en lo demás. */
+export const textoGratis = (o) => (esFreeTour(o) ? 'Gratis (propina voluntaria)' : 'Gratis');
 
 /** Lo que añade la web al «Gratis» («con propina voluntaria»), sin repetir la palabra. */
 function matiz(precioTexto = '') {
@@ -398,7 +415,7 @@ export function precio(o, { etiqueta = null, principal = false } = {}) {
 
 function precioBase(o) {
   if (typeof o.precio !== 'number') return `<p class="precio"><strong class="precio__consultar">${esc(o.precioTexto || 'Consultar precio')}</strong></p>`;
-  if (o.precio === 0) return `<p class="precio"><strong class="precio__gratis">Gratis</strong>${matiz(o.precioTexto)}</p>`;
+  if (o.precio === 0) return `<p class="precio"><strong class="precio__gratis">Gratis</strong>${esFreeTour(o) ? ' <span class="precio__unidad">(propina voluntaria)</span>' : matiz(o.precioTexto)}</p>`;
   // Sin unidad en el modelo, lo que dice la web («por persona y trayecto», «en total para 2»)
   // explica más que nada; si tampoco lo dice, se avisa.
   const unidad = ETIQUETAS_UNIDAD[o.unidad]
@@ -427,9 +444,26 @@ export function caducidadCorta(o, ctx = {}) {
 }
 
 /** Fechas del viaje: las concretas o «Fechas flexibles». La caducidad de la promoción va aparte. */
+const MESES_TEXTO = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+const MESES_CORTOS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+
+/** Los meses que dice el título de un chollo («… en noviembre y diciembre» → «nov–dic»), o ''. */
+export function mesesDelTexto(texto = '') {
+  const t = String(texto).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const meses = MESES_TEXTO.map((m, i) => (new RegExp(`\\b${m}\\b`).test(t) ? i : -1)).filter((i) => i >= 0);
+  if (!meses.length) return '';
+  return meses.length === 1 ? MESES_CORTOS[meses[0]] : `${MESES_CORTOS[meses[0]]}–${MESES_CORTOS[meses.at(-1)]}`;
+}
+
 export function textoFechas(o) {
   const { salida, vuelta } = o.fechas ?? {};
   if (salida) return vuelta ? `${etiquetaDia(salida)} – ${etiquetaDia(vuelta)}` : etiquetaDia(salida);
+  // Un chollo de vuelo sin fecha: los meses que dice o hasta cuándo vale, no «Fechas flexibles».
+  if (o.tipo === 'vuelo') {
+    const meses = mesesDelTexto(o.tituloOriginal ?? o.titulo);
+    if (meses) return meses;
+    if (o.caduca) return `Válido hasta el ${etiquetaDia(fechaLocal(o.caduca)).split(' ').slice(1).join(' ')}`;
+  }
   return 'Fechas flexibles';
 }
 
@@ -593,9 +627,6 @@ function insigniasTarjeta(o, ctx) {
   return [...fijas.filter(Boolean), mejor].filter(Boolean).join('');
 }
 
-/** La acción principal de la tarjeta dice qué abre: «Ver escapada», «Ver plan» o «Ver vuelo». */
-const textoAccion = (o) => ({ actividad: 'Ver plan', vuelo: 'Ver vuelo' }[o.tipo] ?? 'Ver escapada');
-
 /** Tarjeta de escapada, hotel, paquete o chollo de vuelo sin fechas. */
 export function tarjetaOferta(o, ctx) {
   const web = ctx.fuentes?.get(o.fuente) ?? o.fuente;
@@ -615,7 +646,7 @@ export function tarjetaOferta(o, ctx) {
     <p class="tarjeta__estado">${textoComprobada(o, ctx, { corto: true })}</p>
     <div class="tarjeta__pie">
       <div class="tarjeta__precio">${bloquePrecio(o, ctx)}</div>
-      <div class="acciones">${botonComparar(o, ctx)}${enlaceOferta(o, typeof o.precio === 'number' && o.precio > 0 ? textoAccion(o) : `Ver en ${esc(web)}`, ctx)}</div>
+      <div class="acciones">${botonComparar(o, ctx)}${enlaceOferta(o, null, ctx)}</div>
     </div>
   </div>
 </article>`;
@@ -772,6 +803,25 @@ export function barraCoste(c) {
   return `<span class="coste__barra" aria-hidden="true">${c.partes.map((p, i) => `<span class="coste__segmento coste__segmento--${claseParte(p, i)}" style="flex-grow:${Math.max(p.eur / total, 0.04).toFixed(3)}"></span>`).join('')}</span>`;
 }
 
+/**
+ * La tendencia en una frase: «Igual que ayer · 3 € menos que hace una semana» (antes, «→ Sin
+ * cambios» y al lado «↓ 3 €», que parecían decir cosas distintas).
+ */
+export function textoTendencia(serie) {
+  if (!serie || serie.length < 2) return '';
+  const [dia, ultimo] = serie.at(-1);
+  const comparar = ([fecha, antes], cuando) => {
+    const nombre = cuando ?? `el ${etiquetaDia(fecha)}`;
+    return antes === ultimo ? `Igual que ${nombre}` : `${euros(Math.abs(ultimo - antes))} ${ultimo < antes ? 'menos' : 'más'} que ${nombre}`;
+  };
+  const anterior = serie.at(-2);
+  const hace7 = [...serie].reverse().find(([fecha]) => diasEntre(fecha, dia) >= 7);
+  return [
+    comparar(anterior, diasEntre(anterior[0], dia) === 1 ? 'ayer' : null),
+    hace7 && hace7 !== anterior && comparar(hace7, diasEntre(hace7[0], dia) === 7 ? 'hace una semana' : null),
+  ].filter(Boolean).join(' · ');
+}
+
 /** Minigráfica SVG del historial de precios (vacía si hay menos de dos puntos). */
 export function minigrafica(serie) {
   const puntos = puntosMinigrafica(serie);
@@ -779,7 +829,7 @@ export function minigrafica(serie) {
   const [primero, ultimo] = [serie[0][1], serie.at(-1)[1]];
   // El color dice hacia dónde va el precio (verde, baja; rojo, sube; gris, igual) y lo repite en palabras.
   const tendencia = ultimo < primero ? 'baja' : ultimo > primero ? 'sube' : 'igual';
-  const texto = { baja: '↘ Ha bajado', sube: '↗ Ha subido', igual: '→ Sin cambios' }[tendencia];
+  const texto = textoTendencia(serie);
   return `<span class="tendencia tendencia--${tendencia}" title="Precio de los últimos ${serie.length} días: de ${euros(primero)} a ${euros(ultimo)}"><svg class="minigrafica" viewBox="0 0 96 28" width="96" height="28" role="img" aria-label="Historial de ${serie.length} días: de ${euros(primero)} a ${euros(ultimo)}"><polyline points="${puntos}" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/></svg><span class="tendencia__texto">${texto}</span></span>`;
 }
 
@@ -793,9 +843,15 @@ export function tramo(nombre, t, conNumero = false) {
 }
 
 /** Tarjeta tipo billete de un vuelo con fechas. */
+/** Aerolíneas cuya tarifa básica solo incluye un bolso bajo el asiento: se avisa en tarjeta y ficha. */
+const SOLO_BOLSO = ['wizzair', 'volotea'];
+export const avisoEquipaje = (o) => (o.tipo === 'vuelo' && SOLO_BOLSO.includes(o.fuente) ? 'Tarifa básica: solo bolso bajo el asiento' : '');
+
 export function tarjetaVuelo(o, ctx) {
   const v = o.vuelo;
+  const equipaje = avisoEquipaje(o);
   const extras = [
+    equipaje && `<span class="insignia insignia--equipaje">${icono('alerta')}${esc(equipaje)}</span>`,
     v.horarioIdeal && `<span class="insignia insignia--ideal">${icono('reloj')}Horario ideal</span>`,
     v.patron === 'puente' && `<span class="insignia insignia--puente">${icono('puentes')}Puente</span>`,
     v.nuevaRuta && `<span class="insignia insignia--nueva">${icono('nuevo')}Nueva ruta</span>`,
@@ -817,9 +873,9 @@ export function tarjetaVuelo(o, ctx) {
     </div>
   </div>
   <div class="billete__pie">
-    <div class="insignias">${insigniaEncaje(o, ctx)}${extras}${insignias(o, ctx)}</div>
+    <div class="insignias">${insigniaEncaje(o, ctx)}${extras}${insignias(o, ctx, { sinBajada: true })}</div>
     ${textoComprobada(o, ctx)}
-    <div class="acciones">${botonDescartar(o)}${botonComparar(o, ctx)}${botonFavorito(o, ctx)}${enlaceOferta(o, 'Reservar', ctx)}</div>
+    <div class="acciones">${botonDescartar(o)}${botonComparar(o, ctx)}${botonFavorito(o, ctx)}${enlaceOferta(o, null, ctx)}</div>
   </div>
 </article>`;
 }
@@ -855,7 +911,7 @@ export function filaOferta(o) {
 export function filaActividad(o) {
   const minutos = duracionActividad(o);
   return `<li class="fila"><button type="button" class="enlace-ficha" data-ficha="${esc(o.id)}">${esc(o.titulo)}</button>
-  <span class="fila__precio">${o.precio === 0 ? 'Gratis' : euros(o.precio)}</span>${
+  <span class="fila__precio">${o.precio === 0 ? textoGratis(o) : euros(o.precio)}</span>${
   minutos ? `<span class="suave">${icono('reloj')} ${esc(duracion(minutos))}</span>` : ''}${valoracion(o)}</li>`;
 }
 

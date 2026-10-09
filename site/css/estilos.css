@@ -243,7 +243,12 @@ pre code { background: none; padding: 0; }
 .boton-fav[aria-pressed="true"] .ic { fill: currentColor; }
 .boton-comparar[aria-pressed="true"] { background: var(--acento); border-color: var(--acento); color: var(--acento-texto); }
 .boton-comparar--texto { display: inline-flex; align-items: center; width: auto; padding-inline: 12px; gap: 6px; font-weight: 700; font-size: 0.86rem; }
-.boton-descartar { border-color: transparent; background: none; color: var(--texto-suave); }
+/* «Ocultar» con su texto (antes, una X sola). */
+.boton-descartar {
+  display: inline-flex; align-items: center; gap: 4px; min-height: 32px; padding: 2px 8px; border: 1px solid transparent; border-radius: 999px;
+  background: none; color: var(--texto-suave); font: inherit; font-size: 0.8rem; font-weight: 600; cursor: pointer; flex: none;
+}
+.boton-descartar .ic { width: 14px; height: 14px; }
 .boton-descartar:hover { border-color: var(--peligro); color: var(--peligro); }
 
 .enlace-boton {
@@ -298,6 +303,8 @@ pre code { background: none; padding: 0; }
 .insignia--minimo, .insignia--bajada, .insignia--ahorro { background: var(--acento-suave); color: var(--acento-suave-texto); }
 .insignia--alerta, .insignia--patrocinado { background: var(--aviso-suave); color: var(--aviso); }
 .insignia--ideal { background: color-mix(in srgb, var(--tema-playa) 16%, var(--superficie)); color: var(--texto); }
+.insignia--equipaje { background: var(--superficie-2); color: var(--texto); }
+.ficha__equipaje { margin: 8px 0 0; font-size: 0.9rem; color: var(--texto-suave); }
 .insignia--puente { background: var(--puente-suave); color: var(--puente); }
 .insignia--chollazo { background: var(--chollo); color: var(--chollo-texto); }
 .insignia--mio { background: var(--acento-suave); color: var(--acento-suave-texto); }
@@ -441,6 +448,17 @@ main { padding-block: 22px 56px; min-height: 60vh; }
   display: grid; gap: 18px; padding: 20px; border-radius: 24px;
   background: var(--superficie); border: 1px solid var(--borde); box-shadow: var(--sombra);
 }
+/* Desde la segunda visita, el buscador plegado en una línea («Este finde · Escapadas · Cambiar»). */
+.buscador-plegable { display: grid; gap: 12px; }
+.buscador-plegable__resumen {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; padding: 8px 16px;
+  border-radius: var(--radio-chico); border: 1px solid var(--borde); background: var(--superficie); cursor: pointer; list-style: none;
+}
+.buscador-plegable__resumen::-webkit-details-marker { display: none; }
+.buscador-plegable__resumen:hover { border-color: var(--acento); }
+.buscador-plegable__texto { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; min-width: 0; }
+.buscador-plegable__cambiar { color: var(--acento); font-weight: 700; flex: none; }
+.buscador-plegable[open] > .buscador-plegable__resumen { display: none; }
 .buscador-finde__grupo { border: 0; margin: 0; padding: 0; min-width: 0; display: grid; gap: 8px; }
 .buscador-finde__grupo legend, .buscador-finde__etiqueta {
   font-size: 0.74rem; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; color: var(--texto-suave); padding: 0; margin-bottom: 8px;
@@ -573,6 +591,7 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 @media (max-width: 719px) {
   .chip, .boton, .boton--mini, .interruptor { min-height: 44px; }
   .boton-icono--mini { width: 44px; height: 44px; }
+  .boton-descartar { min-height: 44px; }
   /* «Más filtros» abierto ocupa toda la pantalla, con su botón para volver a los resultados. */
   .filtros__mas--panel[open] {
     position: fixed; inset: 0; z-index: 60; overflow-y: auto; overscroll-behavior: contain;
@@ -704,10 +723,11 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 }
 .tarjeta .tarjeta__datos li { max-width: 100%; white-space: nowrap; }
 .tarjeta .tarjeta__datos li > span { overflow: hidden; text-overflow: ellipsis; }
-.insignias--tarjeta, .insignias--tarjeta:empty { display: flex; flex-wrap: nowrap; height: 26px; overflow: hidden; }
-.insignias--tarjeta > * { flex: 0 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.insignias--tarjeta > .insignia { display: inline-flex; }
-.insignias--tarjeta > .insignia > span { overflow: hidden; text-overflow: ellipsis; }
+/* Las insignias bajan de línea en vez de cortarse («Concierto en Llo…»); el hueco mínimo sigue
+   alineando las tarjetas de una fila. */
+.insignias--tarjeta, .insignias--tarjeta:empty { display: flex; flex-wrap: wrap; min-height: 26px; }
+.insignias--tarjeta > * { flex: 0 1 auto; min-width: 0; max-width: 100%; }
+.insignias--tarjeta > .insignia { display: inline-flex; white-space: normal; }
 /* Cuándo se comprobó (o «Sin confirmar»): una línea propia de alto fijo, para que las tarjetas sigan alineadas. */
 .tarjeta__estado { margin: -4px 0 0; height: 22px; display: flex; align-items: center; overflow: hidden; white-space: nowrap; }
 .tarjeta__estado > * { overflow: hidden; text-overflow: ellipsis; }
@@ -736,6 +756,11 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 .tarjeta .acciones .boton--primario { flex: 1; min-width: 0; justify-content: center; padding-inline: 12px; font-size: 0.9rem; }
 .tarjeta .acciones .boton--primario > .ic { display: none; }
 .boton__texto { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+/* «Ver oferta en BuscoUnChollo»: en dos líneas antes que cortado; si la tarjeta es tan estrecha
+   que ni así cabe, solo «Ver oferta» (la web ya sale en «Precio en …»). */
+.tarjeta .acciones .boton--primario { container: boton-oferta / inline-size; }
+.tarjeta .acciones .boton__texto { white-space: normal; text-align: center; line-height: 1.15; }
+@container boton-oferta (max-width: 150px) { .boton__web { display: none; } }
 .acciones { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 
 .precio { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 7px; }
@@ -984,8 +1009,8 @@ main { padding-block: 22px 56px; min-height: 60vh; }
   background: var(--superficie); border: 1px solid var(--borde); border-radius: var(--radio);
   color: var(--texto) !important; text-decoration: none; transition: transform 0.18s, box-shadow 0.18s;
 }
-.finde-celda--puente { background: var(--banda); border-color: var(--banda); color: var(--banda-texto) !important; }
-.finde-celda--puente .finde-celda__cuando, .finde-celda--puente .suave { color: var(--banda-suave); }
+/* Los puentes, con borde y su etiqueta: no con un fondo oscuro que se confundía con la escala de precios. */
+.finde-celda--puente { border: 2px solid var(--chollo); }
 .finde-celda--puente .insignia--puente { background: var(--chollo); color: var(--chollo-texto); }
 /* Color de texto normal: sobre los fondos del mapa de calor el gris suave no llegaba a 4,5:1. */
 .finde-celda__cuando { font-size: 0.74rem; font-weight: 800; color: var(--texto); text-transform: uppercase; letter-spacing: 0.07em; }
@@ -995,7 +1020,6 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 .finde-celda__acciones { margin-top: auto; display: flex; flex-wrap: wrap; gap: 6px; }
 .finde-celda__accion { flex: 1 1 auto; justify-content: center; min-width: 0; white-space: normal; text-align: center; height: auto; }
 .finde-celda__accion small { display: inline-block; font-weight: 600; }
-.finde-celda--puente .finde-celda__accion { background: color-mix(in srgb, var(--banda-texto) 12%, transparent); color: var(--banda-texto) !important; border-color: transparent; }
 
 /* ── Vigilados y fuentes ──────────────────────────────────────────────────── */
 
@@ -1503,14 +1527,15 @@ main { padding-block: 22px 56px; min-height: 60vh; }
 .leyenda-grafica__discontinua { width: 16px; height: 0; border-top: 2px dashed var(--texto-suave); }
 
 /* Calendario como mapa de calor: un solo tono, más intenso cuanto mejor es el finde. */
-.finde-celda--nivel-1:not(.finde-celda--puente), .leyenda-calor__paso.finde-celda--nivel-1 { background: color-mix(in oklab, var(--acento) 7%, var(--superficie)); }
-.finde-celda--nivel-2:not(.finde-celda--puente), .leyenda-calor__paso.finde-celda--nivel-2 { background: color-mix(in oklab, var(--acento) 15%, var(--superficie)); }
-.finde-celda--nivel-3:not(.finde-celda--puente), .leyenda-calor__paso.finde-celda--nivel-3 { background: color-mix(in oklab, var(--acento) 25%, var(--superficie)); }
-.finde-celda--nivel-4:not(.finde-celda--puente), .leyenda-calor__paso.finde-celda--nivel-4 { background: color-mix(in oklab, var(--acento) 36%, var(--superficie)); }
+.finde-celda--nivel-1, .leyenda-calor__paso.finde-celda--nivel-1 { background: color-mix(in oklab, var(--acento) 7%, var(--superficie)); }
+.finde-celda--nivel-2, .leyenda-calor__paso.finde-celda--nivel-2 { background: color-mix(in oklab, var(--acento) 15%, var(--superficie)); }
+.finde-celda--nivel-3, .leyenda-calor__paso.finde-celda--nivel-3 { background: color-mix(in oklab, var(--acento) 25%, var(--superficie)); }
+.finde-celda--nivel-4, .leyenda-calor__paso.finde-celda--nivel-4 { background: color-mix(in oklab, var(--acento) 36%, var(--superficie)); }
 .leyenda-calor { display: flex; align-items: center; gap: 4px; margin: 0 0 12px; font-size: 0.8rem; color: var(--texto-suave); }
 .leyenda-calor span:first-child { margin-right: 4px; }
 .leyenda-calor span:last-child { margin-left: 4px; }
 .leyenda-calor__paso { display: inline-block; width: 22px; height: 12px; border-radius: 3px; border: 1px solid var(--borde); }
+.leyenda-calor .leyenda-calor__puente { margin-left: 12px; padding: 0 6px; border: 2px solid var(--chollo); border-radius: 4px; color: var(--texto); }
 
 /* Crédito de las fotos de Wikimedia Commons, sobre la foto de la ficha. */
 .ficha__credito {
@@ -1574,7 +1599,7 @@ body:has([data-plegable-movil][open]) .barra-comparar [data-abrir-filtros] { dis
 }
 .buscador-finde__fechas[hidden] { display: none; }
 .opcion--fecha { gap: 4px; min-height: 64px; padding: 10px 14px; border-radius: var(--radio-medio); }
-.opcion--fecha small { font-size: 0.7rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }
+.opcion--fecha small { font-size: 0.7rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; padding-right: 14px; }
 .opcion--fecha span { font-size: 0.95rem; }
 .opcion--fecha:has(input:checked) { background: var(--acento-suave); border-color: var(--acento); border-width: 2px; color: var(--texto); }
 .opcion--fecha:has(input:checked) small { color: var(--acento-suave-texto); }
@@ -1637,6 +1662,11 @@ body:has([data-plegable-movil][open]) .barra-comparar [data-abrir-filtros] { dis
   .organizar__estado::after { content: "Elegir"; }
   .buscador-finde__enviar { width: 100%; }
   .buscador-finde__mas > summary .suave { display: none; }
+}
+/* En 320 px «Escapadas» llegaba al borde de su tarjeta. */
+@media (max-width: 359px) {
+  .organizar__texto strong { font-size: 0.9rem; }
+  .organizar__texto small { font-size: 0.68rem; }
 }
 /* Apartados secundarios plegados (Vuelos: sin fecha, promociones, tren y bus). */
 .seccion-plegable > summary { display: flex; align-items: center; gap: 10px; cursor: pointer; list-style: none; min-height: 44px; padding: 6px 0; border-top: 1px solid var(--borde); }

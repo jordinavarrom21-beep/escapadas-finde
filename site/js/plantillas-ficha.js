@@ -9,7 +9,7 @@ import { duracionActividad, sufijoSerie } from './filtros.js';
 import { escena, icono, tipoEscena } from './iconos.js';
 import { motivosNota } from './nota.js';
 import {
-  QUE_MIDE_LA_NOTA, TEXTO_AFILIADO, adjetivoNota, barraCoste, botonComparar, botonDescartar, botonFavorito,
+  QUE_MIDE_LA_NOTA, TEXTO_AFILIADO, adjetivoNota, avisoEquipaje, barraCoste, botonComparar, botonDescartar, botonFavorito,
   botonesMiEstado, busquedaPara, certeza, claseParte, colorTema, comparativa, conFechasDeViaje, conIcono,
   conTransporteIncluido, costeDe, enlaceConBusqueda, enlaceOferta, esPrecioDesde, eventos, eventosDe,
   fiabilidadOpiniones, filaActividad, insignias, loMismo, nivelNota, nombreWeb, notaFechasOferta, porNoche, precio,
@@ -77,8 +77,9 @@ function notaFicha(o, ctx) {
  * dónde leerlas. Los vuelos no tienen (son de una aerolínea, no de un sitio).
  */
 function opinionesFicha(o, ctx) {
-  if (o.tipo === 'vuelo') return '';
   const v = o.valoracion;
+  // Sin opiniones en su web, sin sección (antes salía «X no publica opiniones de esta oferta»).
+  if (o.tipo === 'vuelo' || !(v?.nota >= 0)) return '';
   const web = ctx.fuentes?.get(o.fuente) ?? o.fuente;
   const sitio = o.establecimiento ?? (o.tipo === 'actividad' ? o.titulo : null);
   const lugar = o.lugar?.nombre ?? '';
@@ -215,9 +216,11 @@ function cocheFicha(o, ctx) {
   return `<p class="ficha__coche">${conIcono('coche', `<strong>${viaje}</strong> · ${km} desde ${esc(ctx.desde)}${coste ? `<br>${coste}` : ''}`)}</p>`;
 }
 
-function vueloFicha(v) {
+function vueloFicha(o) {
+  const v = o.vuelo;
   if (!v) return '';
-  return `<dl class="billete__tramos ficha__tramos">${tramo('Ida', v.ida, true)}${tramo('Vuelta', v.vuelta, true)}</dl>`;
+  const equipaje = avisoEquipaje(o);
+  return `<dl class="billete__tramos ficha__tramos">${tramo('Ida', v.ida, true)}${tramo('Vuelta', v.vuelta, true)}</dl>${equipaje ? `<p class="ficha__equipaje">${conIcono('alerta', `${esc(equipaje)}. La maleta de cabina o facturada se paga aparte: mira su precio en la web antes de comparar.`)}</p>` : ''}`;
 }
 
 /** Los enlaces de la ficha como <li>: el primero, el de la oferta (botón grande). */
@@ -328,7 +331,7 @@ export function contenidoFicha(o, ctx) {
   </header>
   <div class="ficha__media">${escena(tipoEscena(o))}${imagen ? `<img class="ficha__imagen" src="${esc(imagen)}" alt="" referrerpolicy="no-referrer">` : ''}${creditoFoto(o)}</div>
   <div class="insignias">${insignias(o, ctx)}</div>
-  ${vueloFicha(o.vuelo)}
+  ${vueloFicha(o)}
   ${o.resumen ? `<p class="ficha__resumen-ia"><strong>En una frase:</strong> ${esc(o.resumen)} <span class="suave">(resumen automático del texto de la web)</span></p>` : ''}
   ${descripcionFicha(o)}
   ${notaFicha(o, ctx)}

@@ -115,6 +115,8 @@ export function estadoFinde(ahora = new Date()) {
  * ya no se propone y el primero es el de la semana que viene), «El próximo finde».
  */
 export const nombreFinde = (hoy) => (hoy && diaSemana(hoy) === 0 ? 'El próximo finde' : 'Este finde');
+/** El finde de después de `nombreFinde`: «El próximo finde» (el domingo, que el próximo ya es el primero, «El de después»). */
+export const nombreSiguienteFinde = (hoy) => (hoy && diaSemana(hoy) === 0 ? 'El de después' : 'El próximo finde');
 /** Lo mismo dentro de una frase: «para este finde» / «para el próximo finde». */
 export const nombreFindeEnFrase = (hoy) => nombreFinde(hoy).replace(/^E/, 'e');
 

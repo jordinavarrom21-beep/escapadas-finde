@@ -203,7 +203,12 @@ describe('panel: filtro y etiqueta de eventos', async () => {
 
   test('la tarjeta prefiere un concierto a una exposición y cuenta los demás; la ficha los da todos', () => {
     const o = { ...base, id: 'x', eventos: [{ nombre: 'Museo', tipo: 'exposiciones', km: 0.3, fecha: '2026-10-03' }, { nombre: 'Coro', tipo: 'musica', km: 3.4, fecha: '2026-10-03' }] };
-    assert.match(insigniaEvento(o), /title="Coro · sáb 3 oct · 2 eventos cerca esos días">[^]*Concierto a 3 km y 1 más</);
+    assert.match(insigniaEvento(o), /title="Coro · sáb 3 oct · 2 eventos cerca esos días">[^]*Concierto a 3 km el sáb 3 oct \(\+1 plan\)</);
+    // Con su municipio, dónde; al lado del alojamiento, su nombre.
+    const conMunicipio = { ...o, eventos: [{ ...o.eventos[1], municipio: 'Girona' }, o.eventos[0]] };
+    assert.match(insigniaEvento(conMunicipio), />Concierto en Girona el sáb 3 oct \(\+1 plan\)</);
+    const alLado = { ...o, eventos: [{ ...o.eventos[1], km: 0.4 }] };
+    assert.match(insigniaEvento(alLado), />Concierto en X el sáb 3 oct</);
     assert.equal((eventos(o, { conEnlace: true }).match(/<li class="evento/g) ?? []).length, 2);
     assert.equal(insigniaEvento({ ...o, fechas: {} }), '', 'fechas flexibles sin buscar: nada en la tarjeta');
   });

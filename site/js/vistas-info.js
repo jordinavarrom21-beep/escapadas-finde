@@ -1,16 +1,16 @@
 /** Vistas de información y de lo tuyo: calendario, puentes, avisos por email, fuentes, ayuda y «Mis cosas». */
 
-import { diasEntre, etiquetaDia, etiquetaRango, nombreFinde } from './fechas.js';
+import { diasEntre, etiquetaDia, nombreFinde, nombreSiguienteFinde } from './fechas.js';
 import { contar, enumerar, escaparHtml as esc, euros, haceCuanto, urlSegura } from './formato.js';
 import {
   buscarActividades, buscarEscapadas, buscarTexto, chollosDeVuelos, crearHash, describirCriterio, filtrarVuelos,
   filtrosActivos, leerFiltrosActividades, leerFiltrosComunes, leerFiltrosEscapadas, leerFiltrosVuelos,
-  resumenCalendario, resumenPuentes, tieneVuelo, leerRuta, urlEditarVigilados,
+  resumenCalendario, resumenFuentes, resumenPuentes, salidaPuente, tieneVuelo, leerRuta, urlEditarVigilados,
 } from './filtros.js';
 import { QUE_MIDE_LA_NOTA, estadoVacio, filaOferta, insigniaEstado, rejilla } from './plantillas.js';
 import { icono } from './iconos.js';
 import {
-  conIcono, contextoBusqueda, ctxTarjetas, estadoPublico, estadoWebs, mostradas, motivoFuente, ocultas, pestanas, seccion,
+  conIcono, contextoBusqueda, ctxTarjetas, diasExplicitos, estadoPublico, estadoWebs, mostradas, motivoFuente, ocultas, pestanas, seccion,
 } from './vistas-comun.js';
 
 // ── Calendario ───────────────────────────────────────────────────────────────
@@ -26,13 +26,14 @@ export function vistaCalendario(e) {
   // Mapa de calor: con vuelos, más intenso cuanto más barato el mejor vuelo del finde; sin
   // ellos, cuantas más escapadas. El número va siempre escrito (el color solo ayuda a ver).
   const niveles = nivelesCalendario(resumen, hayVuelos);
-  const celdas = resumen.map(({ finde, puente, vuelo, vuelos, escapadas, conFecha }, i) => {
-    const cuando = i === 0 ? nombreFinde(e.hoy) : i === 1 ? 'El siguiente' : `En ${i} semanas`;
+  const celdas = resumen.map(({ finde, puente, vuelo, vuelos, conFecha }, i) => {
+    const cuando = i === 0 ? nombreFinde(e.hoy) : i === 1 ? nombreSiguienteFinde(e.hoy) : `En ${i} semanas`;
     // Cada finde, dos caminos claros: sus escapadas y (si hay vuelos con fecha) sus vuelos.
     // Antes la celda entera llevaba a uno solo aunque enseñara los datos de los dos.
+    // Solo las que tienen fecha ese finde: las flexibles valen para todos y su número se repetía en cada celda.
     const verEscapadas = `<a class="boton boton--suave boton--mini finde-celda__accion" href="${crearHash('escapadas', { cuando: finde.id })}">${icono('escapadas')}${conFecha
-      ? `<span>${contar(conFecha, 'escapada')} con fecha <small class="suave">+ ${escapadas - conFecha} flexibles</small></span>`
-      : `<span>Ver ${contar(escapadas, 'escapada')} flexibles</span>`}</a>`;
+      ? `<span>${contar(conFecha, 'escapada')} con fecha</span>`
+      : '<span>Ver escapadas</span>'}</a>`;
     const verVuelos = !hayVuelos ? ''
       : vuelo
         ? `<a class="boton boton--suave boton--mini finde-celda__accion" href="${crearHash('vuelos', { finde: finde.id })}">${icono('vuelos')}Ver ${contar(vuelos, 'vuelo')} · desde ${euros(vuelo.precio)}</a>`
@@ -46,8 +47,8 @@ export function vistaCalendario(e) {
   });
   return `${pestanas('fechas', 'calendario')}<h1 class="titulo-vista" tabindex="-1">Calendario</h1>
 <p class="seccion__intro">${hayVuelos
-    ? `Los próximos ${findes.length} findes con las escapadas que tienen fecha ese finde (las flexibles valen para todos) y el vuelo más barato. Los puentes van resaltados.`
-    : `Los próximos ${findes.length} findes con las escapadas que tienen fecha ese finde (las flexibles valen para todos). Los puentes van resaltados.`}</p>
+    ? `Los próximos ${findes.length} findes con las escapadas que tienen fecha ese finde (las flexibles valen para todos) y el vuelo más barato. Los puentes llevan borde y su nombre.`
+    : `Los próximos ${findes.length} findes con las escapadas que tienen fecha ese finde (las flexibles valen para todos). Los puentes llevan borde y su nombre.`}</p>
 ${leyendaCalendario(hayVuelos)}
 <ol class="calendario">${celdas.join('')}</ol>`;
 }
@@ -70,8 +71,8 @@ export function nivelesCalendario(resumen, hayVuelos) {
 }
 
 function leyendaCalendario(hayVuelos) {
-  const [menos, mas] = hayVuelos ? ['Vuelo más caro', 'Más barato'] : ['Menos escapadas', 'Más'];
-  return `<p class="leyenda-calor" aria-hidden="true"><span>${menos}</span>${[1, 2, 3, 4].map((n) => `<i class="leyenda-calor__paso finde-celda--nivel-${n}"></i>`).join('')}<span>${mas}</span></p>`;
+  const [menos, mas] = hayVuelos ? ['Vuelo más caro', 'Más barato'] : ['Menos escapadas con fecha', 'Más'];
+  return `<p class="leyenda-calor" aria-hidden="true"><span>${menos}</span>${[1, 2, 3, 4].map((n) => `<i class="leyenda-calor__paso finde-celda--nivel-${n}"></i>`).join('')}<span>${mas}</span><span class="leyenda-calor__puente">Puente</span></p>`;
 }
 
 // ── Puentes ──────────────────────────────────────────────────────────────────
@@ -105,7 +106,7 @@ ${estadoVacio('No hay ningún puente a la vista', 'Se miran los próximos cuatro
       return `<li class="dia${clase}" title="${esc(nota)}"><span class="dia__fecha">${esc(etiquetaDia(d))}</span><span class="dia__nota">${esc(nota)}</span></li>`;
     };
     return `<section class="puente">
-  <div class="seccion__cabeza"><h2>${conIcono('puentes', esc(puente.nombre))}</h2><span class="contador">${esc(puente.etiqueta ?? etiquetaRango(puente.desde, puente.hasta))} · ${cuando}</span></div>
+  <div class="seccion__cabeza"><h2>${conIcono('puentes', esc(puente.nombre))}</h2><span class="contador">${esc(diasExplicitos(salidaPuente(puente), puente.hasta))} · ${cuando}</span></div>
   <p class="seccion__intro">${contar(dias.length, 'día')} libres seguidos. ${esc(textoPedir(pedir))}</p>
   <ol class="dias">${dias.map(dia).join('')}</ol>
   <p class="enlaces-linea">${vuelos.length ? `<a class="chip chip--atajo" href="${crearHash('vuelos', { finde: puente.id })}">${icono('vuelos')}${contar(vuelos.length, 'vuelo')}</a> ` : ''}<a class="chip chip--atajo" href="${crearHash('escapadas', { cuando: puente.id })}">${icono('escapadas')}${contar(escapadas.length, 'escapada')}</a></p>
@@ -170,7 +171,7 @@ ${criterios.join('') || (e.vigiladosPrivados
 <section class="ayuda-caja">
   <h2>Cómo añadir o cambiar vigilados</h2>
   <ol>
-    <li>Monta la búsqueda en <a href="#/escapadas">Escapadas</a> o <a href="#/vuelos">Vuelos</a> y pulsa «Copiar como vigilado».</li>
+    <li>Monta la búsqueda en <a href="#/escapadas">Escapadas</a> o <a href="#/vuelos">Vuelos y trenes</a> y pulsa «Copiar como vigilado».</li>
     <li>Abre ${enlace} y pulsa el lápiz para editarlo.</li>
     <li>Pega el criterio dentro de la lista <code>"vigilados"</code>. Solo <code>nombre</code> es obligatorio; una oferta coincide si cumple <strong>todos</strong> los demás campos que pongas.</li>
     <li>Guarda con «Commit changes». Se aplicará en la próxima revisión.</li>
@@ -189,23 +190,25 @@ ${criterios.join('') || (e.vigiladosPrivados
  */
 export function vistaAyuda(e) {
   const legal = e.datos.legal;
-  const webs = (e.datos.fuentes ?? []).filter((f) => f.estado === 'ok').map((f) => f.nombre);
+  // Una sola cifra en toda la web: las webs del registro que se consultan (Estado, portada, guías y metas).
+  const webs = resumenFuentes(e.datos.fuentes ?? []).activas;
+  const nombresWebs = (e.datos.fuentes ?? []).filter((f) => !['desactivada', 'bloqueada'].includes(f.estado)).map((f) => f.nombre);
   const pregunta = (titulo, cuerpo) => `<details class="ayuda-pregunta"><summary>${titulo}</summary><div>${cuerpo}</div></details>`;
   const nota = QUE_MIDE_LA_NOTA.replace(/^Lo bueno que es como chollo: /, 'Cuenta ').replace(/\.$/, '');
   return `<h1 class="titulo-vista" tabindex="-1">Cómo funciona</h1>
 <div class="ayuda-pagina">
 <section class="seccion">
-  <p class="ayuda-intro">Escapadas Finde busca por ti <strong>escapadas de fin de semana, hoteles, casas rurales, planes y chollos de vuelos</strong> en ${contar(webs.length, 'web', 'webs')} de viajes y te los enseña juntos, con lo que cuesta el viaje completo desde tu casa. Se revisa cada 15 minutos.</p>
+  <p class="ayuda-intro">Escapadas Finde busca por ti <strong>escapadas de fin de semana, hoteles, casas rurales, planes y chollos de vuelos</strong> en ${contar(webs, 'web', 'webs')} de viajes y te los enseña juntos, con lo que cuesta el viaje completo desde tu casa. Se revisa cada 15 minutos.</p>
   <ol class="ayuda-pasos">
     <li><strong>Elige cuándo</strong>: este finde, un puente o tus fechas.</li>
     <li><strong>Filtra lo que te apetece</strong>: spa, playa, con niños, sin coche, cerca de casa…</li>
-    <li><strong>Reserva en la web de la oferta</strong> con el botón «Ver en…». Aquí no se vende nada: el precio y las condiciones los confirma esa web.</li>
+    <li><strong>Reserva en la web de la oferta</strong> con el botón «Ver oferta en…» (por ejemplo, «Ver oferta en Weekendesk»). Aquí no se vende nada: el precio y las condiciones los confirma esa web.</li>
   </ol>
   <p><a class="boton boton--primario" href="#/escapadas?cuando=finde">Ver las escapadas de este finde${icono('flecha')}</a></p>
 </section>
 <section class="seccion">
   <h2 class="subtitulo">Preguntas frecuentes</h2>
-  ${pregunta('¿De dónde salen las ofertas?', `<p>De webs de viajes y comunidades de chollos públicas. Solo se leen las páginas que esas webs permiten leer. Cada oferta dice en qué web está publicada y cuándo se vio allí por última vez; si su web no la ha vuelto a mostrar en el tiempo previsto, sale como «Sin confirmar».</p><p>${esc(enumerar(webs))}. <a href="#/fuentes">Estado de cada web</a></p>`)}
+  ${pregunta('¿De dónde salen las ofertas?', `<p>De webs de viajes y comunidades de chollos públicas. Solo se leen las páginas que esas webs permiten leer. Cada oferta dice en qué web está publicada y cuándo se vio allí por última vez; si su web no la ha vuelto a mostrar en el tiempo previsto, sale como «Sin confirmar».</p><p>${esc(enumerar(nombresWebs))}. <a href="#/fuentes">Estado de cada web</a></p>`)}
   ${pregunta('¿Qué es el «Valor» de cada oferta?', `<p>Un valor de 0 a 100 de lo buena que es la oferta como chollo (no es la opinión de los clientes, que va de 0 a 10). ${esc(nota)}.</p>`)}
   ${pregunta('¿Cuándo es un «Chollazo»?', reglaChollazo(e.datos.chollazos))}
   ${pregunta('¿Qué significan las estrellas y las opiniones?', '<p>«★ 8,2 Muy bien · 266 opiniones» es la valoración de otros clientes en la web de la oferta, de 0 a 10. Las estrellas (4★) son la categoría del hotel.</p>')}
@@ -221,7 +224,7 @@ export function vistaAyuda(e) {
     <li>«Mi ubicación» solo se usa si lo pulsas, para medir distancias en tu dispositivo.</li>
     <li>Al buscar un pueblo o ciudad, lo que escribes se consulta en <a href="https://photon.komoot.io" target="_blank" rel="noopener noreferrer">Photon</a>; el mapa carga sus imágenes de <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>.</li>
     <li>Si eliges una salida distinta de la de serie, los kilómetros por carretera se calculan con <a href="https://project-osrm.org" target="_blank" rel="noopener noreferrer">OSRM</a>: se le envían las coordenadas de tu salida y de los destinos (nada más). El mapa y la gráfica de precios cargan sus librerías desde <a href="https://cdnjs.com" target="_blank" rel="noopener noreferrer">cdnjs</a>.</li>
-    <li>Al pulsar «Ver en…» vas a la web de la oferta, con su propia política de privacidad.</li>
+    <li>Al pulsar «Ver oferta en…» vas a la web de la oferta, con su propia política de privacidad.</li>
     ${legal ? `<li>Responsable: ${esc(legal.titular)}. Para cualquier duda o para ejercer tus derechos (acceso, rectificación, supresión…): <a href="mailto:${esc(legal.email)}">${esc(legal.email)}</a>. También puedes reclamar ante la <a href="https://www.aepd.es" target="_blank" rel="noopener noreferrer">AEPD</a>.</li>` : ''}
   </ul>
 </section>
@@ -298,10 +301,26 @@ function momento(iso, ahora) {
  * (e.webs, calculada una vez con los datos). Quien administra la web ve además el detalle
  * técnico de cada fallo.
  */
+/**
+ * La dirección de una web para la tabla: los canales de Telegram, con el canal («t.me/canal»); el
+ * buzón de newsletters no se enlaza (su «web» es el correo, que no es para visitantes).
+ */
+function direccionWeb(f) {
+  const web = urlSegura(f.web);
+  if (!web) return '';
+  const url = new URL(web);
+  if (url.hostname === 'mail.google.com') return '<span class="suave">Correo (boletines)</span>';
+  const texto = url.hostname.replace(/^www\./, '') + (url.hostname === 't.me' ? url.pathname.replace(/\/$/, '') : '');
+  return `<a href="${esc(web)}" target="_blank" rel="noopener noreferrer">${esc(texto)}<span class="sr"> (se abre en otra pestaña)</span></a>`;
+}
+
+const EN_PAUSA = ['desactivada', 'bloqueada'];
+
 export function vistaFuentes(e) {
   const webs = e.webs ?? estadoWebs(e.datos.fuentes, e.ahora);
-  const filas = e.datos.fuentes.map((f) => {
-    const web = urlSegura(f.web);
+  // Las que no se consultan (Ryanair, Paradores…), en su propio apartado: no son «webs con problemas».
+  const enPausa = e.datos.fuentes.filter((f) => EN_PAUSA.includes(f.estado));
+  const filas = e.datos.fuentes.filter((f) => !EN_PAUSA.includes(f.estado)).map((f) => {
     const publico = estadoPublico(f, e.ahora);
     const detalle = e.propietario ? motivoFuente(f) || publico.detalle : publico.detalle;
     return `<tr>
@@ -311,16 +330,22 @@ export function vistaFuentes(e) {
   <td data-etiqueta="Última lectura correcta">${momento(f.ultimoOk, e.ahora)}</td>
   <td data-etiqueta="Último intento">${momento(f.ultimoIntento ?? f.ultimoOk, e.ahora)}</td>
   <td data-etiqueta="Ofertas" class="num">${(f.total ?? 0).toLocaleString('es-ES')}</td>
-  <td data-etiqueta="Dirección">${web ? `<a href="${esc(web)}" target="_blank" rel="noopener noreferrer">${esc(new URL(web).hostname.replace(/^www\./, ''))}<span class="sr"> (se abre en otra pestaña)</span></a>` : ''}</td>
+  <td data-etiqueta="Dirección">${direccionWeb(f)}</td>
 </tr>`;
   });
+  const pausa = enPausa.length ? `<section class="seccion" aria-labelledby="fuentes-pausa">
+  <h2 id="fuentes-pausa">En pausa</h2>
+  <p class="seccion__intro">Ahora no se consultan, así que no cuentan en el estado de arriba ni tienen ofertas en la web.</p>
+  <ul class="lista-pausa">${enPausa.map((f) => `<li><strong>${esc(f.nombre)}</strong> · <span class="suave">${esc(e.propietario ? motivoFuente(f) || 'No se consulta' : 'No se consulta')}</span> · ${direccionWeb(f)}</li>`).join('')}</ul>
+</section>` : '';
   return `<h1 class="titulo-vista" tabindex="-1">Estado de las webs</h1>
 <p class="seccion__intro"><strong>${esc(webs.texto)}.</strong> Cada web se revisa por su cuenta, entre cada 15 minutos y una vez al día. Si una web no se puede leer, sus ofertas siguen a la vista marcadas como «Sin confirmar» y no cuentan en los totales ni en las guías. Datos generados ${esc(haceCuanto(e.datos.generado, e.ahora))}.</p>
 <div class="tabla-envoltorio"><table class="tabla-fuentes">
   <caption class="sr">Estado de cada web de ofertas</caption>
   <thead><tr><th scope="col">Web</th><th scope="col">Estado</th><th scope="col">Detalle</th><th scope="col">Última lectura correcta</th><th scope="col">Último intento</th><th scope="col" class="num">Ofertas</th><th scope="col">Dirección</th></tr></thead>
   <tbody>${filas.join('')}</tbody>
-</table></div>`;
+</table></div>
+${pausa}`;
 }
 
 // ── Mis cosas ────────────────────────────────────────────────────────────────
@@ -380,7 +405,7 @@ function bloqueAvisos(e) {
   }).join('')}</div>`;
 }
 
-const TITULOS_VISTA = { escapadas: 'Escapadas', actividades: 'Planes', vuelos: 'Vuelos', mapa: 'Escapadas en el mapa', buscar: 'Búsqueda' };
+const TITULOS_VISTA = { escapadas: 'Escapadas', actividades: 'Planes', vuelos: 'Vuelos y trenes', mapa: 'Escapadas en el mapa', buscar: 'Búsqueda' };
 
 export function vistaMis(e, params = {}) {
   const ctx = ctxTarjetas(e);

@@ -25,7 +25,7 @@ import {
   ETIQUETAS_ORDEN, FILTROS_MAS_VUELOS, FILTROS_SECUNDARIOS, bloqueBusquedas, bloqueExclusiones, botonLimpiar,
   campoTexto, conmutadorListaMapa, contextoBusqueda, ctxTarjetas, barraFechas, filtrosChollo, filtrosListas, interruptor,
   interruptorDefecto, marcado, misAeropuertos, mostradas, nombreSalida, numero, ofertasDe, opciones, pestanas, puntoSalida,
-  resumenResultados, avisoSinConfirmar,
+  resumenResultados, avisoSinConfirmar, diasExplicitos, fechasElegidas,
 } from './vistas-comun.js';
 import { eventosCerca, filaEvento, vistaFinde } from './vistas-portada.js';
 import { vistaAyuda, vistaCalendario, vistaFuentes, vistaMis, vistaPuentes, vistaVigilados } from './vistas-info.js';
@@ -35,7 +35,7 @@ export {
   contextoBusqueda, ctxTarjetas, formularioViaje, misAeropuertos, nombreSalida, ocultas, pestanas, puntoSalida,
   estadoWebs, textoViaje, webConProblemas,
 } from './vistas-comun.js';
-export { atajosPortada, buscadorFinde, contenidoSorpresa, destinoOrganizar, diasDeFechas, eventosCerca, ideasPortada, paramsBuscadorFinde, resumenViaje, textoEnviar, vistaFinde } from './vistas-portada.js';
+export { atajosPortada, buscadorFinde, contenidoSorpresa, destinoOrganizar, diasDeFechas, eventosCerca, ideasPortada, paramsBuscadorFinde, periodoDeOpcion, resumenViaje, textoEnviar, vistaFinde } from './vistas-portada.js';
 export {
   avisosDeBusquedas, resultadosDeBusqueda, totalNovedadesGuardadas, vistaAyuda, vistaCalendario, vistaFuentes,
   vistaMis, vistaPuentes, vistaVigilados,
@@ -201,10 +201,14 @@ ${apartadoTransporte(e, f, ctx, contexto, false, base)}`;
 
 // ── Escapadas y mapa ─────────────────────────────────────────────────────────
 
-function chipsTemas(e, f) {
+/** Temáticas que son del alojamiento: en Planes no filtran nada (un museo no admite mascotas ni tiene spa). */
+const TEMAS_DE_ALOJAMIENTO = ['mascotas', 'singular', 'spa'];
+
+function chipsTemas(e, f, { sinAlojamiento = false } = {}) {
   // «Familia» va en «¿Vas con niños?», que además distingue si los niños van gratis o con
   // descuento; aquí solo sale si ya venía marcada (enlaces antiguos), para poder quitarla.
-  return e.datos.temas.filter((t) => t.id !== 'familia' || f.temas.includes(t.id)).map((t) => `<label class="chip chip--tema" style="--color-tema:var(--tema-${esc(t.id)})"><input type="checkbox" name="temas" value="${esc(t.id)}"${marcado(f.temas.includes(t.id))}> ${iconoTema(t.id)}${esc(t.nombre)}</label>`).join('');
+  const fuera = (t) => (t.id === 'familia' || (sinAlojamiento && TEMAS_DE_ALOJAMIENTO.includes(t.id))) && !f.temas.includes(t.id);
+  return e.datos.temas.filter((t) => !fuera(t)).map((t) => `<label class="chip chip--tema" style="--color-tema:var(--tema-${esc(t.id)})"><input type="checkbox" name="temas" value="${esc(t.id)}"${marcado(f.temas.includes(t.id))}> ${iconoTema(t.id)}${esc(t.nombre)}</label>`).join('');
 }
 
 function campoUbicacion(e, f) {
@@ -262,7 +266,7 @@ function campoPrecio(f) {
 function campoComo(f) {
   const como = f.sinCoche ? 'sincoche' : f.transporte === 'coche' ? 'coche' : '';
   const opcion = (valor, texto) => `<label class="chip"><input type="radio" name="como" value="${valor}"${marcado(como === valor)}> ${texto}</label>`;
-  return `<fieldset class="chips"><legend>¿Cómo vas?</legend><div class="chips__lista">${opcion('', 'Da igual')}${opcion('coche', 'En coche')}${opcion('sincoche', 'Sin coche')}</div></fieldset>`;
+  return `<fieldset class="chips"><legend class="bloque__titulo">¿Cómo vas?</legend><div class="chips__lista">${opcion('', 'Da igual')}${opcion('coche', 'En coche')}${opcion('sincoche', 'Sin coche')}</div></fieldset>`;
 }
 
 /** «¿Con niños?»: da igual, planes para ir con niños, niños gratis o con descuento, o solo gratis. */
@@ -378,19 +382,21 @@ function formularioEscapadas(e, params, vista) {
   <div class="filtros__fila">${campoTexto(f, 'escapadas')}</div>
   <fieldset class="bloque"><legend class="bloque__titulo">¿Qué te apetece?</legend>
     <div class="chips chips--desplazables"><div class="chips__lista">${chipsTemas(e, f)}</div></div>
-    ${campoNinos(f)}
-    ${campoEventos(f)}
   </fieldset>
   <div class="bloque"><h2 class="bloque__titulo">¿Dónde?</h2>${campoUbicacion(e, f)}</div>
-  <div class="bloque"><h2 class="bloque__titulo">¿Cómo vas?</h2>${campoComo(f)}</div>
+  <div class="bloque">${campoComo(f)}</div>
   <fieldset class="bloque"><legend class="bloque__titulo">¿Cuánto?</legend>
     ${campoPrecio(f)}
-    <div class="filtros__fila">
-      <label class="campo">Noches que incluye la oferta <select name="noches">${opciones([[1, '1 noche'], [2, '2 noches (escapada clásica)'], [3, '3 o más']], f.noches, 'Cualquiera')}</select></label>
-    </div>
   </fieldset>
-  <details class="filtros__mas filtros__mas--panel">
+  <details class="filtros__mas filtros__mas--panel"${f.ninos || f.evento || f.noches ? ' open' : ''}>
     <summary>Más filtros <span class="contador" data-contador-mas>${secundarios ? `(${contar(secundarios, 'puesto')})` : ''}</span></summary>
+    <div class="grupo"><h3 class="grupo__titulo">Con niños, planes cerca y noches</h3>
+      ${campoNinos(f)}
+      ${campoEventos(f)}
+      <div class="filtros__fila">
+        <label class="campo">Noches que incluye la oferta <select name="noches">${opciones([[1, '1 noche'], [2, '2 noches (escapada clásica)'], [3, '3 o más']], f.noches, 'Cualquiera')}</select></label>
+      </div>
+    </div>
     <div class="grupo"><h3 class="grupo__titulo">Precio y chollos</h3><div class="filtros__fila">
       ${numero('pnMin', '€ por persona y noche, mín.', f.nocheMin, ' step="5" placeholder="Sin mínimo"')}
       ${filtrosChollo(f)}
@@ -545,7 +551,10 @@ export function resultadosEscapadas(e, params) {
   const ctx = ctxTarjetas(e, { distancias, desde: f.punto?.nombre ?? nombreSalida(e), rango: rangoDe(f.cuando, contextoBusqueda(e)), conEventos: Boolean(f.evento), tipoEvento: f.evento });
   // En el móvil el «Mapa» ya está en la pastilla flotante: aquí sobra.
   const acciones = conmutadorListaMapa(params, 'escapadas');
-  return `${filaActivos(e, 'escapadas', params)}${resumenResultados(contar(ofertas.length, 'escapada'), acciones)}${aproximado ? avisoAproximado(f.q) : ''}${sinConfirmar}${tambienCerca(e, f, params, ofertas)}
+  // Cada cifra dice a qué corresponde: «1.017 escapadas · cualquier fecha», «84 escapadas · vie 9 – dom 11 oct».
+  const { entrada, salida } = fechasElegidas(e, 'escapadas', params);
+  const periodo = entrada ? diasExplicitos(entrada, salida || entrada) : 'cualquier fecha';
+  return `${filaActivos(e, 'escapadas', params)}${resumenResultados(`${contar(ofertas.length, 'escapada')} · ${periodo}`, acciones)}${aproximado ? avisoAproximado(f.q) : ''}${sinConfirmar}${tambienCerca(e, f, params, ofertas)}
 ${ordenRapido('escapadas', params, f.orden)}${explicacionOrden(e, f, costes)}${f.presupuesto ? `<p class="seccion__intro">Presupuesto: viaje completo (oferta y gasolina estimada) de hasta ${esc(euros(f.presupuesto))} ${f.presupuestoPor === 'persona' ? 'por persona' : 'en total'} para ${esc(contar(e.viaje?.viajeros ?? 2, 'persona'))}.${sinTotal ? ` ${esc(contar(sinTotal, 'oferta'))} sin datos suficientes para un total no se pueden comprobar y no salen.` : ''}</p>` : ''}
 ${ofertas.length
     ? listaPorFechas(e, f, params, ofertas, ctx)
@@ -568,7 +577,7 @@ ${barraDeVista(e, 'actividades', params)}
 <div class="explorar">
 <div class="explorar__filtros">${plegableMovil(e, 'actividades', params)}<form class="filtros" id="filtros-actividades" data-filtros="actividades" aria-label="Filtros de actividades">
   <div class="filtros__fila">${campoTexto(f, 'planes')}</div>
-  <fieldset class="chips chips--desplazables"><legend>Temática</legend><div class="chips__lista">${chipsTemas(e, f)}</div></fieldset>
+  <fieldset class="chips chips--desplazables"><legend>Temática</legend><div class="chips__lista">${chipsTemas(e, f, { sinAlojamiento: true })}</div></fieldset>
   ${campoNinos(f)}
   <div class="filtros__fila">
     <label class="campo">Lugar o destino <select name="dest">${opciones(lugares.map((l) => [l, l]), f.dest, 'Todos')}</select></label>

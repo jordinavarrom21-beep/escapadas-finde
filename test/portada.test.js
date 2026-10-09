@@ -8,7 +8,7 @@ const ok = (id) => ({ id, nombre: id, estado: 'ok' });
 
 describe('portada: el estado de las webs, una sola frase', () => {
   test('todas bien', () => {
-    assert.deepEqual(estadoWebs([ok('a'), ok('b')], AHORA), { texto: 'Las 2 webs funcionan', problemas: [], error: false });
+    assert.deepEqual(estadoWebs([ok('a'), ok('b')], AHORA), { texto: 'Las 2 webs funcionan', problemas: [], error: false, grave: false, activas: 2 });
   });
 
   test('un fallo reciente se reintenta: no se dice que hay problemas', () => {
@@ -25,5 +25,15 @@ describe('portada: el estado de las webs, una sola frase', () => {
     assert.equal(r.texto, '2 de 3 webs con problemas');
     assert.equal(r.error, true);
     assert.deepEqual(r.problemas.map((f) => f.id), ['b', 'c']);
+    assert.equal(r.grave, true, '2 de 3: más de una cuarta parte');
+  });
+
+  test('el aviso de la portada, solo si fallan más de una cuarta parte de las webs', () => {
+    const webs = (n) => Array.from({ length: n }, (_, i) => ok(`w${i}`));
+    const caida = (id) => ({ id, nombre: id, estado: 'error', desdeError: '2026-09-30T08:00:00Z' });
+    const pocas = estadoWebs([...webs(9), caida('x')], AHORA);
+    assert.equal(pocas.error, true);
+    assert.equal(pocas.grave, false, '1 de 10 no es grave');
+    assert.equal(estadoWebs([...webs(5), caida('x'), caida('y')], AHORA).grave, true, '2 de 7 sí');
   });
 });

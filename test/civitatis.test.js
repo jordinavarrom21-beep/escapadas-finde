@@ -68,7 +68,7 @@ describe('civitatis: parsear (páginas reales)', () => {
   it('los free tours valen 0 € y llevan la etiqueta «gratis»', () => {
     const o = barcelona.find((x) => x.id === 'civitatis:barcelona:free-tour-barcelona');
     assert.equal(o.precio, 0);
-    assert.equal(o.precioTexto, '¡Gratis!');
+    assert.equal(o.precioTexto, 'Gratis (propina voluntaria)');
     assert.ok(o.etiquetas.includes('gratis'));
     assert.deepEqual(o.temas, ['ciudad']);
     assert.equal(barcelona.filter((x) => x.precio === 0).length, 8);

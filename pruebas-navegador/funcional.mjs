@@ -41,8 +41,11 @@ ok((await p.locator('.buscador-finde input[name="cuando"]').count()) >= 3, 'port
 ok((await p.locator('.organizar input[name="que"]').count()) === 3, 'portada: «¿Qué buscas?» con escapadas, vuelos y planes');
 ok((await p.locator('.viaje-resumen').count()) === 1 && !(await p.locator('#boton-viaje').isVisible()) && !(await p.locator('#buscador').isVisible()), 'portada: tu viaje y el destino, una sola vez');
 // La portada y el pie dicen lo mismo del estado de las webs.
-const estadoPortada = (await p.locator('.portada__confianza a[href="#/fuentes"]').textContent()).trim();
-ok((await p.locator('#estado-fuentes').textContent()).includes(estadoPortada), `portada y pie: el mismo estado de las webs («${estadoPortada}»)`);
+// El estado de las webs va en el pie (y arriba solo si falla más de una cuarta parte, con el mismo texto).
+const problemasPortada = p.locator('.portada__problemas');
+const estadoPie = (await p.locator('#estado-fuentes').textContent()).trim();
+ok(!(await problemasPortada.count()) || estadoPie.includes((await problemasPortada.textContent()).trim()), `portada y pie: el mismo estado de las webs («${estadoPie}»)`);
+ok((await p.locator('.portada__confianza').textContent()).includes('cada web a su ritmo'), 'portada: «Datos actualizados hace … · cada web a su ritmo»');
 // El botón dice qué se va a ver y para cuándo.
 await p.locator('.organizar__opcion:has(input[value="vuelos"])').click();
 ok((await p.locator('[data-enviar-accion]').textContent()) === 'Ver vuelos', 'buscador: el botón cambia a «Ver vuelos»');
@@ -117,7 +120,7 @@ await p.locator('#buscador-finde-q').fill('Girona');
 await p.locator('#buscador-finde-q').press('Enter');
 await p.waitForTimeout(400);
 const hp = decodeURIComponent(await p.evaluate(() => location.hash));
-ok(hp.startsWith('#/actividades') && hp.includes('q=Girona'), `buscador: destino y planes (${hp})`);
+ok(hp.startsWith('#/planes') && hp.includes('q=Girona'), `buscador: destino y planes (${hp})`);
 
 // ── Escapadas: filtros, ver más, comparar, descartar ──
 await ir(p, 'escapadas');
@@ -301,7 +304,7 @@ await c.setGeolocation({ latitude: 41.98, longitude: 2.82 });
 await ir(p, 'escapadas');
 await p.locator('.filtros [data-mi-ubicacion]').click();
 await p.waitForTimeout(600);
-ok((await p.evaluate(() => location.hash)).includes('lugar=Tu'), 'usar mi ubicación: filtra desde tu posición');
+ok(/lugar=tu(%20|\+)ubicaci/.test(await p.evaluate(() => location.hash)), 'usar mi ubicación: filtra desde tu posición');
 
 // ── Vuelos, actividades, calendario, puentes, vigilados, fuentes, buscar ──
 await ir(p, 'vuelos');

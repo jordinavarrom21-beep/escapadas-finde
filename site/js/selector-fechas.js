@@ -19,6 +19,13 @@ const DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', '
 const CABECERA = [['L', 'lunes'], ['M', 'martes'], ['X', 'miércoles'], ['J', 'jueves'], ['V', 'viernes'], ['S', 'sábado'], ['D', 'domingo']];
 /** Hasta cuándo se puede elegir: el mes actual y los once siguientes. */
 export const MESES_ADELANTE = 12;
+/** Cómo se llaman las dos fechas en cada pestaña: en Vuelos, «Ida / Vuelta»; en Planes, «Desde / Hasta». */
+export const ROTULOS_FECHAS = { vuelos: ['Ida', 'Vuelta'], actividades: ['Desde', 'Hasta'] };
+const ROTULOS_DEFECTO = ['Fecha de entrada', 'Fecha de salida'];
+/** Un periodo de búsqueda llega como mucho a 8 semanas después de la entrada. */
+export const MAXIMO_DIAS = 56;
+/** Hasta aquí son las noches de un viaje; más, un periodo en el que buscar («Del 17 oct al 25 dic»). */
+const MAXIMO_NOCHES_VIAJE = 7;
 /** A partir de este ancho de pantalla se ven dos meses. */
 const DOS_MESES = '(min-width: 720px)';
 
@@ -53,7 +60,7 @@ export function semanasDelMes(mes) {
  * @returns {{entrada: string, salida: string, editando: 'entrada'|'salida', completo: boolean}}
  */
 export function elegirDia(sel, dia) {
-  if (sel.editando === 'salida' && sel.entrada && dia >= sel.entrada) {
+  if (sel.editando === 'salida' && sel.entrada && dia >= sel.entrada && dia <= sumarDias(sel.entrada, MAXIMO_DIAS)) {
     return { entrada: sel.entrada, salida: dia, editando: 'entrada', completo: true };
   }
   return { entrada: dia, salida: '', editando: 'salida', completo: false };
@@ -65,10 +72,17 @@ export function completarSalida(sel, noches = 2) {
   return { ...sel, salida: sumarDias(sel.entrada, Math.max(1, Number(noches) || 2)), completo: true };
 }
 
-/** «2 noches», «Un día» o nada: lo que se dice junto a las dos fechas. */
+const diaMes = (iso) => etiquetaDia(iso).split(' ').slice(1).join(' ');
+
+/**
+ * «2 noches», «Un día» o nada: lo que se dice junto a las dos fechas. Con más de una semana no son
+ * las noches del viaje sino el periodo en el que buscar: «Del 17 oct al 25 dic» («69 noches» al
+ * lado de «Tu viaje: 2 noches» confundía).
+ */
 export function textoNoches(entrada, salida) {
   if (!entrada || !salida) return '';
   const noches = diasEntre(entrada, salida);
+  if (noches > MAXIMO_NOCHES_VIAJE) return `Del ${diaMes(entrada)} al ${diaMes(salida)}`;
   return noches > 0 ? contar(noches, 'noche') : 'Un día';
 }
 
@@ -83,10 +97,16 @@ export function diasDePuentes(puentes = []) {
 }
 
 /** Qué se dice arriba del calendario: qué toca elegir o lo elegido. */
-function textoPaso(sel) {
-  if (sel.entrada && sel.salida) return `Entrada ${etiquetaDia(sel.entrada)} · Salida ${etiquetaDia(sel.salida)}`;
-  if (sel.editando === 'salida' && sel.entrada) return `Entrada ${etiquetaDia(sel.entrada)}. Ahora, la fecha de salida`;
-  return 'Elige la fecha de entrada';
+function textoPaso(sel, rotulos = ROTULOS_DEFECTO) {
+  if (rotulos === ROTULOS_DEFECTO) {
+    if (sel.entrada && sel.salida) return `Entrada ${etiquetaDia(sel.entrada)} · Salida ${etiquetaDia(sel.salida)}`;
+    if (sel.editando === 'salida' && sel.entrada) return `Entrada ${etiquetaDia(sel.entrada)}. Ahora, la fecha de salida`;
+    return 'Elige la fecha de entrada';
+  }
+  const [uno, otro] = rotulos;
+  if (sel.entrada && sel.salida) return `${uno}: ${etiquetaDia(sel.entrada)} · ${otro}: ${etiquetaDia(sel.salida)}`;
+  if (sel.editando === 'salida' && sel.entrada) return `${uno}: ${etiquetaDia(sel.entrada)}. Ahora, «${otro}»`;
+  return `Elige «${uno}»`;
 }
 
 /**
@@ -94,7 +114,7 @@ function textoPaso(sel) {
  * @param {{entrada: string, salida: string, editando: string}} sel
  * @param {{hoy: string, mes: string, meses?: number, foco?: string, puentes?: Map<string, string>, vista?: string}} op
  */
-export function htmlCalendario(sel, { hoy, mes, meses = 1, foco = '', puentes = new Map(), previo = '' }) {
+export function htmlCalendario(sel, { hoy, mes, meses = 1, foco = '', puentes = new Map(), previo = '', rotulos = ROTULOS_DEFECTO }) {
   const primero = mesDe(hoy);
   const ultimo = sumarMeses(primero, MESES_ADELANTE - 1);
   const hasta = sel.salida || (sel.editando === 'salida' && previo && sel.entrada && previo >= sel.entrada ? previo : '');
@@ -110,9 +130,12 @@ export function htmlCalendario(sel, { hoy, mes, meses = 1, foco = '', puentes = 
     if (dia === sel.salida) { clases.push('calendario__dia--salida'); extra.push('fecha de salida'); }
     if (enRango(dia)) clases.push(sel.salida ? 'calendario__dia--rango' : 'calendario__dia--previo');
     if (diaSemana(dia) === 0 || diaSemana(dia) === 6) clases.push('calendario__dia--finde');
+    // Eligiendo la salida, más de 8 semanas después de la entrada no se puede.
+    const lejos = sel.editando === 'salida' && sel.entrada && !sel.salida && dia > sumarDias(sel.entrada, MAXIMO_DIAS);
+    if (lejos) extra.push('más de 8 semanas después de la entrada');
     const elegido = dia === sel.entrada || dia === sel.salida || (sel.salida && enRango(dia));
     const etiqueta = `${nombreDia(dia)}${extra.length ? `, ${extra.join(', ')}` : ''}`;
-    return `<td${elegido || enRango(dia) ? ' class="en-rango"' : ''}><button type="button" class="${clases.join(' ')}" data-dia="${dia}" aria-label="${esc(etiqueta)}" aria-pressed="${Boolean(elegido)}" tabindex="${dia === foco ? 0 : -1}"${pasado ? ' disabled' : ''}>${Number(dia.slice(8))}</button></td>`;
+    return `<td${elegido || enRango(dia) ? ' class="en-rango"' : ''}><button type="button" class="${clases.join(' ')}" data-dia="${dia}" aria-label="${esc(etiqueta)}" aria-pressed="${Boolean(elegido)}" tabindex="${dia === foco ? 0 : -1}"${pasado || lejos ? ' disabled' : ''}>${Number(dia.slice(8))}</button></td>`;
   };
   const tabla = (m) => {
     const [anio, numero] = m.split('-').map(Number);
@@ -125,7 +148,7 @@ export function htmlCalendario(sel, { hoy, mes, meses = 1, foco = '', puentes = 
   const visibles = Array.from({ length: meses }, (_, i) => sumarMeses(mes, i)).filter((m) => m <= ultimo);
   return `<div class="calendario__barra">
     <button type="button" class="boton-icono calendario__flecha" data-cal-mes="-1" aria-label="Mes anterior"${mes <= primero ? ' disabled' : ''}>${icono('atras')}</button>
-    <p class="calendario__paso" aria-live="polite">${esc(textoPaso(sel))}</p>
+    <p class="calendario__paso" aria-live="polite">${esc(textoPaso(sel, rotulos))}</p>
     <button type="button" class="boton-icono calendario__flecha" data-cal-mes="1" aria-label="Mes siguiente"${visibles.at(-1) >= ultimo ? ' disabled' : ''}>${icono('flecha')}</button>
   </div>
   <div class="calendario__meses" style="--meses:${visibles.length}">${visibles.map(tabla).join('')}</div>
@@ -164,7 +187,8 @@ function pintar(caja, { enfocar = false } = {}) {
   if (!sel || !destino) return;
   const { hoy, puentes } = opcionesGlobales.contexto();
   const meses = matchMedia(DOS_MESES).matches && !caja.matches('[data-fechas-un-mes]') ? 2 : 1;
-  destino.innerHTML = htmlCalendario(sel, { hoy, mes: sel.mes, meses, foco: sel.foco, puentes: diasDePuentes(puentes), previo: sel.previo });
+  const rotulos = ROTULOS_FECHAS[caja.dataset.vista] ?? ROTULOS_DEFECTO;
+  destino.innerHTML = htmlCalendario(sel, { hoy, mes: sel.mes, meses, foco: sel.foco, puentes: diasDePuentes(puentes), previo: sel.previo, rotulos });
   for (const campo of campos(caja)) campo.classList.toggle('fechas__campo--activo', campo.dataset.fechasCampo === sel.editando);
   if (enfocar) destino.querySelector(`[data-dia="${sel.foco}"]`)?.focus({ preventScroll: true });
 }
@@ -320,15 +344,15 @@ export function conectarCalendarios(opciones) {
  * Los dos campos de fecha (entrada → salida) con sus noches y, si hay fechas, «Quitar fechas»
  * (`quitar`). `resumen` sustituye a las noches (p. ej. «Fechas que ya pasaron»).
  */
-export function camposFechas({ entrada = '', salida = '', idPanel, resumen = null, quitar = false }) {
+export function camposFechas({ entrada = '', salida = '', idPanel, resumen = null, quitar = false, rotulos = ROTULOS_DEFECTO }) {
   const campo = (tipo, etiqueta, dia) => `<button type="button" class="fechas__campo" data-fechas-campo="${tipo}" aria-expanded="false" aria-controls="${esc(idPanel)}">
       <span class="fechas__etiqueta">${etiqueta}</span>
       <span class="fechas__valor${dia ? '' : ' fechas__valor--vacio'}">${dia ? esc(etiquetaDia(dia)) : 'Añadir fecha'}</span>
     </button>`;
   return `<div class="fechas__campos">
-    ${campo('entrada', 'Fecha de entrada', entrada)}
+    ${campo('entrada', rotulos[0], entrada)}
     <span class="fechas__flecha" aria-hidden="true">${icono('flecha')}</span>
-    ${campo('salida', 'Fecha de salida', salida)}
+    ${campo('salida', rotulos[1], salida)}
     <span class="fechas__extra"><span class="fechas__noches" data-fechas-noches>${esc(resumen ?? textoNoches(entrada, salida))}</span>${quitar ? `<button type="button" class="enlace-boton fechas__quitar" data-fechas-rapida="" aria-label="Quitar las fechas">${icono('cerrar')}Quitar fechas</button>` : ''}</span>
   </div>`;
 }
