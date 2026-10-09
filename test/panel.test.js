@@ -8,7 +8,7 @@ import {
   duracionActividad, esActividad, esNovedad, filtrarVuelos, leerFiltrosActividades, leerFiltrosComunes,
   leerFiltrosEscapadas, leerFiltrosVuelos, leerRuta, medirDistancias, perfilFavoritos, periodoFinde,
   planesSorpresa, recomendadas, referenciaNovedades, resumenCalendario, resumenFuentes, resumenPuentes,
-  alFinalSinComprobar, coincideTexto, conFaltas, distanciaPalabras, filtrosActivos, sinComprobar, urlEditarVigilados, vuelosParaMapa,
+  alFinalSinComprobar, coincideTexto, referenciaPrecisa, conFaltas, distanciaPalabras, filtrosActivos, sinComprobar, urlEditarVigilados, vuelosParaMapa,
 } from '../site/js/filtros.js';
 import { estadoFinde, findesProximos, proximoPuente } from '../site/js/fechas.js';
 import { cuentaAtras, euros } from '../site/js/formato.js';
@@ -280,7 +280,7 @@ describe('filtros nuevos de escapadas', () => {
   it('ordena por precio por noche, por ahorro y por valoración, con los huecos al final', () => {
     const porNoche = buscar({ orden: 'noche' }).map((o) => o.precioNoche ?? Infinity);
     assert.deepEqual(porNoche, [...porNoche].sort((a, b) => a - b));
-    const ahorros = buscar({ orden: 'ahorro' }).map((o) => o.referencia?.ahorroPct ?? -1);
+    const ahorros = buscar({ orden: 'ahorro' }).map((o) => referenciaPrecisa(o)?.ahorroPct ?? -1);
     assert.deepEqual(ahorros, [...ahorros].sort((a, b) => b - a));
     const notas = buscar({ orden: 'valoracion' }).map((o) => o.valoracion?.nota ?? -1);
     assert.deepEqual(notas, [...notas].sort((a, b) => b - a));
@@ -598,9 +598,16 @@ describe('fechas, formato, geocodificación y plantillas', () => {
   });
 
   it('la tarjeta enseña ahorro, valoración, coste del coche, eventos, tiempo y el botón de descartar', () => {
-    const casaBesalu = porId('chollometro:besalu-casa-rural-para-6-personas-por-18');
+    // El ahorro solo con un grupo preciso (mismo tipo, tema y zona) de al menos 15 ofertas.
+    const casaBesalu = {
+      ...porId('chollometro:besalu-casa-rural-para-6-personas-por-18'),
+      referencia: { mediana: 120, ahorroPct: 35, grupo: 'escapada:rural:girona', descripcion: 'escapadas rurales en Girona, por persona y noche', n: 15 },
+    };
     const besalu = tarjeta(casaBesalu, ctxTarjeta);
-    assert.match(besalu, /Un 35 % por debajo de lo normal/);
+    assert.match(besalu, /Más barata que la media de escapadas parecidas/);
+    assert.ok(!/por debajo de lo normal/.test(besalu), 'no parece un descuento de la web');
+    // Con un grupo amplio («rural · 2 noches»: casas, hoteles y paquetes de cualquier zona), no.
+    assert.ok(!/Más barata que la media/.test(tarjeta(porId('chollometro:besalu-casa-rural-para-6-personas-por-18'), ctxTarjeta)));
     assert.match(besalu, /Casa rural<\/span><\/li>/);
     assert.match(besalu, /class="tarjeta__opiniones"[^>]*>[^]*?<strong>8<span class="tarjeta__opiniones-max">\/10<\/span><\/strong><span class="tarjeta__opiniones-texto">Muy bien/, 'las opiniones, a la vista');
     assert.match(besalu, /≈ \d+\s€ de gasolina ida y vuelta · estimado, un coche para 2 personas/);
@@ -624,7 +631,7 @@ describe('fechas, formato, geocodificación y plantillas', () => {
       valoracion: null, precioNoche: null, alojamiento: null,
     };
     const html = tarjeta(pelada, ctxTarjeta);
-    assert.ok(!/por debajo de lo normal|También en|de gasolina ida y vuelta|class="eventos"|class="valoracion"|por persona y noche/.test(html));
+    assert.ok(!/Más barata que la media|También en|de gasolina ida y vuelta|class="eventos"|class="valoracion"|por persona y noche/.test(html));
     assert.ok(!/class="comparador"/.test(contenidoFicha(pelada, ctxTarjeta)), 'sin otras webs ni nombre propio: sin «Comparar precios»');
   });
 });

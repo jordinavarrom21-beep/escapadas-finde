@@ -53,7 +53,8 @@ describe('atrapalo: parsear (__NEXT_DATA__ real)', () => {
     assert.equal(jaen.descuento, 13);
     assert.equal(jaen.imagen, 'https://cdn.atrapalo.com/o/travels/68749/HomePage_horiginal.jpg');
     assert.deepEqual(jaen.lugar, { nombre: 'Jaén', region: null, pais: null, lat: null, lon: null });
-    assert.deepEqual(jaen.temas, ['spa']);
+    // La categoría «Relax» de Atrápalo no dice que haya spa (una escapada con cava no lo tiene).
+    assert.deepEqual(jaen.temas, []);
     assert.deepEqual(jaen.etiquetas, ['Relax']);
     assert.equal(jaen.descripcion, 'Jaén · Relax');
   });

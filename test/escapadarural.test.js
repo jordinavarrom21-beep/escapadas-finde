@@ -47,8 +47,10 @@ describe('escapadarural: parsear (páginas reales)', () => {
         assert.match(o.id, /^escapadarural:[\da-f]{13}$/);
         assert.match(o.url, /^https:\/\/www\.escapadarural\.com\/casa-rural\/[a-z-]+\/[\w-]+$/);
         assert.equal(o.tipo, 'hotel');
-        assert.equal(o.unidad, 'pp/noche');
-        assert.ok(o.precio >= 10 && o.precio <= 200, `${o.titulo}: ${o.precio}`);
+        // La casa que se alquila entera, a precio de casa entera por noche (precioDe).
+        const entera = o.etiquetas.includes('Alquiler íntegro');
+        assert.equal(o.unidad, entera ? 'noche' : 'pp/noche', o.id);
+        assert.ok(o.precio >= 10 && o.precio <= (entera ? 200 * 40 : 200), `${o.titulo}: ${o.precio}`);
         assert.deepEqual(o.temas, ['rural']);
         assert.ok(o.descripcion.length <= 300);
         assert.ok(Number.isFinite(o.lugar.lat) && Number.isFinite(o.lugar.lon), o.id);
@@ -61,8 +63,10 @@ describe('escapadarural: parsear (páginas reales)', () => {
     assert.equal(haza.titulo, 'Casa Rural Muralla De Haza');
     assert.equal(haza.establecimiento, 'Casa Rural Muralla De Haza');
     assert.equal(haza.url, `${WEB}/casa-rural/burgos/casa-rural-muralla-de-haza`);
-    assert.equal(haza.precio, 26);
-    assert.equal(haza.precioTexto, '26 € por persona y noche (aprox.)');
+    // Se alquila entera para 8: los 26 € por persona y noche suponen la casa llena.
+    assert.equal(haza.precio, 208);
+    assert.equal(haza.unidad, 'noche');
+    assert.equal(haza.precioTexto, '≈ 208 € por noche la casa entera (26 € por persona y noche con las 8 plazas llenas)');
     assert.equal(haza.regimen, 'solo-alojamiento');
     assert.deepEqual(haza.lugar, { nombre: 'Haza', region: 'Burgos', pais: 'España', codigoPais: 'ES', lat: 41.621095, lon: -3.829717, iata: null });
     assert.equal(haza.imagen, 'https://webp.er2.co/es/burgos/65d734b152d65/375/65d8addcc67bf.webp');
@@ -77,7 +81,8 @@ describe('escapadarural: parsear (páginas reales)', () => {
     assert.equal(conOferta.length, 1);
     const orfes = porId(girona, '0000000012298');
     assert.equal(orfes.lugar.region, 'Girona');
-    assert.equal(orfes.precio, 33);
+    assert.equal(orfes.precio, 33 * 16);
+    assert.equal(orfes.unidad, 'noche');
     const habitaciones = girona.find((o) => o.etiquetas.includes('Alquiler por habitaciones'));
     assert.equal(habitaciones.regimen, null);
   });

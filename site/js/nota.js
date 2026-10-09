@@ -37,7 +37,7 @@ function textoSenales(o) {
   const temperatura = Number(etiquetas.find((e) => e.startsWith('temperatura:'))?.slice(12) ?? 0);
   return [
     etiquetas.includes('error-tarifa') && 'publicada como error de tarifa',
-    etiquetas.includes('top-chollo') && 'destacada como top chollo',
+    etiquetas.includes('top-chollo') && 'destacada por su propia web',
     temperatura >= 100 && `muy votada en Chollometro (${temperatura}°)`,
   ].filter(Boolean).join(', ').replace(/^./, (l) => l.toUpperCase()) || 'Señales de la comunidad';
 }
@@ -50,7 +50,7 @@ const TEXTOS = {
     ? `Los clientes le dan un ${nota(o.valoracion.nota)}${o.valoracion.n ? ` (${contar(o.valoracion.n, 'opinión', 'opiniones')})` : ''}`
     : 'Buenas opiniones'),
   novedad: (o, d, ahora) => {
-    const horas = (ahora - Date.parse(o.vistaPrimera)) / 3_600_000;
+    const horas = (ahora - Date.parse(o.conocidaDesde ?? o.vistaPrimera)) / 3_600_000;
     return horas <= 24 ? 'Acaba de aparecer (menos de un día)' : 'Nueva: apareció hace menos de 3 días';
   },
   senales: textoSenales,

@@ -6,6 +6,7 @@
  */
 import { fechaLocal, sumarDias } from '../util/fechas.js';
 import { normalizarTexto } from '../util/xml.js';
+import { formatearToponimo } from '../util/toponimos.js';
 import { distanciaKm } from './geo.js';
 import { periodoViaje } from './tiempo.js';
 import { PROVEEDORES, noEsUnPlan, tipoEvento } from './agendas.js';
@@ -183,7 +184,8 @@ export async function anadirEventos(ofertas, ctx) {
         nombre: evento.nombre,
         fecha: evento.desde > periodo.desde ? evento.desde : periodo.desde,
         url: evento.url,
-        municipio: evento.municipio,
+        // El pueblo del propio evento, bien escrito («Vall d'Aran»): no el de la oferta más cercana.
+        municipio: formatearToponimo(evento.municipio),
         // Lo guardado por una versión anterior puede no traer el tipo: se saca del nombre.
         tipo: evento.tipo ?? tipoEvento(evento.nombre),
         km: Math.round(km * 10) / 10,

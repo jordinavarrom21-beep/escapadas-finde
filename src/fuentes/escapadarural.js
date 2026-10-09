@@ -5,7 +5,8 @@
  * JSON `__NUXT_DATA__` (formato «devalue»), que es lo que se interpreta.
  *
  * El precio es el precio medio aproximado por persona y noche que enseña la
- * tarjeta («26 € pers./noche (aprox.)»). El nombre de cada oferta concreta
+ * tarjeta («26 € pers./noche (aprox.)»), o el de la casa entera si solo se alquila entera
+ * (ver `precioDe`). El nombre de cada oferta concreta
  * (puentes, «oferta flash»…) solo aparece en la ficha de la casa y no se pide:
  * serían cientos de peticiones.
  */
@@ -100,9 +101,29 @@ export function parsear(html, ctx = {}) {
   });
 }
 
+/**
+ * El precio de la oferta. La web da un precio medio por persona y noche con la casa llena: en
+ * las que solo se alquilan enteras («Alquiler íntegro»), dos personas pagan la casa entera, no
+ * dos plazas. Entonces el precio es el de la casa por noche (por persona × plazas) y el viaje
+ * completo lo reparte entre tus viajeros (coste.js); antes, una casa para 12 salía a 27 €.
+ */
+export function precioDe(casa) {
+  const porPersona = euros(casa.averagePrice);
+  if (porPersona == null) return { precio: null, unidad: null, precioTexto: '' };
+  const plazas = casa.capacity?.max;
+  if (casa.rentType === 'FULL' && plazas > 1) {
+    const casaEntera = Math.round(porPersona * plazas * 100) / 100;
+    return {
+      precio: casaEntera, unidad: 'noche',
+      precioTexto: `≈ ${NUMERO.format(casaEntera)} € por noche la casa entera (${NUMERO.format(porPersona)} € por persona y noche con las ${plazas} plazas llenas)`,
+    };
+  }
+  return { precio: porPersona, unidad: 'pp/noche', precioTexto: `${NUMERO.format(porPersona)} € por persona y noche (aprox.)` };
+}
+
 function ofertaDe(casa) {
   if (!casa.id || !casa.slug || !casa.province?.slug) throw new Error('sin identificador o sin provincia');
-  const precio = euros(casa.averagePrice);
+  const { precio, unidad, precioTexto } = precioDe(casa);
   const completa = casa.rentType === 'FULL';
   return crearOferta({
     id: `escapadarural:${casa.id}`,
@@ -114,8 +135,8 @@ function ofertaDe(casa) {
     url: `${WEB}/casa-rural/${casa.province.slug}/${casa.slug}`,
     imagen: casa.media?.thumb ?? null,
     precio,
-    precioTexto: precio == null ? '' : `${NUMERO.format(precio)} € por persona y noche (aprox.)`,
-    unidad: precio == null ? null : 'pp/noche',
+    precioTexto,
+    unidad,
     regimen: completa ? 'solo-alojamiento' : null,
     valoracion: valoracionDe(casa.review),
     temas: ['rural'],

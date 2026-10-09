@@ -145,7 +145,8 @@ function datosFicha(o, ctx) {
       ['Precio en la web', o.precioTexto],
       ['Qué precio es', certeza(o)],
       ['Por persona y noche', o.precioNoche != null && `${euros(Math.round(o.precioNoche))}${repartoPorNoche(o)}`],
-      ['Precio habitual', o.referencia && `${euros(o.referencia.mediana)}: lo normal en ${o.referencia.descripcion ?? 'ofertas parecidas'}${o.referencia.n ? ` (mediana de ${o.referencia.n} ofertas)` : ''}`],
+      // Solo con ofertas de verdad parecidas (mismo tema y zona, o la misma ruta): ver referenciaPrecisa.
+      ['Media de las parecidas', /^(?:escapada|vuelo):/.test(o.referencia?.grupo ?? '') && `${euros(o.referencia.mediana)} en ${o.referencia.descripcion ?? 'ofertas parecidas'}${o.referencia.n ? ` (con ${o.referencia.n} ofertas)` : ''}`],
       ['Por qué es chollazo', o.chollazo && o.chollazoMotivo],
       ['Bajada', textoBajada(o)],
       ['Mínimo', textoMinimo(o, ctx)?.detalle],

@@ -149,6 +149,14 @@ function problemasEmails(emails) {
   return problemas;
 }
 
+/** «fotos»: {fuentesConPermiso: ['civitatis', …]}, las webs cuyas fotos se pueden enseñar. */
+function problemasFotos(fotos) {
+  if (fotos === undefined) return [];
+  return esObjeto(fotos) && (fotos.fuentesConPermiso === undefined || esListaDeTextos(fotos.fuentesConPermiso))
+    ? []
+    : ['fotos debe ser un objeto {fuentesConPermiso: [ids de las webs]}'];
+}
+
 function problemasPreferencias(preferencias) {
   if (preferencias === undefined) return [];
   if (!esObjeto(preferencias)) return ['preferencias debe ser un objeto'];
@@ -180,6 +188,7 @@ export function validarAjustes(ajustes) {
   exigir(esEnteroDesde(ajustes.viajeros, 1),
     `viajeros debe ser un número entero de personas mayor o igual que 1 (ahora: ${ajustes.viajeros})`);
   problemas.push(...problemasPreferencias(ajustes.preferencias));
+  problemas.push(...problemasFotos(ajustes.fotos));
   problemas.push(...problemasGoogleAds(ajustes.googleAds));
   problemas.push(...problemasGoogleAnalytics(ajustes.googleAnalytics));
   problemas.push(...problemasDrive(ajustes.travelpayoutsDrive));

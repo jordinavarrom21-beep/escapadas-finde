@@ -10,8 +10,8 @@ import {
   contar, duracion, enumerar, escaparHtml as esc, euros, grados, haceCuanto, nota, puntosMinigrafica, tituloLegible, unDecimal, urlSegura,
 } from './formato.js';
 import {
-  SIN_COCHE, duracionActividad, encajeEnRango, esDuplicada, esNovedad, precioDeSerie, salidasDe, sinComprobar, sufijoSerie,
-  tieneVuelo,
+  SIN_COCHE, duracionActividad, encajeEnRango, esDuplicada, esNovedad, precioDeSerie, referenciaPrecisa, salidasDe, sinComprobar,
+  sufijoSerie, tieneVuelo,
 } from './filtros.js';
 import { diaDeSalida } from './vigencia.js';
 import { escena, icono, iconoTema, iconoTiempo, tipoEscena } from './iconos.js';
@@ -46,16 +46,18 @@ export function temasIconos(o, ctx, max = Infinity) {
     .join('');
 }
 
-/** Detalle de la comparación con ofertas parecidas («lo normal en … es 70 €»). */
+/** Detalle de la comparación con ofertas parecidas («la media de … es 70 €»). */
 function detalleReferencia(r) {
-  return `Lo normal en ${esc(r.descripcion ?? 'ofertas parecidas')}${r.n ? `, con ${r.n} ofertas,` : ''} es ${euros(r.mediana)}`;
+  return `La media de ${esc(r.descripcion ?? 'ofertas parecidas')}${r.n ? `, con ${r.n} ofertas,` : ''} es ${euros(r.mediana)}`;
 }
 
-/** «Un 23 % por debajo de lo normal», comparando con ofertas parecidas. */
+/** «Más barata que la media de escapadas parecidas» (el % y con qué se compara, en el título). */
+const textoReferencia = (o) => (o.tipo === 'vuelo' ? 'Más barato que la media de esta ruta' : 'Más barata que la media de escapadas parecidas');
+
 function insigniaReferencia(o) {
-  const r = o.referencia;
-  if (!(r?.ahorroPct > 0)) return '';
-  return `<span class="insignia insignia--ahorro" title="${detalleReferencia(r)}">${icono('bajada')}Un ${r.ahorroPct} % por debajo de lo normal</span>`;
+  const r = referenciaPrecisa(o);
+  if (!r) return '';
+  return `<span class="insignia insignia--ahorro" title="Un ${r.ahorroPct} % menos. ${detalleReferencia(r)}">${icono('bajada')}${textoReferencia(o)}</span>`;
 }
 
 /** «Precio más bajo en 23 días», con los días de historial que lo respaldan. */
@@ -109,7 +111,6 @@ export function insignias(o, ctx, { enFoto = false } = {}) {
     o.bajada > 0 && `<span class="insignia insignia--bajada" title="${esc(textoBajada(o))}">↓ ${bajadaCorta(o)}</span>`,
     (!enFoto || o.chollazo) && insigniaReferencia(o),
     etiquetas.includes('error-tarifa') && `<span class="insignia insignia--alerta">${icono('alerta')}Error de tarifa</span>`,
-    etiquetas.includes('top-chollo') && '<span class="insignia insignia--alerta">Top chollo</span>',
     esDuplicada(o) && `<span class="insignia">${icono('repetir')}${o.equivalentes?.length ? 'Repetida en otra web' : 'Repetida en la misma web'}</span>`,
   ];
   return lista.filter(Boolean).join('');
@@ -118,8 +119,8 @@ export function insignias(o, ctx, { enFoto = false } = {}) {
 /** El sello que va sobre la foto: chollazo o, si no lo es, cuánto baja de lo normal. */
 function selloFoto(o) {
   if (o.chollazo) return insigniaChollazo(o, 'sello sello--chollazo');
-  const r = o.referencia;
-  if (r?.ahorroPct > 0) return `<span class="sello" title="Un ${r.ahorroPct} % por debajo de lo normal. ${detalleReferencia(r)}">${icono('bajada')}−${r.ahorroPct} % de lo normal</span>`;
+  const r = referenciaPrecisa(o);
+  if (r) return `<span class="sello" title="Un ${r.ahorroPct} % menos. ${detalleReferencia(r)}">${icono('bajada')}${textoReferencia(o)}</span>`;
   return '';
 }
 

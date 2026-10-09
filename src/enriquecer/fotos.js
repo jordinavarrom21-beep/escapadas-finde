@@ -12,7 +12,9 @@ import { normalizarTexto } from '../util/xml.js';
 
 const URL_BUSCAR = 'https://api.wikimedia.org/core/v1/wikipedia/es/search/page';
 const CADUCIDAD_MS = 30 * 24 * 60 * 60 * 1000;
-const MAX_NUEVAS = 40;
+// Desde que solo se usan las fotos de webs con permiso, casi todas las ofertas las buscan aquí:
+// 100 por escaneo (cada 15 min) son 400 a la hora, por debajo de las 500 que la API deja sin clave.
+const MAX_NUEVAS = 100;
 const PAUSA_MS = 300;
 /** Ancho de la miniatura: uno de los tamaños estándar que sirve Wikimedia. */
 const ANCHO = 500;
@@ -39,6 +41,24 @@ export function fotoDeBusqueda(json, nombre) {
     pagina: `https://commons.wikimedia.org/wiki/File:${archivo}`,
     titulo: pagina.title,
   };
+}
+
+/** ¿Es una foto de Wikimedia Commons puesta aquí (con autor y licencia en su página)? */
+const deWikimedia = (oferta) => /^https:\/\/commons\.wikimedia\.org\//.test(oferta.imagenCredito?.url ?? '');
+
+/**
+ * Las fotos de una web solo se enseñan si sus condiciones lo permiten (config/ajustes.json →
+ * fotos.fuentesConPermiso): que la web la publique no da permiso para usarla. Sin permiso, la
+ * oferta se queda sin foto y `anadirFotos` busca la del lugar en Wikimedia Commons; si tampoco
+ * hay, la tarjeta enseña su ilustración con el nombre del lugar.
+ * @param {Set<string>} conPermiso ids de las webs
+ */
+export function quitarFotoSinPermiso(oferta, conPermiso) {
+  if (oferta.imagen && !conPermiso.has(oferta.fuente) && !deWikimedia(oferta)) {
+    oferta.imagen = null;
+    oferta.imagenCredito = null;
+  }
+  return oferta;
 }
 
 /** Añade `imagen` e `imagenCredito` a las ofertas sin foto que tienen lugar. */

@@ -29,7 +29,7 @@ const TEMAS_POR_ETIQUETA = [
   [/mascota/, 'mascotas'],
   [/ninos|familia|toboganes/, 'familia'],
   [/rural|montana|camping/, 'rural'],
-  [/\bspa\b|balneario|termal|relax|caldea/, 'spa'],
+  [/\bspa\b|balneario|termal|caldea/, 'spa'],
   [/romantic|novios/, 'romantico'],
   [/nieve|esqui|\baventura/, 'aventura'],
   [/portaventura|tematico|disney|warner|cabarceno|acuatico/, 'parques'],
@@ -41,6 +41,8 @@ const TEMAS_POR_ETIQUETA = [
 
 // Campo <type> del feed: «beach», «city, culture», «food»…
 const TEMAS_POR_TIPO = { beach: 'playa', city: 'ciudad', culture: 'ciudad', food: 'gastronomia' };
+
+const regimenDeTexto = (valor = '') => REGIMENES[normalizarTexto(valor).trim()] ?? null;
 
 const PAISES_POR_CARRETERA = new Set(['España', 'Andorra', 'Francia', 'Portugal']);
 
@@ -69,16 +71,27 @@ function etiquetasDe(listing) {
   return [...new Set(crudas.map((etiqueta) => texto(etiqueta).replace(/,$/, '').trim()).filter(Boolean))];
 }
 
+/** Con más etiquetas que esto, son el menú de la web en el que sale la oferta, no lo que es. */
+export const MAXIMO_ETIQUETAS_TEMA = 8;
+
+/**
+ * ¿Las etiquetas describen la oferta o son su menú de navegación? Muchas ofertas salen con
+ * todas las categorías de la web («Spa», «Mascotas», «Románticos», «Escapada rural»… y a la vez
+ * «Solo alojamiento» y «Media pensión»): entonces no dicen nada de la oferta.
+ */
+export function etiquetasDeNavegacion(etiquetas) {
+  const regimenes = new Set(etiquetas.map(regimenDeTexto).filter(Boolean));
+  return etiquetas.length > MAXIMO_ETIQUETAS_TEMA || regimenes.size > 1;
+}
+
 function temasDe(etiquetas, tipo) {
-  const porEtiqueta = etiquetas.flatMap((etiqueta) => {
+  const porEtiqueta = etiquetasDeNavegacion(etiquetas) ? [] : etiquetas.flatMap((etiqueta) => {
     const normal = normalizarTexto(etiqueta);
     return TEMAS_POR_ETIQUETA.filter(([patron]) => patron.test(normal)).map(([, tema]) => tema);
   });
   const porTipo = texto(tipo).split(',').map((t) => TEMAS_POR_TIPO[t.trim()]).filter(Boolean);
   return [...new Set([...porEtiqueta, ...porTipo])];
 }
-
-const regimenDeTexto = (valor = '') => REGIMENES[normalizarTexto(valor).trim()] ?? null;
 
 // El de la descripción principal («… | Todo incluido | …»); si no lo trae, el
 // del detalle («en régimen de …») o el de las etiquetas cuando solo hay uno.

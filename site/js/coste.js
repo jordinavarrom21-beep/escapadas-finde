@@ -90,6 +90,11 @@ export function costeViaje(o, { viajeros = 2, noches = 2, distancia = null, coch
     falta.push('cómo llegar (es una actividad suelta)');
     return resultado(partes);
   }
+  // Sale de otra ciudad («Desde Madrid del 13 al 15»): sumarle tu gasolina o tus vuelos no tiene sentido.
+  if (o.otraSalida) {
+    falta.push(`cómo llegar a ${o.otraSalida}, que es desde donde sale`);
+    return resultado(partes);
+  }
   if (esBillete(o)) {
     // El billete lleva hasta allí, pero no incluye dónde dormir.
     if (o.tipo === 'vuelo' || o.tipo === 'escapada') falta.push('el alojamiento');

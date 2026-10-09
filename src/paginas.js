@@ -43,7 +43,8 @@ const esTransporte = (o) => ['bus', 'tren', 'ferry'].includes(o.transporte) && !
  * entra (tienen su sitio en el panel: Planes, Vuelos, Tren, bus y ferry).
  */
 const conAlojamiento = (o) => Boolean(o.alojamiento) || o.noches > 0;
-const esEscapada = (o) => !['vuelo', 'actividad'].includes(o.tipo) && !o.etiquetas.includes('duplicada') && !esTransporte(o) && conAlojamiento(o);
+// Las que salen de otra ciudad («Desde Madrid del 13 al 15») no son escapadas desde tu origen.
+const esEscapada = (o) => !['vuelo', 'actividad'].includes(o.tipo) && !o.etiquetas.includes('duplicada') && !esTransporte(o) && conAlojamiento(o) && !o.otraSalida;
 const conTotal = (o) => costeDesdeOrigen(o, VIAJEROS).total != null;
 const porTotal = (a, b) => costeDesdeOrigen(a, VIAJEROS).total - costeDesdeOrigen(b, VIAJEROS).total;
 const porPrecio = (a, b) => (a.precio ?? Infinity) - (b.precio ?? Infinity);
@@ -276,7 +277,7 @@ export function enlacesGuias(guias, raiz, actual = null) {
  * `base`, la dirección pública (sin ella no hay canónica, imagen para compartir ni JSON-LD,
  * que necesitan direcciones absolutas); `todas`, las guías que se publican.
  */
-export function htmlPagina(d, ofertas, { raiz, base = null, generado, total, todas = [d], nombres = new Map(), texto = null }) {
+export function htmlPagina(d, ofertas, { raiz, base = null, generado, total, todas = [d], nombres = new Map(), texto = null, contacto = null }) {
   const canonical = base ? `${base}${d.ruta}/` : null;
   const descripcion = `${d.titulo}: ${total} ofertas comparadas por el coste del viaje completo. Actualizado el ${etiquetaDia(generado)}.`;
   const lasMigas = migas(d, todas);
@@ -348,7 +349,7 @@ ${cabeza}
 ${bloqueTexto(d, texto)}</main>
 <footer class="pie contenedor">
 <nav class="guias" aria-label="Más guías">${enlacesGuias(todas, raiz, d.ruta)}</nav>
-<p><a href="${raiz}">${NOMBRE_WEB}</a> reúne ofertas de más de 20 webs de viajes y las revisa cada 15 minutos. No vendemos nada: el precio y las condiciones los confirma la web de cada oferta. · <a href="${raiz}#/ayuda">Cómo funciona</a></p>
+<p><a href="${raiz}">${NOMBRE_WEB}</a> reúne ofertas de más de 20 webs de viajes y las revisa cada 15 minutos. No vendemos nada: el precio y las condiciones los confirma la web de cada oferta. · <a href="${raiz}#/ayuda">Cómo funciona</a>${contacto ? ` · <a href="mailto:${esc(contacto)}">Contacto</a>` : ''}</p>
 </footer>
 </body>
 </html>
@@ -417,7 +418,7 @@ export function generarPaginas(todasLasOfertas, { base = null } = {}) {
     return {
       ruta: `${d.ruta}/index.html`,
       contenido: htmlPagina(d, lista.slice(0, MAXIMO_POR_PAGINA), {
-        raiz, base, generado: datos.generado, total: lista.length, todas, nombres, texto: textoGuia(d.ruta, datos.origen.nombre),
+        raiz, base, generado: datos.generado, total: lista.length, todas, nombres, texto: textoGuia(d.ruta, datos.origen.nombre), contacto: datos.legal?.email,
       }),
     };
   });

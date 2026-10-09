@@ -2,6 +2,7 @@
  * Puntuación 0–100 de cada oferta y detección de «chollazos». Los pesos están
  * aquí arriba para ajustarlos con facilidad.
  */
+import { deWebDeChollos } from '../fuentes/chollos.js';
 
 const PESO_PRECIO = 45;        // lo barata que es frente a ofertas comparables
 const PESO_BAJADA = 15;        // mínimo histórico o bajada reciente
@@ -15,6 +16,7 @@ const PESO_FAVORITO = 10;       // tiene uno de ajustes.preferencias.temasFavori
 const PESO_VALORACION = 10;     // lo que opinan los clientes (nota y cuántas opiniones)
 
 const HORA_MS = 60 * 60 * 1000;
+const normal = (texto) => String(texto ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
 
 /**
  * Precio por persona y noche cuando se puede deducir; si no, null. Los precios por
@@ -84,9 +86,36 @@ function puntosDescuento(oferta) {
   return Math.min(PESO_DESCUENTO, porcentaje / 5);
 }
 
+/**
+ * Desde cuándo se conoce la oferta: la primera vez que se vio, o antes si ya tenía precios
+ * guardados (su web la retiró y la volvió a publicar) o si el mismo alojamiento ya estaba en
+ * otra oferta. Así una ficha no dice «Acaba de aparecer» con un historial desde el 22 sep.
+ * Anota `conocidaDesde` (ISO) en cada oferta; el panel la usa para «Recién añadida».
+ * @param {object[]} ofertas
+ * @param {Record<string, [string, number][]>} historial
+ * @param {(oferta: object) => string} claveSerie
+ */
+export function anotarConocidaDesde(ofertas, historial = {}, claveSerie = (o) => o.id) {
+  const claveAlojamiento = (o) => (o.establecimiento ? `${normal(o.establecimiento)}|${normal(o.lugar?.nombre)}` : null);
+  const porAlojamiento = new Map();
+  for (const o of ofertas) {
+    const clave = claveAlojamiento(o);
+    if (!clave || !o.vistaPrimera) continue;
+    const previa = porAlojamiento.get(clave);
+    if (!previa || o.vistaPrimera < previa) porAlojamiento.set(clave, o.vistaPrimera);
+  }
+  for (const o of ofertas) {
+    const candidatas = [o.vistaPrimera, porAlojamiento.get(claveAlojamiento(o))];
+    const primerPrecio = historial[claveSerie(o)]?.[0]?.[0];
+    if (primerPrecio) candidatas.push(`${primerPrecio}T00:00:00.000Z`);
+    o.conocidaDesde = candidatas.filter(Boolean).sort()[0] ?? null;
+  }
+}
+
 function puntosNovedad(oferta, ahora) {
-  if (!oferta.vistaPrimera) return 0;
-  const horas = (ahora - Date.parse(oferta.vistaPrimera)) / HORA_MS;
+  const desde = oferta.conocidaDesde ?? oferta.vistaPrimera;
+  if (!desde) return 0;
+  const horas = (ahora - Date.parse(desde)) / HORA_MS;
   return horas <= 24 ? PESO_NOVEDAD : horas <= 72 ? PESO_NOVEDAD / 2 : 0;
 }
 
@@ -94,7 +123,8 @@ function puntosSenales(oferta) {
   const temperatura = Number(oferta.etiquetas.find((e) => e.startsWith('temperatura:'))?.slice(12) ?? 0);
   let puntos = 0;
   if (oferta.etiquetas.includes('error-tarifa')) puntos += PESO_SENALES;
-  if (oferta.etiquetas.includes('top-chollo')) puntos += PESO_SENALES / 2;
+  // El «Top chollo» de una web de chollos es su selección, no un dato de la oferta: no cuenta.
+  if (oferta.etiquetas.includes('top-chollo') && !deWebDeChollos(oferta)) puntos += PESO_SENALES / 2;
   if (temperatura >= 300) puntos += PESO_SENALES;
   else if (temperatura >= 100) puntos += PESO_SENALES / 2;
   return Math.min(PESO_SENALES, puntos);
@@ -118,7 +148,12 @@ function puntosComodidad(oferta) {
   return oferta.cocheMin <= 120 ? PESO_COMODIDAD : oferta.cocheMin <= 180 ? PESO_COMODIDAD / 2 : 0;
 }
 
+/**
+ * Cae en un puente o en el finde que viene, con una fecha de salida concreta. Las de fechas
+ * flexibles no: valen para cualquier fecha (antes sumaban «Cae en un puente» por una etiqueta).
+ */
 function puntosFechas(oferta, findeActual) {
+  if (!oferta.fechas.salida) return 0;
   return oferta.fechas.puenteId || (findeActual && oferta.fechas.findeId === findeActual) ? PESO_FECHAS : 0;
 }
 
@@ -128,7 +163,6 @@ function puntosFechas(oferta, findeActual) {
  * @param {object} ajustes
  * @param {{ahora?: Date, findeActual?: string|null}} [opciones]
  */
-const normal = (texto) => String(texto ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
 
 /**
  * ¿La oferta es de algo que `ajustes.preferencias` pide evitar? Un tema de `evitarTemas`

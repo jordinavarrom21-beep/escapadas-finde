@@ -17,7 +17,8 @@ import { TEMAS } from '../modelo.js';
 import { normalizarTexto } from '../util/xml.js';
 import { precioPorPersonaNoche } from './puntuacion.js';
 
-const MINIMO_GRUPO = 5;
+/** Con menos ofertas, la mediana del grupo no dice qué es «lo normal». */
+export const MINIMO_GRUPO = 15;
 /** El orden de `TEMAS` decide cuál es el tema principal de una oferta con varios. */
 const ORDEN_TEMAS = TEMAS.map((tema) => tema.id);
 

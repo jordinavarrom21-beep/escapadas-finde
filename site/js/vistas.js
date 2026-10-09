@@ -441,7 +441,7 @@ ${atajosEscapadas('escapadas', params)}
 /** Los órdenes más usados, a un toque encima de los resultados (el resto, en «Ordenar por»). */
 const ORDEN_RAPIDO = [
   ['puntuacion', 'Recomendadas'], ['noche', 'Más baratas por noche'], ['total', 'Viaje más barato'],
-  ['comodo', 'Más cerca'], ['valoracion', 'Mejor valoradas'], ['ahorro', 'Más rebajadas'],
+  ['comodo', 'Más cerca'], ['valoracion', 'Mejor valoradas'], ['ahorro', 'Más baratas que la media'],
 ];
 
 /**
