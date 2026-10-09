@@ -179,7 +179,8 @@ const numero = (valor) => (Number.isFinite(valor) && valor >= 0 ? valor : null);
 
 function precioTextoDe(precio) {
   if (precio == null) return '';
-  return precio === 0 ? '¡Gratis!' : `desde ${EUROS.format(precio)} € por persona`;
+  // Como en Guruwalk: un free tour se paga con propina («¡Gratis!» salía como «Gratis ¡Gratis!»).
+  return precio === 0 ? 'Gratis (propina voluntaria)' : `desde ${EUROS.format(precio)} € por persona`;
 }
 
 /** Civitatis ya puntúa sobre 10 (`bestRating`), pero se normaliza por si cambia. */

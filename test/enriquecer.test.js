@@ -134,7 +134,8 @@ describe('festivos y puentes', () => {
     const diciembre = puentes[2];
     assert.deepEqual(diciembre.diasPuente, ['2026-12-07']);
     assert.deepEqual(diciembre.salidas, ['2026-12-04', '2026-12-05']);
-    assert.equal(diciembre.etiqueta, '5–8 dic');
+    // Con el día de salida y el nombre del día: «vie 4 – mar 8 dic» (antes «5–8 dic»).
+    assert.equal(diciembre.etiqueta, 'vie 4 – mar 8 dic');
     assert.deepEqual(puentes[0].diasPuente, ['2026-09-25']);
   });
 

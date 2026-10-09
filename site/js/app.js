@@ -28,7 +28,7 @@ import { icono } from './iconos.js';
 import { activarUbicacion } from './ubicacion.js';
 import {
   VISTAS_HTML, atajosEscapadas, atajosPortada, barraDeVista, ideasPortada, resumenViaje, diasDeFechas, contarSecundarios, totalNovedadesGuardadas, destinoOrganizar, contenidoSorpresa, estadoWebs, textoEnviar, contextoBusqueda, ctxTarjetas, datosMapa, formularioViaje, nombreSalida,
-  misAeropuertos, resultadosMapa, textoViaje,
+  misAeropuertos, periodoDeOpcion, resultadosMapa, textoViaje,
 } from './vistas.js';
 
 const $ = (selector) => document.querySelector(selector);
@@ -45,7 +45,7 @@ const CAMPOS_QUE_SE_ESCRIBEN = ['number', 'search', 'text'];
 /** Vistas que recuerdan sus últimos filtros al volver a ellas. */
 const VISTAS_CON_MEMORIA = ['escapadas', 'actividades', 'vuelos'];
 const TITULOS = {
-  finde: 'Este finde', vuelos: 'Vuelos', escapadas: 'Escapadas', actividades: 'Planes', mapa: 'Mapa',
+  finde: 'Este finde', vuelos: 'Vuelos y trenes', escapadas: 'Escapadas', actividades: 'Planes', mapa: 'Mapa',
   calendario: 'Calendario', puentes: 'Puentes', vigilados: 'Avisos por email', fuentes: 'Estado de las webs', buscar: 'Buscar',
   comparar: 'Comparar lado a lado', mis: 'Guardados', ayuda: 'Cómo funciona',
 };
@@ -261,7 +261,9 @@ function pintarNovedades() {
   if (!nuevas) return;
   // Una pastilla junto a «Tu salida», no una franja en todas las vistas.
   const desde = estado.visitaAnterior ? `desde tu última visita (${haceCuanto(estado.visitaAnterior)})` : 'en las últimas 24 h';
-  aviso.innerHTML = `${icono('nuevo')}<span>${nuevas.toLocaleString('es-ES')}<span class="solo-ancho"> ${nuevas === 1 ? 'novedad' : 'novedades'}</span></span>`;
+  // «208 nuevas en 24 h» la primera vez, «3 nuevas desde tu última visita» después; en el móvil, «208 nuevas».
+  const cuando = estado.visitaAnterior ? 'desde tu última visita' : 'en 24 h';
+  aviso.innerHTML = `${icono('nuevo')}<span>${nuevas.toLocaleString('es-ES')} ${nuevas === 1 ? 'nueva' : 'nuevas'}<span class="solo-ancho"> ${cuando}</span></span>`;
   aviso.setAttribute('aria-label', `${contar(nuevas, 'novedad', 'novedades')} ${desde}`);
   aviso.title = `${contar(nuevas, 'oferta nueva', 'ofertas nuevas')} ${desde}. Pulsa para verlas.`;
   aviso.hidden = false;
@@ -654,7 +656,19 @@ function otraSorpresa() {
   if (primera) bloque.hidden = false;
   else estado.salto += SALTO_SORPRESA;
   const contenedor = $('#sorpresa');
-  if (contenedor) contenedor.innerHTML = contenidoSorpresa(estado, leerRuta(hashVista()).params);
+  if (contenedor) {
+    // Ninguna de la ronda anterior (antes repetía una); si no quedan otras, vuelven a valer.
+    const params = leerRuta(hashVista()).params;
+    const previas = new Set(primera ? [] : estado.sorpresaIds ?? []);
+    let vistos = new Set(previas);
+    let html = contenidoSorpresa(estado, params, vistos);
+    if (vistos.size === previas.size && previas.size) {
+      vistos = new Set();
+      html = contenidoSorpresa(estado, params, vistos);
+    }
+    contenedor.innerHTML = html;
+    estado.sorpresaIds = [...vistos].filter((id) => !previas.has(id));
+  }
   if (primera) bloque.scrollIntoView({ block: 'start', behavior: 'smooth' });
   anunciar(primera ? 'Tres planes para ti' : 'Tres planes nuevos');
 }
@@ -902,7 +916,7 @@ async function mostrarFicha(id, disparador) {
   abrirFicha(dialogo, oferta, ctxTarjetas(estado, {
     distancias,
     desde: punto?.nombre ?? nombreSalida(estado),
-    actividades: actividadesCerca(estado.datos.ofertas, oferta),
+    actividades: actividadesCerca(estado.datos.ofertas, oferta, { hoy: estado.hoy }),
     // Para enlazar las otras webs de «Comparar precios» con su enlace de reserva.
     porId: estado.porId,
   }));
@@ -1090,7 +1104,12 @@ function conectarEventos() {
       const cuando = formulario.querySelector('input[name="cuando"]:checked')?.value ?? '';
       const fechas = [formulario.elements.desde?.value, formulario.elements.hasta?.value];
       principal.querySelector('.portada__atajos')?.replaceWith(htmlAElemento(atajosPortada(estado, cuando, fechas)));
-      if (cuando !== 'rango' || fechas[0]) principal.querySelector('.portada__ideas')?.replaceWith(htmlAElemento(ideasPortada(estado, cuando, fechas)));
+      if (cuando !== 'rango' || fechas[0]) {
+        principal.querySelector('.portada__ideas')?.replaceWith(htmlAElemento(ideasPortada(estado, cuando, fechas)));
+        // Las mismas fechas en Explorar: si se entra desde el menú, ya están puestas (antes se perdían).
+        guardarPeriodo(periodoDeOpcion(cuando, fechas[0] ? [fechas[0], fechas[1] && fechas[1] >= fechas[0] ? fechas[1] : fechas[0]] : null));
+        enlacesConMemoria();
+      }
     }
   });
   principal.addEventListener('change', alCambiarFiltro);

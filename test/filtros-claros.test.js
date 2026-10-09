@@ -105,13 +105,15 @@ describe('filtros claros: jerarquía del formulario', () => {
 
   it('«Más filtros» agrupado por bloques, siempre plegado y con contador', () => {
     const grupos = [...html.matchAll(/class="grupo__titulo">([^<]+)</g)].map(([, t]) => t);
-    assert.deepEqual(grupos, ['Precio y chollos', 'Viaje y alojamiento', 'Zona, web y tipo', 'Fechas de las ofertas', 'Mis listas']);
+    assert.deepEqual(grupos, ['Con niños, planes cerca y noches', 'Precio y chollos', 'Viaje y alojamiento', 'Zona, web y tipo', 'Fechas de las ofertas', 'Mis listas']);
     assert.match(html, /<details class="filtros__mas filtros__mas--panel">/);
     const conFiltros = vistaEscapadas(estado(), { aloj: 'casa-rural', cho: '1', max: '100' });
     // No se abre solo (en el móvil taparía la pantalla): lo puesto se ve en los chips y en el contador.
     assert.match(conFiltros, /<details class="filtros__mas filtros__mas--panel">/);
     assert.match(conFiltros, /data-contador-mas>\(2 puestos\)</, 'el precio máximo está arriba: no cuenta');
-    assert.equal(contarSecundarios({ max: '100', pnMax: '40', noches: '2', q: 'x' }), 0);
+    assert.equal(contarSecundarios({ max: '100', pnMax: '40', q: 'x' }), 0);
+    // Niños, eventos y noches viven ahora en «Más filtros»: cuentan.
+    assert.equal(contarSecundarios({ noches: '2', ninos: '1', evtipo: 'todos' }), 3);
     assert.equal(contarSecundarios({ cerradas: '1', encaje: '1' }), 2);
   });
 

@@ -162,12 +162,12 @@ describe('escapadas', () => {
     assert.ok(cerca.every((o) => distancias.get(o.id).estimado));
   });
 
-  it('límite en km por carretera y orden por precio con los precios nulos al final', () => {
-    const f = leerFiltrosEscapadas({ km: '60', orden: 'precio' });
-    const { ofertas: lista } = buscarEscapadas(ofertas, f, ctxBusqueda);
+  it('límite en km por carretera y «viaje más barato» con lo que no tiene total al final', () => {
+    const f = leerFiltrosEscapadas({ km: '60', orden: 'total' });
+    const { ofertas: lista, costes } = buscarEscapadas(ofertas, f, ctxBusqueda);
     assert.ok(lista.length > 0 && lista.every((o) => !(o.cocheKm > 60)));
     assert.ok(!lista.includes(porId('chollometro:besalu-casa-rural-para-6-personas-por-18')), 'Besalú está a 128 km');
-    const precios = lista.map((o) => o.precio ?? Infinity);
+    const precios = lista.map((o) => costes.get(o.id)?.porPersonaNoche ?? Infinity);
     assert.deepEqual(precios, [...precios].sort((a, b) => a - b));
   });
 
@@ -366,9 +366,9 @@ describe('actividades', () => {
       assert.match(html, new RegExp(`name="${campo}"`), `falta el filtro ${campo}`);
     }
     assert.match(html, /4 planes · 4 gratis/);
-    assert.match(html, /<strong class="precio__gratis">Gratis<\/strong> <span class="precio__unidad">propina voluntaria/);
+    assert.match(html, /<strong class="precio__gratis">Gratis<\/strong> <span class="precio__unidad">\(propina voluntaria\)/);
     assert.match(html, /<li><svg[^]*?<\/svg><span>2 h 30 min<\/span><\/li>/);
-    assert.match(html, /Ver en GuruWalk/);
+    assert.match(html, /Ver oferta<span class="boton__web"> en GuruWalk/);
     assert.match(vistaActividades(estadoPanel(), { temas: 'gastronomia', nota: '9.9' }), /Ninguna actividad cumple estos filtros/);
   });
 
@@ -409,7 +409,7 @@ describe('actividades', () => {
     const conActividades = contenidoFicha(escapadaGirona, { ...ctxFicha, actividades: actividadesCerca(ofertas, escapadaGirona) });
     assert.match(conActividades, /Qué hacer allí/);
     assert.match(conActividades, /Free tour por la Girona jud/);
-    assert.match(conActividades, /class="fila__precio">Gratis</);
+    assert.match(conActividades, /class="fila__precio">Gratis \(propina voluntaria\)</);
     assert.ok(!/Qué hacer allí/.test(contenidoFicha(escapadaGirona, ctxFicha)), 'sin actividades no aparece la sección');
   });
 
@@ -547,12 +547,17 @@ describe('búsqueda, novedades y resúmenes', () => {
     assert.match(visitante, /<h1 class="titulo-vista" tabindex="-1">Estado de las webs<\/h1>/);
     // La misma frase que la portada y el pie.
     assert.ok(visitante.includes(`<strong>${estadoWebs(datos.fuentes, e.ahora).texto}.</strong>`));
-    for (const f of datos.fuentes) assert.ok(visitante.includes(`<th scope="row">${f.nombre}</th>`), f.nombre);
+    // Las que no se consultan, aparte («En pausa»): no son webs con problemas.
+    for (const f of datos.fuentes) {
+      const fila = ['bloqueada', 'desactivada'].includes(f.estado) ? `<li><strong>${f.nombre}</strong>` : `<th scope="row">${f.nombre}</th>`;
+      assert.ok(visitante.includes(fila), f.nombre);
+    }
+    assert.match(visitante, /<h2[^>]*>En pausa<\/h2>/);
     assert.match(visitante, /<td data-etiqueta="Última lectura correcta"><time datetime="[^"]+" title="[^"]+">hace/);
     assert.match(visitante, /No se consulta/);
     assert.doesNotMatch(visitante, /HTTP 403|robots\.txt/, 'sin el detalle técnico');
     const html = vistaFuentes({ ...e, propietario: true });
-    assert.match(html, /Bloqueada<\/span><\/td>\s*<td data-etiqueta="Detalle">Su robots\.txt prohíbe \/api/);
+    assert.match(html, /<li><strong>Ryanair<\/strong> · <span class="suave">Su robots\.txt prohíbe \/api/);
     assert.match(html, /HTTP 403 en www\.nomolesten\.com/);
   });
 
@@ -711,8 +716,8 @@ describe('atajos de Inicio con las fechas elegidas', async () => {
     const finde = cifras(atajosPortada(e));
     const todo = cifras(atajosPortada(e, ''));
     const puente = cifras(atajosPortada(e, e.puente.id));
-    assert.equal(finde['Planes gratis'].href, '#/actividades?gratis=1&cuando=finde');
-    assert.equal(todo['Planes gratis'].href, '#/actividades?gratis=1', 'cualquier fecha: sin fechas');
+    assert.equal(finde['Planes gratis'].href, '#/planes?gratis=1&cuando=finde');
+    assert.equal(todo['Planes gratis'].href, '#/planes?gratis=1', 'cualquier fecha: sin fechas');
     assert.equal(puente['Chollos'].href, `#/escapadas?cho=1&cuando=${e.puente.id}`);
     for (const lista of [finde, todo, puente]) {
       for (const { href, n } of Object.values(lista)) {
@@ -841,7 +846,7 @@ describe('menú de cuatro apartados', () => {
     const explorar = vistaEscapadas(e, {});
     assert.match(explorar, /<nav class="pestanas" aria-label="Explorar">/);
     assert.match(explorar, /href="#\/escapadas" data-vista="escapadas" aria-current="page"/);
-    assert.match(explorar, /href="#\/actividades" data-vista="actividades"><svg[^]*?<span>Planes<\/span>/);
+    assert.match(explorar, /href="#\/planes" data-vista="actividades"><svg[^]*?<span>Planes<\/span>/);
     assert.match(vistaActividades(e, {}), /<h1 class="titulo-vista" tabindex="-1">Planes<\/h1>/);
     assert.match(vistaCalendario(e), /<nav class="pestanas" aria-label="Fechas">[^]*data-vista="calendario" aria-current="page"/);
     assert.match(vistaPuentes(e), /data-vista="puentes" aria-current="page"/);

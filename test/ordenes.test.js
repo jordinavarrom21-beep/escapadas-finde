@@ -46,7 +46,6 @@ describe('ordenar escapadas', () => {
       total: (r) => [r.ofertas.map((o) => r.costes.get(o.id).porPersonaNoche), subiendo],
       persona: (r) => [r.ofertas.map((o) => r.costes.get(o.id).porPersona), subiendo],
       comodo: (r) => [r.ofertas.map((o) => r.desdeSalida.get(o.id)?.minutos), subiendo],
-      precio: (r) => [r.ofertas.map((o) => o.precio), subiendo],
       noche: (r) => [r.ofertas.map((o) => o.precioNoche), subiendo],
       // Solo cuenta la comparación con ofertas de verdad parecidas (la de la insignia).
       ahorro: (r) => [r.ofertas.map((o) => referenciaPrecisa(o)?.ahorroPct), bajando],
@@ -61,6 +60,12 @@ describe('ordenar escapadas', () => {
       const [lista, cmp] = valores(r);
       ordenada(lista, cmp);
     }
+  });
+
+  it('«precio publicado» ya no es un orden: un enlace de antes ordena por viaje más barato', () => {
+    assert.ok(!ORDENES_ESCAPADAS.includes('precio'));
+    assert.equal(leerFiltrosEscapadas({ orden: 'precio' }).orden, 'total');
+    assert.equal(leerFiltrosEscapadas({ orden: 'inventado' }).orden, 'puntuacion');
   });
 
   it('el orden por tipo agrupa los alojamientos', () => {

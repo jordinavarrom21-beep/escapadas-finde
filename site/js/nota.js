@@ -3,7 +3,7 @@
  * datos de la propia oferta. Usa `notaDetalle`, que calcula el escaneo (puntuacion.js):
  * los puntos de cada parte y con cuántas ofertas parecidas se compara el precio. Sin DOM.
  */
-import { contar, duracion, euros, nota } from './formato.js';
+import { contar, euros, nota } from './formato.js';
 
 /** Máximo de cada parte (los pesos de src/enriquecer/puntuacion.js). */
 export const MAXIMOS = {
@@ -55,7 +55,9 @@ const TEXTOS = {
   },
   senales: textoSenales,
   comodidad: (o) => (o.vuelo?.horarioIdeal ? 'Horario cómodo: sale por la tarde y vuelve tarde'
-    : o.cocheMin != null ? `Cerca: ${duracion(o.cocheMin)} en coche` : 'Fácil de llegar'),
+    // El tramo que da los puntos, no otro tiempo exacto: la ficha ya da uno (el de tu salida) y no
+    // cuadraban («2 h 54 min» arriba y «2 h 50 min» aquí).
+    : o.cocheMin != null ? `Cerca: a menos de ${o.cocheMin <= 120 ? 2 : 3} h en coche` : 'Fácil de llegar'),
   fechas: (o) => (o.fechas?.puenteId ? 'Cae en un puente' : 'Es para el finde que viene'),
   favorito: () => 'Tiene un tema de los que te gustan',
 };

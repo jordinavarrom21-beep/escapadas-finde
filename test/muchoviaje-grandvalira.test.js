@@ -83,6 +83,9 @@ describe('grandvalira: ofertas de esquí', () => {
     assert.equal(primera.lugar.codigoPais, 'AD');
     const raquetas = ofertas.find((o) => /raquetas/.test(o.titulo));
     assert.deepEqual([raquetas.tipo, raquetas.precioTexto], ['actividad', 'desde 30,50 € por persona']);
+    // Sin repetir el nombre («Snake Gliss, Snake Gliss en Grandvalira»).
+    assert.equal(raquetas.titulo, 'Grandvalira: Excursión con raquetas');
+    assert.ok(ofertas.some((o) => o.titulo === 'Grandvalira: Snake Gliss'));
   });
 
   it('un periodo largo es una validez, no una estancia; «por persona/noche» se entiende', () => {

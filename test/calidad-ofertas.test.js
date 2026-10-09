@@ -73,7 +73,7 @@ describe('calidad: el tiempo y los eventos son los de las fechas del viaje', () 
   it('con fechas propias se enseñan tal cual en la ficha; la tarjeta, el tipo y la distancia del evento', () => {
     const tarjetaHtml = tarjeta(conFinde, ctxPara([conFinde]));
     assert.ok(!tarjetaHtml.includes('Despejado'), 'la tarjeta se queda con lo que sirve para comparar');
-    assert.match(tarjetaHtml, /class="insignia insignia--evento" title="Fira de Tardor · sáb 3 oct">[^]*?Feria o mercado aquí mismo</);
+    assert.match(tarjetaHtml, /class="insignia insignia--evento" title="Fira de Tardor · sáb 3 oct">[^]*?Feria o mercado en Olot el sáb 3 oct</);
     const html = contenidoFicha(conFinde, ctxPara([conFinde]));
     assert.match(html, /Despejado/);
     assert.match(html, /Fira de Tardor<\/a> <span class="suave">Feria o mercado · sáb 3 oct · aquí mismo<\/span>/);
@@ -133,7 +133,7 @@ describe('calidad: cada oferta dice cuándo se comprobó', () => {
   it('una vista hace poco: la tarjeta dice cuándo se vio el precio; la ficha, dónde y que las plazas se confirman allí', () => {
     const o = oferta({ vistaUltima: '2026-09-29T08:00:00Z' });
     const html = tarjeta(o, ctx([o]));
-    assert.match(html, /<span class="boton__texto">Ver en Weekendesk<\/span>/, "sin precio, la web va en el botón");
+    assert.match(html, /<span class="boton__texto">Ver oferta<span class="boton__web"> en Weekendesk<\/span><\/span>/, "sin precio, la web va en el botón");
     assert.match(html, /class="comprobada comprobada--tarjeta"[^>]*>[^]*?Precio visto hace 2 h<\/span>/);
     assert.ok(!/Sin confirmar/.test(html));
     assert.match(contenidoFicha(o, ctx([o])), /Precio visto en Weekendesk hace 2 h \([^)]+\)\. Las plazas para tus fechas se confirman en su web\./);

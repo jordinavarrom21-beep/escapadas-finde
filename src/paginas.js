@@ -13,8 +13,12 @@
 import { costeDesdeOrigen } from './vigilados.js';
 import { escaparHtml as esc, euros, normalizar, urlSegura } from '../site/js/formato.js';
 import { repartir } from '../site/js/vigencia.js';
+import { resumenFuentes } from '../site/js/filtros.js';
 import { etiquetaDia, fechaLocal } from './util/fechas.js';
 import { textoGuia } from './textos-guias.js';
+
+/** Cuántas webs se consultan (las del registro que no están en pausa): la misma cifra en toda la web. */
+export const numeroWebs = (datos) => resumenFuentes(datos.fuentes ?? []).activas;
 
 /** Menos de esto es una página casi vacía: no se publica (ni entra en el sitemap). */
 export const MINIMO_OFERTAS = 5;
@@ -227,7 +231,7 @@ export function definiciones({ origen, findes = [], puentes = [], ofertas = [], 
       ruta: 'actividades/gratis', grupo: 'mas', enlace: 'Actividades gratis', titulo: `Actividades gratis cerca de ${desde}`,
       intro: 'Free tours y visitas sin coste de entrada (algunas con propina voluntaria).',
       elegir: (o) => o.tipo === 'actividad' && o.precio === 0, orden: (a, b) => (b.valoracion?.nota ?? 0) - (a.valoracion?.nota ?? 0),
-      panel: '#/actividades?gratis=1',
+      panel: '#/planes?gratis=1',
     },
   ].filter((d) => d.titulo);
   // Las zonas no pueden quitarle la carpeta a una guía fija («escapadas/playa» es la temática).
@@ -312,7 +316,7 @@ export function enlacesGuias(guias, raiz, actual = null) {
  * `base`, la dirección pública (sin ella no hay canónica, imagen para compartir ni JSON-LD,
  * que necesitan direcciones absolutas); `todas`, las guías que se publican.
  */
-export function htmlPagina(d, ofertas, { raiz, base = null, generado, total, todas = [d], nombres = new Map(), texto = null, contacto = null, indexable = true }) {
+export function htmlPagina(d, ofertas, { raiz, base = null, generado, total, todas = [d], nombres = new Map(), texto = null, contacto = null, indexable = true, webs = 0 }) {
   const canonical = base ? `${base}${d.ruta}/` : null;
   const descripcion = `${d.descripcion ? d.descripcion(total) : `${d.titulo}: ${total} ofertas comparadas por el coste del viaje completo.`} Actualizado el ${etiquetaDia(generado)}.`;
   const lasMigas = migas(d, todas);
@@ -387,7 +391,7 @@ ${d.ruta === 'vuelos' ? '' : `<p class="suave">Cómo se compara: el <strong>viaj
 </main>
 <footer class="pie contenedor">
 <nav class="guias" aria-label="Más guías">${enlacesGuias(todas, raiz, d.ruta)}</nav>
-<p><a href="${raiz}">${NOMBRE_WEB}</a> reúne ofertas de más de 20 webs de viajes y las revisa cada 15 minutos. No vendemos nada: el precio y las condiciones los confirma la web de cada oferta. · <a href="${raiz}#/ayuda">Cómo funciona</a>${contacto ? ` · <a href="mailto:${esc(contacto)}">Contacto</a>` : ''}</p>
+<p><a href="${raiz}">${NOMBRE_WEB}</a> reúne ofertas de ${webs ? `${webs} webs` : 'varias webs'} de viajes y las revisa cada 15 minutos. No vendemos nada: el precio y las condiciones los confirma la web de cada oferta. · <a href="${raiz}#/ayuda">Cómo funciona</a>${contacto ? ` · <a href="mailto:${esc(contacto)}">Contacto</a>` : ''}</p>
 </footer>
 </body>
 </html>
@@ -434,7 +438,7 @@ export function bloquePortada(datos, guias) {
   const nombres = new Map((datos.fuentes ?? []).map((f) => [f.id, f.nombre]));
   return `<div class="portada-estatica">
 <h1>Escapadas de fin de semana desde ${esc(desde)}</h1>
-<p>Escapadas, casas rurales, hoteles con spa, planes y chollos de vuelos de más de 20 webs de viajes, juntos y revisados cada 15 minutos. Cada oferta con el coste del viaje completo para ${VIAJEROS} personas desde ${esc(desde)} (la oferta y la gasolina), el tiempo en coche y cuándo se comprobó. Datos del ${esc(etiquetaDia(datos.generado))}.</p>
+<p>Escapadas, casas rurales, hoteles con spa, planes y chollos de vuelos de ${numeroWebs(datos) || 'varias'} webs de viajes, juntos y revisados cada 15 minutos. Cada oferta con el coste del viaje completo para ${VIAJEROS} personas desde ${esc(desde)} (la oferta y la gasolina), el tiempo en coche y cuándo se comprobó. Datos del ${esc(etiquetaDia(datos.generado))}.</p>
 ${destacadas.length ? `<h2>Lo mejor de ahora</h2>\n<ol class="lista-guia">${destacadas.map((o) => filaOferta(o, nombres)).join('')}</ol>` : ''}
 ${guias.length ? `<nav class="guias" aria-label="Guías">${enlacesGuias(guias, '')}</nav>` : ''}
 </div>`;
@@ -484,7 +488,7 @@ export function generarPaginas(todasLasOfertas, { base = null } = {}) {
     return {
       ruta: `${d.ruta}/index.html`,
       contenido: htmlPagina(d, lista.slice(0, MAXIMO_POR_PAGINA), {
-        raiz, base, generado: datos.generado, total: lista.length, todas, nombres, texto: textoGuia(d.ruta, datos.origen.nombre), contacto: datos.legal?.email, indexable,
+        raiz, base, generado: datos.generado, total: lista.length, todas, nombres, texto: textoGuia(d.ruta, datos.origen.nombre), contacto: datos.legal?.email, indexable, webs: numeroWebs(datos),
       }),
     };
   });

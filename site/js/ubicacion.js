@@ -109,7 +109,7 @@ export function activarUbicacion(formulario, origen, { salida = null, prefijo = 
     }
     ayuda.textContent = 'Obteniendo tu ubicación…';
     navigator.geolocation.getCurrentPosition(
-      ({ coords }) => fijar({ nombre: 'Tu ubicación', lat: redondear(coords.latitude), lon: redondear(coords.longitude) }),
+      ({ coords }) => fijar({ nombre: 'tu ubicación', lat: redondear(coords.latitude), lon: redondear(coords.longitude) }),
       () => { ayuda.textContent = 'No se ha podido obtener tu ubicación (permiso denegado o sin señal).'; },
       { timeout: 10_000, maximumAge: 600_000 },
     );

@@ -58,6 +58,12 @@ export function etiquetaFechaHora(local) {
 }
 
 /** Rango corto: '9–12 oct' o '30 oct – 1 nov'. */
+/** «vie 9 – lun 12 oct»: los días con su nombre (lo mismo que diasExplicitos del panel). */
+export function diasConNombre(desde, hasta) {
+  const [a, b] = [etiquetaDia(desde), etiquetaDia(hasta)];
+  return a.split(' ')[2] === b.split(' ')[2] ? `${a.split(' ').slice(0, 2).join(' ')} – ${b}` : `${a} – ${b}`;
+}
+
 export function etiquetaRango(desde, hasta) {
   const [, mesDesde, diaDesde] = desde.split('-').map(Number);
   const [, mesHasta, diaHasta] = hasta.split('-').map(Number);

@@ -9,7 +9,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-import { ATAJOS_ESCAPADAS, VISTAS, actividadesCerca, leerRuta, medirDistancias } from '../site/js/filtros.js';
+import { ATAJOS_ESCAPADAS, VISTAS, actividadesCerca, leerRuta, medirDistancias, rutaDeVista } from '../site/js/filtros.js';
 import { proximoPuente } from '../site/js/fechas.js';
 import { tituloLegible } from '../site/js/formato.js';
 import { contenidoFicha } from '../site/js/plantillas.js';
@@ -70,9 +70,11 @@ function revisarHtml(html, donde, e) {
   for (const [, href] of html.matchAll(/href="([^"]*)"/g)) {
     const url = desescapar(href);
     if (url.startsWith('#/')) {
+      // «#/planes» es la dirección de la vista «actividades».
       const ruta = url.slice(2).split('?')[0];
-      assert.ok(VISTAS.includes(ruta), `${donde}: enlace a una vista que no existe: ${url}`);
-      assert.equal(leerRuta(url).vista, ruta);
+      const vista = leerRuta(url).vista;
+      assert.ok(VISTAS.includes(vista), `${donde}: enlace a una vista que no existe: ${url}`);
+      assert.equal(rutaDeVista(vista), ruta, `${donde}: enlace que no es la dirección de su vista: ${url}`);
     } else if (url !== '#' && url !== '#principal' && url !== '#resultados') {
       assert.match(url, /^https?:\/\//, `${donde}: enlace que no es web ni del panel: ${url}`);
       assert.doesNotThrow(() => new URL(url), `${donde}: URL mal formada: ${url}`);

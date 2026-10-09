@@ -26,7 +26,7 @@ import { normalizarDrive, problemasDrive } from '../src/drive.js';
 import { AVISO_DRIVE } from '../site/js/formato.js';
 import { normalizarGoogleAds, problemasGoogleAds } from '../src/google-ads.js';
 import { normalizarGoogleAnalytics, problemasGoogleAnalytics } from '../src/google-analytics.js';
-import { CARPETAS, estructuradosPortada, generarPaginas } from '../src/paginas.js';
+import { CARPETAS, estructuradosPortada, generarPaginas, numeroWebs } from '../src/paginas.js';
 
 /** «--base=x» o «--base x» → {base: 'x'}; «--htaccess» → {htaccess: true}. */
 export function leerArgumentos(argv) {
@@ -506,7 +506,10 @@ export function prepararWeb({ dir = 'site', base = null, version = null, conHtac
   if (datosPanel?.origen && Array.isArray(datosPanel.ofertas)) {
     const { portada, destacadas } = generarPaginas(datosPanel, { base });
     const indice = path.join(dir, 'index.html');
-    writeFileSync(indice, ponerPortada(readFileSync(indice, 'utf8'), portada, base, destacadas));
+    // La misma cifra de webs que la portada, las guías y «Cómo funciona» (antes, «más de 20»).
+    const webs = numeroWebs(datosPanel);
+    const conCifra = (html) => (webs ? html.replace(/de (?:más de )?\d+ webs/g, `de ${webs} webs`) : html);
+    writeFileSync(indice, conCifra(ponerPortada(readFileSync(indice, 'utf8'), portada, base, destacadas)));
     hecho.push('portada para buscadores');
   }
   if (conHtaccess) {

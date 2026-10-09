@@ -50,6 +50,16 @@ const idDe = (partes) => normalizarTexto(partes.join(' ')).replace(/[^a-z0-9]+/g
  * @param {{log?: (m: string) => void}} [ctx]
  * @returns {import('../modelo.js').Oferta[] | null}
  */
+/**
+ * El resumen no añade nada: está dentro del título o es el título con «en Grandvalira»
+ * («Snake Gliss en Grandvalira»). «4 días de forfait + material de alquiler» sí añade.
+ */
+function repiteTitulo(titulo, res) {
+  const t = normalizarTexto(titulo);
+  const r = normalizarTexto(res);
+  return t.includes(r) || r === t || r.startsWith(`${t} en `);
+}
+
 export function parsear(html, urlPagina, ctx = {}) {
   const $ = cheerio.load(html);
   const tarjetas = $('article.card-detailed');
@@ -75,7 +85,8 @@ export function parsear(html, urlPagina, ctx = {}) {
         fuente: ID,
         tipo: alojamiento ? 'paquete' : 'actividad',
         // «Hotel + Forfait» se repite: lo que incluye («3 noches de hotel y 2 días de forfait») las distingue.
-        titulo: `Grandvalira: ${titulo}${resumen(texto) && !normalizarTexto(titulo).includes(normalizarTexto(resumen(texto))) ? `, ${resumen(texto)}` : ''}`,
+        // Sin repetir el nombre: «Snake Gliss, Snake Gliss en Grandvalira» → «Snake Gliss».
+        titulo: `Grandvalira: ${titulo}${resumen(texto) && !repiteTitulo(titulo, resumen(texto)) ? `, ${resumen(texto)}` : ''}`,
         descripcion: recortar(texto),
         url,
         imagen: imagen ? new URL(imagen, WEB).href : null,

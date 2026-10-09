@@ -77,11 +77,11 @@ describe('Inicio: qué quieres organizar y para cuándo', async () => {
     const ids = { finde: ctx.finde, puente: PUENTE };
     assert.equal(destinoOrganizar('vuelos', { cuando: 'puente' }, ids), '#/vuelos?finde=2026-10-10');
     assert.equal(destinoOrganizar('vuelos', { cuando: 'finde' }, ids), '#/vuelos?finde=2026-10-02');
-    assert.equal(destinoOrganizar('actividades', { cuando: '2026-10-09' }, ids), '#/actividades?cuando=2026-10-09');
+    assert.equal(destinoOrganizar('actividades', { cuando: '2026-10-09' }, ids), '#/planes?cuando=2026-10-09');
     assert.equal(destinoOrganizar('escapadas', { cuando: 'puente', pres: '150' }, ids), '#/escapadas?cuando=puente&orden=total&pres=150&prespor=persona');
     assert.equal(destinoOrganizar('vuelos', { cuando: '' }, ids), '#/vuelos');
     // El destino escrito va a las tres.
-    assert.equal(destinoOrganizar('actividades', { cuando: '', q: ' Girona ' }, ids), '#/actividades?q=Girona');
+    assert.equal(destinoOrganizar('actividades', { cuando: '', q: ' Girona ' }, ids), '#/planes?q=Girona');
     assert.match(destinoOrganizar('vuelos', { cuando: 'finde', q: 'Roma' }, ids), /^#\/vuelos\?(?=.*q=Roma)(?=.*finde=2026-10-02)/);
     assert.match(destinoOrganizar('escapadas', { cuando: 'finde', q: 'Girona' }, ids), /[?&]q=Girona/);
   });
@@ -211,7 +211,7 @@ describe('Inicio arranca con el periodo elegido en Explorar', async () => {
     assert.match(html, /data-enviar-para>para vie 16 – dom 18 oct</);
     const ids = { finde: e.findes[0], puente: e.puente };
     assert.equal(destinoOrganizar('vuelos', { cuando: 'rango', desde: '2026-10-16', hasta: '2026-10-18' }, ids), '#/vuelos?desde=2026-10-16&hasta=2026-10-18');
-    assert.equal(destinoOrganizar('actividades', { cuando: 'rango', desde: '2026-10-16', hasta: '2026-10-18' }, ids), '#/actividades?desde=2026-10-16&hasta=2026-10-18');
+    assert.equal(destinoOrganizar('actividades', { cuando: 'rango', desde: '2026-10-16', hasta: '2026-10-18' }, ids), '#/planes?desde=2026-10-16&hasta=2026-10-18');
     assert.deepEqual(paramsBuscadorFinde({ cuando: 'rango', desde: '2026-10-16', hasta: '2026-10-18' }), { desde: '2026-10-16', hasta: '2026-10-18', temas: '', orden: 'total' });
   });
 

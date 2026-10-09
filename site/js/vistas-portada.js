@@ -4,14 +4,14 @@
  * «Lo mejor para este finde» en tres listas cortas.
  */
 
-import { etiquetaDia, nombreFinde, nombreFindeEnFrase } from './fechas.js';
+import { etiquetaDia, nombreFinde, nombreFindeEnFrase, nombreSiguienteFinde } from './fechas.js';
 import { TIPOS_EVENTO, contar, duracion, escaparHtml as esc, euros, haceCuanto, normalizar, urlSegura } from './formato.js';
 import {
   actividadesPara, buscarActividades, buscarEscapadas, chollosDeVuelos, conPeriodo, contenidoMapa, crearHash, filtrarVuelos,
   leerFiltrosActividades, leerFiltrosEscapadas, leerFiltrosVuelos, perfilFavoritos, periodoFinde, planesSorpresa,
   rangoDe, recomendadas, salidaPuente, sinComprobar, tieneVuelo,
 } from './filtros.js';
-import { colorTema, estadoVacio, tarjeta, tarjetaConMotivo, textoFechas } from './plantillas.js';
+import { colorTema, esFreeTour, estadoVacio, tarjeta, tarjetaConMotivo, textoFechas } from './plantillas.js';
 import { escena, icono, tipoEscena } from './iconos.js';
 import { camposFechas } from './selector-fechas.js';
 import {
@@ -81,7 +81,7 @@ function opcionesCuando(e) {
   const rango = !periodo.cuando && periodo.desde && periodo.hasta ? [periodo.desde, periodo.hasta] : null;
   const opciones = [
     ['finde', nombreFinde(e.hoy), diasExplicitos(actual.viernes, actual.domingo)],
-    ...(siguiente ? [[siguiente.id, 'El siguiente', etiquetaFinde(siguiente, e.datos.puentes)]] : []),
+    ...(siguiente ? [[siguiente.id, nombreSiguienteFinde(e.hoy), etiquetaFinde(siguiente, e.datos.puentes)]] : []),
     // «El puente» y sus días (con la tarde del último laborable para salir).
     ...(e.puente ? [[e.puente.id, 'El puente', diasExplicitos(salidaPuente(e.puente), e.puente.hasta)]] : []),
     ['', 'Cualquier fecha', ''],
@@ -128,7 +128,7 @@ export function buscadorFinde(e) {
   <fieldset class="buscador-finde__grupo"><legend>2. ¿Qué buscas?</legend>
     <div class="organizar">
       ${que('escapadas', 'escapadas', 'Escapadas', 'Hoteles, casas rurales y paquetes')}
-      ${que('vuelos', 'vuelos', 'Vuelos', 'Trayectos de ida y vuelta')}
+      ${que('vuelos', 'vuelos', 'Vuelos y trenes', 'Billetes de ida y vuelta')}
       ${que('actividades', 'actividades', 'Planes', 'Actividades y entradas')}
     </div>
   </fieldset>
@@ -151,7 +151,7 @@ export function buscadorFinde(e) {
   <div class="buscador-finde__accion">
     <div class="buscador-finde__destino">
       <label class="buscador-finde__etiqueta" for="buscador-finde-q">Destino <span class="suave">(opcional)</span></label>
-      <input id="buscador-finde-q" type="search" name="q" placeholder="Ciudad, zona u hotel" autocomplete="off" enterkeyhint="search">
+      <input id="buscador-finde-q" type="search" name="q" placeholder="Destino u hotel" autocomplete="off" enterkeyhint="search">
     </div>
     <button type="submit" class="boton boton--primario buscador-finde__enviar"><span data-enviar-accion>${esc(enviar.accion)}</span><small data-enviar-para>${esc(enviar.para)}</small></button>
   </div>
@@ -198,13 +198,18 @@ export function resumenViaje(e) {
 
 // ── Debajo del buscador ─────────────────────────────────────────────────────
 
-/** Una sola línea: cuántas ofertas, cuándo se revisaron y cómo están las webs (lo mismo que el pie). */
+/**
+ * Una sola línea: cuántas ofertas (y de qué), cuándo se actualizaron los datos (cada web se lee a
+ * su ritmo, de 15 min a una vez al día: una sola hora engañaba) y, solo si falla más de una cuarta
+ * parte de las webs, el aviso; si no, ese estado va en el pie y en «Estado de las webs».
+ */
 function lineaConfianza(e) {
   const webs = e.webs ?? estadoWebs(e.datos.fuentes, e.ahora);
   const nombres = webs.problemas.map((f) => f.nombre).join(', ');
-  return `<p class="portada__confianza${webs.error ? ' portada__confianza--aviso' : ''}"><span class="punto" aria-hidden="true"></span>
-  <span>${esc(e.datos.ofertas.length.toLocaleString('es-ES'))} ofertas vigentes · revisadas ${esc(haceCuanto(e.datos.generado, e.ahora))}</span>
-  <a href="#/fuentes"${nombres ? ` title="${esc(nombres)}"` : ''}>${webs.error ? icono('alerta') : ''}${esc(webs.texto)}</a>
+  // El punto, dentro del texto: suelto, en 320 px se quedaba solo en su línea.
+  return `<p class="portada__confianza${webs.grave ? ' portada__confianza--aviso' : ''}">
+  <span><span class="punto" aria-hidden="true"></span> ${esc(e.datos.ofertas.length.toLocaleString('es-ES'))} ofertas (escapadas, vuelos y planes) · Datos actualizados ${esc(haceCuanto(e.datos.generado, e.ahora))} · <a href="#/fuentes">cada web a su ritmo</a></span>
+  ${webs.grave ? `<a href="#/fuentes" class="portada__problemas"${nombres ? ` title="${esc(nombres)}"` : ''}>${icono('alerta')}${esc(webs.texto)}</a>` : ''}
   <a href="#/ayuda">Cómo funciona</a></p>`;
 }
 
@@ -264,7 +269,7 @@ const HORAS_IDEAS = 3;
 const ORDEN_EVENTOS = ['musica', 'festivales', 'fiestas', 'ferias', 'escena', 'familia', 'exposiciones', 'deporte', 'cine', 'otros'];
 const UNIDAD_CORTA = { pp: '/pers.', 'pp/noche': '/pers. y noche', total: 'en total', 'i/v': 'i/v por pers.', noche: '/noche', trayecto: '/trayecto' };
 
-const precioCorto = (o) => (o.precio === 0 ? 'Gratis' : `${euros(o.precio)}${UNIDAD_CORTA[o.unidad] ? ` <small>${UNIDAD_CORTA[o.unidad]}</small>` : ''}`);
+const precioCorto = (o) => (o.precio === 0 ? `Gratis${esFreeTour(o) ? ' <small>(propina voluntaria)</small>' : ''}` : `${euros(o.precio)}${UNIDAD_CORTA[o.unidad] ? ` <small>${UNIDAD_CORTA[o.unidad]}</small>` : ''}`);
 
 /** La miniatura de una escapada: su foto o, sin ella, la ilustración de su tipo con su color. */
 function miniatura(o) {
@@ -437,9 +442,15 @@ function columnaEventos(e, vistos, pi) {
     return columnaIdeas('tema-eventos', `Conciertos y fiestas${deEsteFinde}`, eventos.map(filaEvento), '',
       { href: crearHash('escapadas', conPeriodoIdeas(e, 'escapadas', { evtipo: 'todos' }, pi.todas ? { periodo: { cuando: 'finde' } } : pi)), texto: 'Escapadas con eventos cerca' }, 'eventos');
   }
-  const planes = sinVistas(actividadesPara(e.datos.ofertas, periodoFinde(actual), { max: FILAS_IDEAS * 3, descartadas: ocultas(e) }), vistos, FILAS_IDEAS);
-  return columnaIdeas('actividades', `Planes <small class="suave">(${esc(nombreFindeEnFrase(e.hoy))})</small>`, planes.map((o) => filaIdea(o, '')), `No hay planes con fecha para ${nombreFindeEnFrase(e.hoy)}.`,
-    { href: crearHash('actividades', {}), texto: 'Ver planes' }, 'eventos');
+  // Los planes del periodo elegido (un finde o un puente; con otras fechas, desde la entrada), no
+  // siempre los de este finde: estaban dentro de «Lo mejor para…» con otras fechas.
+  const r = pi.periodo.cuando ? rangoDe(pi.periodo.cuando === 'finde' ? actual.id : pi.periodo.cuando, contextoBusqueda(e)) : null;
+  // Con otras fechas, las de fecha cerrada no se cuentan como de un finde (su id no coincide con ninguno).
+  const periodoPlanes = r ? { id: r.id, desde: r.inicio } : pi.periodo.desde ? { id: `fechas:${pi.periodo.desde}`, desde: pi.periodo.desde } : periodoFinde(actual);
+  const cuando = pi.todas ? nombreFindeEnFrase(e.hoy) : pi.dias || nombreFindeEnFrase(e.hoy);
+  const planes = sinVistas(actividadesPara(e.datos.ofertas, periodoPlanes, { max: FILAS_IDEAS * 3, descartadas: ocultas(e) }), vistos, FILAS_IDEAS);
+  return columnaIdeas('actividades', `Planes${pi.todas ? ` <small class="suave">(${esc(cuando)})</small>` : ''}`, planes.map((o) => filaIdea(o, '')), `No hay planes para ${esc(cuando)}.`,
+    { href: crearHash('actividades', pi.todas ? {} : conPeriodoIdeas(e, 'actividades', {}, pi)), texto: 'Ver planes' }, 'eventos');
 }
 
 /**
@@ -473,19 +484,34 @@ function grupoRecomendado(e, params, vistos) {
      <div class="rejilla">${lista.map((r) => tarjetaConMotivo(r, ctx)).join('')}</div>`);
 }
 
+/**
+ * Desde la segunda visita, el buscador plegado en una línea («Este finde · Escapadas · Cambiar»):
+ * así la primera oferta se ve sin bajar dos pantallas en el móvil. La primera vez, abierto.
+ */
+function buscadorPlegable(e) {
+  const { opciones, marcada } = opcionesCuando(e);
+  const [, rotulo, dias] = opciones.find(([valor]) => valor === marcada) ?? opciones[0];
+  const resumen = [marcada === 'rango' && dias ? dias : rotulo, 'Escapadas'].join(' · ');
+  return `<details class="buscador-plegable"${e.visitaAnterior ? '' : ' open'}>
+  <summary class="buscador-plegable__resumen"><span class="buscador-plegable__texto">${icono('calendario')}${esc(resumen)}</span><span class="buscador-plegable__cambiar">Cambiar</span></summary>
+  ${buscadorFinde(e)}
+</details>`;
+}
+
 export function vistaFinde(e, params = {}) {
   // Cada bloque de abajo no repite lo que ya ha salido. Sin «Sugerencia de hoy»: era un
   // cuarto bloque de ideas y a menudo la misma oferta que la primera de la lista, desde otra web.
+  // «Lo mejor para tus fechas» justo debajo del buscador: las ofertas, antes que los atajos.
   const vistos = new Set();
   return `<section class="portada">
   ${resumenViaje(e)}
   <h1 class="titulo-vista" tabindex="-1">Escapadas de fin de semana desde <em>${esc(nombreSalida(e))}</em></h1>
   <p class="portada__intro">¿Qué quieres organizar?</p>
-  ${buscadorFinde(e)}
+  ${buscadorPlegable(e)}
   ${lineaConfianza(e)}
 </section>
+${ideasPortada(e, null, null, vistos)}
 ${atajosPortada(e)}
 ${bloqueSorpresa(e)}
-${ideasPortada(e, null, null, vistos)}
 ${grupoRecomendado(e, params, vistos)}`;
 }

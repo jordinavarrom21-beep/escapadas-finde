@@ -66,14 +66,14 @@ describe('Calendario: cada cifra es la de la lista que abre', () => {
   const ctx = contextoBusqueda(e);
   it('cuenta con las mismas búsquedas (sin cruceros, duplicadas ni descartadas) y solo los findes que la web conoce', () => {
     const html = vistaCalendario(e);
-    // «3 escapadas con fecha + 40 flexibles» o, sin ninguna con fecha, «Ver 40 escapadas flexibles».
-    const celdas = [...html.matchAll(/href="(#\/escapadas\?cuando=[^"]+)"[^>]*>(?:<svg[^]*?<\/svg>)?<span>(?:([\d.]+) escapadas? con fecha <small class="suave">\+ ([\d.]+) flexibles|Ver ([\d.]+) escapadas? flexibles)/g)];
+    // «3 escapadas con fecha» o, sin ninguna con fecha ese finde, «Ver escapadas»: las flexibles valen
+    // para todos los findes y su número se repetía en cada celda.
+    const celdas = [...html.matchAll(/href="(#\/escapadas\?cuando=[^"]+)"[^>]*>(?:<svg[^]*?<\/svg>)?<span>(?:([\d.]+) escapadas? con fecha|Ver escapadas)<\/span>/g)];
     assert.equal(celdas.length, e.findes.length, 'ni un finde más de los que conocen las listas');
     const numero = (n) => Number((n ?? '0').replace('.', ''));
-    for (const [, href, conFecha, flexibles, solo] of celdas) {
+    for (const [, href, conFecha] of celdas) {
       const { params } = leerRuta(href);
       const lista = buscarEscapadas(e.datos.ofertas, leerFiltrosEscapadas(params), ctx).ofertas;
-      assert.equal(numero(conFecha) + numero(flexibles) + numero(solo), lista.length, href);
       assert.equal(numero(conFecha), lista.filter((o) => o.fechas?.salida).length, href);
     }
     const resumen = resumenCalendario(e.datos.ofertas, e.findes, e.datos.puentes, ctx);
@@ -124,8 +124,8 @@ describe('eventos: en la tarjeta y en el filtro sin abrir ninguna ficha', () => 
   it('filtrando por eventos, la tarjeta de una flexible enseña el suyo con su día; si no, no (es una suposición)', () => {
     assert.equal(insigniaEvento(flexible, {}), '');
     const conFiltro = insigniaEvento(flexible, { conEventos: true, tipoEvento: 'fiestas' });
-    assert.match(conFiltro, /Fiestas a 3 km y 1 más · si vas el sáb 10 oct/);
-    assert.match(insigniaEvento(cerrada, {}), /Concierto a 3 km</, 'con fechas cerradas, siempre y sin «si vas»');
+    assert.match(conFiltro, /Fiestas a 3 km si vas el sáb 10 oct \(\+1 plan\)</);
+    assert.match(insigniaEvento(cerrada, {}), /Concierto a 3 km el sáb 10 oct</, 'con fechas cerradas, siempre y sin «si vas»');
   });
 
   it('con los datos publicados (eventos ligeros en ofertas.json) el filtro encuentra ofertas', () => {

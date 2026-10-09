@@ -59,7 +59,8 @@ export function traducirFormulario(p) {
   return p;
 }
 export const ORDENES_VUELOS = ['precio', 'puntuacion', 'hora'];
-export const ORDENES_ESCAPADAS = ['puntuacion', 'total', 'persona', 'calidad', 'comodo', 'precio', 'noche', 'ahorro', 'valoracion', 'distancia', 'alojamiento', 'novedad'];
+// Sin «Precio publicado»: comparaba un precio por noche con uno total (sin igualar unidades).
+export const ORDENES_ESCAPADAS = ['puntuacion', 'total', 'persona', 'calidad', 'comodo', 'noche', 'ahorro', 'valoracion', 'distancia', 'alojamiento', 'novedad'];
 export const ORDENES_ACTIVIDADES = ['puntuacion', 'precio', 'valoracion'];
 /** De menos a más incluido: sirve para el filtro de «régimen mínimo». */
 export const REGIMENES_ORDEN = ['solo-alojamiento', 'desayuno', 'media-pension', 'pension-completa', 'todo-incluido'];
@@ -72,10 +73,16 @@ const NOCHES_CLASICAS = 2;
 // ── Rutas ────────────────────────────────────────────────────────────────────
 
 /** '#/escapadas?temas=spa,rural' → {vista: 'escapadas', params: {temas: 'spa,rural'}}. */
+/** Nombre en la dirección de las vistas que se llaman distinto: «Planes» es #/planes (#/actividades sigue valiendo). */
+const RUTA_DE_VISTA = { actividades: 'planes' };
+const VISTA_DE_RUTA = { planes: 'actividades' };
+export const rutaDeVista = (vista) => RUTA_DE_VISTA[vista] ?? vista;
+
 export function leerRuta(hash = '') {
   const [ruta, consulta = ''] = hash.replace(/^#\/?/, '').split('?');
+  const vista = VISTA_DE_RUTA[ruta] ?? ruta;
   return {
-    vista: VISTAS.includes(ruta) ? ruta : 'finde',
+    vista: VISTAS.includes(vista) ? vista : 'finde',
     params: Object.fromEntries(new URLSearchParams(consulta)),
   };
 }
@@ -87,7 +94,7 @@ export function crearHash(vista, params = {}) {
     if (texto == null || texto === '' || texto === false) return [];
     return [`${encodeURIComponent(clave)}=${encodeURIComponent(texto).replace(/%2C/g, ',')}`];
   });
-  return `#/${vista}${partes.length ? `?${partes.join('&')}` : ''}`;
+  return `#/${rutaDeVista(vista)}${partes.length ? `?${partes.join('&')}` : ''}`;
 }
 
 const positivo = (valor) => {
@@ -198,7 +205,8 @@ export function leerFiltrosEscapadas(p = {}) {
     soloEncajan: p.encaje === '1',
     // Con eventos cerca esos días (src/enriquecer/eventos.js): de cualquier tipo o de uno.
     evento: p.evtipo === 'todos' || Object.hasOwn(TIPOS_EVENTO, p.evtipo ?? '') ? p.evtipo : '',
-    orden: ORDENES_ESCAPADAS.includes(p.orden) ? p.orden : 'puntuacion',
+    // «precio» (el publicado) ya no es un orden: los enlaces de antes van a «Viaje más barato».
+    orden: ORDENES_ESCAPADAS.includes(p.orden) ? p.orden : p.orden === 'precio' ? 'total' : 'puntuacion',
   };
 }
 
@@ -836,11 +844,17 @@ function mismoLugar(a, b) {
   return km != null && km <= KM_MISMO_LUGAR;
 }
 
+/** Planes de nieve: solo de diciembre a abril («Snake Gliss» en una escapada de octubre no tiene sentido). */
+const DE_NIEVE = /\b(?:esqu[ií]\w*|nieve|snow|trineo|raquetas|snake gliss|forfait|ski)\b/i;
+const esTemporadaDeNieve = (dia) => { const mes = Number(dia?.slice(5, 7)); return !mes || mes === 12 || mes <= 4; };
+
 /** Actividades en el mismo lugar que `oferta` («Qué hacer allí» de la ficha). */
-export function actividadesCerca(ofertas, oferta, { max = 3 } = {}) {
+export function actividadesCerca(ofertas, oferta, { max = 3, hoy = null } = {}) {
   if (!oferta || esActividad(oferta)) return [];
+  // La temporada de las fechas de la oferta; si son flexibles, la de hoy.
+  const nieve = esTemporadaDeNieve(oferta.fechas?.salida ?? hoy);
   return ofertas
-    .filter((o) => esActividad(o) && o.id !== oferta.id && !esDuplicada(o) && mismoLugar(o.lugar, oferta.lugar))
+    .filter((o) => esActividad(o) && o.id !== oferta.id && !esDuplicada(o) && mismoLugar(o.lugar, oferta.lugar) && (nieve || !DE_NIEVE.test(o.titulo)))
     .sort(porPuntuacion)
     .slice(0, max);
 }
