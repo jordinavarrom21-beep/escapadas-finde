@@ -115,7 +115,7 @@ describe('cada publicación pide sus propios módulos («?v=<versión>»)', () =
     const dir = mkdtempSync(path.join(tmpdir(), 'version-'));
     cpSync(new URL('.', SITE), dir, { recursive: true, filter: (origen) => !origen.includes(`${path.sep}data${path.sep}`) && !origen.endsWith(`${path.sep}data`) });
     mkdirSync(path.join(dir, 'escapadas', 'spa'), { recursive: true });
-    writeFileSync(path.join(dir, 'escapadas', 'spa', 'index.html'), '<link rel="stylesheet" href="../../css/estilos.css">\n<script src="../../js/anuncios.js" defer></script>');
+    writeFileSync(path.join(dir, 'escapadas', 'spa', 'index.html'), '<link rel="stylesheet" href="../../css/estilos.css">\n<script src="../../js/consentimiento.js" defer></script>');
     prepararWeb({ dir, version: 'abc123' });
     const indice = readFileSync(path.join(dir, 'index.html'), 'utf8');
     // Todos los módulos, los estilos y los scripts clásicos; ninguno sin versión.
@@ -124,7 +124,7 @@ describe('cada publicación pide sus propios módulos («?v=<versión>»)', () =
     assert.match(indice, /<script src="js\/tema\.js\?v=abc123"><\/script>/);
     assert.match(indice, /href="css\/estilos\.css\?v=abc123"/);
     assert.doesNotMatch(indice, /(src|href)="js\/[\w-]+\.js"/);
-    assert.equal(readFileSync(path.join(dir, 'escapadas', 'spa', 'index.html'), 'utf8'), '<link rel="stylesheet" href="../../css/estilos.css?v=abc123">\n<script src="../../js/anuncios.js?v=abc123" defer></script>');
+    assert.equal(readFileSync(path.join(dir, 'escapadas', 'spa', 'index.html'), 'utf8'), '<link rel="stylesheet" href="../../css/estilos.css?v=abc123">\n<script src="../../js/consentimiento.js?v=abc123" defer></script>');
     const app = readFileSync(path.join(dir, 'js', 'app.js'), 'utf8');
     assert.match(app, /from '\.\/filtros\.js\?v=abc123';/);
     assert.doesNotMatch(app, /from '\.\/[\w-]+\.js';/);

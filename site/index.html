@@ -62,8 +62,8 @@
   <link rel="modulepreload" href="js/selector-fechas.js">
   <script type="module" src="js/app.js"></script>
   <!-- Aviso de cookies, Google Analytics, Google Ads y Travelpayouts Drive: solo si el despliegue
-       pone la etiqueta «escapadas-google-analytics», «escapadas-google-ads» o «escapadas-drive» (anuncios.js). -->
-  <script src="js/anuncios.js" defer></script>
+       pone la etiqueta «escapadas-google-analytics», «escapadas-google-ads» o «escapadas-drive» (consentimiento.js). -->
+  <script src="js/consentimiento.js" defer></script>
   <!-- datos-estructurados: el despliegue (scripts/preparar-web.js) pone aquí el JSON-LD de la web. -->
   <!-- /datos-estructurados -->
 </head>
@@ -108,6 +108,18 @@
          ejecuta el panel (buscadores, vistas previas), qué es la web, lo mejor de ahora y las guías. -->
     <!-- /portada-estatica -->
     <p class="cargando" role="status">Cargando ofertas…</p>
+    <noscript>
+      <section class="sin-js" aria-labelledby="sin-js-titulo">
+        <h2 id="sin-js-titulo">El panel necesita JavaScript</h2>
+        <p>Para filtrar, ver el mapa y guardar ofertas hay que activarlo. Mientras, tienes las guías, que se leen sin él:</p>
+        <ul>
+          <li><a href="escapadas/">Todas las escapadas</a></li>
+          <li><a href="escapadas/menos-de-100-euros/">Escapadas por menos de 100 €</a></li>
+          <li><a href="vuelos/">Vuelos baratos</a></li>
+          <li><a href="actividades/gratis/">Actividades gratis</a></li>
+        </ul>
+      </section>
+    </noscript>
   </main>
 
   <footer class="pie contenedor">

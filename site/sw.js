@@ -27,7 +27,7 @@ const INTERFAZ = [
   'icono-maskable-512.png',
   'apple-touch-icon.png',
   'manifest.webmanifest',
-  'js/anuncios.js',
+  'js/consentimiento.js',
   'js/app.js',
   'js/cdn.js',
   'js/coste.js',

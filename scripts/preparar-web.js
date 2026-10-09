@@ -8,7 +8,7 @@
  *    compartir, la URL canónica y el enlace de inicio de la página 404;
  *  - con los datos en data/: la portada para buscadores en index.html (qué es la web, lo
  *    mejor de ahora y las guías) y, con la dirección, sus datos estructurados (JSON-LD);
- *  - con «googleAds» en config/ajustes.json: el aviso de cookies y Google Ads (anuncios.js);
+ *  - con «googleAds» en config/ajustes.json: el aviso de cookies y Google Ads (consentimiento.js);
  *  - con «travelpayoutsDrive»: Travelpayouts Drive en el mismo aviso (solo con permiso), en
  *    index.html y en las guías para buscadores;
  *  - con «googleAnalytics»: Google Analytics 4 en el mismo aviso (solo con permiso), también
@@ -145,7 +145,7 @@ export function ponerDatosRemotos(html, datos) {
 }
 
 /**
- * Lo que necesita Google Ads (ver site/js/anuncios.js) en la CSP: su script, sus llamadas
+ * Lo que necesita Google Ads (ver site/js/consentimiento.js) en la CSP: su script, sus llamadas
  * y el iframe de las conversiones. Lista de Google: developers.google.com/tag-platform/security/guides/csp
  * Google usa también el dominio de cada país (google.<país>): van los de quien nos visita.
  * Estos orígenes son solo de Google Ads: sin ID se quitan todos.
@@ -184,7 +184,7 @@ function ajustarCsp(html, fuentesPorDirectiva, activo, { vaciables = [] } = {}) 
 }
 
 /**
- * Google Ads con aviso de cookies: la etiqueta que lee anuncios.js y la CSP abierta a Google.
+ * Google Ads con aviso de cookies: la etiqueta que lee consentimiento.js y la CSP abierta a Google.
  * Sin `googleAds` válido, quita lo que hubiera (la web vuelve a «sin cookies»). Se puede repetir.
  */
 export function ponerGoogleAds(html, googleAds) {
@@ -213,7 +213,7 @@ export function cspDrive(url) {
 }
 
 /**
- * Travelpayouts Drive en index.html: la etiqueta que lee anuncios.js (lo carga solo si el
+ * Travelpayouts Drive en index.html: la etiqueta que lee consentimiento.js (lo carga solo si el
  * visitante acepta las cookies) y la CSP abierta a Drive. Sin `drive` válido, quita lo que
  * hubiera. Se puede repetir sin duplicar nada.
  */
@@ -229,7 +229,7 @@ export function ponerDrive(html, drive) {
 
 /**
  * Drive en una guía para buscadores (src/paginas.js, sin JavaScript de serie): la CSP deja
- * cargar anuncios.js (el aviso de cookies) y Drive, la etiqueta, el script y «Cookies» en el
+ * cargar consentimiento.js (el aviso de cookies) y Drive, la etiqueta, el script y «Cookies» en el
  * pie para cambiar de opinión. Las guías se generan de nuevo en cada escaneo; aquí solo se
  * añade (y se puede repetir sin duplicar nada).
  */
@@ -252,14 +252,14 @@ const PIE_GUIA = /(<footer class="pie[^>]*>[^]*?)(<\/p>\s*<\/footer>)/;
 
 /**
  * Lo que comparten Drive y Google Analytics en una guía: la CSP deja cargar scripts propios,
- * anuncios.js (el aviso de cookies) y «Cookies» en el pie para cambiar de opinión. Una sola
+ * consentimiento.js (el aviso de cookies) y «Cookies» en el pie para cambiar de opinión. Una sola
  * vez aunque estén los dos.
  */
 function conAvisoCookies(html, raiz) {
-  if (html.includes('js/anuncios.js')) return html;
+  if (html.includes('js/consentimiento.js')) return html;
   return html
     .replace(/(<meta http-equiv="Content-Security-Policy" content="[^"]*?)script-src 'none'/, "$1script-src 'self'")
-    .replace('</head>', `<script src="${raiz}js/anuncios.js" defer></script>\n</head>`)
+    .replace('</head>', `<script src="${raiz}js/consentimiento.js" defer></script>\n</head>`)
     .replace(PIE_GUIA, (todo, antes, cierre) => `${antes} · <a href="#" data-abrir-cookies>Cookies</a>.${cierre}`);
 }
 
@@ -276,7 +276,7 @@ const CSP_GOOGLE_ANALYTICS = {
 };
 
 /**
- * Google Analytics 4 en index.html: la etiqueta que lee anuncios.js (lo carga solo si el
+ * Google Analytics 4 en index.html: la etiqueta que lee consentimiento.js (lo carga solo si el
  * visitante acepta la medición) y la CSP abierta a Analytics. Sin ID válido, quita lo que
  * hubiera. Se puede repetir sin duplicar nada.
  */

@@ -5,7 +5,7 @@
  * script convierte en enlaces de afiliado los enlaces a las marcas de su red.
  *
  * Solo con permiso: Drive deja una cookie de sesión propia (am_user_session) y lee las de
- * analítica, así que va en el mismo aviso de cookies que Google Ads (site/js/anuncios.js) y
+ * analítica, así que va en el mismo aviso de cookies que Google Ads (site/js/consentimiento.js) y
  * no se carga hasta que el visitante pulsa «Aceptar». Vacío o sin poner: no se carga nada.
  */
 const SCRIPT = /^https:\/\/[a-z0-9.-]+\.[a-z]{2,}\/[\w./-]+\.js(\?[\w=&%-]*)?$/i;

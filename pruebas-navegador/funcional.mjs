@@ -512,6 +512,30 @@ ok((await s.locator('.portada').count()) === 1, 'sin conexión: la portada se ab
 ok(await s.evaluate(() => document.fonts.check('800 20px "Bricolage Grotesque"')), 'sin conexión: las tipografías siguen cargadas');
 await cs.close();
 
+// ── Plan de corrección (tarea 41): fotos con texto alternativo, apartamento ≠ hotel, sin JavaScript ──
+const cp = await contexto();
+const pp = await pagina(cp);
+await ir(pp, 'escapadas');
+const altFotos = await pp.locator('#resultados img.tarjeta__imagen').evaluateAll((imgs) => imgs.map((i) => i.alt));
+ok(!altFotos.length || altFotos.every((alt) => alt.trim().length > 3), `fotos: cada una dice de qué es («${altFotos[0] ?? 'sin fotos'}»)`);
+ok((await pp.locator('.marca img').getAttribute('alt')) === '', 'logo: alt vacío (el nombre ya va escrito al lado)');
+const apartamento = await pp.evaluate(async () => (await (await fetch('data/ofertas.json')).json()).ofertas.find((o) => o.alojamiento === 'apartamento')?.id ?? null);
+if (apartamento) {
+  await pp.goto(`${BASE}#/oferta/${encodeURIComponent(apartamento)}`);
+  await pp.waitForSelector('#ficha[open]');
+  const textoFicha = await pp.locator('#ficha .ficha__contenido').textContent();
+  ok(/Apartamento/.test(textoFicha) && !/Hotel \d★/.test(textoFicha), 'un apartamento sale como apartamento, no como hotel');
+}
+await cp.close();
+const sinJs = await contexto({ javaScriptEnabled: false });
+const nj = await sinJs.newPage();
+await nj.goto(`${BASE}`);
+ok(await nj.locator('.sin-js').isVisible(), 'sin JavaScript: lo dice y ofrece las guías');
+ok((await nj.locator('.sin-js a[href="escapadas/"]').count()) === 1 && (await nj.locator('.sin-js a[href="vuelos/"]').count()) === 1, 'sin JavaScript: enlaces a las guías principales');
+ok(!(await nj.locator('.cargando').isVisible()), 'sin JavaScript: no se queda en «Cargando ofertas…»');
+await sinJs.close();
+ok(!errores.some((e) => /Content Security Policy|Refused to (load|apply|execute|connect)/.test(e)), 'CSP: ningún error en la consola en todo el recorrido');
+
 await cerrar();
 console.log(`${hechos.length} comprobaciones bien, ${fallos.length} mal`);
 if (fallos.length) console.log(`FALLOS:\n- ${fallos.join('\n- ')}`);

@@ -249,7 +249,7 @@ export function reglaChollazo(u) {
 }
 
 /**
- * Las cookies, según lo que haya configurado (ver site/js/anuncios.js): sin Google Analytics,
+ * Las cookies, según lo que haya configurado (ver site/js/consentimiento.js): sin Google Analytics,
  * Google Ads ni Drive, ninguna; con ellos, qué hace cada uno, que solo van si se aceptan (cada
  * uno por separado) y cómo cambiarlo.
  */

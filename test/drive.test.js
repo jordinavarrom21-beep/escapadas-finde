@@ -1,6 +1,6 @@
 /**
  * Travelpayouts Drive, solo con permiso: sin «travelpayoutsDrive» en config/ajustes.json la web
- * queda como siempre; con él, la etiqueta que lee anuncios.js (lo carga al aceptar las
+ * queda como siempre; con él, la etiqueta que lee consentimiento.js (lo carga al aceptar las
  * cookies), la CSP abierta solo a Drive, las guías para buscadores con el mismo aviso y la
  * privacidad que lo explica.
  */
@@ -19,7 +19,7 @@ import { vistaAyuda } from '../site/js/vistas.js';
 import { estadoPanel } from './ayudas-panel.js';
 
 const INDICE = readFileSync(new URL('../site/index.html', import.meta.url), 'utf8');
-const ANUNCIOS = readFileSync(new URL('../site/js/anuncios.js', import.meta.url), 'utf8');
+const CONSENTIMIENTO = readFileSync(new URL('../site/js/consentimiento.js', import.meta.url), 'utf8');
 const DRIVE = 'https://emrldco.com/NTgyMTQz.js?t=582143';
 const ADS = { id: 'AW-123456789', conversion: 'AW-123456789/AbC-d_1' };
 const csp = (html) => Object.fromEntries(html.match(/http-equiv="Content-Security-Policy" content="([^"]*)"/)[1].split('; ').map((d) => [d.split(' ')[0], d.split(' ').slice(1)]));
@@ -72,7 +72,7 @@ describe('Travelpayouts Drive en la portada (index.html)', () => {
   it('con ella: la etiqueta y la CSP abierta a Drive (su script y sus llamadas), lo demás igual', () => {
     const html = ponerDrive(INDICE, DRIVE);
     assert.match(html, /<meta name="escapadas-drive" content="https:\/\/emrldco\.com\/NTgyMTQz\.js\?t=582143">/);
-    // La dirección va en la etiqueta, no como <script>: lo carga anuncios.js al aceptar.
+    // La dirección va en la etiqueta, no como <script>: lo carga consentimiento.js al aceptar.
     assert.doesNotMatch(html, /<script[^>]*emrldco/);
     const directivas = csp(html);
     assert.ok(directivas['script-src'].includes('https://emrldco.com'));
@@ -106,11 +106,11 @@ describe('Travelpayouts Drive en la portada (index.html)', () => {
 });
 
 describe('Travelpayouts Drive en las guías para buscadores', () => {
-  it('la guía carga el aviso de cookies (anuncios.js) con la ruta buena y la CSP lo deja', () => {
+  it('la guía carga el aviso de cookies (consentimiento.js) con la ruta buena y la CSP lo deja', () => {
     const { ruta, contenido } = unaGuia();
     const html = ponerDriveGuia(contenido, DRIVE);
     const raiz = '../'.repeat(ruta.split('/').length - 1);
-    assert.ok(html.includes(`<script src="${raiz}js/anuncios.js" defer></script>\n</head>`));
+    assert.ok(html.includes(`<script src="${raiz}js/consentimiento.js" defer></script>\n</head>`));
     assert.match(html, /<meta name="escapadas-drive" content="https:\/\/emrldco\.com\//);
     const directivas = csp(html);
     assert.deepEqual(directivas['script-src'], ["'self'", 'https://emrldco.com']);
@@ -142,7 +142,7 @@ describe('Travelpayouts Drive en las guías para buscadores', () => {
       assert.equal(readFileSync(path.join(dir, ruta), 'utf8'), contenido);
       assert.ok(prepararWeb({ dir, drive: DRIVE }).includes('Travelpayouts Drive con permiso (portada y 1 guías)'));
       assert.match(readFileSync(path.join(dir, 'index.html'), 'utf8'), /escapadas-drive/);
-      assert.match(readFileSync(path.join(dir, ruta), 'utf8'), /js\/anuncios\.js/);
+      assert.match(readFileSync(path.join(dir, ruta), 'utf8'), /js\/consentimiento\.js/);
       prepararWeb({ dir });
       assert.equal(readFileSync(path.join(dir, 'index.html'), 'utf8'), INDICE);
     } finally {
@@ -151,31 +151,31 @@ describe('Travelpayouts Drive en las guías para buscadores', () => {
   });
 });
 
-describe('aviso de cookies con Drive (anuncios.js)', () => {
+describe('aviso de cookies con Drive (consentimiento.js)', () => {
   it('Drive solo se carga dentro de activar(), con la dirección de la etiqueta', () => {
-    const activar = ANUNCIOS.slice(ANUNCIOS.indexOf('function activar('), ANUNCIOS.indexOf('function retirar('));
+    const activar = CONSENTIMIENTO.slice(CONSENTIMIENTO.indexOf('function activar('), CONSENTIMIENTO.indexOf('function retirar('));
     assert.match(activar, /if \(drive && acepta\.includes\('drive'\) && !activo\.has\('drive'\)\) \{/);
     assert.match(activar, /script\.src = drive;/);
-    assert.equal(ANUNCIOS.match(/script\.src = drive;/g).length, 1);
-    assert.doesNotMatch(ANUNCIOS, /emrldco/, 'la dirección sale de la etiqueta, no del código');
-    assert.match(ANUNCIOS, /if \(!id && !drive && !analitica\) return;/);
+    assert.equal(CONSENTIMIENTO.match(/script\.src = drive;/g).length, 1);
+    assert.doesNotMatch(CONSENTIMIENTO, /emrldco/, 'la dirección sale de la etiqueta, no del código');
+    assert.match(CONSENTIMIENTO, /if \(!id && !drive && !analitica\) return;/);
   });
 
   it('rechazar borra lo de Drive, y quien solo aceptó Google Ads vuelve a ver el aviso', () => {
-    const retirar = ANUNCIOS.slice(ANUNCIOS.indexOf('function retirar('), ANUNCIOS.indexOf('function colocar('));
+    const retirar = CONSENTIMIENTO.slice(CONSENTIMIENTO.indexOf('function retirar('), CONSENTIMIENTO.indexOf('function colocar('));
     assert.match(retirar, /fuera\.includes\('drive'\) && 'am_user_session\$'/);
     assert.match(retirar, /emerald_\|mn:/);
     assert.match(retirar, /if \(fuera\.some\(\(clave\) => activo\.has\(clave\)\)\) location\.reload\(\);/);
-    assert.match(ANUNCIOS, /const preguntado = guardada\.para \?\? \['google-ads'\];/);
-    assert.match(ANUNCIOS, /if \(acepta\.length && !ALCANCE\.every\(\(a\) => preguntado\.includes\(a\)\)\) return eleccionVisita;/);
-    assert.match(ANUNCIOS, /JSON\.stringify\(\{ decision, para: ALCANCE, acepta,/);
+    assert.match(CONSENTIMIENTO, /const preguntado = guardada\.para \?\? \['google-ads'\];/);
+    assert.match(CONSENTIMIENTO, /if \(acepta\.length && !ALCANCE\.every\(\(a\) => preguntado\.includes\(a\)\)\) return eleccionVisita;/);
+    assert.match(CONSENTIMIENTO, /JSON\.stringify\(\{ decision, para: ALCANCE, acepta,/);
   });
 
   it('el aviso pregunta por lo que hay: medición, Google Ads, afiliación o varias', () => {
-    assert.match(ANUNCIOS, /¿Aceptas cookies de \$\{enumerar\(FINALIDADES\.map\(\(f\) => f\.corto\)\)\}\?/);
-    for (const corto of ['medición', 'Google Ads', 'afiliación']) assert.ok(ANUNCIOS.includes(`corto: '${corto}'`), corto);
+    assert.match(CONSENTIMIENTO, /¿Aceptas cookies de \$\{enumerar\(FINALIDADES\.map\(\(f\) => f\.corto\)\)\}\?/);
+    for (const corto of ['medición', 'Google Ads', 'afiliación']) assert.ok(CONSENTIMIENTO.includes(`corto: '${corto}'`), corto);
     // «Más información» lleva a la privacidad también desde las guías.
-    assert.match(ANUNCIOS, /href="\$\{raiz\}#\/ayuda\?seccion=privacidad"/);
+    assert.match(CONSENTIMIENTO, /href="\$\{raiz\}#\/ayuda\?seccion=privacidad"/);
   });
 
   it('la privacidad lo explica y deja cambiar de opinión', () => {
