@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 
 import { Cache } from '../src/cache.js';
 import {
-  ACTORES, ErrorPresupuesto, anotarConsultas, consultasDeHoy, costeEstimado, ejecutarActor, gastoDelMes, urlEjecucion,
+  ACTORES, ErrorPresupuesto, anotarConsultas, consultasDeHoy, costeEstimado, ejecutarActor, gastoDelMes, motivoApify, topeEnCentimos, urlEjecucion,
 } from '../src/util/apify.js';
 import { ErrorHttp } from '../src/util/http.js';
 import { AHORA, AJUSTES } from './ayudas.js';
@@ -76,6 +76,36 @@ describe('apify: ejecutar un actor sin pasarse del presupuesto', () => {
     await assert.rejects(ejecutarActor(rechazado.ctx, 'googleMaps', {}, { maxUsd: 0.01 }), /revisa el secreto APIFY_TOKEN/);
     const sinSaldo = ctxApify({ respuesta: new ErrorHttp(402, urlEjecucion('googleMaps')) });
     await assert.rejects(ejecutarActor(sinSaldo.ctx, 'googleMaps', {}, { maxUsd: 0.01 }), ErrorPresupuesto);
+  });
+
+  it('el tope va en céntimos, redondeado hacia arriba (no 0.026049999999999997)', () => {
+    assert.equal(topeEnCentimos(0.026049999999999997), 0.03);
+    assert.equal(topeEnCentimos(costeEstimado('googleMaps', 5) + 0.01), 0.04);
+    assert.equal(topeEnCentimos(0.01), 0.01);
+    assert.equal(topeEnCentimos(0.05), 0.05);
+    assert.equal(topeEnCentimos(0.001), 0.01, 'como mínimo un céntimo');
+    for (const n of [1, 2, 3, 4, 5]) {
+      const tope = new URL(urlEjecucion('googleMaps', costeEstimado('googleMaps', n) + 0.01)).searchParams.get('maxTotalChargeUsd');
+      assert.match(tope, /^0\.\d{2}$/, `${n} búsquedas: ${tope}`);
+    }
+  });
+
+  it('el presupuesto cuenta el tope que se manda, no el pedido', async () => {
+    const { ctx, peticiones } = ctxApify({ respuesta: new ErrorHttp(500, urlEjecucion('googleMaps')) });
+    await assert.rejects(ejecutarActor(ctx, 'googleMaps', {}, { maxUsd: 0.03005 }), ErrorHttp);
+    assert.equal(new URL(peticiones[0].url).searchParams.get('maxTotalChargeUsd'), '0.04');
+    assert.equal(gastoDelMes(ctx.cache, AHORA).usd, 0.04);
+  });
+
+  it('si Apify rechaza la petición, el registro dice su motivo', async () => {
+    const rechazo = new ErrorHttp(400, urlEjecucion('googleMaps'));
+    rechazo.cuerpo = '{"error":{"type":"invalid-input","message":"Input is not valid: Field input.language must be equal to one of the allowed values"}}';
+    const { ctx } = ctxApify({ respuesta: rechazo });
+    const error = await ejecutarActor(ctx, 'googleMaps', {}, { maxUsd: 0.02 }).catch((e) => e);
+    assert.ok(error instanceof ErrorHttp);
+    assert.match(error.message, /^HTTP 400 en api\.apify\.com \(invalid-input: Input is not valid: Field input\.language/);
+    assert.equal(motivoApify(''), '');
+    assert.equal(motivoApify('<html>Bad request</html>'), '');
   });
 
   it('una respuesta que no es una lista es un error', async () => {
