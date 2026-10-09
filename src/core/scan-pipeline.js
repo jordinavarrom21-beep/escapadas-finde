@@ -32,6 +32,8 @@ import { anadirEventos } from '../enriquecer/eventos.js';
 import { comprobarVigencia } from '../enriquecer/vigencia.js';
 import { anadirFotos, quitarFotoSinPermiso } from '../enriquecer/fotos.js';
 import { anadirResumenes } from '../enriquecer/resumenes.js';
+import { anadirNotasGoogle } from '../enriquecer/google-maps.js';
+import { anadirPreciosGoogle } from '../enriquecer/google-hoteles.js';
 import { anotarConocidaDesde, precioPorPersonaNoche, puntuar } from '../enriquecer/puntuacion.js';
 import { claveSerie, compactar, registrarPrecios, seriesPara } from '../historial.js';
 import { coincide, contextoVigilados } from '../vigilados.js';
@@ -39,6 +41,7 @@ import { procesarEmails } from '../emails/decidir.js';
 import { configuracionEnvio, crearTransporte, enviarEmail } from '../emails/enviar.js';
 import { clienteHttp, crearClienteHttp, metricasHttp, reiniciarMetricas } from '../util/http.js';
 import { ErrorRobots, comprobarRobots } from '../util/robots.js';
+import { ErrorPresupuesto } from '../util/apify.js';
 import { fechaLocal, findesProximos, sumarDias } from '../util/fechas.js';
 import { ejecutarFuentes } from './source-runner.js';
 
@@ -64,6 +67,7 @@ export const MODULOS = {
   obtenerFestivos, calcularPuentes, asignarFechas, clasificarVueloSinFecha, aplicarClasificacion, aplicarAlojamiento, aplicarZona,
   geolocalizar, calcularCoche, calcularCosteCoche, calcularReferencia, marcarEquivalentes,
   revisarPrecios, anadirTiempo, anadirEventos, comprobarVigencia, anadirFotos, anadirResumenes, enlacesPara, registrarPrecios, compactar, seriesPara, puntuar,
+  anadirNotasGoogle, anadirPreciosGoogle,
   procesarEmails, crearTransporte, enviarEmail,
 };
 
@@ -225,6 +229,12 @@ async function ejecutarFuente(fuente, { estado, ajustes, env, ahora, opciones, c
       referencia: revision.referencia,
     };
   } catch (error) {
+    // Las fuentes de pago (Apify) sin presupuesto este mes: pausadas a propósito, no caídas
+    // (no avisan por email y conservan sus ofertas).
+    if (error instanceof ErrorPresupuesto) {
+      estado.fuentes[fuente.id] = { ...previo, estado: 'desactivada', motivo: error.message, error: null, desdeError: null, falta: [], ultimoIntento: iso, nuevas: 0 };
+      return;
+    }
     const bloqueada = error instanceof ErrorRobots;
     estado.fuentes[fuente.id] = {
       ...previo,
@@ -393,6 +403,9 @@ export async function escanear({
       oferta.titulo = limpio;
     }
   }
+  // La nota de Google Maps (con APIFY_TOKEN) antes de geolocalizar: si la web no da coordenadas,
+  // las del alojamiento en Google son más exactas que las del pueblo.
+  await m.anadirNotasGoogle(ofertas, crearCtx('googlemaps'));
   await m.geolocalizar(ofertas, crearCtx('geo'));
   await m.calcularCoche(ofertas, crearCtx('coche'));
   const precioLitro = await m.calcularCosteCoche(ofertas, crearCtx('coche'));
@@ -415,6 +428,9 @@ export async function escanear({
   anotarConocidaDesde(ofertas, historial, claveSerie);
   m.puntuar(ofertas, ajustes, { ahora, findeActual: findes[0]?.id ?? null });
   ofertas.sort((a, b) => b.puntuacion - a.puntuacion);
+  // Precios de Google Hoteles (con APIFY_TOKEN): después de puntuar, para consultar antes los
+  // hoteles mejor puntuados. Solo informan en la ficha: no cambian la nota ni el orden.
+  await m.anadirPreciosGoogle(ofertas, crearCtx('googlehoteles'));
 
   const estadoFuentes = estadoParaPanel(fuentes, estado, ajustes);
   const panelUrl = urlPanel(ajustes, env);

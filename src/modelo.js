@@ -141,6 +141,7 @@ export function completarOferta(datos) {
     precioNoche: null,
     referencia: null,
     equivalentes: [],
+    preciosGoogle: null,
     costeCoche: null,
     tiempo: null,
     eventos: [],

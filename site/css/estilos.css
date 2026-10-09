@@ -1229,6 +1229,9 @@ html:not(.js) .cargando { display: none; }
 .comparador__nota { font-size: 0.78rem; }
 .comparador__buscar { font-size: 0.88rem; font-weight: 650; }
 .comparador__enlaces { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+/* Precios de Google Hoteles (enriquecer/google-hoteles.js): una lista corta, web y precio. */
+.comparador__google { font-size: 0.88rem; }
+.comparador__google-lista { list-style: none; padding: 0; margin: 4px 0; display: flex; flex-wrap: wrap; gap: 4px 14px; }
 .dato-extra--comparar strong { color: var(--texto); font-weight: 750; }
 
 /* ── Comparar ─────────────────────────────────────────────────────────────── */

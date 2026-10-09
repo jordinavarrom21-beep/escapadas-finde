@@ -25,6 +25,16 @@ describe('datos del panel en dos archivos', () => {
     assert.ok(conTodo.enlaces, 'no toca las ofertas originales (las páginas y los emails las usan enteras)');
   });
 
+  it('los precios de Google Hoteles solo los usa la ficha: van aparte, y sin ellos nada', () => {
+    const preciosGoogle = { fecha: '2026-10-16', adultos: 2, minimo: 63, proveedores: [{ nombre: 'Booking.com', precio: 76, oficial: false }] };
+    const conPrecios = oferta({ preciosGoogle });
+    const sinPrecios = oferta();
+    const { ofertas, detalles } = separarDatosPanel({ generado: '2026-10-01T10:00:00Z', ofertas: [conPrecios, sinPrecios] });
+    assert.ok(ofertas.ofertas.every((o) => !('preciosGoogle' in o)));
+    assert.deepEqual(detalles[conPrecios.id].preciosGoogle, preciosGoogle);
+    assert.ok(!detalles[sinPrecios.id]);
+  });
+
   it('de las webs de chollos, solo título, precio y enlace: ni su texto ni su «Top chollo»', () => {
     const deChollos = oferta({ fuente: 'buscounchollo', precio: 89, descripcion: 'Su texto entero', resumen: 'Hotel con desayuno', etiquetas: ['top-chollo', 'sale-de:Madrid'] });
     const directa = oferta({ fuente: 'atrapalo', descripcion: 'Jaén · Relax', resumen: 'Hotel con cena', etiquetas: ['top-chollo'] });

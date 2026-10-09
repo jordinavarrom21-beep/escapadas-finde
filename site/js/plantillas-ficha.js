@@ -80,19 +80,21 @@ function opinionesFicha(o, ctx) {
   const v = o.valoracion;
   // Sin opiniones en su web, sin sección (antes salía «X no publica opiniones de esta oferta»).
   if (o.tipo === 'vuelo' || !(v?.nota >= 0)) return '';
-  const web = ctx.fuentes?.get(o.fuente) ?? o.fuente;
+  // La nota puede ser de Google Maps (enriquecer/google-maps.js) si su web no publica opiniones.
+  const deGoogle = v?.fuente === 'google';
+  const web = deGoogle ? 'Google Maps' : ctx.fuentes?.get(o.fuente) ?? o.fuente;
   const sitio = o.establecimiento ?? (o.tipo === 'actividad' ? o.titulo : null);
   const lugar = o.lugar?.nombre ?? '';
   const buscar = sitio ? [
-    ['Leer opiniones en Google', `https://www.google.com/search?q=${encodeURIComponent(`${sitio} ${lugar} opiniones`.trim())}`],
+    !deGoogle && ['Leer opiniones en Google', `https://www.google.com/search?q=${encodeURIComponent(`${sitio} ${lugar} opiniones`.trim())}`],
     ['Buscar en Tripadvisor', `https://www.tripadvisor.es/Search?q=${encodeURIComponent(`${sitio} ${lugar}`.trim())}`],
-  ] : [];
-  const enlaces = [v?.nota >= 0 && [`Ver opiniones en ${web}`, urlSegura(o.url)], ...buscar].filter((e) => e && e[1])
+  ].filter(Boolean) : [];
+  const enlaces = [v?.nota >= 0 && [`Ver opiniones en ${web}`, urlSegura(deGoogle ? v.url : o.url)], ...buscar].filter((e) => e && e[1])
     .map(([texto, url]) => `<li><a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(texto)}${icono('externo')}</a></li>`).join('');
   const cuerpo = v?.nota >= 0
     ? `<div class="opiniones__nota"><strong>${nota(v.nota)}</strong><span class="suave">/10</span><span class="opiniones__adjetivo">${adjetivoNota(v.nota)}</span></div>
   <span class="opiniones__barra" role="img" aria-label="${esc(`${nota(v.nota)} sobre 10`)}"><span style="width:${Math.round(Math.min(10, v.nota) * 10)}%"></span></span>
-  <p>${v.n ? `${esc(contar(v.n, 'opinión', 'opiniones'))} de clientes en ${esc(web)}.` : `Según ${esc(web)}.`} ${esc(fiabilidadOpiniones(v.n).larga)}</p>`
+  <p>${v.n ? `${esc(contar(v.n, 'opinión', 'opiniones'))} de clientes en ${esc(web)}.` : `Según ${esc(web)}.`}${deGoogle ? ` <span class="suave">(${esc(nota(v.nota / 2))} de 5 estrellas; ${esc(ctx.fuentes?.get(o.fuente) ?? o.fuente)} no publica opiniones de esta oferta.)</span>` : ''} ${esc(fiabilidadOpiniones(v.n).larga)}</p>`
     : `<p>${esc(web)} no publica opiniones de esta oferta.${buscar.length ? ' Puedes leer lo que dicen otros viajeros aquí:' : ''}</p>`;
   return `<section class="ficha__opiniones" aria-labelledby="ficha-opiniones-titulo">
   <h3 id="ficha-opiniones-titulo">${icono('estrella')}Opiniones de otros clientes</h3>
@@ -176,7 +178,7 @@ function resumenFicha(o) {
   const minutos = duracionActividad(o);
   const datos = [
     textoAlojamiento(o) && ['cama', textoAlojamiento(o)],
-    v?.nota >= 0 && ['estrella', `${nota(v.nota)}/10 ${adjetivoNota(v.nota)}${v.n ? ` · ${contar(v.n, 'opinión', 'opiniones')}` : ''}`],
+    v?.nota >= 0 && ['estrella', `${nota(v.nota)}/10 ${adjetivoNota(v.nota)}${v.n ? ` · ${contar(v.n, 'opinión', 'opiniones')}` : ''}${v.fuente === 'google' ? ' en Google' : ''}`],
     o.noches && ['noches', contar(o.noches, 'noche')],
     minutos && ['reloj', duracion(minutos)],
     ETIQUETAS_REGIMEN[o.regimen] && ['cubiertos', ETIQUETAS_REGIMEN[o.regimen]],
@@ -245,13 +247,30 @@ function enlacesFicha(o, ctx = {}) {
  * «Comparar precios»: la misma oferta en otras webs (la más barata, la diferencia y lo que
  * ahorras en tu viaje) y enlaces para buscar este mismo alojamiento en Booking y Google.
  */
+/**
+ * Lo que cuesta una noche en el mismo hotel en otras webs según Google Hoteles (`preciosGoogle`,
+ * enriquecer/google-hoteles.js): una referencia, no lo mismo que la oferta, y la ficha lo dice.
+ */
+export function preciosGoogleFicha(o) {
+  const p = o.preciosGoogle;
+  if (!p?.proveedores?.length) return '';
+  const filas = p.proveedores.map((w) => `<li>${esc(w.oficial ? `${w.nombre} (web oficial)` : w.nombre)}: <strong>${euros(w.precio)}</strong></li>`).join('');
+  const quien = p.adultos ? ` para ${contar(p.adultos, 'adulto')}` : '';
+  return `<div class="comparador__google">
+    <p>${conIcono('info', `En <strong>Google Hoteles</strong>, una noche en este hotel el ${esc(etiquetaDia(p.fecha))}${esc(quien)} cuesta desde <strong>${euros(p.minimo)}</strong> la habitación:`)}</p>
+    <ul class="comparador__google-lista">${filas}</ul>
+    <p class="suave comparador__nota">Es una referencia: esta oferta puede ser para otras fechas o incluir más cosas (desayuno, spa, cena…), y el precio en esas webs puede haber cambiado.</p>
+  </div>`;
+}
+
 function comparadorFicha(o, ctx) {
   const c = comparativa(o, ctx);
   const buscar = (o.enlaces ?? [])
     .filter((e) => e.grupo === 'este-alojamiento')
     .map((e) => ({ ...e, url: urlSegura(enlaceConBusqueda(e.url, o, ctx)) }))
     .filter((e) => e.url);
-  if (!c && !buscar.length) return '';
+  const google = preciosGoogleFicha(o);
+  if (!c && !buscar.length && !google) return '';
   const enlace = (url, afiliado, texto, sr) => `<a class="boton boton--mini" href="${esc(url)}" target="_blank" rel="${relEnlace(Boolean(afiliado))}" data-clic="${esc(afiliado ?? 'enlace')}" data-clic-tipo="${afiliado ? 'afiliado' : 'normal'}" data-clic-oferta="${esc(o.tipo)}">${texto}${afiliado ? ' <span class="suave">(afiliado)</span>' : ''}${icono('externo')}<span class="sr">${sr} (se abre en otra pestaña)</span></a>`;
   let tabla = '';
   let resumen = '';
@@ -290,7 +309,7 @@ function comparadorFicha(o, ctx) {
       resumen = `<p class="comparador__ahorro">${conIcono('cartera', resumen)}</p>`;
     }
   }
-  const textoBuscar = c ? 'Búscalo también con tus fechas en:' : `Solo lo hemos visto en ${nombreWeb(o.fuente, ctx)}. Compara su precio en:`;
+  const textoBuscar = c || google ? 'Búscalo también con tus fechas en:' : `Solo lo hemos visto en ${nombreWeb(o.fuente, ctx)}. Compara su precio en:`;
   const busqueda = buscar.length
     ? `<p class="comparador__buscar">${textoBuscar}</p>
     <ul class="comparador__enlaces">${buscar.map((e) => `<li>${enlace(e.url, e.afiliado, esc(e.etiqueta), '')}</li>`).join('')}</ul>`
@@ -298,7 +317,7 @@ function comparadorFicha(o, ctx) {
   const aviso = c ? '<p class="suave comparador__nota">Precio publicado por cada web en su última revisión: puede ser para otras fechas o haber cambiado.</p>' : '';
   return `<section class="comparador" aria-labelledby="ficha-comparador-titulo">
   <h3 id="ficha-comparador-titulo">${icono('balanza')}Comparar precios</h3>
-  ${tabla}${resumen}${aviso}${busqueda}
+  ${tabla}${resumen}${aviso}${google}${busqueda}
 </section>`;
 }
 

@@ -31,6 +31,11 @@ necesita algo que no está aquí, no lo inventes en otro archivo: documéntalo c
   - `src/modelo.js`: `TEMAS`, `TIPOS`, `UNIDADES`, `REGIMENES`, `TRANSPORTES`, `crearOferta`, `validarOferta`
   - `src/cache.js`: clase `Cache` (`obtener(clave, maxEdadMs)`, `guardar(clave, valor)`, `podar`, `exportar`)
   - `src/util/robots.js`: `rutaPermitida(texto, ruta)`, `comprobarRobots(ctx, urls)` (caché `robots:<origen>` 1 día) y `ErrorRobots`
+  - `src/util/apify.js` (datos de pago a través de Apify, solo con `APIFY_TOKEN`): `ACTORES`, `urlEjecucion(clave, maxUsd)`,
+    `ejecutarActor(ctx, clave, entrada, {maxUsd})` (POST sin reintentos, token en la cabecera, nunca en la URL),
+    `gastoDelMes`, `consultasDeHoy`, `anotarConsultas`, `costeEstimado`, `presupuestoMensual` y `ErrorPresupuesto`
+    (no queda presupuesto: no es un fallo). Gasto del mes en la caché (`apify:gasto:AAAA-MM`) y cupo diario por
+    actor (`apify:dia:<actor>:AAAA-MM-DD`)
 
 ## Modelo «Oferta» (`src/modelo.js`)
 
@@ -66,7 +71,7 @@ un `try/catch`, registran el error con `ctx.log` y descartan solo esa oferta.
 | `notaDetalle` | `puntuacion.js` | De qué sale la nota: `partes` (puntos de precio, bajada, descuento, opiniones, novedad, señales, comodidad, fechas y favorito; solo las que suman), `comparacion` (`{grupo, parecidas, masCaras}`: con cuántas ofertas se compara el precio y cuántas son más caras) y `topeSinPrecio`; `{evitada: true}` si las preferencias la mandan al fondo |
 | `enlaces` | `enlaces.js` | `[{etiqueta, url}]`: reservar, comparar, hotel, ruta… |
 | `alojamiento` | fuente o `temas.js` | `hotel` \| `casa-rural` \| `camping` \| `apartamento` \| `parador` \| `balneario` \| `hostal` \| `null` |
-| `valoracion` | fuente | `{nota: 0–10, n: nº de opiniones}` o `null` |
+| `valoracion` | fuente (o `google-maps.js`) | `{nota: 0–10, n: nº de opiniones}` o `null`. Si la web no publica opiniones, puede ser la de Google Maps: `{nota, n, fuente: 'google', url}` (estrellas × 2; `url` a su ficha en Google Maps). La de la web siempre manda |
 | `establecimiento` | fuente | nombre propio del alojamiento («Can Salvà», «Parador de Cardona») solo si la web lo publica como dato aparte (no se saca de títulos de pack); `null` si no. Sirve para buscar ese mismo alojamiento en otras webs |
 | `ninos` | `ninos.js` | `null` si no es un plan para ir con niños; si lo es, `{ventaja, descuento, detalle}`: `ventaja` es `gratis`, `descuento` (con `descuento` en %), `reducido` (tarifa infantil sin %) o `null` (apta para niños sin precio especial); `detalle` es el texto para la ficha («1 niño gratis (de 2 a 16 años)»). Se deduce del título, la descripción, el precio publicado y las etiquetas; lo negado («no se admiten niños») y lo «solo adultos» no cuenta. Si no es `null`, la oferta lleva también el tema `familia` |
 | `estrellas` | fuente o `categoria.js` | categoría del alojamiento, 1–5, o `null`. Holidayguru la da como dato; en el resto se lee del texto («Hotel 4*», «(4*, 8,8/10…)», «SPA****», «hotel de 3 estrellas»), sin contar «reseñas de 5 estrellas» ni las negritas `**…**`. Con varias, la más baja. Una oferta con estrellas y sin `alojamiento` pasa a `hotel`. Si el texto dice «solo adultos» / «adults only», la oferta lleva la etiqueta `solo-adultos` |
@@ -74,6 +79,7 @@ un `try/catch`, registran el error con `ctx.log` y descartan solo esa oferta.
 | `precioNoche` | `puntuacion.js` | precio por persona y noche cuando se puede deducir (`precioPorPersonaNoche`) |
 | `referencia` | `referencia.js` | `{mediana, ahorroPct, grupo, descripcion, n}`: comparación con ofertas parecidas; `descripcion` dice el grupo en palabras («escapadas de relax y spa en Girona, por persona y noche»). Las actividades no tienen: no son comparables entre sí |
 | `urlReserva`, `afiliado`, `patrocinada` | `afiliacion.js` | la `url` con el identificador de afiliado de un proveedor activo y aprobado (o igual que `url`), qué proveedor (`null` si ninguno) y `{anunciante}` si alguien paga por ella. `url` se queda limpia. No cambian la puntuación ni el orden |
+| `preciosGoogle` | `google-hoteles.js` | `null` o `{fecha, adultos, minimo, proveedores: [{nombre, precio, oficial}]}`: una noche (el viernes `fecha`) en ese mismo hotel según Google Hoteles, de la más barata a la más cara (como mucho 6, más la web oficial). Solo para la ficha (`detalles.json`); no cambia la nota ni el orden. Sin enlaces: los de Google son de anuncios con seguimiento |
 | `equivalentes` | `duplicados.js` | el mismo alojamiento en otras webs, de la más barata a la más cara: `[{id, fuente, precio, unidad, precioNoche, url}]` |
 | `costeCoche` | `geo.js` | `{eur, litros}` del viaje de ida y vuelta desde `ajustes.origen`, solo si se va en coche (`transporte` `coche` o `null`): una oferta de tren, bus, avión o ferry no gasta gasolina (`vaEnCoche`) |
 | `tiempo` | `tiempo.js` | `{dia, maxC, minC, lluviaPct, codigo, texto}` del finde o puente asignado |
@@ -89,7 +95,9 @@ para la poda, pero el panel no la enseña como dato).
 El panel las enseña por separado («Fechas flexibles · ⏳ Promoción hasta el mié 30 sep»).
 
 Campo `vuelo` (solo en fuentes de vuelos con fechas concretas, como Ryanair; las
-ofertas de vuelos de blogs y comunidades usan `tipo: 'vuelo'` con `vuelo: null`):
+ofertas de vuelos de blogs y comunidades usan `tipo: 'vuelo'` con `vuelo: null`). Google Flights
+(con Apify) da el día y no la hora: `ida.salida`/`vuelta.salida` son `YYYY-MM-DD`, `ida` lleva además
+`escalas` y `duracionMin`, el vuelo lleva `aerolinea` y `horarioIdeal` es siempre `false`:
 
 ```js
 {
@@ -147,6 +155,8 @@ export default {
 - Si la fuente falla del todo, lanza un error con un mensaje claro en español.
 - Si `requiere` contiene variables que no están en `ctx.env`, el orquestador no la
   ejecuta y la marca como `desactivada`, indicando qué falta.
+- Si lanza `ErrorPresupuesto` (`src/util/apify.js`: sin presupuesto de Apify este mes), queda
+  `desactivada` con ese motivo, conserva sus ofertas y no cuenta como caída (no avisa por email).
 - Antes de ejecutarla (salvo las de `modo: 'buzon'`, que leen un correo propio por IMAP), el orquestador llama a `comprobarRobots(ctx, fuente.urls)`. Si alguna
   ruta está prohibida (`ErrorRobots`), la fuente queda `bloqueada` con el motivo y no se
   ejecuta. Las páginas extra con parámetros (paginación, filtros) también van en `urls`.
@@ -201,6 +211,17 @@ export default {
     web idénticas en todo lo que se ve (título, precio, unidad, noches, lugar, régimen,
     descripción, fechas y etiquetas) son la misma publicada dos veces: la de id menor se queda y
     la otra lleva «duplicada» sin `equivalentes`.
+- `google-maps.js` (con `APIFY_TOKEN`; `ajustes.apify.googleMaps`)
+  - `anadirNotasGoogle(ofertas, ctx)`: a las ofertas con `establecimiento` y `lugar.nombre` sin `valoracion`
+    de su web, la nota de Google Maps guardada (`gmaps:<nombre>|<lugar>`, 90 días, también los «sin nota»)
+    y, si la oferta no trae coordenadas, las del sitio. Las pendientes, como mucho `maxPorEscaneo` por
+    escaneo y `maxPorDia` al día, en una sola ejecución. Solo acepta el sitio si `mismoNombre` y
+    `coincideLugar` (≤ 25 km o la localidad o provincia en su dirección). Va antes de `geolocalizar`.
+- `google-hoteles.js` (con `APIFY_TOKEN`; `ajustes.apify.googleHoteles`)
+  - `anadirPreciosGoogle(ofertas, ctx)`: `preciosGoogle` de hoteles, paradores, balnearios, hostales y
+    apartamentos con `establecimiento`, para la noche de `nocheDeReferencia` (`ghoteles:<nombre>|<lugar>`,
+    `diasValidez` días y mientras no pase ese viernes). Como mucho `maxPorDia` al día, las de mejor
+    `puntuacion` primero (va después de `puntuar`). Sin web oficial con el mismo nombre, nada.
 - `tiempo.js` / `eventos.js`
   - `anadirTiempo(ofertas, ctx)`: previsión de Open-Meteo para el finde o puente.
   - `anadirEventos(ofertas, ctx)`: agenda cultural de Cataluña (Socrata) cerca del destino.
@@ -299,9 +320,9 @@ Otros archivos de `data/`: `cache.json` (Cache), `historial.json`.
 4. `fusionar` los resultados → `podar`.
 5. Enriquecer todas las ofertas, en este orden (cada paso usa lo del anterior):
    `completarOferta` → `clasificarVueloSinFecha` → `aplicarClasificacion` → `aplicarAlojamiento` → `aplicarZona` → `precioNoche` →
-   `asignarFechas` → `geolocalizar` → `calcularCoche` → `calcularCosteCoche` →
+   `asignarFechas` → `anadirNotasGoogle` → `geolocalizar` → `calcularCoche` → `calcularCosteCoche` →
    `revisarPrecios` → `calcularReferencia` → `marcarEquivalentes` → `anadirTiempo` →
-   `anadirEventos` → `enlacesPara` → `registrarPrecios` → `compactar` → `puntuar`.
+   `anadirEventos` → `enlacesPara` → `registrarPrecios` → `compactar` → `puntuar` → `anadirPreciosGoogle`.
    El guardián de precios va antes de la referencia para que un precio imposible no
    hunda la mediana ni pase por chollazo.
 6. `procesarEmails` (salvo con `--sin-emails`), dentro de `escanear()` y antes de escribir nada.

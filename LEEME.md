@@ -14,8 +14,10 @@ GitHub Actions: «Revisión continua» lanza un escaneo cada 15 min (ver «Revis
   └─ npm run escanear
        ├─ fuentes      Buscounchollo, Viajeros Piratas, Holidayguru, Nomolesten,
        │               Chollometro, Fly4free, canales de Telegram… (comprobando antes su robots.txt)
+       │               + Google Flights a través de Apify (opcional, de pago, una vez al día)
        ├─ enriquecer   temáticas · festivos y puentes · geolocalización · tiempo en coche
        │               · enlaces a Booking/Trivago/Google Flights… · puntuación de chollo
+       │               · notas de Google Maps y precios de Google Hoteles (opcional, Apify)
        ├─ historial    evolución de precios (mínimo diario)
        └─ emails       resumen del viernes · chollazos · bajadas en tus vigilados
   ├─ guarda data/ en la rama «datos» (así el historial de main no crece)
@@ -36,6 +38,8 @@ El menú tiene cuatro apartados (abajo en el móvil y la tableta, al alcance del
   más parecido avisándolo («barclona», «girnoa»). Mientras no haya una
   fuente de vuelos con día y hora, «Vuelos» es **Chollos de vuelos** (blogs y comunidades, con
   fechas flexibles) y no enseña filtros de finde, aeropuerto ni horario que no se aplicarían.
+  Los vuelos de Google Flights (con Apify) traen el día pero no la hora: el billete dice el día,
+  la duración y las escalas, y la hora se ve al abrir la búsqueda en Google Flights.
   Las fechas se eligen en un solo sitio, la barra **«¿Cuándo?»** de cada pestaña (y de Buscar):
   **Fecha de entrada** y **Fecha de salida** abren un calendario en la misma página (un toque
   para la entrada y otro para la salida, también con el teclado) y hay atajos para este finde,
@@ -444,6 +448,39 @@ del navegador con los datos publicados. Si algo falla, no se fusiona.
   «Fuentes con problemas» con las webs que llevan más de un día fallando y qué hacer; lo cierra
   solo cuando todas vuelven a ir bien.
 
+## Datos de Google con Apify (opcional, de pago)
+
+Google no deja leer sus resultados (su robots.txt prohíbe, por ejemplo, la búsqueda de Google
+Flights), así que esta web no los lee: los lee **[Apify](https://apify.com)**, un proveedor de
+datos externo que cobra por resultado, y el escaneo recoge lo que devuelve por su API. Es la
+única excepción a «solo se leen las páginas que las webs permiten leer», y «Cómo funciona» lo
+dice en cuanto está activo. Hay tres piezas, cada una con su actor de la tienda de Apify:
+
+| Qué | Actor | Dónde se ve | Cada cuánto |
+|---|---|---|---|
+| **Vuelos de Google Flights** (fuente `googleflights`): los destinos más baratos de cada finde y puente desde BCN, de todas las aerolíneas, con aerolínea, escalas y duración (sin hora: se ve al abrir la búsqueda). Los que solo vuela Wizz Air se saltan: ya llegan con hora de su fuente | `lergassy/google-flights-scraper` | Explorar → Vuelos | Una vez al día |
+| **Nota de Google Maps** para los alojamientos cuya web no publica opiniones (sus estrellas de 1 a 5, pasadas a 0–10). Solo si el sitio de Google se llama igual y está en el mismo sitio; la nota de la propia web siempre manda | `compass/crawler-google-places` | Tarjeta y ficha («en Google») | Una vez cada 90 días por alojamiento |
+| **Precios de Google Hoteles** de una noche (el viernes de su finde o del próximo) en ese mismo hotel en Booking, Hotels.com, su web oficial… Solo si la web oficial que da Google se llama como el hotel | `vittuhy/google-travel-hotel-prices` | Ficha → «Comparar precios» | Como mucho 2 hoteles al día, los de mejor nota |
+
+**Para activarlo**: crea una cuenta gratis en Apify, copia tu token en *Settings → API &
+Integrations* y guárdalo como secreto: `gh secret set APIFY_TOKEN`. Sin él no se usa nada y
+Google Flights sale como «desactivada» con el motivo «Falta configurar: APIFY_TOKEN».
+
+**Lo que cuesta** (plan gratuito: 5 $ de crédito al mes, sin tarjeta). Cada ejecución lleva un tope
+(`maxTotalChargeUsd`) y el escaneo apunta lo que estima que gasta en la caché; al llegar a
+`apify.presupuestoMensualUsd` (4,5 $) deja de lanzar actores hasta el mes siguiente y Google Flights
+pasa a «desactivada» con el motivo (no cuenta como caída ni manda emails). Los límites están en
+`config/ajustes.json` → `apify`:
+
+- `googleFlights`: `aeropuertos` (["BCN"]), `findes` (6), `destinosPorConsulta` (25) y
+  `maxUsdPorConsulta` (0,01 $). Unos 7 vuelos-consulta al día ≈ 1,2 $/mes. Se activa y se espacia
+  como cualquier fuente, en `fuentes.googleflights`.
+- `googleMaps`: `activo`, `maxPorEscaneo` (5) y `maxPorDia` (10) alojamientos ≈ 0,004 $ cada uno.
+- `googleHoteles`: `activo`, `maxPorDia` (2) y `diasValidez` (7) ≈ 0,02 $ cada hotel.
+
+En la consola de Apify (*Billing*) ves el gasto real; si notas que se acerca a los 5 $, baja los
+límites o pon `"activo": false` en la pieza que menos te interese.
+
 ## Qué webs entran y cuáles no
 
 El objetivo es **ofertas de viaje para un fin de semana desde Barcelona**. Con ese criterio:
@@ -476,7 +513,8 @@ tienen niños gratis o con descuento, o solo los de niños gratis; la portada ti
 **Solo como enlace** (con destino y fechas ya puestos, porque no permiten leer sus
 resultados): Booking, Agoda, Hotels.com, Trivago, Airbnb, Vrbo, Google Flights,
 Skyscanner, KAYAK, Momondo, Kiwi, Expedia, eDreams, Rumbo, Omio, Direct Ferries,
-Civitatis, GetYourGuide y GuruWalk.
+Civitatis, GetYourGuide y GuruWalk. Con el secreto `APIFY_TOKEN`, Google Flights entra además
+como fuente a través de Apify (ver «Datos de Google con Apify»).
 
 **Descartados a propósito**, para que el panel no se llene de ruido:
 - **Cruceros** (MSC, Costa, Royal Caribbean, NCL, Celebrity, Cruise.com): viajes de una
@@ -513,7 +551,10 @@ compara lo leído con lo normal de esa web:
 
 Antes de consultar una web, se comprueba que su **robots.txt** lo permite. Si no lo
 permite, la fuente queda «bloqueada» y no se toca. Además se espacian las peticiones y
-nunca se intenta saltar un captcha ni una protección anti-bot.
+nunca se intenta saltar un captcha ni una protección anti-bot. La excepción, decidida a
+propósito y explicada en «Cómo funciona», son los datos de Google que llegan a través de
+Apify (ver «Datos de Google con Apify»): el escaneo solo habla con la API de Apify, pero quien
+lee Google es Apify, con sus propios medios.
 
 Por eso **Ryanair está desactivada**: su robots.txt prohíbe `/api`. Los vuelos con fecha
 y hora llegan de **Wizz Air**, gratis y sin registro: su web usa una API pública (mapa de

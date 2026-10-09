@@ -285,7 +285,7 @@ export function insigniaEvento(o, ctx = {}) {
 function valoracion(o) {
   const v = o.valoracion;
   if (!(v?.nota >= 0)) return '';
-  const opiniones = v.n ? ` (${contar(v.n, 'opinión', 'opiniones')})` : '';
+  const opiniones = v.n ? ` (${contar(v.n, 'opinión', 'opiniones')}${v.fuente === 'google' ? ' en Google' : ''})` : '';
   return `<span class="valoracion" title="Valoración ${nota(v.nota)} sobre 10${opiniones}">${icono('estrella')}${nota(v.nota)}</span>`;
 }
 
@@ -680,8 +680,10 @@ function opinionesTarjeta(o, web) {
       : `<p class="tarjeta__opiniones tarjeta__opiniones--sin"><span class="sr">${esc(web)} no publica opiniones</span></p>`;
   }
   const f = fiabilidadOpiniones(v.n);
-  const cuantas = v.n ? ` · ${contar(v.n, 'opinión', 'opiniones')}` : '';
-  return `<p class="tarjeta__opiniones" title="Valoración de los clientes en ${esc(web)}. ${esc(f.larga)}">${icono('estrella')}<strong>${nota(v.nota)}<span class="tarjeta__opiniones-max">/10</span></strong><span class="tarjeta__opiniones-texto">${adjetivoNota(v.nota)}${cuantas}${f.corta ? ` · <span class="aviso-suave">${f.corta}</span>` : ''}</span></p>`;
+  // Si su web no publica opiniones, la nota puede ser de Google Maps (enriquecer/google-maps.js).
+  const deGoogle = v.fuente === 'google';
+  const cuantas = v.n ? ` · ${contar(v.n, 'opinión', 'opiniones')}${deGoogle ? ' en Google' : ''}` : '';
+  return `<p class="tarjeta__opiniones" title="Valoración de los clientes en ${esc(deGoogle ? 'Google Maps' : web)}. ${esc(f.larga)}">${icono('estrella')}<strong>${nota(v.nota)}<span class="tarjeta__opiniones-max">/10</span></strong><span class="tarjeta__opiniones-texto">${adjetivoNota(v.nota)}${cuantas}${f.corta ? ` · <span class="aviso-suave">${f.corta}</span>` : ''}</span></p>`;
 }
 
 
@@ -847,7 +849,9 @@ export function tramo(nombre, t, conNumero = false) {
   const numero = conNumero && t.numero ? ` <span class="suave">(${esc(t.numero)})</span>` : '';
   const llegada = t.llegada ? ` → ${esc(horaDe(t.llegada))}` : t.duracionMin ? ` · ${esc(duracion(t.duracionMin))}` : '';
   const escalas = t.escalas == null ? '' : ` · <span class="suave">${t.escalas === 0 ? 'Directo' : t.escalas === 1 ? '1 escala' : `${t.escalas} escalas`}</span>`;
-  return `<div><dt>${nombre}</dt><dd>${esc(etiquetaDia(t.salida))} · <strong>${esc(horaDe(t.salida))}</strong>${llegada}${escalas}${numero}</dd></div>`;
+  // Sin hora (Google Flights da el día, no la hora): solo el día.
+  const hora = horaDe(t.salida) ? ` · <strong>${esc(horaDe(t.salida))}</strong>` : '';
+  return `<div><dt>${nombre}</dt><dd>${esc(etiquetaDia(t.salida))}${hora}${llegada}${escalas}${numero}</dd></div>`;
 }
 
 /** Tarjeta tipo billete de un vuelo con fechas. */
@@ -871,6 +875,7 @@ export function tarjetaVuelo(o, ctx) {
     <div class="billete__principal">
       <p class="billete__ruta" aria-label="De ${esc(v.origen)} a ${esc(v.destino)}"><span>${esc(v.origen)}</span><span class="billete__avion" aria-hidden="true">${icono('avion')}</span><span>${esc(v.destino)}</span></p>
       <h3 class="tarjeta__titulo"><button type="button" class="enlace-ficha" data-ficha="${esc(o.id)}">${esc(o.lugar?.nombre ?? o.titulo)}</button>${pais}</h3>
+      ${v.aerolinea ? `<p class="billete__aerolinea suave">${esc(v.aerolinea)}</p>` : ''}
       <dl class="billete__tramos">${tramo('Ida', v.ida)}${tramo('Vuelta', v.vuelta)}</dl>
     </div>
     <div class="billete__talon">

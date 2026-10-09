@@ -157,6 +157,40 @@ function problemasFotos(fotos) {
     : ['fotos debe ser un objeto {fuentesConPermiso: [ids de las webs]}'];
 }
 
+/**
+ * «apify» (opcional): presupuesto del mes y límites de Google Flights, Google Maps y Google
+ * Hoteles (src/util/apify.js). Sin el secreto APIFY_TOKEN no se usa, esté como esté.
+ */
+function problemasApify(apify) {
+  if (apify === undefined) return [];
+  if (!esObjeto(apify)) return ['apify debe ser un objeto {presupuestoMensualUsd, googleFlights, googleMaps, googleHoteles}'];
+  const { problemas, exigir } = lista();
+  exigir(apify.presupuestoMensualUsd === undefined || esPositivo(apify.presupuestoMensualUsd),
+    `apify.presupuestoMensualUsd debe ser un número de dólares mayor que 0 (ahora: ${apify.presupuestoMensualUsd})`);
+  const enteros = { googleFlights: ['findes', 'destinosPorConsulta'], googleMaps: ['maxPorEscaneo', 'maxPorDia'], googleHoteles: ['maxPorDia', 'diasValidez'] };
+  for (const [seccion, campos] of Object.entries(enteros)) {
+    const config = apify[seccion];
+    if (config === undefined) continue;
+    if (!esObjeto(config)) {
+      problemas.push(`apify.${seccion} debe ser un objeto`);
+      continue;
+    }
+    exigir(config.activo === undefined || typeof config.activo === 'boolean', `apify.${seccion}.activo debe ser true o false`);
+    for (const campo of campos) {
+      exigir(config[campo] === undefined || esEnteroDesde(config[campo], 1), `apify.${seccion}.${campo} debe ser un número entero mayor que 0 (ahora: ${config[campo]})`);
+    }
+  }
+  const vuelos = apify.googleFlights;
+  if (esObjeto(vuelos)) {
+    exigir(vuelos.maxUsdPorConsulta === undefined || esPositivo(vuelos.maxUsdPorConsulta),
+      'apify.googleFlights.maxUsdPorConsulta debe ser un número de dólares mayor que 0');
+    const noIata = (Array.isArray(vuelos.aeropuertos) ? vuelos.aeropuertos : []).filter((a) => typeof a !== 'string' || !/^[A-Z]{3}$/.test(a));
+    exigir(vuelos.aeropuertos === undefined || (Array.isArray(vuelos.aeropuertos) && !noIata.length),
+      'apify.googleFlights.aeropuertos debe ser una lista de códigos IATA, p. ej. ["BCN"]');
+  }
+  return problemas;
+}
+
 function problemasPreferencias(preferencias) {
   if (preferencias === undefined) return [];
   if (!esObjeto(preferencias)) return ['preferencias debe ser un objeto'];
@@ -189,6 +223,7 @@ export function validarAjustes(ajustes) {
     `viajeros debe ser un número entero de personas mayor o igual que 1 (ahora: ${ajustes.viajeros})`);
   problemas.push(...problemasPreferencias(ajustes.preferencias));
   problemas.push(...problemasFotos(ajustes.fotos));
+  problemas.push(...problemasApify(ajustes.apify));
   problemas.push(...problemasGoogleAds(ajustes.googleAds));
   problemas.push(...problemasGoogleAnalytics(ajustes.googleAnalytics));
   problemas.push(...problemasDrive(ajustes.travelpayoutsDrive));
