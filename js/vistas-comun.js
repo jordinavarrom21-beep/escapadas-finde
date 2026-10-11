@@ -1,0 +1,426 @@
+/**
+ * Piezas compartidas por las vistas: tu salida y tu viaje, el contexto de las tarjetas,
+ * las secciones, las pestañas y los campos de los formularios de filtros.
+ */
+
+import { etiquetaDia, nombreFinde, nombreSiguienteFinde } from './fechas.js?v=hosting-465dd02d9e68';
+import { contar, escaparHtml as esc, haceCuanto } from './formato.js?v=hosting-465dd02d9e68';
+import {
+  POR_PAGINA, TEXTO_PERIODO_PASADO, crearHash, destinosDe, leerFiltrosComunes, periodoPasado, rangoDe, resumenFuentes, rutaDeVista, salidaPuente,
+} from './filtros.js?v=hosting-465dd02d9e68';
+import { NOCHES, VIAJEROS, aeropuertosCercanos } from './viaje.js?v=hosting-465dd02d9e68';
+import { icono } from './iconos.js?v=hosting-465dd02d9e68';
+import { ROTULOS_FECHAS, camposFechas } from './selector-fechas.js?v=hosting-465dd02d9e68';
+import { peajesDesde } from './coste.js?v=hosting-465dd02d9e68';
+
+/** Los filtros que van dentro de «Más filtros» (los de arriba se ven siempre). */
+export const FILTROS_SECUNDARIOS = [
+  'pnMin', 'km', 'dto', 'pts', 'nota', 'regimen', 'aloj', 'est', 'transporte', 'fuente', 'tipo', 'pais', 'region',
+  'nuevas', 'fav', 'cho', 'baja', 'hist', 'sindesc', 'sinconf', 'dup', 'cru', 'cerradas', 'encaje', 'ninos', 'evtipo', 'noches',
+];
+/** Los que van en «Más filtros» de la vista de vuelos. */
+export const FILTROS_MAS_VUELOS = ['dto', 'pts', 'cho', 'baja', 'hist', 'nuevas', 'fav', 'sindesc', 'sinconf', 'dup'];
+export const HORAS_SORPRESA = 3;
+export const ACTIVIDADES_FINDE = 4;
+export const ETIQUETAS_ORDEN = {
+  puntuacion: 'Valor de la oferta',
+  total: 'Viaje más barato (por persona y noche)',
+  persona: 'Coste total por persona',
+  calidad: 'Calidad/precio (nota por persona)',
+  comodo: 'Más cómodo (menos viaje)',
+  noche: 'Precio por persona y noche',
+  ahorro: 'Más baratas que la media de parecidas',
+  valoracion: 'Mejor valoradas',
+  distancia: 'Distancia (más cerca primero)',
+  alojamiento: 'Tipo de alojamiento',
+  novedad: 'Novedad',
+};
+
+export const mostradas = (e, clave) => e.paginas.get(clave) ?? POR_PAGINA;
+
+/** Desde dónde sales: lo que elegiste en este navegador o, si no, el origen del escaneo. */
+export const puntoSalida = (e) => e.salida ?? e.datos.origen;
+export const nombreSalida = (e) => puntoSalida(e).nombre;
+
+/** Tus aeropuertos: los de los ajustes desde el origen del escaneo; desde otra salida, los cercanos. */
+export const misAeropuertos = (e) => (e.salida ? aeropuertosCercanos(e.salida) : e.datos.aeropuertos ?? []);
+
+/** «Desde Girona · 2 personas · 2 noches» para el botón de la cabecera. */
+export const textoViaje = (e) => `Desde ${nombreSalida(e)} · ${contar(e.viaje.viajeros, 'persona')} · ${contar(e.viaje.noches, 'noche')}`;
+
+/** Contenido de «Tu viaje»: salida (sin geolocalización obligatoria), viajeros y noches. */
+export function formularioViaje(e) {
+  const s = e.salida;
+  const noches = Array.from({ length: NOCHES.max - NOCHES.min + 1 }, (_, i) => [String(NOCHES.min + i), contar(NOCHES.min + i, 'noche')]);
+  return `<div class="ficha__barra"><button type="button" class="boton-icono" data-cerrar-viaje aria-label="Cerrar sin guardar">${icono('cerrar')}</button></div>
+<div class="ficha__contenido">
+  <h2 id="viaje-titulo">Tu viaje</h2>
+  <p class="suave">Sirve para medir distancias, elegir tus aeropuertos y calcular el coste total. Se guarda solo en este navegador.</p>
+  <fieldset class="ubicacion"><legend>Salgo desde</legend>
+    <div class="ubicacion__fila">
+      <div class="combo">
+        <label class="sr" for="salida-texto">Ciudad o pueblo de salida</label>
+        <input id="salida-texto" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="salida-sugerencias" autocomplete="off" placeholder="${esc(e.datos.origen.nombre)}" value="${esc(s?.nombre ?? '')}">
+        <ul id="salida-sugerencias" class="combo__lista" role="listbox" aria-label="Sugerencias" hidden></ul>
+        <input type="hidden" name="lugar" value="${esc(s?.nombre ?? '')}"><input type="hidden" name="lat" value="${s?.lat ?? ''}"><input type="hidden" name="lon" value="${s?.lon ?? ''}">
+      </div>
+      <button type="button" class="boton boton--suave boton-ubicacion" data-mi-ubicacion title="Usar mi ubicación" aria-label="Usar mi ubicación">${icono('ubicacion')}<span class="boton-ubicacion__texto">Mi ubicación</span></button>
+    </div>
+    <p class="ayuda" id="salida-ayuda" role="status">${s
+    ? `Desde ${esc(s.nombre)} se piden los km y el tiempo reales por carretera (tarda unos segundos la primera vez; mientras, se estiman). Déjalo vacío para volver a ${esc(e.datos.origen.nombre)}.`
+    : `Desde ${esc(e.datos.origen.nombre)} hay tiempos reales por carretera. Escribe otra ciudad si sales de otro sitio.`}</p>
+  </fieldset>
+  <div class="filtros__fila">
+    <label class="campo">Viajeros <input type="number" name="viajeros" min="${VIAJEROS.min}" max="${VIAJEROS.max}" step="1" inputmode="numeric" value="${e.viaje.viajeros}"></label>
+    <label class="campo">Noches (si la oferta no las fija) <select name="noches">${opciones(noches, String(e.viaje.noches))}</select></label>
+  </div>
+  <p class="acciones"><button type="submit" class="boton boton--primario">Guardar</button></p>
+</div>`;
+}
+
+/** Viajeros, noches y coche para calcular el coste del viaje. */
+export const datosViaje = (e) => ({
+  viajeros: e.viaje?.viajeros ?? e.datos.viajeros ?? 2, noches: e.viaje?.noches ?? 2, coche: e.datos.coche ?? null,
+  // Los peajes conocidos (config/peajes.json) que pueden estar en tus rutas, según desde dónde sales.
+  peajes: peajesDesde(e.datos.peajes, puntoSalida(e)),
+});
+
+/** Contexto que necesitan las plantillas de tarjetas. */
+export function ctxTarjetas(e, extra = {}) {
+  return {
+    temas: e.temas, fuentes: e.fuentes, favoritos: e.favoritos, referencia: e.referencia,
+    historial: e.historial, distancias: e.distanciasOrigen, desde: nombreSalida(e),
+    // Aunque las distancias que se enseñan sean desde «Cerca de…», el viaje sale de tu salida.
+    distanciasCoste: e.distanciasOrigen,
+    // El coste de coche que calcula el escaneo es desde su origen: desde otra salida no vale.
+    salidaPropia: Boolean(e.salida), ...datosViaje(e), ahora: e.ahora, comparar: e.comparar ?? null, misEstados: e.misEstados ?? null,
+    // La misma hora de referencia que el reparto por vigencia (app.js): las marcas cuadran con las listas.
+    intervalos: intervalosDe(e), revision: horaRevision(e), busqueda: e.busqueda ?? null, ...extra,
+  };
+}
+
+/**
+ * Lo que no se enseña en las listas salvo que se pida («sindesc=0»): las descartadas con ✕ y
+ * las que has marcado «Ya no está disponible».
+ */
+export function ocultas(e) {
+  const noDisponibles = [...(e.misEstados ?? new Map())].filter(([, marca]) => marca === 'no-disponible').map(([id]) => id);
+  return noDisponibles.length ? new Set([...(e.descartadas ?? []), ...noDisponibles]) : (e.descartadas ?? new Set());
+}
+
+/** Intervalo de revisión de cada web (para saber cuándo una oferta lleva tiempo sin comprobarse). */
+export const intervalosDe = (e) => new Map((e.datos.fuentes ?? []).map((f) => [f.id, f.intervaloMin]));
+/** Hora del escaneo: «sin comprobar» se mide hasta ella (si el escaneo se retrasa, no pasan todas a la vez). */
+export const horaRevision = (e) => (Number.isFinite(Date.parse(e.datos.generado)) ? new Date(e.datos.generado) : e.ahora);
+
+/** Contexto de búsqueda: origen, fechas y preferencias de este navegador. */
+export function contextoBusqueda(e) {
+  return {
+    origen: e.datos.origen,
+    salida: e.salida ?? null,
+    distanciasSalida: e.distanciasOrigen ?? null,
+    ...datosViaje(e),
+    aeropuertos: misAeropuertos(e),
+    hoy: e.hoy,
+    finde: e.findes[0],
+    puente: e.puente,
+    findes: e.findes,
+    puentes: e.datos.puentes,
+    referencia: e.referencia,
+    favoritos: e.favoritos,
+    descartadas: ocultas(e),
+    temas: e.temas,
+    revision: horaRevision(e),
+    intervalos: intervalosDe(e),
+    // La hora de la visita: con ella se ve qué ha caducado (vigencia.js).
+    ahora: e.ahora,
+  };
+}
+
+export function seccion(titulo, contenido, enlace = null, clase = '') {
+  const ver = enlace ? `<a class="seccion__enlace" href="${enlace.href}">${enlace.texto}${icono('flecha')}</a>` : '';
+  return `<section class="seccion${clase ? ` seccion--${clase}` : ''}"><div class="seccion__cabeza"><h2>${titulo}</h2>${ver}</div>${contenido}</section>`;
+}
+
+/** Título de sección con su icono en una pastilla de color (`clase` cambia el color). */
+export const conIcono = (nombre, texto, clase = '') => `<span class="seccion__icono${clase ? ` seccion__icono--${clase}` : ''}" aria-hidden="true">${icono(nombre)}</span><span>${texto}</span>`;
+
+/** «Tarjetas» o «Lista»: app.js marca el que está puesto (se guarda en este navegador). */
+export const selectorModo = `<div class="selector-modo" role="group" aria-label="Cómo ver los resultados">
+  <button type="button" class="selector-modo__boton" data-modo-lista="tarjetas" aria-pressed="true" aria-label="Ver en tarjetas">${icono('todo')}<span class="solo-ancho">Tarjetas</span></button>
+  <button type="button" class="selector-modo__boton" data-modo-lista="lista" aria-pressed="false" aria-label="Ver en lista compacta">${icono('lista')}<span class="solo-ancho">Compacta</span></button>
+</div>`;
+/** Las pestañas de cada apartado del menú: Explorar, Fechas y Mis cosas. */
+export const PESTANAS = {
+  // El Mapa no es otra categoría: es otra forma de ver las escapadas (conmutador Lista / Mapa).
+  explorar: ['Explorar', [['escapadas', 'Escapadas', 'escapadas'], ['vuelos', 'Vuelos y trenes', 'vuelos'], ['actividades', 'Planes', 'actividades']]],
+  fechas: ['Fechas', [['calendario', 'Calendario', 'calendario'], ['puentes', 'Puentes', 'puentes']]],
+  // Tres cosas distintas, cada una en su pestaña: lo que guardas, lo que buscas y lo que comparas.
+  mis: ['Guardados', [['mis', 'Favoritos', 'corazon'], ['mis?ver=busquedas', 'Búsquedas guardadas', 'guardar', 'Búsquedas'], ['comparar', 'Comparar lado a lado', 'comparar', 'Comparar'], ['vigilados', 'Avisos por email', 'vigilados', 'Por email']]],
+};
+export function pestanas(apartado, activa, e = null) {
+  const [nombre, todas] = PESTANAS[apartado];
+  // «Avisos por email» es de quien administra la web (se configuran en GitHub): solo en modo propietario.
+  const lista = todas.filter(([vista]) => vista !== 'vigilados' || e?.propietario);
+  // En el móvil, el nombre corto (si lo hay) para que quepan todas sin deslizar.
+  const texto = (largo, corto) => (corto ? `<span class="solo-ancho">${largo}</span><span class="solo-estrecho">${corto}</span>` : `<span>${largo}</span>`);
+  // `ruta` puede llevar parámetros («mis?ver=busquedas»): la vista es lo de antes del «?».
+  return `<nav class="pestanas" aria-label="${esc(nombre)}">${lista.map(([ruta, largo, ic, corto]) => `<a class="pestana" href="#/${ruta.includes('?') ? ruta : rutaDeVista(ruta)}"${ruta.includes('?') ? '' : ` data-vista="${ruta}"`}${corto ? ` aria-label="${esc(largo)}"` : ''}${ruta === activa ? ' aria-current="page"' : ''}>${icono(ic)}${texto(largo, corto)}</a>`).join('')}</nav>`;
+}
+
+/**
+ * Las ofertas en las que se busca: las vigentes y, si se piden («sinconf=1»), también las
+ * «sin confirmar» (vigencia.js), que van al final y marcadas.
+ */
+export const ofertasDe = (e, params = {}) => (params.sinconf === '1' ? e.datos.todas ?? e.datos.ofertas : e.datos.ofertas);
+
+/**
+ * Cuántas «sin confirmar» cumplirían los filtros y cómo verlas: no se cuentan ni salen en la
+ * lista hasta que se piden. `buscar(lista)` es la misma búsqueda de la vista sobre otra lista.
+ */
+export function avisoSinConfirmar(e, vista, params, buscar) {
+  const sinConfirmar = e.datos.sinConfirmar ?? [];
+  if (!sinConfirmar.length) return '';
+  if (params.sinconf === '1') {
+    return `<p class="aviso-memoria aviso-sin-confirmar" role="status">${icono('alerta')}Incluidas al final las que su web no ha vuelto a mostrar («Sin confirmar»). <a href="${esc(crearHash(vista, { ...params, sinconf: '' }))}">Quitarlas</a></p>`;
+  }
+  const n = buscar(sinConfirmar);
+  if (!n) return '';
+  const [la, cuenta] = n === 1 ? ['la', 'se cuenta'] : ['las', 'se cuentan'];
+  return `<p class="aviso-memoria aviso-sin-confirmar">${icono('alerta')}${esc(contar(n, 'oferta más está', 'ofertas más están'))} sin confirmar: su web no ${la} ha vuelto a mostrar en el tiempo previsto, así que no ${cuenta}. <a href="${esc(crearHash(vista, { ...params, sinconf: '1' }))}">Ver${la} al final</a></p>`;
+}
+
+export const resumenResultados = (texto, extra = '', { conModo = true } = {}) => `<div class="resultados__cabeza" data-resumen="${esc(texto)}"><p class="resultados__cuenta">${esc(texto)}</p>${conModo ? selectorModo : ''}${extra}</div>`;
+// «data-olvidar-filtros»: al quitar los filtros también se olvidan los recordados de esa vista.
+export const botonLimpiar = (vista) => `<a class="boton boton--suave" href="#/${vista}" data-olvidar-filtros>${icono('deshacer')}Quitar filtros</a>`;
+export const opciones = (lista, actual, vacia) => `${vacia ? `<option value="">${vacia}</option>` : ''}${
+  lista.map(([valor, texto]) => `<option value="${esc(valor)}"${String(valor) === String(actual ?? '') ? ' selected' : ''}>${esc(texto)}</option>`).join('')}`;
+export const marcado = (condicion) => (condicion ? ' checked' : '');
+export const interruptor = (nombre, etiqueta, activo) => `<label class="interruptor"><input type="checkbox" name="${nombre}" value="1"${marcado(activo)}> ${etiqueta}</label>`;
+/** Interruptor que viene activado de fábrica: al desmarcarlo, app.js escribe «<nombre>=0» en la URL. */
+export const interruptorDefecto = (nombre, etiqueta, activo) => `<label class="interruptor"><input type="checkbox" name="${nombre}" value="1" data-defecto${marcado(activo)}> ${etiqueta}</label>`;
+export const numero = (nombre, etiqueta, valor, extra = '') => `<label class="campo">${etiqueta} <input type="number" name="${nombre}" min="0" step="1" inputmode="numeric" value="${valor ?? ''}"${extra}></label>`;
+
+/** Horas fallando para contarlo en la portada: un fallo suelto se arregla solo en la siguiente revisión. */
+export const HORAS_PROBLEMA = 12;
+
+/** Webs que llevan horas fallando o que leen mucho menos de lo normal (aviso). */
+export function webConProblemas(fuentes = [], ahora = new Date()) {
+  return fuentes.filter((f) => f.aviso
+    || (f.estado === 'error' && f.desdeError && ahora - Date.parse(f.desdeError) >= HORAS_PROBLEMA * 3_600_000));
+}
+
+/**
+ * El estado de las webs en una frase, la misma en la portada y en el pie (antes una decía
+ * «1 web con problemas» y la otra «26 de 26 webs funcionan» a la vez). Un fallo reciente
+ * suele arreglarse en la siguiente revisión: se dice que se reintenta, no que hay problemas.
+ */
+export function estadoWebs(fuentes = [], ahora = new Date()) {
+  const r = resumenFuentes(fuentes);
+  const problemas = webConProblemas(fuentes, ahora);
+  const reintentando = fuentes.filter((f) => f.estado === 'error' && !problemas.includes(f)).length;
+  const texto = problemas.length
+    ? `${problemas.length} de ${contar(r.activas, 'web')} con problemas`
+    : reintentando
+      ? `${r.activas - reintentando} de ${contar(r.activas, 'web')} al día · ${reintentando} reintentando`
+      : `Las ${contar(r.activas, 'web')} funcionan`;
+  // Arriba (en el Inicio) solo se avisa si falla más de una cuarta parte: el resto, en el pie y en Estado.
+  return { texto, problemas, error: problemas.length > 0, grave: problemas.length > r.activas / 4, activas: r.activas };
+}
+
+/**
+ * El estado de una web tal como lo ve un visitante (la página «Estado de las webs»): sin
+ * detalles técnicos, con lo que significa para sus ofertas. Los mismos criterios que
+ * estadoWebs (un fallo de menos de HORAS_PROBLEMA horas es «reintentando»).
+ */
+export function estadoPublico(f, ahora = new Date()) {
+  if (['desactivada', 'bloqueada'].includes(f.estado)) return { clave: 'desactivada', texto: 'No se consulta', detalle: 'Ahora no se leen sus ofertas.' };
+  if (f.estado === 'pendiente') return { clave: 'pendiente', texto: 'Pendiente', detalle: 'Aún no se ha leído.' };
+  if (f.estado === 'error') {
+    const desde = f.desdeError ? ` desde ${haceCuanto(f.desdeError, ahora)}` : '';
+    return webConProblemas([f], ahora).length
+      ? { clave: 'error', texto: 'Con problemas', detalle: `No se ha podido leer${desde}: sus ofertas salen como «Sin confirmar».` }
+      : { clave: 'reintentando', texto: 'Reintentando', detalle: `Falló la última lectura${desde}; se vuelve a intentar en la siguiente revisión.` };
+  }
+  if (f.aviso) return { clave: 'aviso', texto: 'Al día, con aviso', detalle: 'En la última lectura mostró menos ofertas de lo normal.' };
+  return { clave: 'ok', texto: 'Al día', detalle: '' };
+}
+
+export function motivoFuente(f) {
+  if (f.motivo) return f.motivo;
+  if (f.aviso) return f.aviso;
+  if (f.falta?.length) return `falta configurar ${f.falta.join(', ')}`;
+  return f.error ?? '';
+}
+
+/** «sáb 10 – lun 12 oct»: los días con su nombre, para no confundir un finde con un puente. */
+export const diasExplicitos = (desde, hasta) => {
+  const [a, b] = [etiquetaDia(desde), etiquetaDia(hasta)];
+  // «sáb 10 oct – lun 12 oct» → «sáb 10 – lun 12 oct» si es el mismo mes.
+  return a.split(' ')[2] === b.split(' ')[2] ? `${a.split(' ').slice(0, 2).join(' ')} – ${b}` : `${a} – ${b}`;
+};
+
+/**
+ * El puente con sus días, contando la tarde del último laborable para salir:
+ * «Fiesta Nacional · vie 9 – lun 12 oct · todo el puente».
+ */
+export function etiquetaPuente(p) {
+  return `${icono('puentes')}${esc(p.nombre)} · ${esc(diasExplicitos(salidaPuente(p), p.hasta))} · todo el puente`;
+}
+
+/**
+ * El finde con sus días y, si toca un puente, qué parte coge: «vie 9 – dom 11 oct · vuelve
+ * antes del festivo» (el puente sigue hasta el lunes).
+ */
+export function etiquetaFinde(finde, puentes = []) {
+  const dias = diasExplicitos(finde.viernes, finde.domingo);
+  const puente = puentes.find((p) => p.id === finde.puenteId);
+  if (!puente) return dias;
+  if (puente.hasta > finde.domingo) return `${dias} · vuelve antes del festivo`;
+  if (puente.desde < finde.viernes) return `${dias} · sin el festivo de antes`;
+  return dias;
+}
+
+// ── Piezas compartidas de los formularios ────────────────────────────────────
+
+/**
+ * Buscar dentro de la pestaña (`ambito`: «escapadas», «vuelos», «planes»). El buscador de arriba
+ * busca en todo: el rótulo dice en qué busca cada uno.
+ */
+export function campoTexto(f, ambito = '') {
+  return `<label class="campo campo--ancho">${ambito ? `Buscar en ${ambito}` : 'Buscar palabras'}
+  <input type="search" name="q" value="${esc(f.q)}" placeholder="Destino u hotel" autocomplete="off" enterkeyhint="search">
+</label>`;
+}
+
+/** Filtros de chollo que valen igual para vuelos y escapadas. */
+export function filtrosChollo(f) {
+  return `${numero('dto', 'Descuento mín. (%)', f.dto, ' max="99" placeholder="Cualquiera"')}
+${numero('pts', 'Valor de la oferta mín. (0–100)', f.puntos, ' max="100" placeholder="0–100"')}
+${interruptor('cho', 'Solo chollazos', f.chollazo)}
+${interruptor('baja', 'Solo con bajada de precio', f.bajada)}
+${interruptor('hist', 'Solo mínimo histórico', f.historico)}`;
+}
+
+/** Favoritos, descartadas y duplicadas (las duplicadas se ocultan por defecto). */
+export function filtrosListas(f) {
+  return `${interruptor('fav', 'Solo favoritos', f.fav)}
+${interruptor('nuevas', 'Solo novedades', f.nuevas)}
+${interruptorDefecto('sindesc', 'Ocultar las descartadas y las no disponibles', f.sinDescartadas)}
+${interruptor('sinconf', 'Incluir las sin confirmar (su web no las ha vuelto a mostrar)', f.incluirSinConfirmar)}
+${interruptor('dup', 'Mostrar las repetidas en varias webs', f.conDuplicadas)}`;
+}
+
+export function chipsExcluidos(nombre, valores, etiqueta) {
+  return valores.map((valor) => `<label class="chip chip--excluido"><input type="checkbox" name="${nombre}" value="${esc(valor)}" checked> ${icono('prohibido')}${esc(etiqueta ? etiqueta(valor) : valor)}</label>`).join('');
+}
+
+/** Lista negra: temáticas y destinos que no quieres ver. */
+export function bloqueExclusiones(e, f, ofertas) {
+  const destinos = destinosDe(ofertas).filter((d) => !f.noDestinos.includes(d));
+  const temasFuera = e.datos.temas.filter((t) => f.noTemas.includes(t.id)).map((t) => t.id);
+  const nombreTema = (id) => e.temas.get(id)?.nombre ?? id;
+  return `<details class="filtros__mas"${f.noTemas.length || f.noDestinos.length ? ' open' : ''}>
+  <summary>No quiero ver…${f.noTemas.length + f.noDestinos.length ? ` <span class="contador">(${f.noTemas.length + f.noDestinos.length})</span>` : ''}</summary>
+  <div class="chips__lista">
+    ${chipsExcluidos('notemas', temasFuera, nombreTema)}
+    ${chipsExcluidos('nodest', f.noDestinos)}
+  </div>
+  <div class="filtros__fila">
+    <label class="campo">Quitar una temática
+      <select name="notemas" data-repintar>${opciones(e.datos.temas.filter((t) => !f.noTemas.includes(t.id)).map((t) => [t.id, t.nombre]), '', 'Elige una temática')}</select>
+    </label>
+    <label class="campo">Quitar un destino
+      <select name="nodest" data-repintar>${opciones(destinos.map((d) => [d, d]), '', 'Elige un destino')}</select>
+    </label>
+  </div>
+  <p class="ayuda">Lo que quites aquí no aparece en ninguna lista. Desmarca el chip para volver a verlo.</p>
+</details>`;
+}
+
+/** Guardar la búsqueda actual y copiarla como criterio de vigilados. */
+export function bloqueBusquedas(e, vista) {
+  const chips = e.busquedas.map((b) => `<span class="chip chip--guardada">
+  <a href="${esc(b.hash)}" title="${esc(b.nombre)}">${esc(b.nombre)}</a>
+  <button type="button" class="boton-icono boton-icono--mini" data-borrar-busqueda="${esc(b.nombre)}" aria-label="Borrar la búsqueda guardada ${esc(b.nombre)}">${icono('cerrar')}</button>
+</span>`).join('');
+  return `<details class="filtros__mas"${e.busquedas.length ? ' open' : ''}>
+  <summary>Guardar búsqueda</summary>
+  <div class="filtros__fila">
+    <label class="campo campo--ancho">Nombre
+      <input type="text" data-nombre-busqueda placeholder="Spa cerca y barato" autocomplete="off" maxlength="60">
+    </label>
+    <button type="button" class="boton boton--primario" data-guardar-busqueda="${esc(vista)}">${icono('guardar')}Guardar búsqueda</button>
+    <button type="button" class="boton boton--suave" data-compartir-busqueda="${esc(vista)}">${icono('enlace')}Compartir esta búsqueda</button>
+  </div>
+  <p class="ayuda">Se guarda en este navegador. No te llega nada: cuando vuelvas, en <a href="#/mis">Guardados</a> verás las ofertas nuevas que la cumplen.${e.propietario ? ` ¿La quieres por email? <button type="button" class="enlace-boton" data-copiar-vigilado="${esc(vista)}">Copiar para los avisos por email</button> y pégala en <code>config/vigilados.json</code>.` : ''}</p>
+  ${chips ? `<div class="chips__lista">${chips}</div>` : ''}
+</details>`;
+}
+
+
+/** Vistas con barra de fechas y formulario de filtros (sus fechas van en él con form="…"). */
+const CON_FORMULARIO = ['escapadas', 'vuelos', 'actividades', 'mapa'];
+
+/**
+ * Las fechas elegidas en una vista: el finde o el puente («cuando», en Vuelos «finde») con sus
+ * días, o la entrada y la salida (desde/hasta). `pasado`: un finde o puente que ya pasó.
+ */
+export function fechasElegidas(e, vista, params = {}) {
+  const clave = vista === 'vuelos' ? 'finde' : 'cuando';
+  const cuando = params[clave] ?? '';
+  const contexto = { finde: e.findes[0], puente: e.puente, findes: e.findes, puentes: e.datos.puentes };
+  const rango = rangoDe(cuando, contexto);
+  const { desde, hasta } = leerFiltrosComunes(params);
+  return {
+    clave, cuando, rango, desde, hasta,
+    pasado: !rango && periodoPasado(cuando, contexto),
+    entrada: rango?.inicio ?? desde,
+    salida: rango?.fin ?? (hasta || desde),
+  };
+}
+
+/**
+ * «¿Cuándo?» de Explorar y Buscar: la fecha de entrada y la de salida (abren un calendario aquí
+ * mismo, selector-fechas.js) y los atajos (cualquier fecha, este finde, el siguiente y los
+ * puentes). Es el único sitio de la vista donde se eligen las fechas, y las mismas pasan de una
+ * pestaña a otra. Sus campos son del formulario de filtros (form="filtros-…"): cambiar otro
+ * filtro no las pierde. `cifras`: id del periodo → texto («12 · desde 48 €»), para Vuelos.
+ */
+export function barraFechas(e, vista, params = {}, { cifras = new Map(), ayuda = '' } = {}) {
+  const f = fechasElegidas(e, vista, params);
+  const deFormulario = CON_FORMULARIO.includes(vista) ? ` form="filtros-${vista}"` : '';
+  const [primero, siguiente] = e.findes;
+  const relativo = vista === 'vuelos' ? primero?.id : 'finde';
+  const marcada = f.cuando === primero?.id ? relativo : f.cuando;
+  const rapida = (valor, texto, clase = '') => {
+    const cifra = cifras.get(valor === 'finde' ? primero?.id : valor);
+    return `<button type="button" class="chip${clase}" data-fechas-rapida="${esc(valor)}" aria-pressed="${!f.desde && marcada === valor}">${texto}${cifra ? ` <span class="chip__cifra">${esc(cifra)}</span>` : ''}</button>`;
+  };
+  const rapidas = [
+    rapida('', 'Cualquier fecha'),
+    ...(primero ? [rapida(relativo, `${esc(nombreFinde(e.hoy))} · ${esc(primero.etiqueta)}`)] : []),
+    ...(siguiente ? [rapida(siguiente.id, `${nombreSiguienteFinde(e.hoy)} · ${esc(siguiente.etiqueta)}`, siguiente.puenteId ? ' chip--puente' : '')] : []),
+    // Un puente se dice igual en todas partes: «vie 9 – lun 12 oct» (con la tarde del último laborable).
+    ...(e.datos.puentes ?? []).map((p) => rapida(p.id, `${icono('puentes')}${esc(p.nombre)} · ${esc(diasExplicitos(salidaPuente(p), p.hasta))}`, ' chip--puente')),
+  ];
+  // Junto a las fechas, sus noches (el atajo marcado ya dice si es «Este finde» o un puente).
+  const resumen = f.pasado ? TEXTO_PERIODO_PASADO : null;
+  const elegido = Boolean(f.cuando || f.desde || f.hasta);
+  const id = `fechas-${vista}`;
+  return `<section class="fechas${f.pasado ? ' fechas--pasado' : ''}" data-fechas data-vista="${esc(vista)}" data-entrada="${esc(f.entrada)}" data-salida="${esc(f.salida)}" aria-labelledby="${id}-titulo">
+  <h2 class="fechas__titulo" id="${id}-titulo">${icono('calendario')}¿Cuándo?</h2>
+  <input type="hidden" name="${f.clave}" value="${esc(f.cuando)}"${deFormulario}><input type="hidden" name="desde" value="${esc(f.desde)}"${deFormulario}><input type="hidden" name="hasta" value="${esc(f.hasta)}"${deFormulario}>
+  ${camposFechas({ entrada: f.entrada, salida: f.salida, idPanel: `${id}-calendario`, resumen, quitar: elegido, rotulos: ROTULOS_FECHAS[vista] })}
+  <div class="fechas__panel" id="${id}-calendario" data-fechas-panel role="group" aria-label="Calendario: elige la fecha de entrada y la de salida" hidden>
+    <div data-calendario></div>${ayuda ? `<p class="ayuda fechas__ayuda">${ayuda}</p>` : ''}
+  </div>
+  <div class="fechas__rapidas chips chips--desplazables" role="group" aria-label="Fechas rápidas"><div class="chips__lista">${rapidas.join('')}</div></div>
+</section>`;
+}
+
+/** «Lista | Mapa»: la misma búsqueda (categoría, fechas y filtros) vista de una u otra forma. */
+export function conmutadorListaMapa(params, actual) {
+  const opcion = (vista, ic, texto) => `<a class="conmutador__opcion" href="${esc(crearHash(vista, params))}"${actual === vista ? ' aria-current="page"' : ''}>${icono(ic)}${texto}</a>`;
+  return `<nav class="conmutador solo-ancho-flex" aria-label="Ver como">${opcion('escapadas', 'lista', 'Lista')}${opcion('mapa', 'mapa', 'Mapa')}</nav>`;
+}

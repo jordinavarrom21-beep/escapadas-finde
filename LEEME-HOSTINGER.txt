@@ -1,0 +1,13 @@
+ESCAPADAS FINDE · WEB LISTA PARA TU HOSTING
+Datos del 2026-10-11T01:54:36.466Z · preparada para https://escapadasfinde.com/
+
+1. En hPanel de Hostinger: Sitios web → Administrar → Archivos → Administrador de archivos.
+2. Entra en public_html y borra lo que haya (default.php o la página de «próximamente»).
+3. Sube este zip a public_html, púlsalo con el botón derecho → Extraer, y extrae aquí mismo
+   (deben quedar index.html, .htaccess, css/, js/… directamente en public_html).
+4. Seguridad → SSL: comprueba que el certificado gratuito está instalado y activo. El .htaccess
+   manda todo a https://, así que sin certificado la web no abre.
+5. Abre tu dominio. Si ves la página antigua, vacía la caché: Rendimiento → Caché → Vaciar.
+
+IMPORTANTE: los datos de este zip no se actualizan solos. Para tenerlos al día, activa la
+subida automática por FTP desde GitHub (LEEME.md → «Tu dominio»).

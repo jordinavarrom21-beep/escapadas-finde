@@ -1,0 +1,182 @@
+/**
+ * Formato de precios, duraciones, textos y HTML seguro. Sin DOM: se usa también
+ * desde los tests de Node.
+ */
+
+// Un formateador de cada tipo para toda la web: crear uno en cada llamada (toLocaleString con
+// opciones) era lo más lento al abrirla, porque el coste de cada oferta escribe varios números.
+const EUROS_ENTEROS = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
+const EUROS_DECIMALES = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2 });
+const NUMERO = new Intl.NumberFormat('es-ES');
+const UN_DECIMAL = new Intl.NumberFormat('es-ES', { maximumFractionDigits: 1 });
+
+/** 1234.56 → «1234,6» (como mucho un decimal: litros, notas). */
+export const unDecimal = (n) => UN_DECIMAL.format(n);
+
+export const ETIQUETAS_UNIDAD = {
+  pp: 'por persona',
+  'pp/noche': 'por persona y noche',
+  total: 'en total',
+  'i/v': 'ida y vuelta por persona',
+  // La habitación o la casa entera: no es por persona.
+  noche: 'por alojamiento y noche',
+  trayecto: 'por persona y trayecto',
+};
+
+/** Cuando la web no dice a qué corresponde el precio: mejor decirlo que dejar que se suponga. */
+export const SIN_UNIDAD = 'la web no dice si es por persona';
+
+export const ETIQUETAS_REGIMEN = {
+  'solo-alojamiento': 'Solo alojamiento',
+  desayuno: 'Desayuno',
+  'media-pension': 'Media pensión',
+  'pension-completa': 'Pensión completa',
+  'todo-incluido': 'Todo incluido',
+};
+
+export const ETIQUETAS_TRANSPORTE = { avion: 'Avión', coche: 'Coche', tren: 'Tren', bus: 'Autobús', ferry: 'Ferry' };
+
+export const ETIQUETAS_TIPO = {
+  // «hotel» es «solo alojamiento» (casa rural, camping, parador…): el tipo concreto va en `alojamiento`.
+  vuelo: 'Vuelo', escapada: 'Escapada', hotel: 'Alojamiento', paquete: 'Paquete', actividad: 'Actividad', crucero: 'Crucero',
+};
+
+export const ETIQUETAS_ALOJAMIENTO = {
+  hotel: 'Hotel',
+  'casa-rural': 'Casa rural',
+  camping: 'Camping',
+  apartamento: 'Apartamento',
+  parador: 'Parador',
+  balneario: 'Balneario',
+  hostal: 'Hostal',
+};
+
+/** 21 → «21°». */
+export const grados = (valor) => (Number.isFinite(valor) ? `${Math.round(valor)}°` : '');
+
+/** 8.6 → «8,6». */
+export const nota = (valor) => (Number.isFinite(valor) ? unDecimal(valor) : '');
+
+/** ['a', 'b', 'c'] → «a, b y c». */
+export function enumerar(partes, conjuncion = 'y') {
+  const lista = partes.filter(Boolean);
+  if (lista.length <= 1) return lista.join('');
+  return `${lista.slice(0, -1).join(', ')} ${conjuncion} ${lista.at(-1)}`;
+}
+
+/** 59 → «59 €» · 19.98 → «19,98 €» · null → «—». */
+export function euros(valor) {
+  if (typeof valor !== 'number' || !Number.isFinite(valor)) return '—';
+  return (Number.isInteger(valor) ? EUROS_ENTEROS : EUROS_DECIMALES).format(valor);
+}
+
+/** 45 → «45 min» · 105 → «1 h 45 min» · 120 → «2 h». */
+export function duracion(minutos) {
+  if (typeof minutos !== 'number' || !Number.isFinite(minutos)) return '';
+  const total = Math.max(0, Math.round(minutos));
+  const horas = Math.floor(total / 60);
+  const resto = total % 60;
+  if (!horas) return `${resto} min`;
+  return resto ? `${horas} h ${resto} min` : `${horas} h`;
+}
+
+/** Tiempo que falta, redondeado hacia arriba al minuto: «2 d 5 h», «5 h 12 min», «8 min». */
+export function cuentaAtras(ms) {
+  const minutos = Math.max(0, Math.ceil(ms / 60_000));
+  const dias = Math.floor(minutos / 1440);
+  const horas = Math.floor((minutos % 1440) / 60);
+  const resto = minutos % 60;
+  if (dias) return `${dias} d ${horas} h`;
+  if (horas) return `${horas} h ${resto} min`;
+  return `${resto} min`;
+}
+
+/** «hace 5 min», «hace 3 h», «hace 2 días». */
+export function haceCuanto(iso, ahora = new Date()) {
+  const minutos = Math.round((ahora.getTime() - Date.parse(iso)) / 60_000);
+  if (!Number.isFinite(minutos)) return '';
+  if (minutos < 1) return 'hace un momento';
+  if (minutos < 60) return `hace ${minutos} min`;
+  const horas = Math.round(minutos / 60);
+  if (horas < 24) return `hace ${horas} h`;
+  const dias = Math.round(horas / 24);
+  return dias === 1 ? 'hace 1 día' : `hace ${dias} días`;
+}
+
+/** Texto seguro para insertar en HTML (contenido y atributos entre comillas). */
+export function escaparHtml(texto) {
+  return String(texto ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+}
+
+/** La URL si es http(s); si no, null (evita enlaces «javascript:» en datos externos). */
+export function urlSegura(url) {
+  return typeof url === 'string' && /^https?:\/\//i.test(url.trim()) ? url.trim() : null;
+}
+
+/** Sin tildes y en minúsculas, para buscar. */
+export function normalizar(texto = '') {
+  return String(texto).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+}
+
+/**
+ * Lo que dice el pie con Travelpayouts Drive puesto: tras aceptar las cookies, los enlaces a
+ * webs de su red son de afiliado. Un solo texto para el pie del panel (app.js) y el de las
+ * guías para buscadores (scripts/preparar-web.js).
+ */
+export const AVISO_DRIVE = 'Si aceptas las cookies, los enlaces a webs de la red de Travelpayouts (Booking.com, Trip.com, Omio…) pasan a ser de afiliado.';
+
+/** Plural sencillo: (1, 'vuelo') → «1 vuelo» · (3, 'vuelo') → «3 vuelos». */
+export function contar(n, singular, plural = `${singular}s`) {
+  return `${NUMERO.format(n)} ${n === 1 ? singular : plural}`;
+}
+
+/**
+ * Puntos «x,y» de una polilínea SVG para la serie de precios `[[día, precio], ...]`
+ * dentro de un rectángulo `ancho × alto`. Cadena vacía si hay menos de dos puntos.
+ */
+export function puntosMinigrafica(serie, ancho = 96, alto = 28, margen = 2) {
+  if (!Array.isArray(serie) || serie.length < 2) return '';
+  const precios = serie.map(([, precio]) => precio);
+  const minimo = Math.min(...precios);
+  const maximo = Math.max(...precios);
+  const paso = (ancho - 2 * margen) / (precios.length - 1);
+  const redondear = (n) => Math.round(n * 10) / 10;
+  return precios
+    .map((precio, i) => {
+      const y = maximo === minimo ? alto / 2 : margen + ((maximo - precio) / (maximo - minimo)) * (alto - 2 * margen);
+      return `${redondear(margen + i * paso)},${redondear(y)}`;
+    })
+    .join(' ');
+}
+
+/**
+ * El título de una oferta, más legible: sin palabras enteras en MAYÚSCULAS («ESCALDES,
+ * ANDORRA» → «Escaldes, Andorra»; las siglas cortas como SPA o BCN se quedan) ni emojis.
+ * Solo para enseñar: el título original sigue en los datos y en la búsqueda.
+ */
+export function tituloLegible(titulo = '') {
+  const sinEmojis = String(titulo ?? '').replace(/[\p{Extended_Pictographic}\uFE0F\u200D]/gu, '').replace(/\s{2,}/g, ' ').trim();
+  const capitalizar = (palabra) => palabra.charAt(0) + palabra.slice(1).toLocaleLowerCase('es');
+  const todoMayusculas = sinEmojis === sinEmojis.toLocaleUpperCase('es') && /\p{Lu}{2}/u.test(sinEmojis);
+  if (todoMayusculas) {
+    // Todo en mayúsculas: las palabras largas con inicial (suelen ser nombres: «Lloret»), las
+    // cortas en minúscula («en», «de», «con»), salvo la primera.
+    const frase = sinEmojis.replace(/\p{L}+/gu, (palabra) => (palabra.length > 3 ? capitalizar(palabra) : palabra.toLocaleLowerCase('es')));
+    return frase.charAt(0).toLocaleUpperCase('es') + frase.slice(1);
+  }
+  return sinEmojis.replace(/\p{Lu}{4,}/gu, capitalizar);
+}
+
+/** Tipos de evento (src/enriquecer/agendas.js): [singular, plural, icono]. */
+export const TIPOS_EVENTO = {
+  musica: ['Concierto', 'Conciertos', 'tema-eventos'],
+  fiestas: ['Fiestas', 'Fiestas', 'fuego'],
+  festivales: ['Festival', 'Festivales', 'tema-eventos'],
+  ferias: ['Feria o mercado', 'Ferias y mercados', 'tema-gastronomia'],
+  escena: ['Teatro o espectáculo', 'Teatro y espectáculos', 'estrella'],
+  familia: ['Para niños', 'Para niños', 'tema-familia'],
+  exposiciones: ['Exposición', 'Exposiciones', 'tema-ciudad'],
+  cine: ['Cine', 'Cine', 'tema-singular'],
+  deporte: ['Deporte', 'Deporte', 'tema-aventura'],
+  otros: ['Cultura', 'Más cultura', 'calendario'],
+};

@@ -1,0 +1,81 @@
+# Escapadas Finde · configuración para Apache / LiteSpeed (Hostinger)
+# Generado por scripts/preparar-web.js para https://escapadasfinde.com/
+
+Options -Indexes
+DirectoryIndex index.html
+ErrorDocument 404 /404.html
+AddDefaultCharset utf-8
+AddType application/manifest+json .webmanifest
+AddType application/json .json
+AddType image/svg+xml .svg
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  # Siempre HTTPS.
+  # Detrás de un CDN o proxy, HTTPS llega en X-Forwarded-Proto: se miran los dos (sin bucles).
+  RewriteCond %{HTTPS} !=on
+  RewriteCond %{HTTP:X-Forwarded-Proto} !=https
+  RewriteRule ^ https://escapadasfinde.com%{REQUEST_URI} [R=301,L]
+  # Siempre escapadasfinde.com (www.escapadasfinde.com → escapadasfinde.com).
+  RewriteCond %{HTTP_HOST} !^escapadasfinde\.com$ [NC]
+  RewriteRule ^ https://escapadasfinde.com%{REQUEST_URI} [R=301,L]
+  # Las copias de seguridad de datos y la carpeta .git (despliegue desde Git) nunca se sirven.
+  RewriteRule \.(bak|tmp)$ - [F,L]
+  # Las instrucciones de instalación del zip no son para los visitantes.
+  RewriteRule ^LEEME-HOSTINGER\.txt$ - [F,L]
+  RewriteRule (^|/)\.git(/|$) - [F,L]
+  # Las guías salen y entran con las ofertas de cada día (src/paginas.js): la que hoy no tiene
+  # suficientes no se publica. Quien llegue a ella (un buscador, un enlace guardado) va a la
+  # lista de escapadas o a la portada en vez de a «esta página no existe». Temporal (302):
+  # la guía vuelve en cuanto vuelve a haber ofertas.
+  # La lista de escapadas también es una guía: si hoy tampoco está, a la portada.
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond %{DOCUMENT_ROOT}/escapadas/index.html -f
+  RewriteRule ^escapadas/[^/]+/?$ /escapadas/ [R=302,L]
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^(escapadas|vuelos|actividades)(/.*)?$ / [R=302,L]
+  # Iconos que el iPhone pide por su cuenta aunque la página diga otro: el mismo de siempre.
+  RewriteRule ^apple-touch-icon-(precomposed|[0-9]+x[0-9]+(-precomposed)?)\.png$ apple-touch-icon.png [L]
+</IfModule>
+
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set X-Frame-Options "SAMEORIGIN"
+  Header always set Permissions-Policy "geolocation=(self), camera=(), microphone=(), payment=()"
+  # Siempre (no solo con env=HTTPS): detrás del CDN de Hostinger la petición puede llegar al
+  # servidor sin HTTPS y la cabecera no salía nunca. Por HTTP el navegador la ignora, así que
+  # enviarla siempre no tiene riesgo.
+  Header always set Strict-Transport-Security "max-age=31536000"
+
+  # Los datos en bruto y las instrucciones se pueden leer (el panel los necesita para
+  # pintarse, también cuando lo pinta un buscador), pero no salen en los resultados.
+  <FilesMatch "(\.json|^LEEME-HOSTINGER\.txt)$">
+    Header set X-Robots-Tag "noindex"
+  </FilesMatch>
+
+  # La página, el service worker y los datos se comprueban siempre (cambian cada 15 min).
+  <FilesMatch "(\.html|sw\.js|\.json|\.xml|\.txt|\.webmanifest)$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+  # Estilos y código: se comprueban siempre (si no han cambiado, la respuesta es un «304» de
+  # unos bytes). Con una hora de caché, justo después de publicar el navegador o la CDN podían
+  # mezclar módulos viejos y nuevos y el panel no arrancaba. Las visitas repetidas los sacan
+  # igual de rápido del service worker, que los renueva enteros en cada versión.
+  <FilesMatch "\.(css|js)$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+  <FilesMatch "^sw\.js$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+  # Imágenes y fuentes: no cambian de nombre sin cambiar de contenido.
+  <FilesMatch "\.(png|jpe?g|webp|svg|ico|woff2?)$">
+    Header set Cache-Control "public, max-age=2592000"
+  </FilesMatch>
+</IfModule>
+
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/css text/plain text/xml application/javascript text/javascript application/json application/manifest+json image/svg+xml application/xml
+</IfModule>

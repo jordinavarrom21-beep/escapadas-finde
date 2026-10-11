@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <!-- Defensa en profundidad: aunque se colara HTML en una oferta, no podría ejecutar
+       scripts en línea ni cargar código de otros sitios. Imágenes de cualquier web https
+       (las de las ofertas); conexiones solo al propio sitio y al buscador de lugares. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://emrldco.com https://*.googletagmanager.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://emrldco.com; img-src 'self' https: data:; connect-src 'self' https://photon.komoot.io https://router.project-osrm.org https://emrldco.com https://mn-tz.com https://emrld.cc https://www.travelpayouts.com https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta name="escapadas-google-analytics" content="G-D275EQYWYV">
+  <meta name="escapadas-drive" content="https://emrldco.com/NTgyMTQz.js?t=582143">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <!-- La portada conserva este título al pintarse (app.js): es el que enseñan los buscadores. -->
+  <title>Escapadas de fin de semana desde Barcelona · Escapadas Finde</title>
+  <meta name="description" content="Escapadas de fin de semana desde Barcelona: casas rurales, hoteles con spa, planes y chollos de vuelos de 30 webs, revisados cada 15 minutos y con el coste del viaje completo.">
+  <meta name="robots" content="max-image-preview:large">
+  <!-- Vista previa al compartir el enlace (WhatsApp, redes). El despliegue pone la URL
+       absoluta de og.png (las redes no aceptan rutas relativas). -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Escapadas Finde">
+  <meta property="og:title" content="Escapadas Finde: chollos de escapadas para este finde">
+  <meta property="og:description" content="Escapadas, casas rurales, planes y chollos de vuelos de 30 webs de viajes, juntos y revisados cada 15 minutos.">
+  <meta property="og:image" content="https://escapadasfinde.com/og.png">
+  <meta property="og:url" content="https://escapadasfinde.com/">
+  <link rel="canonical" href="https://escapadasfinde.com/">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:locale" content="es_ES">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#f4efe6" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0f1514" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icono.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-title" content="Escapadas">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <script src="js/tema.js?v=hosting-465dd02d9e68"></script>
+  <link rel="preload" href="fonts/figtree.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/bricolage-grotesque.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="css/estilos.css?v=hosting-465dd02d9e68">
+  <!-- Todos los módulos del panel a la vez: si no, el navegador los descubre uno tras otro al
+       leer cada import (en un móvil, cerca de un segundo más). test/arranque.test.js comprueba
+       que no falte ninguno. -->
+  <link rel="modulepreload" href="js/app.js?v=hosting-465dd02d9e68">
+  <link rel="modulepreload" href="js/filtros.js?v=hosting-465dd02d9e68">
+  <link rel="modulepreload" href="js/vistas.js?v=hosting-465dd02d9e68">
+  <link rel="modulepreload" href="js/vistas-comun.js?v=hosting-465dd02d9e68">
+  <link rel="modulepreload" href="js/vistas-portada.js?v=hosting-465dd02d9e68">
+  <link rel="modulepreload" href="js/vistas-info.js?v=hosting-465dd02d9e68">
+  <link rel="modulepreload" href="js/plantillas.js?v=hosting-465dd02d9e68">
+  <link rel="modulepreload" href="js/plantillas-ficha.js?v=hosting-465dd02d9e68">
+  <link rel="modulepreload" href="js/iconos.js?v=hosting-465dd02d9e68">
+  <link rel="modulepreload" href="js/formato.js?v=hosting-465dd02d9e68">
+  <link rel="modulepreload" href="js/fechas.js?v=hosting-465dd02d9e68">
+  <link rel="modulepreload" href="js/fechas-enlaces.js?v=hosting-465dd02d9e68">
+  <link rel="modulepreload" href="js/ficha.js?v=hosting-465dd02d9e68">
+  <link rel="modulepreload" href="js/cdn.js?v=hosting-465dd02d9e68">
+  <link rel="modulepreload" href="js/coste.js?v=hosting-465dd02d9e68">
+  <link rel="modulepreload" href="js/geo.js?v=hosting-465dd02d9e68">
+  <link rel="modulepreload" href="js/rutas.js?v=hosting-465dd02d9e68">
+  <link rel="modulepreload" href="js/nota.js?v=hosting-465dd02d9e68">
+  <link rel="modulepreload" href="js/local.js?v=hosting-465dd02d9e68">
+  <link rel="modulepreload" href="js/viaje.js?v=hosting-465dd02d9e68">
+  <link rel="modulepreload" href="js/mapa.js?v=hosting-465dd02d9e68">
+  <link rel="modulepreload" href="js/ubicacion.js?v=hosting-465dd02d9e68">
+  <link rel="modulepreload" href="js/vigencia.js?v=hosting-465dd02d9e68">
+  <link rel="modulepreload" href="js/selector-fechas.js?v=hosting-465dd02d9e68">
+  <script type="module" src="js/app.js?v=hosting-465dd02d9e68"></script>
+  <!-- Aviso de cookies, Google Analytics, Google Ads y Travelpayouts Drive: solo si el despliegue
+       pone la etiqueta «escapadas-google-analytics», «escapadas-google-ads» o «escapadas-drive» (consentimiento.js). -->
+  <script src="js/consentimiento.js?v=hosting-465dd02d9e68" defer></script>
+  <!-- datos-estructurados: el despliegue (scripts/preparar-web.js) pone aquí el JSON-LD de la web. -->
+  <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"WebSite","@id":"https://escapadasfinde.com/#web","url":"https://escapadasfinde.com/","name":"Escapadas Finde","inLanguage":"es-ES","publisher":{"@id":"https://escapadasfinde.com/#organizacion"}},{"@type":"Organization","@id":"https://escapadasfinde.com/#organizacion","name":"Escapadas Finde","url":"https://escapadasfinde.com/","logo":"https://escapadasfinde.com/icono-512.png"},{"@type":"CollectionPage","@id":"https://escapadasfinde.com/#portada","url":"https://escapadasfinde.com/","name":"Escapadas Finde: escapadas de fin de semana","inLanguage":"es-ES","isPartOf":{"@id":"https://escapadasfinde.com/#web"},"mainEntity":{"@type":"ItemList","numberOfItems":12,"itemListElement":[{"@type":"ListItem","position":1,"name":"Escapada en Platja d’Aro en un equipado apartamento para que disfrutes a tu aire"},{"@type":"ListItem","position":2,"name":"Hotel 4* Adults Only en Lloret de Mar"},{"@type":"ListItem","position":3,"name":"¡Respira Andorra! Naturaleza, aire fresco y hotel 4* en plena montaña"},{"@type":"ListItem","position":4,"name":"¡Ocasión para familias en la Costa Brava! Hotel 4* en Tossa de Mar"},{"@type":"ListItem","position":5,"name":"Hotel Can Pico: noche íntima en la Costa Brava interior"},{"@type":"ListItem","position":6,"name":"Vacaciones en habitación vista mar con media pensión y spa"},{"@type":"ListItem","position":7,"name":"Escapada relax en Sant Feliu de Guíxols con desayuno y acceso a la zona relax"},{"@type":"ListItem","position":8,"name":"Desconecta en la Pineda en un hotel Adults Only con piscina y acceso al spa"},{"@type":"ListItem","position":9,"name":"Cal Gorguixé"},{"@type":"ListItem","position":10,"name":"Escapada Gastronómica: con media pensión, cava y bombones en el corazón de la Costa Brava"},{"@type":"ListItem","position":11,"name":"Alójate en un hotel 4* a 200m de la playa en Vera (Almería)"},{"@type":"ListItem","position":12,"name":"Escapada Balneario en plena naturaleza con desayuno y circuito termal"}]}}]}</script>
+  <!-- /datos-estructurados -->
+</head>
+<body>
+  <a class="saltar" href="#principal">Saltar al contenido</a>
+
+  <header class="cabecera">
+    <div class="contenedor cabecera__fila">
+      <a class="marca" href="#/finde">
+        <img src="icono.svg" alt="" width="36" height="36">
+        <span>Escapadas Finde</span>
+      </a>
+      <nav class="navegacion" aria-label="Secciones">
+        <ul>
+          <li><a href="#/finde" data-vista="finde"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 8h16v12H4zM9 8V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V8M4 13h16M10.5 13v2h3v-2"/></svg><span>Inicio</span></a></li>
+          <li><a href="#/escapadas" data-vista="escapadas"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 11a7 7 0 1 0 14 0a7 7 0 1 0 -14 0M20 20l-4-4"/></svg><span>Explorar</span></a></li>
+          <li><a href="#/calendario" data-vista="calendario"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 6.5h16V20H4zM4 10.5h16M8.5 4v4M15.5 4v4"/></svg><span>Fechas</span></a></li>
+          <li><a href="#/mis" data-vista="mis"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 20s-7.5-4.6-7.5-10.2A4.2 4.2 0 0 1 12 7.2a4.2 4.2 0 0 1 7.5 2.6C19.5 15.4 12 20 12 20z"/></svg><span>Guardados</span><span id="aviso-mis" class="navegacion__aviso" hidden></span></a></li>
+        </ul>
+      </nav>
+      <div class="cabecera__acciones">
+        <button id="cambiar-tema" class="boton-icono" type="button" aria-label="Cambiar el modo de color"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg></button>
+      </div>
+    </div>
+  </header>
+
+  <div class="contenedor cabecera-info">
+    <div class="cabecera__info">
+      <button id="boton-viaje" class="pastilla pastilla--viaje" type="button" data-mi-viaje aria-haspopup="dialog"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 21s-6.5-5.8-6.5-11.2a6.5 6.5 0 0 1 13 0C18.5 15.2 12 21 12 21zM9.8 9.8a2.2 2.2 0 1 0 4.4 0a2.2 2.2 0 1 0 -4.4 0"/></svg><span>Tu salida</span></button>
+      <a id="novedades" class="pastilla pastilla--novedades" href="#/buscar?nuevas=1" hidden></a>
+      <p id="actualizado" class="cabecera__actualizado" hidden></p>
+    </div>
+    <form id="buscador" class="buscador" role="search">
+      <label class="sr" for="q">Buscar en todas las ofertas</label>
+      <input id="q" name="q" type="search" placeholder="Buscar en todo: destino, hotel, región…" autocomplete="off" enterkeyhint="search">
+      <button class="boton boton--tinta" type="submit"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 11a7 7 0 1 0 14 0a7 7 0 1 0 -14 0M20 20l-4-4"/></svg><span class="sr">Buscar</span></button>
+    </form>
+  </div>
+
+  <main id="principal" class="contenedor" tabindex="-1">
+    <!-- portada-estatica: el despliegue (scripts/preparar-web.js) pone aquí, para quien no
+         ejecuta el panel (buscadores, vistas previas), qué es la web, lo mejor de ahora y las guías. -->
+<div class="portada-estatica">
+<h1>Escapadas de fin de semana desde Barcelona</h1>
+<p>Escapadas, casas rurales, hoteles con spa, planes y chollos de vuelos de 30 webs de viajes, juntos y revisados cada 15 minutos. Cada oferta con el coste del viaje completo para 2 personas desde Barcelona (la oferta y la gasolina), el tiempo en coche y cuándo se comprobó. Datos del dom 11 oct.</p>
+<h2>Lo mejor de ahora</h2>
+<ol class="lista-guia"><li class="fila-guia">
+  <h3>Escapada en Platja d’Aro en un equipado apartamento para que disfrutes a tu aire</h3>
+  <p>📍 Platja d&#39;Aro, Cataluña · Fechas flexibles · 1 h 24 min en coche · ⭐ 7,7</p>
+  <p class="fila-guia__precio"><strong>Viaje completo: ≈ 35 € por persona</strong> (69 € para 2 personas, 1 noche) · <span class="suave">Precio en Weekendesk: desde 44,93 € en total</span></p>
+  <p class="suave">Publicada en Weekendesk · precio visto allí el sáb 10 oct · <a href="https://www.weekendesk.es/fin-de-semana/21371796/escapadas-fin-de-semana-en-Platja_d_Aro-Cataluna-minivacaciones_verano" rel="nofollow noopener" target="_blank">Ver la oferta<span class="sr"> en Weekendesk (se abre en otra pestaña)</span></a></p>
+</li><li class="fila-guia">
+  <h3>Hotel 4* Adults Only en Lloret de Mar</h3>
+  <p>📍 Lloret de Mar, Girona · Fechas flexibles · 1 h 2 min en coche</p>
+  <p class="fila-guia__precio"><strong>Viaje completo: ≈ 48 € por persona</strong> (96 € para 2 personas, 2 noches) · <span class="suave">Precio en BuscoUnChollo: desde 39 € por persona</span></p>
+  <p class="suave">Publicada en BuscoUnChollo · precio visto allí el dom 11 oct · <a href="https://www.buscounchollo.com/reserva-chollo/38392/hotel-4-adults-only-en-lloret-de-mar-a-que-esperas" rel="nofollow noopener" target="_blank">Ver la oferta<span class="sr"> en BuscoUnChollo (se abre en otra pestaña)</span></a></p>
+</li><li class="fila-guia">
+  <h3>¡Respira Andorra! Naturaleza, aire fresco y hotel 4* en plena montaña</h3>
+  <p>📍 Arinsal, La Massana · Fechas flexibles · 2 h 54 min en coche</p>
+  <p class="fila-guia__precio"><strong>Viaje completo: ≈ 43 € por persona</strong> (86 € para 2 personas, 1 noche) · <span class="suave">Precio en BuscoUnChollo: desde 20 € por persona</span></p>
+  <p class="suave">Publicada en BuscoUnChollo · precio visto allí el dom 11 oct · <a href="https://www.buscounchollo.com/reserva-chollo/39721/respira-andorra-naturaleza-aire-fresco-y-hotel-4-en-plena-montana" rel="nofollow noopener" target="_blank">Ver la oferta<span class="sr"> en BuscoUnChollo (se abre en otra pestaña)</span></a></p>
+</li><li class="fila-guia">
+  <h3>¡Ocasión para familias en la Costa Brava! Hotel 4* en Tossa de Mar</h3>
+  <p>📍 Tossa de Mar, Girona · Fechas flexibles · 1 h 15 min en coche</p>
+  <p class="fila-guia__precio"><strong>Viaje completo: ≈ 39 € por persona</strong> (78 € para 2 personas, 1 noche) · <span class="suave">Precio en BuscoUnChollo: desde 29 € por persona</span></p>
+  <p class="suave">Publicada en BuscoUnChollo · precio visto allí el dom 11 oct · <a href="https://www.buscounchollo.com/reserva-chollo/38806/ocasion-para-familias-en-la-costa-brava-hotel-4-en-tossa-de-mar" rel="nofollow noopener" target="_blank">Ver la oferta<span class="sr"> en BuscoUnChollo (se abre en otra pestaña)</span></a></p>
+</li><li class="fila-guia">
+  <h3>Hotel Can Pico: noche íntima en la Costa Brava interior</h3>
+  <p>📍 Roses, Girona · Fechas flexibles · 1 h 57 min en coche</p>
+  <p class="fila-guia__precio"><strong>Viaje completo: ≈ 60 € por persona</strong> (120 € para 2 personas) · <span class="suave">Precio en Atrápalo: desde 42 € por persona</span></p>
+  <p class="suave">Publicada en Atrápalo · precio visto allí el sáb 10 oct · <a href="https://www.atrapalo.com/escapadas/hotel-can-pico-noche-intima-en-la-costa-brava-interior_v68679" rel="nofollow noopener" target="_blank">Ver la oferta<span class="sr"> en Atrápalo (se abre en otra pestaña)</span></a></p>
+</li><li class="fila-guia">
+  <h3>Vacaciones en habitación vista mar con media pensión y spa</h3>
+  <p>📍 Coma-Ruga, Cataluña · Fechas flexibles · 57 min en coche · ⭐ 9,1</p>
+  <p class="fila-guia__precio"><strong>Viaje completo: ≈ 54 € por persona</strong> (109 € para 2 personas, 1 noche) · <span class="suave">Precio en Weekendesk: desde 93,58 € en total</span></p>
+  <p class="suave">Publicada en Weekendesk · precio visto allí el sáb 10 oct · <a href="https://www.weekendesk.es/fin-de-semana/21973896/escapadas-fin-de-semana-en-Tarragona-Cataluna-Playa" rel="nofollow noopener" target="_blank">Ver la oferta<span class="sr"> en Weekendesk (se abre en otra pestaña)</span></a></p>
+</li><li class="fila-guia">
+  <h3>Escapada relax en Sant Feliu de Guíxols con desayuno y acceso a la zona relax</h3>
+  <p>📍 Sant Feliu de Guíxols, Cataluña · Fechas flexibles · 1 h 21 min en coche · ⭐ 8,8</p>
+  <p class="fila-guia__precio"><strong>Viaje completo: ≈ 58 € por persona</strong> (116 € para 2 personas, 1 noche) · <span class="suave">Precio en Weekendesk: desde 92,53 € en total</span></p>
+  <p class="suave">Publicada en Weekendesk · precio visto allí el sáb 10 oct · <a href="https://www.weekendesk.es/fin-de-semana/21794230/escapadas-fin-de-semana-en-Sant_Feliu_de_Guixols-Cataluna-Relax" rel="nofollow noopener" target="_blank">Ver la oferta<span class="sr"> en Weekendesk (se abre en otra pestaña)</span></a></p>
+</li><li class="fila-guia">
+  <h3>Desconecta en la Pineda en un hotel Adults Only con piscina y acceso al spa</h3>
+  <p>📍 La Pineda, Cataluña · Fechas flexibles · 51 min en coche · ⭐ 9,5</p>
+  <p class="fila-guia__precio"><strong>Viaje completo: ≈ 41 € por persona</strong> (82 € para 2 personas, 1 noche) · <span class="suave">Precio en Weekendesk: desde 71,60 € en total</span></p>
+  <p class="suave">Publicada en Weekendesk · precio visto allí el sáb 10 oct · <a href="https://www.weekendesk.es/fin-de-semana/21842438/escapadas-fin-de-semana-en-Platja_de_la_Pineda-Cataluna-spa" rel="nofollow noopener" target="_blank">Ver la oferta<span class="sr"> en Weekendesk (se abre en otra pestaña)</span></a></p>
+</li><li class="fila-guia">
+  <h3>Cal Gorguixé</h3>
+  <p>📍 Castell de l&#39;Areny, Barcelona · Fechas flexibles · 1 h 38 min en coche · ⭐ 9,9</p>
+  <p class="fila-guia__precio"><strong>Viaje completo: ≈ 62 € por persona</strong> (123 € para 2 personas, 2 noches) · <span class="suave">Precio en Tus Casas Rurales: desde 24 € por persona y noche</span></p>
+  <p class="suave">Publicada en Tus Casas Rurales · precio visto allí el sáb 10 oct · <a href="https://www.tuscasasrurales.com/cal-gorguixe-f24600.htm" rel="nofollow noopener" target="_blank">Ver la oferta<span class="sr"> en Tus Casas Rurales (se abre en otra pestaña)</span></a></p>
+</li><li class="fila-guia">
+  <h3>Escapada Gastronómica: con media pensión, cava y bombones en el corazón de la Costa Brava</h3>
+  <p>📍 L&#39;Estartit, Cataluña · Fechas flexibles · 1 h 56 min en coche · ⭐ 9,2</p>
+  <p class="fila-guia__precio"><strong>Viaje completo: ≈ 71 € por persona</strong> (142 € para 2 personas, 1 noche) · <span class="suave">Precio en Weekendesk: desde 109,20 € en total</span></p>
+  <p class="suave">Publicada en Weekendesk · precio visto allí el sáb 10 oct · <a href="https://www.weekendesk.es/fin-de-semana/21836906/escapadas-fin-de-semana-en-L_Estartit-Cataluna-Gourmet" rel="nofollow noopener" target="_blank">Ver la oferta<span class="sr"> en Weekendesk (se abre en otra pestaña)</span></a></p>
+</li><li class="fila-guia">
+  <h3>Alójate en un hotel 4* a 200m de la playa en Vera (Almería)</h3>
+  <p>📍 Vera, Almería · Fechas flexibles · 7 h 50 min en coche</p>
+  <p class="fila-guia__precio"><strong>Viaje completo: ≈ 110 € por persona</strong> (219 € para 2 personas, 1 noche) · <span class="suave">Precio en BuscoUnChollo: desde 29 € por persona</span></p>
+  <p class="suave">Publicada en BuscoUnChollo · precio visto allí el dom 11 oct · <a href="https://www.buscounchollo.com/reserva-chollo/38568/alojate-en-un-hotel-4-a-200m-de-la-playa-en-vera-almeria" rel="nofollow noopener" target="_blank">Ver la oferta<span class="sr"> en BuscoUnChollo (se abre en otra pestaña)</span></a></p>
+</li><li class="fila-guia">
+  <h3>Escapada Balneario en plena naturaleza con desayuno y circuito termal</h3>
+  <p>📍 Rocallaura, Cataluña · Fechas flexibles · 1 h 40 min en coche · ⭐ 8,2</p>
+  <p class="fila-guia__precio"><strong>Viaje completo: ≈ 70 € por persona</strong> (140 € para 2 personas, 1 noche) · <span class="suave">Precio en Weekendesk: desde 110,51 € en total</span></p>
+  <p class="suave">Publicada en Weekendesk · precio visto allí el sáb 10 oct · <a href="https://www.weekendesk.es/fin-de-semana/21300810/escapadas-fin-de-semana-en-Rocallaura-Cataluna-balnearios" rel="nofollow noopener" target="_blank">Ver la oferta<span class="sr"> en Weekendesk (se abre en otra pestaña)</span></a></p>
+</li></ol>
+<nav class="guias" aria-label="Guías"><div class="guias__grupo"><h2>Escapadas</h2><ul><li><a href="escapadas/">Todas las escapadas</a></li><li><a href="escapadas/sin-coche/">Sin coche</a></li></ul></div><div class="guias__grupo"><h2>Por temática y alojamiento</h2><ul><li><a href="escapadas/spa/">Escapadas con spa</a></li><li><a href="escapadas/con-ninos/">Escapadas con niños</a></li><li><a href="escapadas/rurales/">Escapadas rurales</a></li><li><a href="escapadas/romanticas/">Escapadas románticas</a></li><li><a href="escapadas/playa/">Escapadas a la playa</a></li><li><a href="escapadas/gastronomicas/">Escapadas gastronómicas y de vino</a></li><li><a href="escapadas/con-perro/">Escapadas con perro</a></li><li><a href="escapadas/aventura-y-nieve/">Escapadas de aventura y nieve</a></li><li><a href="escapadas/ciudades/">Escapadas a ciudades</a></li><li><a href="escapadas/alojamientos-singulares/">Alojamientos singulares</a></li><li><a href="escapadas/parques-tematicos/">Escapadas a parques temáticos</a></li><li><a href="escapadas/campings/">Campings y glamping</a></li></ul></div><div class="guias__grupo"><h2>Por zona</h2><ul><li><a href="escapadas/girona/">Escapadas en Girona</a></li><li><a href="escapadas/barcelona/">Escapadas en Barcelona</a></li><li><a href="escapadas/tarragona/">Escapadas en Tarragona</a></li><li><a href="escapadas/lleida/">Escapadas en Lleida</a></li><li><a href="escapadas/canarias/">Escapadas en Canarias</a></li></ul></div><div class="guias__grupo"><h2>Vuelos y planes</h2><ul><li><a href="vuelos/">Vuelos baratos</a></li><li><a href="actividades/gratis/">Actividades gratis</a></li></ul></div></nav>
+</div>
+    <!-- /portada-estatica -->
+    <p class="cargando" role="status">Cargando ofertas…</p>
+    <noscript>
+      <section class="sin-js" aria-labelledby="sin-js-titulo">
+        <h2 id="sin-js-titulo">El panel necesita JavaScript</h2>
+        <p>Para filtrar, ver el mapa y guardar ofertas hay que activarlo. Mientras, tienes las guías, que se leen sin él:</p>
+        <ul>
+          <li><a href="escapadas/">Todas las escapadas</a></li>
+          <li><a href="escapadas/menos-de-100-euros/">Escapadas por menos de 100 €</a></li>
+          <li><a href="vuelos/">Vuelos baratos</a></li>
+          <li><a href="actividades/gratis/">Actividades gratis</a></li>
+        </ul>
+      </section>
+    </noscript>
+  </main>
+
+  <footer class="pie contenedor">
+    <p class="pie__marca"><img src="icono.svg" alt="" width="28" height="28"> Escapadas Finde</p>
+    <p>Reunimos ofertas publicadas por webs de viajes y las revisamos cada 15 minutos. No vendemos nada: el precio y
+      las condiciones los confirma siempre la web de la oferta al reservar.</p>
+    <p><a href="#/ayuda">Cómo funciona</a> · <a href="#/ayuda?seccion=privacidad">Privacidad</a> · <a href="#/ayuda?seccion=aviso-legal">Aviso legal</a><span id="contacto-pie" hidden> · <a href="#/ayuda?seccion=aviso-legal">Contacto</a></span> · <span data-sin-cookies>Sin cookies ni seguimiento</span> ·
+      Mapa © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> ·
+      Lugares con <a href="https://photon.komoot.io" target="_blank" rel="noopener noreferrer">Photon</a></p>
+    <p><a id="estado-fuentes" class="estado-fuentes" href="#/fuentes" hidden><span class="punto" aria-hidden="true"></span><span class="estado-fuentes__texto">Estado de las webs</span></a></p>
+    <p id="aviso-comercial"></p>
+    <p>Guías: <a href="escapadas/">escapadas</a> · <a href="escapadas/menos-de-100-euros/">por menos de 100 €</a> ·
+      <a href="escapadas/spa/">con spa</a> · <a href="escapadas/con-ninos/">con niños</a> · <a href="vuelos/">chollos de vuelos</a> ·
+      <a href="actividades/gratis/">actividades gratis</a></p>
+  </footer>
+
+  <dialog id="ficha" class="ficha" aria-labelledby="ficha-titulo">
+    <div class="ficha__caja">
+      <div class="ficha__barra">
+        <button type="button" class="boton-icono" data-cerrar-ficha aria-label="Cerrar la ficha"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div>
+      <div class="ficha__contenido"></div>
+    </div>
+  </dialog>
+
+  <dialog id="mi-viaje" class="ficha ficha--viaje" aria-labelledby="viaje-titulo">
+    <form class="ficha__caja" id="form-viaje"></form>
+  </dialog>
+
+  <div id="barra-comparar" class="barra-comparar" hidden></div>
+
+  <div id="datos-nuevos" class="aviso-flotante aviso-flotante--datos" role="status" hidden></div>
+  <div id="aviso" class="aviso-flotante" role="status" aria-live="polite"></div>
+</body>
+</html>
