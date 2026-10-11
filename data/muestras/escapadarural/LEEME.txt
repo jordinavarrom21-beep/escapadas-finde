@@ -1,0 +1,7 @@
+Fuente: escapadarural
+Cuándo: 2026-10-10T21:27:37.182Z
+Motivo: Los precios han cambiado mucho de golpe (lo normal, unos 35 €; ahora, 441 €). Puede que se esté leyendo otro número de la página. ¿Ha cambiado la web?
+
+pagina-1.html: https://www.escapadarural.com/ofertas-casas-rurales
+pagina-2.html: https://www.escapadarural.com/ofertas-casas-rurales?page=2
+pagina-3.html: https://www.escapadarural.com/casas-rurales/barcelona

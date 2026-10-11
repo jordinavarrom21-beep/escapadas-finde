@@ -1,0 +1,7 @@
+Fuente: huttopia
+Cuándo: 2026-10-11T01:39:38.632Z
+Motivo: 0 ofertas (la última vez 1): no se borra lo guardado (¿ha cambiado la web?)
+
+pagina-1.html: https://europe.huttopia.com/es/
+pagina-2.html: https://europe.huttopia.com/es/apertura-ventas/
+pagina-3.html: https://europe.huttopia.com/es/nuestras-ofertas/alquiler-chalets-en-invierno/
