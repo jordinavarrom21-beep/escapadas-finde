@@ -14,9 +14,14 @@
  * - Como mucho `apify.googleHoteles.maxPorDia` hoteles al día, los de mejor nota primero, y
  *   cada precio vale `diasValidez` días (o hasta que pasa su viernes). Los enlaces de Google son
  *   de anuncios con seguimiento: no se guardan.
+ * - El actor busca el hotel por «establecimiento, lugar». Si no lo encuentra (acaba en error),
+ *   se guarda como «sin precios» y se pasa al siguiente: si no, el mismo hotel gastaría el cupo
+ *   todos los días. Para un hotel que no encuentra, `apify.googleHoteles.entidades` dice qué
+ *   buscar: {"nombre del establecimiento": "id «Ch…» de su URL de Google Hoteles"} (o un nombre
+ *   que sí encuentre).
  */
 import { mismoNombre } from './google-maps.js';
-import { anotarConsultas, consultasDeHoy, ejecutarActor } from '../util/apify.js';
+import { anotarConsultas, consultasDeHoy, ejecucionFallida, ejecutarActor } from '../util/apify.js';
 import { fechaLocal } from '../util/fechas.js';
 import { normalizarTexto } from '../util/xml.js';
 
@@ -28,6 +33,12 @@ const MAX_USD_POR_HOTEL = 0.05;
 
 const plano = (texto) => normalizarTexto(texto).replace(/[^a-z0-9]+/g, ' ').trim();
 const clave = (o) => `ghoteles:${plano(o.establecimiento)}|${plano(o.lugar.nombre)}`;
+
+/** Lo que se le pide al actor: lo de `config.entidades` para ese establecimiento o «establecimiento, lugar». */
+export function entidadDe(oferta, config = {}) {
+  const propia = Object.entries(config.entidades ?? {}).find(([nombre]) => plano(nombre) === plano(oferta.establecimiento))?.[1];
+  return propia?.trim() || `${oferta.establecimiento}, ${oferta.lugar.nombre}`;
+}
 
 export const candidatasHoteles = (ofertas) => ofertas.filter((o) => o.tipo !== 'vuelo' && o.establecimiento && o.lugar?.nombre && ALOJAMIENTOS.has(o.alojamiento));
 
@@ -60,8 +71,12 @@ export function preciosDeFilas(filas, oferta, fecha) {
   return { fecha, adultos: oficial.adults ?? null, minimo: ordenados[0].precio, proveedores };
 }
 
-/** Vale lo guardado si es de un viernes que aún no ha pasado. */
-const vigente = (guardado, hoy) => guardado && guardado.fecha > hoy;
+/**
+ * Vale lo guardado si es de un viernes que aún no ha pasado y se buscó lo mismo que ahora (si
+ * cambia `entidades`, se vuelve a consultar). Lo guardado antes de `entidad` buscaba «establecimiento, lugar».
+ */
+const vigente = (guardado, hoy, oferta, config) => guardado && guardado.fecha > hoy
+  && (guardado.entidad ?? `${oferta.establecimiento}, ${oferta.lugar.nombre}`) === entidadDe(oferta, config);
 
 export async function anadirPreciosGoogle(ofertas, ctx) {
   const config = { ...POR_DEFECTO, ...ctx.ajustes.apify?.googleHoteles };
@@ -72,7 +87,7 @@ export async function anadirPreciosGoogle(ofertas, ctx) {
   for (const oferta of ofertas) oferta.preciosGoogle = null;
   for (const oferta of candidatasHoteles(ofertas)) {
     const guardado = ctx.cache.obtener(clave(oferta), config.diasValidez * DIA_MS, ahora);
-    if (vigente(guardado, hoy)) {
+    if (vigente(guardado, hoy, oferta, config)) {
       if (guardado.precios) oferta.preciosGoogle = guardado.precios;
     } else if (!pendientes.has(clave(oferta))) {
       pendientes.set(clave(oferta), oferta);
@@ -89,18 +104,25 @@ export async function anadirPreciosGoogle(ofertas, ctx) {
     if (!fecha) continue;
     // Se cuenta antes de lanzar: un intento fallido también gasta el cupo del día.
     anotarConsultas(ctx.cache, 'googleHoteles', ctx.ahora, 1);
+    const entidad = entidadDe(oferta, config);
     let filas;
     try {
       filas = await ejecutarActor(ctx, 'googleHoteles', {
-        entity: `${oferta.establecimiento}, ${oferta.lugar.nombre}`, checkInDate: fecha, days: 1,
+        entity: entidad, checkInDate: fecha, days: 1,
         adults: ctx.ajustes.viajeros ?? 2, currency: 'EUR',
       }, { maxUsd: MAX_USD_POR_HOTEL });
     } catch (error) {
-      ctx.log(`Google Hoteles: ${error.message}`);
-      break;
+      if (!ejecucionFallida(error)) {
+        ctx.log(`Google Hoteles: ${error.message}`);
+        break;
+      }
+      // El actor no encuentra ese hotel: sin precios hasta que caduque o cambie `entidades`.
+      ctx.log(`Google Hoteles: no encuentra «${entidad}»; pon el id «Ch…» de su URL de Google Hoteles en apify.googleHoteles.entidades`);
+      ctx.cache.guardar(clave(oferta), { fecha, entidad, precios: null }, ahora);
+      continue;
     }
     const precios = preciosDeFilas(filas, oferta, fecha);
-    ctx.cache.guardar(clave(oferta), { fecha, precios }, ahora);
+    ctx.cache.guardar(clave(oferta), { fecha, entidad, precios }, ahora);
     if (precios) {
       conPrecios += 1;
       for (const o of candidatasHoteles(ofertas)) if (clave(o) === clave(oferta)) o.preciosGoogle = precios;
