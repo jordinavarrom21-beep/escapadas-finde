@@ -48,11 +48,15 @@ export function parsear(html, ctx = {}) {
   return deduplicar(ofertas);
 }
 
-/** Ruta en base64 del formulario oculto → URL absoluta, o null si no se entiende. */
+/**
+ * Ruta en base64 del formulario oculto → URL absoluta, o null si no se entiende o no es
+ * de Clubrural («//otra.web/…» y «/\otra.web/…» también empiezan por «/»).
+ */
 export function rutaDestino(base64 = '') {
   try {
     const ruta = Buffer.from(base64, 'base64').toString('utf8');
-    return ruta.startsWith('/') ? new URL(ruta, WEB) : null;
+    const url = ruta.startsWith('/') ? new URL(ruta, WEB) : null;
+    return url?.origin === WEB ? url : null;
   } catch {
     return null;
   }
