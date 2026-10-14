@@ -27,8 +27,9 @@ const LUGAR = { nombre: 'Grandvalira', region: 'Andorra', pais: 'Andorra', codig
 const DESAFIO = /cf-chl|challenge-platform|just a moment|attention required|captcha-delivery|datadome|access denied/i;
 
 const limpiar = (texto) => String(texto ?? '').replace(/\s+/g, ' ').trim();
+// Desde el principio del número: «1195,97 €» se leía «195,97» (los packs de 7 noches pasan de mil).
 const euros = (texto) => {
-  const numero = texto.match(/(\d{1,3}(?:\.\d{3})*(?:,\d{1,2})?)\s*€/)?.[1];
+  const numero = texto.match(/(?<![\d.])(\d+(?:\.\d{3})*(?:,\d{1,2})?)\s*€/)?.[1];
   return numero ? Number(numero.replace(/\./g, '').replace(',', '.')) : null;
 };
 const dia = (iso) => (/^\d{4}-\d{2}-\d{2}/.test(iso ?? '') ? iso.slice(0, 10) : null);

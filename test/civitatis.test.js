@@ -83,7 +83,17 @@ describe('civitatis: parsear (páginas reales)', () => {
   it('en la Costa Brava (un hub) no inventa coordenadas y usa el nombre oficial del pueblo', () => {
     const costa = parsear(PAGINAS['costa-brava'], {}, COSTA_BRAVA);
     assert.equal(costa.length, 25);
-    assert.ok(costa.every((o) => o.lugar.lat === null && o.lugar.lon === null), 'las completa geo.js');
+    const deGirona = costa.filter((o) => o.url.includes('/es/gerona/'));
+    const dePueblos = costa.filter((o) => !o.url.includes('/es/gerona/'));
+    assert.ok(dePueblos.length && dePueblos.every((o) => o.lugar.lat === null && o.lugar.lon === null && o.id.startsWith('civitatis:costa-brava:')), 'las completa geo.js');
+    // Las de Girona que salen en el hub son las mismas que da la página de Girona: mismo id y coordenadas.
+    const girona = parsear(PAGINAS.gerona, {}, { slug: 'gerona', nombre: 'Girona', region: 'Girona', lat: 41.9794, lon: 2.8214 });
+    assert.ok(deGirona.length);
+    for (const o of deGirona) {
+      const misma = girona.find((g) => g.url === o.url);
+      assert.ok(o.id.startsWith('civitatis:gerona:') && o.lugar.lat === 41.9794, o.id);
+      if (misma) assert.equal(o.id, misma.id);
+    }
     const nombres = new Set(costa.map((o) => o.lugar.nombre));
     for (const exonimo of ['Gerona', 'Rosas', 'Estartit']) assert.ok(!nombres.has(exonimo), exonimo);
     assert.ok(nombres.has('Girona') && nombres.has('Roses') && nombres.has("L'Estartit"));
@@ -141,6 +151,17 @@ describe('civitatis: obtener', () => {
     const gerona = ofertas.find((o) => o.url.endsWith('/es/gerona/free-tour-gerona/'));
     assert.equal(gerona.id, 'civitatis:gerona:free-tour-gerona');
     assert.equal(gerona.lugar.lat, 41.9794);
+  });
+
+  it('el día que falla Girona, sus actividades (vistas desde la Costa Brava) conservan el id: no se guardan dos veces', async () => {
+    const { ctx: todo } = crearCtx({ respuestas: respuestas() });
+    const idPorRuta = new Map((await fuente.obtener(todo)).ofertas.map((o) => [o.url, o.id]));
+    const { ctx } = crearCtx({ respuestas: respuestas({ gerona: new ErrorHttp(500, urlDe('gerona')) }) });
+    const { ofertas, reemplazar } = await fuente.obtener(ctx);
+    const deGirona = ofertas.filter((o) => o.url.includes('/es/gerona/'));
+    assert.equal(deGirona.length, 8);
+    for (const o of ofertas) assert.equal(o.id, idPorRuta.get(o.url), o.url);
+    assert.ok(!reemplazar(deGirona[0]), 'lo guardado de Girona no se retira el día que falla');
   });
 
   it('reemplazar solo afecta a los destinos leídos bien', async () => {

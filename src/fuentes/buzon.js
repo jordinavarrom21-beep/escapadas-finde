@@ -68,7 +68,8 @@ export const COMERCIOS = [
   { nombre: 'Eurocamp', dominios: ['eurocamp.es', 'eurocamp.co.uk'], web: 'https://www.eurocamp.es', tipo: 'hotel', temas: ['rural'] },
   { nombre: 'Pitchup', dominios: ['pitchup.com'], web: 'https://www.pitchup.com/es/', tipo: 'hotel', temas: ['rural'] },
   { nombre: 'Sandaya', dominios: ['sandaya.es', 'sandaya.fr', 'sandaya.com'], web: 'https://www.sandaya.es', tipo: 'hotel', temas: ['rural'] },
-  { nombre: 'Huttopia', dominios: ['huttopia.com'], web: 'https://europe.huttopia.com/es/', tipo: 'hotel', temas: ['rural'] },
+  // Su web está en europe.huttopia.com (no en www.): sin `hosts`, ningún enlace se quedaba con su oferta.
+  { nombre: 'Huttopia', dominios: ['huttopia.com'], hosts: ['europe.huttopia.com'], web: 'https://europe.huttopia.com/es/', tipo: 'hotel', temas: ['rural'] },
   { nombre: 'Vueling', dominios: ['vueling.com'], web: 'https://www.vueling.com/es', tipo: 'vuelo', transporte: 'avion' },
   { nombre: 'easyJet', dominios: ['easyjet.com'], web: 'https://www.easyjet.com/es', tipo: 'vuelo', transporte: 'avion' },
   { nombre: 'Wizz Air', dominios: ['wizzair.com'], web: 'https://wizzair.com/es-es', tipo: 'vuelo', transporte: 'avion' },
@@ -94,7 +95,9 @@ export const COMERCIOS = [
 const BAJA = /\bbaja\b|unsubscribe|cancelar (la |tu )?suscripcion|gestionar (tus |las |la )?(suscripcion|preferencias)|preferencias|preferences|opt-?out|ver (este )?(email|correo|mensaje)? ?en (el|tu) navegador|ver online|version (web|online)|view (it )?(in|on) (your )?browser|web ?version/;
 const DESCARTE_TEXTO = /^(pulsa|haz clic|haz click|clic|click|clica|pincha) (aqui|here)$|^(aqui|here)$|no (ves|se ve|puedes ver) bien|privacidad|privacy|aviso legal|\blegal\b|condiciones|terminos|\bterms\b|cookies|centro de ayuda|\bayuda\b|\bhelp\b|contacto|\bcontact\b|mi cuenta|my account|iniciar sesion|\blog ?in\b|\bsign ?in\b|app store|google play|descarga (la|nuestra) app|^(facebook|instagram|twitter|x|youtube|linkedin|tiktok|pinterest|whatsapp|telegram)$/;
 const DESCARTE_HREF = /^(mailto|tel|sms):|unsubscribe|opt-?out|\/baja\b|preferenc|subscription|privacy|privacidad|legal|cookies|terms|condiciones|facebook\.com|instagram\.com|twitter\.com|\/\/(www\.)?x\.com|youtube\.com|linkedin\.com|tiktok\.com|pinterest\.|wa\.me|whatsapp|\/\/t\.me\/|apps\.apple\.com|play\.google\.com|view-?online|webversion|viewinbrowser/;
-const CTA = /^(ver|reserva|reservar|reserva ya|comprar|compra|descubre|descubrir|consulta|consultar|mas info|mas informacion|me interesa|buscar|busca|lo quiero|aprovecha|vuela|book|go)\b/;
+const CTA = /^(ver|reserva|reservar|reserva ya|comprar|compra|descubre|descubrir|consulta|consultar|mas info|mas informacion|me interesa|buscar|busca|lo quiero|aprovecha|vuela|book|go|apuntate|suscribete|registrate|unete|hazte)\b/;
+/** La nota de las opiniones en una tarjeta («9.3 Extraordinario», «8,7 Fabuloso»): no es el título. */
+const NOTA = /^\d{1,2}(?:[.,]\d)?\s+\p{L}+$/u;
 const CONTENEDORES = new Set(['td', 'tr', 'table', 'div', 'p', 'li', 'section', 'article', 'center']);
 const TACHADO = 's, del, strike, [style*="line-through"]';
 
@@ -116,6 +119,8 @@ const CODIGO_PERSONAL = /((?:socio|cliente|miembro|usuario|tarjeta)(?:\s+\p{L}+)
 const SALUDO = '(?:[Hh]ola|[Hh]i|[Hh]ello|[Hh]ey|[Qq]uerid[oa]|[Ee]stimad[oa]|[Bb]on dia|[Bb]uenos d[ií]as|[Bb]uenas(?: tardes| noches)?)';
 const NOMBRE_PROPIO = '\\p{Lu}\\p{Ll}{2,}(?:\\s+\\p{Lu}\\p{Ll}{2,}){0,2}';
 const NOMBRE_EN_SALUDO = new RegExp(`(?:${SALUDO}|[Pp]ara ti|[Gg]racias)[\\s,]+(${NOMBRE_PROPIO})`, 'gu');
+/** Etiquetas que separan párrafos: un saludo y su nombre van en el mismo. */
+const BLOQUE_HTML = /<\/?(?:p|div|h[1-6]|td|th|tr|li|br|hr|table|section|article|header|footer|center)\b[^>]*>/i;
 /** Vocativos del asunto: «Jordi, …», «¡Jordi Navarro, …» o «…, Jordi: …». */
 const VOCATIVOS = [
   new RegExp(`^[¡¿]?\\s*(${NOMBRE_PROPIO}),\\s`, 'u'),
@@ -278,24 +283,29 @@ export function urlDirecta(enlace, comercio) {
 /**
  * Sigue las redirecciones de un enlace de newsletter (como mucho `maxSaltos`
  * peticiones y `limiteMs` en total) hasta que apunta a la web del comercio, sin
- * llegar a pedirla. Devuelve esa URL limpia o null si acaba en otro sitio.
+ * llegar a pedirla. Devuelve esa URL limpia o null si acaba en otro sitio; entonces
+ * `alFallar` recibe dónde se quedó (solo el host y la respuesta: el enlace lleva tokens).
  * Lanza ErrorBloqueo si algún servidor responde 403 o 429.
  * @param {{redireccion: (url: string, opciones: {timeoutMs: number}) => Promise<{estado: number, destino: string|null}>}} http
  */
-export async function resolverEnlace(enlace, comercio, http, { maxSaltos = MAX_SALTOS, limiteMs = LIMITE_ENLACE_MS } = {}) {
+export async function resolverEnlace(enlace, comercio, http, { maxSaltos = MAX_SALTOS, limiteMs = LIMITE_ENLACE_MS, alFallar = () => {} } = {}) {
   const fin = Date.now() + limiteMs;
   let actual = enlace;
+  let estado = null;
   for (let salto = 0; salto < maxSaltos; salto++) {
     const directa = urlDirecta(actual, comercio);
     if (directa) return directa;
     const restante = fin - Date.now();
-    if (restante <= 0 || !/^https?:\/\//.test(actual)) return null;
-    const { estado, destino } = await http.redireccion(actual, { timeoutMs: restante });
+    if (restante <= 0 || !/^https?:\/\//.test(actual)) break;
+    const respuesta = await http.redireccion(actual, { timeoutMs: restante });
+    estado = respuesta.estado;
     if (estado === 403 || estado === 429) throw new ErrorBloqueo(estado, actual);
-    if (estado < 300 || estado >= 400 || !destino) return null;
-    actual = destino;
+    if (estado < 300 || estado >= 400 || !respuesta.destino) break;
+    actual = respuesta.destino;
   }
-  return urlDirecta(actual, comercio);
+  const final = urlDirecta(actual, comercio);
+  if (!final) alFallar(`acaba en ${URL.canParse(actual) ? new URL(actual).host : 'un enlace que no es web'}${estado ? ` (responde ${estado})` : ''}`);
+  return final;
 }
 
 // ---------------------------------------------------------------------------
@@ -354,15 +364,24 @@ function ampliar(contenedor, elegidos, lector) {
   return mejor;
 }
 
-const esTitulo = (texto) => {
+const esTitulo = (texto, minimo = 8) => {
   const normal = normalizarTexto(texto);
-  return texto.length >= 8 && !/^https?:\/\//.test(texto) && !/^\W*[\d.,]+\s*€/.test(texto) && !(texto.length <= 25 && CTA.test(normal));
+  return texto.length >= minimo && !/^https?:\/\//.test(texto) && !/^\W*[\d.,]+\s*€/.test(texto) && !(texto.length <= 25 && CTA.test(normal)) && !NOTA.test(texto);
 };
+/** Palabras sueltas de enlace que no son el nombre de nada. */
+const GENERICO = /^(mas|info|web|link|enlace|leer|ir|aqui|here|more|go)$/;
+/**
+ * «Poncia», «Bonobos»: el nombre de un espectáculo puede ser más corto que un título normal. Solo
+ * si la tarjeta no tiene otro: así la nota de las opiniones («9.7 Extraordinario») no lo tapa.
+ */
+const esNombreCorto = (texto) => texto.length >= 3 && /^\p{Lu}/u.test(texto) && !/\d/.test(texto)
+  && !GENERICO.test(normalizarTexto(texto)) && esTitulo(texto, 3);
 
-function tituloAlternativo($, nodo) {
+function tituloAlternativo($, nodo, propios) {
   const candidatos = $(nodo).find('h1, h2, h3, h4, strong, b, [style*="bold"]').toArray().map((e) => textoPlano($(e).text()));
   const alternativos = $(nodo).find('img[alt]').toArray().map((e) => textoPlano($(e).attr('alt')));
-  return [...candidatos, ...alternativos].find(esTitulo) ?? null;
+  return [...candidatos, ...alternativos].find((t) => esTitulo(t))
+    ?? propios.map((a) => textoPlano($(a).text())).find(esNombreCorto) ?? null;
 }
 
 /**
@@ -402,7 +421,7 @@ export function extraerBloques(html, comercio) {
     const tarjeta = ampliar(contenedor, elegidos, lector);
     const propios = $(tarjeta).find('a[href]').toArray().filter((a) => !esEnlaceDescartado($, a));
     const conTitulo = propios.find((a) => esTitulo(textoPlano($(a).text())));
-    const titulo = conTitulo ? textoPlano($(conTitulo).text()) : tituloAlternativo($, tarjeta);
+    const titulo = conTitulo ? textoPlano($(conTitulo).text()) : tituloAlternativo($, tarjeta, propios);
     if (!propios.length || !titulo || DATOS_RESERVA.test(normalizarTexto(lector.texto(tarjeta)))) continue;
     const tachados = $(tarjeta).find(TACHADO).toArray().flatMap((e) => extraerPrecios(lector.texto(e)).map((p) => p.valor));
     const ctas = propios.map((a) => textoPlano($(a).text())).filter((t) => t && !esTitulo(t));
@@ -514,8 +533,12 @@ export function nombresPrivados({ para = '', asunto = '', html = '', texto = '' 
   const nombres = new Set(configurados);
   const enPara = String(para).replace(/<[^>]*>|"/g, ' ').replace(EMAIL, ' ');
   for (const palabra of enPara.match(/\p{Lu}\p{Ll}{2,}/gu) ?? []) nombres.add(palabra);
-  const cuerpo = `${textoPlano(html)} ${texto}`;
-  for (const [, nombre] of cuerpo.matchAll(NOMBRE_EN_SALUDO)) palabrasDe(nombre).forEach((n) => nombres.add(n));
+  // Párrafo a párrafo: «Hola,» suelto y el titular siguiente («Costa Brava y Andorra») no son
+  // un saludo con nombre, y tomarlo así borraba esas palabras de todas las ofertas.
+  const lineas = [...String(html).split(BLOQUE_HTML).map(textoPlano), ...String(texto).split('\n')];
+  for (const linea of lineas) {
+    for (const [, nombre] of linea.matchAll(NOMBRE_EN_SALUDO)) palabrasDe(nombre).forEach((n) => nombres.add(n));
+  }
   for (const patron of VOCATIVOS) {
     for (const nombre of palabrasDe(String(asunto).match(patron)?.[1] ?? '')) {
       if (!titulos.some((t) => t.includes(nombre))) nombres.add(nombre);
@@ -819,7 +842,8 @@ async function resolverEnlaces(emails, ctx) {
     if (pedidos > 0) await ctx.http.esperar(PAUSA_MS);
     pedidos += 1;
     try {
-      const final = await resolverEnlace(enlace, comercio, ctx.http);
+      const alFallar = (donde) => ctx.log(`Enlace de ${comercio.nombre} sin resolver: ${donde}; la oferta irá a su portada`);
+      const final = await resolverEnlace(enlace, comercio, ctx.http, { alFallar });
       resueltos.set(enlace, final);
       ctx.cache?.guardar(clave, final, ahora);
     } catch (error) {
