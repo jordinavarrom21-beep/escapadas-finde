@@ -199,6 +199,20 @@ describe('geo', () => {
     assert.deepEqual([teruel.lugar.lat, teruel.lugar.codigoPais], [40.97, 'ES']);
   });
 
+  test('un país extranjero situado en Barcelona («Sri Lanka», «Islandia») se vuelve a buscar en su país y pierde el coche', async () => {
+    const colombo = { lat: '7.87', lon: '80.77', category: 'boundary', name: 'Sri Lanka', address: { country_code: 'lk' } };
+    const { ctx, peticiones } = crearCtx({ respuestas: (url) => (url.includes('countrycodes=lk') ? [colombo] : []) });
+    const o = oferta({ lugar: { nombre: 'Sri Lanka', lat: 41.3905117, lon: 2.1871868, codigoPais: 'ES' }, cocheMin: 7, cocheKm: 3 });
+    await geolocalizar([o], ctx);
+    assert.deepEqual([o.lugar.lat, o.lugar.lon, o.lugar.codigoPais], [7.87, 80.77, 'LK']);
+    assert.match(peticiones[0], /countrycodes=lk$/);
+    await calcularCoche([o], ctx);
+    assert.deepEqual([o.cocheMin, o.cocheKm], [null, null]);
+    // Ya en su país, no se repite.
+    await geolocalizar([o], ctx);
+    assert.equal(peticiones.length, 1);
+  });
+
   test('sin país, lo de fuera se busca en el mundo; una calle con ese nombre en España no vale', async () => {
     const calle = { lat: '40.4', lon: '-3.7', category: 'highway', name: 'Calle de Dublín', address: { country_code: 'es' } };
     const dublin = { lat: '53.35', lon: '-6.26', category: 'boundary', name: 'Dublín', address: { country_code: 'ie' } };

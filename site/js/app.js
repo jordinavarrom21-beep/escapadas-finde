@@ -7,7 +7,7 @@ import { abrirFicha, liberarFicha } from './ficha.js';
 import { fechasDeBusqueda } from './fechas-enlaces.js';
 import { diasEntre, estadoFinde, etiquetaDia, fechaLocal, findesConNoches, proximoPuente, quedanNoches, sumarDias } from './fechas.js';
 import {
-  POR_PAGINA, actividadesCerca, conPeriodo, periodoDeParams, traducirFormulario, buscarTexto, crearHash, criterioVigilado, filtrosVigentes, leerFiltrosActividades,
+  POR_PAGINA, actividadesCerca, conPeriodo, detalleEvento, periodoDeParams, traducirFormulario, buscarTexto, crearHash, criterioVigilado, filtrosVigentes, leerFiltrosActividades,
   leerFiltrosComunes, leerFiltrosEscapadas, leerFiltrosVuelos, leerRuta, medirDistancias, paramsViaje, referenciaNovedades,
   viajeDeParams,
 } from './filtros.js';
@@ -28,7 +28,7 @@ import { icono } from './iconos.js';
 import { activarUbicacion } from './ubicacion.js';
 import {
   VISTAS_HTML, atajosEscapadas, atajosPortada, barraDeVista, ideasPortada, resumenViaje, diasDeFechas, contarSecundarios, totalNovedadesGuardadas, destinoOrganizar, contenidoSorpresa, estadoWebs, textoEnviar, contextoBusqueda, ctxTarjetas, datosMapa, formularioViaje, nombreSalida,
-  misAeropuertos, periodoDeOpcion, resultadosMapa, textoViaje,
+  misAeropuertos, periodoDeOpcion, resultadosMapa, textoViaje, contenidoEvento,
 } from './vistas.js';
 
 const $ = (selector) => document.querySelector(selector);
@@ -911,7 +911,8 @@ async function mostrarFicha(id, disparador) {
   const { vista, params } = leerRuta(hashVista());
   const { punto } = ['escapadas', 'mapa'].includes(vista) ? leerFiltrosEscapadas(params) : {};
   const distancias = punto ? medirDistancias([oferta], punto, estado.datos.origen) : estado.distanciasOrigen;
-  origenFicha = disparador;
+  // Desde el detalle de un evento, al cerrar se vuelve a la fila del evento que lo abrió.
+  if (!disparador || !dialogo.contains(disparador)) origenFicha = disparador;
   medir('ver_oferta', datosOferta(oferta));
   abrirFicha(dialogo, oferta, ctxTarjetas(estado, {
     distancias,
@@ -920,6 +921,25 @@ async function mostrarFicha(id, disparador) {
     // Para enlazar las otras webs de «Comparar precios» con su enlace de reserva.
     porId: estado.porId,
   }));
+}
+
+/**
+ * Los detalles de un evento (Planes y portada), en el mismo diálogo que la ficha: qué es,
+ * cuándo, dónde y su web, con dónde dormir cerca como opción (cada sitio abre su ficha).
+ */
+async function mostrarEvento(clave, disparador) {
+  // El enlace y el precio del evento vienen en detalles.json.
+  await cargarDetalles();
+  const detalle = detalleEvento(estado.datos.ofertas, clave, contextoBusqueda(estado));
+  if (!detalle) {
+    anunciar('Ese evento ya no está en la agenda.');
+    return;
+  }
+  origenFicha = disparador;
+  liberarFicha();
+  dialogo.querySelector('.ficha__contenido').innerHTML = contenidoEvento(detalle);
+  if (!dialogo.open) dialogo.showModal();
+  dialogo.querySelector('.ficha__contenido').scrollTop = 0;
 }
 
 // ── Tu viaje: salida, viajeros y noches ──────────────────────────────────────
@@ -997,7 +1017,7 @@ function alternarMiEstado(id, nuevo) {
   anunciar(marcado === 'reservada' ? 'Marcada como reservada (solo en este navegador)' : marcado ? 'Marcada como no disponible: ya no sale en las listas (solo en este navegador; para verla, desmarca «Ocultar las descartadas y las no disponibles»)' : 'Marca quitada');
 }
 
-const ACCIONES = '[data-actualizar], [data-compartir-busqueda], [data-usar-viaje], [data-mi-estado], [data-abrir-filtros], [data-comparar], [data-vaciar-comparar], [data-mi-viaje], [data-cerrar-viaje], [data-ficha], [data-fav], [data-descartar], [data-mas], [data-sorpresa],'
+const ACCIONES = '[data-actualizar], [data-compartir-busqueda], [data-usar-viaje], [data-mi-estado], [data-abrir-filtros], [data-comparar], [data-vaciar-comparar], [data-mi-viaje], [data-cerrar-viaje], [data-ficha], [data-fav], [data-descartar], [data-mas], [data-sorpresa], [data-evento],'
   + ' [data-guardar-busqueda], [data-borrar-busqueda], [data-copiar-vigilado], [data-cerrar-ficha], [data-cerrar-novedades],'
   + ' [data-olvidar-filtros], [data-cerrar-mas], [data-modo-lista], [data-abrir-busqueda], [data-ver-datos-nuevos], [data-exportar-guardados], [data-fechas-rapida]';
 
@@ -1019,6 +1039,7 @@ function manejarClic(evento) {
   else if ('miViaje' in d) abrirViaje(objetivo);
   else if ('cerrarViaje' in d) dialogoViaje.close();
   else if (d.ficha) abrirFichaConDireccion(d.ficha, objetivo);
+  else if (d.evento) mostrarEvento(d.evento, objetivo);
   else if (d.fav) alternarFavorito(d.fav);
   else if (d.descartar) alternarDescartada(d.descartar);
   else if ('mas' in d) verMas(objetivo);

@@ -14,7 +14,7 @@ import {
   buscarActividades, buscarEscapadas, buscarTexto, chollosDeVuelos, conFaltas, promocionesDeVuelos, crearHash, destinosDe, transporteSuelto,
   contenidoMapa, esActividad, esEscapada, filtrarVuelos, filtrosActivos, leerFiltrosActividades, zonasDe,
   leerFiltrosComunes, leerFiltrosEscapadas, leerFiltrosVuelos, radioBusquedaKm, viajeDeParams, tieneVuelo,
-  valoresUnicos, KM_CERCA_DE_LO_BUSCADO, lugarDeConsulta, encajeEnRango, periodoPasado, rangoDe,
+  valoresUnicos, KM_CERCA_DE_LO_BUSCADO, lugarDeConsulta, encajeEnRango, periodoPasado, rangoDe, ordenPorDefecto,
 } from './filtros.js';
 import {
   certeza, costeDe, textoAlojamiento, textoCaducidad, textoFechas, textoLugar, estadoVacio, rejilla,
@@ -35,7 +35,7 @@ export {
   contextoBusqueda, ctxTarjetas, formularioViaje, misAeropuertos, nombreSalida, ocultas, pestanas, puntoSalida,
   estadoWebs, textoViaje, webConProblemas,
 } from './vistas-comun.js';
-export { atajosPortada, buscadorFinde, contenidoSorpresa, destinoOrganizar, diasDeFechas, eventosCerca, ideasPortada, paramsBuscadorFinde, periodoDeOpcion, resumenViaje, textoEnviar, vistaFinde } from './vistas-portada.js';
+export { atajosPortada, buscadorFinde, contenidoEvento, contenidoSorpresa, destinoOrganizar, diasDeFechas, eventosCerca, ideasPortada, paramsBuscadorFinde, periodoDeOpcion, resumenViaje, textoEnviar, vistaFinde } from './vistas-portada.js';
 export {
   avisosDeBusquedas, resultadosDeBusqueda, totalNovedadesGuardadas, vistaAyuda, vistaCalendario, vistaFuentes,
   vistaMis, vistaPuentes, vistaVigilados,
@@ -378,7 +378,7 @@ function formularioEscapadas(e, params, vista) {
   // Las fechas se eligen en la barra «¿Cuándo?» de arriba (sus campos son de este formulario)
   // y el orden encima de los resultados: aquí estaban repetidos.
   return `<form class="filtros" id="filtros-${vista}" data-filtros="${vista}" aria-label="Filtros de escapadas">
-  <input type="hidden" name="orden" value="${f.orden === 'puntuacion' ? '' : esc(f.orden)}">
+  <input type="hidden" name="orden" value="${f.orden === ordenPorDefecto(params) ? '' : esc(f.orden)}">
   <div class="filtros__fila">${campoTexto(f, 'escapadas')}</div>
   <fieldset class="bloque"><legend class="bloque__titulo">¿Qué te apetece?</legend>
     <div class="chips chips--desplazables"><div class="chips__lista">${chipsTemas(e, f)}</div></div>
@@ -402,7 +402,7 @@ function formularioEscapadas(e, params, vista) {
       ${filtrosChollo(f)}
     </div></div>
     <div class="grupo"><h3 class="grupo__titulo">Viaje y alojamiento</h3><div class="filtros__fila">
-      <label class="campo">Distancia máx. (km) <input type="number" name="km" min="1" step="10" inputmode="numeric" placeholder="Sin límite" value="${f.km ?? ''}"></label>
+      <label class="campo">Distancia máx. por carretera (km) <input type="number" name="km" min="1" step="10" inputmode="numeric" placeholder="Sin límite" value="${f.km ?? ''}"></label>
       <label class="campo">Régimen mínimo <select name="regimen">${opciones(REGIMENES_ORDEN.map((r) => [r, `Al menos ${ETIQUETAS_REGIMEN[r].toLowerCase()}`]), f.regimen, 'Cualquiera')}</select></label>
       <label class="campo">Alojamiento <select name="aloj">${opciones(alojamientos, f.alojamiento, 'Cualquiera')}</select></label>
       <label class="campo">Categoría mín. <select name="est">${opciones([[2, '2★ o más'], [3, '3★ o más'], [4, '4★ o más'], [5, '5★']], f.estrellas, 'Cualquiera')}</select></label>
@@ -444,29 +444,39 @@ ${atajosEscapadas('escapadas', params)}
 </div>`;
 }
 
-/** Los órdenes más usados, a un toque encima de los resultados (el resto, en «Ordenar por»). */
+/**
+ * Los órdenes más usados, a un toque encima de los resultados (el resto, en «Otro orden»).
+ * «Más cerca» es por distancia desde «Cerca de…» (o desde tu salida): antes era «Más cómodo»,
+ * que mide siempre desde tu salida y, buscando cerca de Girona, ponía primero lo de Barcelona.
+ */
 const ORDEN_RAPIDO = [
   ['puntuacion', 'Recomendadas'], ['noche', 'Más baratas por noche'], ['total', 'Viaje más barato'],
-  ['comodo', 'Más cerca'], ['valoracion', 'Mejor valoradas'], ['ahorro', 'Más baratas que la media'],
+  ['distancia', 'Más cerca'], ['valoracion', 'Mejor valoradas'], ['ahorro', 'Más baratas que la media'],
+];
+
+/** Lo mismo en Planes, donde el precio ya es por persona. */
+const ORDEN_RAPIDO_PLANES = [
+  ['puntuacion', 'Recomendados'], ['precio', 'Más baratos'], ['distancia', 'Más cerca'],
+  ['valoracion', 'Mejor valorados'], ['novedad', 'Nuevos primero'],
 ];
 
 /**
  * El orden, en un solo sitio: los más usados a un toque y el resto en «Otro orden» (antes
  * también había un «Ordenar por» en los filtros con los mismos).
  */
-function ordenRapido(vista, params, actual) {
-  const enlaces = ORDEN_RAPIDO.map(([orden, texto]) => {
-    const href = crearHash(vista, { ...params, orden: orden === 'puntuacion' ? '' : orden });
+function ordenRapido(vista, params, actual, { rapidos = ORDEN_RAPIDO, todos = ORDENES_ESCAPADAS, defecto = ordenPorDefecto(params) } = {}) {
+  const enlaces = rapidos.map(([orden, texto]) => {
+    const href = crearHash(vista, { ...params, orden: orden === defecto ? '' : orden });
     return orden === actual
       ? `<a class="chip chip--elegido" aria-current="true" href="${href}">${esc(texto)}</a>`
       : `<a class="chip" href="${href}">${esc(texto)}</a>`;
   }).join('');
-  const otros = ORDENES_ESCAPADAS.filter((o) => !ORDEN_RAPIDO.some(([rapido]) => rapido === o));
+  const otros = todos.filter((o) => !rapidos.some(([rapido]) => rapido === o));
   const otro = otros.includes(actual) ? actual : '';
-  const selector = `<label class="orden-rapido__otro${otro ? ' orden-rapido__otro--elegido' : ''}"><span class="sr">Otro orden</span><select data-otro-orden="${esc(vista)}">
+  const selector = otros.length ? `<label class="orden-rapido__otro${otro ? ' orden-rapido__otro--elegido' : ''}"><span class="sr">Otro orden</span><select data-otro-orden="${esc(vista)}">
     <option value=""${otro ? '' : ' selected'}>Otro orden…</option>${otros.map((o) => `<option value="${o}"${o === otro ? ' selected' : ''}>${esc(ETIQUETAS_ORDEN[o])}</option>`).join('')}
-  </select></label>`;
-  return `<nav class="orden-rapido chips--desplazables-lista" aria-label="Ordenar">${enlaces}${selector}</nav>`;
+  </select></label>` : '';
+  return `<nav class="orden-rapido chips--desplazables-lista" aria-label="Ordenar"><span class="orden-rapido__titulo">Ordenar:</span>${enlaces}${selector}</nav>`;
 }
 
 /** Por qué salen en este orden: qué se suma, desde dónde, para cuántos y qué va al final. */
@@ -564,8 +574,6 @@ ${ofertas.length
 
 // ── Actividades ──────────────────────────────────────────────────────────────
 
-const ETIQUETAS_ORDEN_ACTIVIDADES = { puntuacion: 'Valor de la oferta', precio: 'Precio', valoracion: 'Mejor valoradas' };
-
 export function vistaActividades(e, params) {
   const f = leerFiltrosActividades(params);
   const actividades = e.datos.ofertas.filter(esActividad);
@@ -576,6 +584,7 @@ ${avisoMemoria(e, 'actividades')}${avisoViajeCompartido(e, params)}
 ${barraDeVista(e, 'actividades', params)}
 <div class="explorar">
 <div class="explorar__filtros">${plegableMovil(e, 'actividades', params)}<form class="filtros" id="filtros-actividades" data-filtros="actividades" aria-label="Filtros de actividades">
+  <input type="hidden" name="orden" value="${f.orden === 'puntuacion' ? '' : esc(f.orden)}">
   <div class="filtros__fila">${campoTexto(f, 'planes')}</div>
   <fieldset class="chips chips--desplazables"><legend>Temática</legend><div class="chips__lista">${chipsTemas(e, f, { sinAlojamiento: true })}</div></fieldset>
   ${campoNinos(f)}
@@ -583,7 +592,6 @@ ${barraDeVista(e, 'actividades', params)}
     <label class="campo">Lugar o destino <select name="dest">${opciones(lugares.map((l) => [l, l]), f.dest, 'Todos')}</select></label>
     <label class="campo">Precio máx. por persona (€) <input type="number" name="max" min="0" step="5" inputmode="numeric" placeholder="Sin límite" value="${f.max ?? ''}"></label>
     ${numero('nota', 'Valoración mín. (0–10)', f.nota, ' max="10" step="0.5" placeholder="Cualquiera"')}
-    <label class="campo">Ordenar por <select name="orden">${opciones(ORDENES_ACTIVIDADES.map((o) => [o, ETIQUETAS_ORDEN_ACTIVIDADES[o]]), f.orden)}</select></label>
     ${interruptor('gratis', 'Solo gratis', f.gratis)}
     ${interruptorDefecto('sindesc', 'Ocultar las descartadas y las no disponibles', f.sinDescartadas)}
     ${interruptor('sinconf', 'Incluir las sin confirmar (su web no las ha vuelto a mostrar)', f.incluirSinConfirmar)}
@@ -616,6 +624,7 @@ export function resultadosActividades(e, params) {
   const gratis = lista.filter((o) => o.precio === 0).length;
   const resumen = `${contar(lista.length, 'plan', 'planes')}${gratis ? ` · ${gratis} ${gratis === 1 ? 'gratis' : 'gratis'}` : ''}`;
   return `${filaActivos(e, 'actividades', params)}${eventosEnPlanes(e, f)}${resumenResultados(resumen)}${aproximado ? avisoAproximado(f.q) : ''}${avisoSinConfirmar(e, 'actividades', params, (otras) => buscarActividades(otras, f, contextoBusqueda(e)).length)}
+${ordenRapido('actividades', params, f.orden, { rapidos: ORDEN_RAPIDO_PLANES, todos: ORDENES_ACTIVIDADES, defecto: 'puntuacion' })}
 ${lista.length
     ? rejilla(lista, ctxTarjetas(e), { mostradas: mostradas(e, 'actividades'), clave: 'actividades' })
     : periodoPasado(f.cuando, contextoBusqueda(e)) ? vacioPeriodoPasado('actividades')
