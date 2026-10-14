@@ -54,7 +54,8 @@ function distintivos(oferta) {
   const lista = [];
   if (oferta.vuelo?.horarioIdeal) lista.push('horario ideal');
   if (oferta.minimoHistorico) lista.push('mínimo histórico');
-  if (oferta.bajada) lista.push(`ha bajado ${euros.format(oferta.bajada)}`);
+  // En la unidad de su historial, como en el panel: por noche si se sigue por noche.
+  if (oferta.bajada) lista.push(`ha bajado ${euros.format(oferta.bajada)}${oferta.historialPorNoche ? '/noche' : ''}`);
   if (oferta.etiquetas.includes('error-tarifa')) lista.push('¡error de tarifa!');
   return lista;
 }
