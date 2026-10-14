@@ -188,6 +188,9 @@ function problemasApify(apify) {
     exigir(vuelos.aeropuertos === undefined || (Array.isArray(vuelos.aeropuertos) && !noIata.length),
       'apify.googleFlights.aeropuertos debe ser una lista de códigos IATA, p. ej. ["BCN"]');
   }
+  const entidades = apify.googleHoteles?.entidades;
+  exigir(entidades === undefined || (esObjeto(entidades) && Object.values(entidades).every((v) => typeof v === 'string' && v.trim())),
+    'apify.googleHoteles.entidades debe ser un objeto {"nombre del establecimiento": "id «Ch…» o nombre que busca Google Hoteles"}');
   return problemas;
 }
 

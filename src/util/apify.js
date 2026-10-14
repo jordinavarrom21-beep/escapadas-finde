@@ -55,6 +55,12 @@ export function motivoApify(cuerpo) {
   return [tipo, mensaje].filter(Boolean).join(': ');
 }
 
+/**
+ * El actor arrancó y acabó en error (`run-failed`): la petición estaba bien, pero el actor no
+ * pudo con esa entrada (p. ej. Google Hoteles no encuentra el hotel). Repetirla daría lo mismo.
+ */
+export const ejecucionFallida = (error) => /"type"\s*:\s*"run-failed"/.test(error?.cuerpo ?? '');
+
 /** No se lanza: pasaría del presupuesto del mes o del tope del día. No es un fallo de nadie. */
 export class ErrorPresupuesto extends Error {
   constructor(mensaje) {

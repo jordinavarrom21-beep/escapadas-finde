@@ -2,7 +2,8 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { Cache } from '../src/cache.js';
-import { anadirPreciosGoogle, candidatasHoteles, nocheDeReferencia, preciosDeFilas } from '../src/enriquecer/google-hoteles.js';
+import { anadirPreciosGoogle, candidatasHoteles, entidadDe, nocheDeReferencia, preciosDeFilas } from '../src/enriquecer/google-hoteles.js';
+import { ErrorHttp } from '../src/util/http.js';
 import { consultasDeHoy } from '../src/util/apify.js';
 import { findesProximos } from '../src/util/fechas.js';
 import { AHORA, AJUSTES, leerFixtureJson, oferta } from './ayudas.js';
@@ -96,7 +97,7 @@ describe('google-hoteles: el mismo hotel en otras webs, según Google Hoteles', 
     await anadirPreciosGoogle([santa], ctx);
     assert.equal(santa.preciosGoogle, null);
     const guardado = Object.entries(ctx.cache.exportar()).find(([k]) => k.startsWith('ghoteles:'))[1].v;
-    assert.deepEqual(guardado, { fecha: '2026-09-25', precios: null });
+    assert.deepEqual(guardado, { fecha: '2026-09-25', entidad: "Hotel Santa Anna, L'Estartit", precios: null });
   });
 
   it('sin token no consulta nada; si Apify falla, no rompe el escaneo', async () => {
@@ -109,5 +110,44 @@ describe('google-hoteles: el mismo hotel en otras webs, según Google Hoteles', 
     assert.equal(o.preciosGoogle, null);
     assert.match(caido.logs.join('\n'), /Google Hoteles: caído/);
     assert.equal(consultasDeHoy(caido.ctx.cache, 'googleHoteles', AHORA), 1, 'el intento gasta cupo: no se repite cada 15 minutos');
+  });
+
+  it('si el actor no encuentra el hotel, lo guarda sin precios y pasa al siguiente (no gasta el cupo cada día)', async () => {
+    // Lo que devuelve Apify cuando el actor acaba en error («did not match a specific hotel»).
+    const fallo = new ErrorHttp(400, 'https://api.apify.com/v2/acts/x/run-sync-get-dataset-items');
+    fallo.cuerpo = '{"error":{"type":"run-failed","message":"Actor run did not succeed (run ID: abc, status: FAILED)"}}';
+    const cache = new Cache();
+    const { ctx, peticiones, logs } = ctxHoteles({ cache });
+    const http = ctx.http.json;
+    ctx.http.json = async (url, opciones) => (opciones.cuerpo.entity.startsWith('Van der Valk') ? (peticiones.push({ url, opciones }), Promise.reject(fallo)) : http(url, opciones));
+    const barcarola = alba({ establecimiento: 'Van der Valk Hotel Barcarola', lugar: { nombre: 'Sant Feliu de Guíxols' }, puntuacion: 90 });
+    const otro = alba({ puntuacion: 50 });
+    await anadirPreciosGoogle([barcarola, otro], ctx);
+    assert.equal(peticiones.length, 2, 'sigue con el siguiente hotel');
+    assert.equal(otro.preciosGoogle.minimo, 63);
+    assert.match(logs.join('\n'), /no encuentra «Van der Valk Hotel Barcarola, Sant Feliu de Guíxols»/);
+
+    const manana = ctxHoteles({ cache, ahora: new Date('2026-09-19T08:00:00Z') });
+    await anadirPreciosGoogle([alba({ establecimiento: 'Van der Valk Hotel Barcarola', lugar: { nombre: 'Sant Feliu de Guíxols' } })], manana.ctx);
+    assert.equal(manana.peticiones.length, 0, 'no se repite al día siguiente');
+
+    // Con su id en `entidades` se vuelve a consultar, con el id.
+    const conId = ctxHoteles({ cache, ahora: new Date('2026-09-19T08:00:00Z'), config: { entidades: { 'Van der Valk Hotel Barcarola': 'ChgIabc123' } } });
+    await anadirPreciosGoogle([alba({ establecimiento: 'Van der Valk Hotel Barcarola', lugar: { nombre: 'Sant Feliu de Guíxols' } })], conId.ctx);
+    assert.equal(conId.peticiones.length, 1);
+    assert.equal(conId.peticiones[0].opciones.cuerpo.entity, 'ChgIabc123');
+  });
+
+  it('entidades: lo que se busca para un establecimiento (sin importar mayúsculas ni acentos)', () => {
+    const config = { entidades: { 'van der valk hotel barcarola': 'ChgIabc123' } };
+    assert.equal(entidadDe(alba({ establecimiento: 'Van der Valk Hotel Barcarola' }), config), 'ChgIabc123');
+    assert.equal(entidadDe(alba(), config), 'Hotel Alba Seleqtta, Lloret de Mar');
+    assert.equal(entidadDe(alba()), 'Hotel Alba Seleqtta, Lloret de Mar');
+  });
+
+  it('otros fallos de Apify (red, token…) siguen parando la tanda', async () => {
+    const { ctx, peticiones } = ctxHoteles({ respuesta: new ErrorHttp(500, 'https://api.apify.com/v2/x') });
+    await anadirPreciosGoogle([alba({ puntuacion: 90 }), alba({ establecimiento: 'Hotel Santa Anna', puntuacion: 50 })], ctx);
+    assert.equal(peticiones.length, 1);
   });
 });

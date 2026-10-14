@@ -476,7 +476,7 @@ pasa a «desactivada» con el motivo (no cuenta como caída ni manda emails). Lo
   `maxUsdPorConsulta` (0,01 $). Unos 7 vuelos-consulta al día ≈ 1,2 $/mes. Se activa y se espacia
   como cualquier fuente, en `fuentes.googleflights`.
 - `googleMaps`: `activo`, `maxPorEscaneo` (5) y `maxPorDia` (10) alojamientos ≈ 0,004 $ cada uno.
-- `googleHoteles`: `activo`, `maxPorDia` (2) y `diasValidez` (7) ≈ 0,02 $ cada hotel.
+- `googleHoteles`: `activo`, `maxPorDia` (2) y `diasValidez` (7) ≈ 0,02 $ cada hotel. Si el registro dice «no encuentra «hotel, lugar»», abre el hotel en Google Hoteles, copia el id que empieza por `Ch` de su URL y ponlo en `entidades`: `{"Van der Valk Hotel Barcarola": "Ch…"}`. Mientras tanto ese hotel no gasta el cupo del día.
 
 En la consola de Apify (*Billing*) ves el gasto real; si notas que se acerca a los 5 $, baja los
 límites o pon `"activo": false` en la pieza que menos te interese.
