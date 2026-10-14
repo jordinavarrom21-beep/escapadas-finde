@@ -229,6 +229,8 @@ pre code { background: none; padding: 0; }
 .boton--suave:hover { border-color: var(--borde-fuerte); }
 .boton--mas { display: flex; margin: 22px auto 0; min-width: 220px; border-color: var(--texto); }
 .boton--mini { min-height: 36px; padding: 6px 14px; font-size: 0.85rem; }
+/* Un botón que es la etiqueta de un campo oculto («Cargar una copia»): el foco se ve en el botón. */
+.boton:has(input:focus-visible) { outline: 3px solid var(--acento); outline-offset: 2px; }
 
 .boton-icono {
   display: inline-grid; place-items: center; width: 44px; height: 44px; flex: none; padding: 0;
@@ -1492,7 +1494,7 @@ html:not(.js) .cargando { display: none; }
   .puente .seccion__cabeza h2 { font-size: 1.25rem; }
 }
 
-/* ── Bienvenida (primera visita) y «Cómo funciona» ───────────────────────── */
+/* ── «Cómo funciona» ──────────────────────────────────────────────────────── */
 
 .ayuda-pagina { max-width: 760px; }
 .ayuda-intro { font-size: 1.08rem; line-height: 1.55; }

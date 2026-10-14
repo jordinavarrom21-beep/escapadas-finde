@@ -9,7 +9,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <!-- La portada conserva este título al pintarse (app.js): es el que enseñan los buscadores. -->
   <title>Escapadas de fin de semana desde Barcelona · Escapadas Finde</title>
-  <meta name="description" content="Escapadas de fin de semana desde Barcelona: casas rurales, hoteles con spa, planes y chollos de vuelos de más de 20 webs, revisados cada 15 minutos y con el coste del viaje completo.">
+  <meta name="description" content="Escapadas de fin de semana desde Barcelona: casas rurales, hoteles con spa, planes y chollos de vuelos de más de 20 webs, con el coste del viaje completo.">
   <meta name="robots" content="max-image-preview:large">
   <!-- Vista previa al compartir el enlace (WhatsApp, redes). El despliegue pone la URL
        absoluta de og.png (las redes no aceptan rutas relativas). -->
@@ -90,7 +90,8 @@
     </div>
   </header>
 
-  <div class="contenedor cabecera-info">
+  <!-- Con nombre, para que quien usa un lector de pantalla lo encuentre entre las regiones (axe: «region»). -->
+  <section class="contenedor cabecera-info" aria-label="Tu salida y buscador">
     <div class="cabecera__info">
       <button id="boton-viaje" class="pastilla pastilla--viaje" type="button" data-mi-viaje aria-haspopup="dialog"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 21s-6.5-5.8-6.5-11.2a6.5 6.5 0 0 1 13 0C18.5 15.2 12 21 12 21zM9.8 9.8a2.2 2.2 0 1 0 4.4 0a2.2 2.2 0 1 0 -4.4 0"/></svg><span>Tu salida</span></button>
       <a id="novedades" class="pastilla pastilla--novedades" href="#/buscar?nuevas=1" hidden></a>
@@ -101,7 +102,7 @@
       <input id="q" name="q" type="search" placeholder="Buscar en todo: destino, hotel, región…" autocomplete="off" enterkeyhint="search">
       <button class="boton boton--tinta" type="submit"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 11a7 7 0 1 0 14 0a7 7 0 1 0 -14 0M20 20l-4-4"/></svg><span class="sr">Buscar</span></button>
     </form>
-  </div>
+  </section>
 
   <main id="principal" class="contenedor" tabindex="-1">
     <!-- portada-estatica: el despliegue (scripts/preparar-web.js) pone aquí, para quien no
@@ -149,7 +150,7 @@
     <form class="ficha__caja" id="form-viaje"></form>
   </dialog>
 
-  <div id="barra-comparar" class="barra-comparar" hidden></div>
+  <section id="barra-comparar" class="barra-comparar" aria-label="Acciones de la lista" hidden></section>
 
   <div id="datos-nuevos" class="aviso-flotante aviso-flotante--datos" role="status" hidden></div>
   <div id="aviso" class="aviso-flotante" role="status" aria-live="polite"></div>

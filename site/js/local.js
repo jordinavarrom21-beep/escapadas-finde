@@ -34,6 +34,14 @@ function escribir(almacen, clave, valor) {
   }
 }
 
+function borrar(almacen, clave) {
+  try {
+    almacen().removeItem(clave);
+  } catch {
+    // Sin almacenamiento no hay nada que borrar.
+  }
+}
+
 const local = () => localStorage;
 const sesion = () => sessionStorage;
 
@@ -150,8 +158,7 @@ export function cargarComparar() {
 }
 export const guardarComparar = (ids) => guardarIds(CLAVE_COMPARAR, ids);
 
-/** 'claro', 'oscuro' o null (seguir al sistema). */
-export const temaGuardado = () => leer(local, CLAVE_TEMA);
+/** 'claro', 'oscuro' o null (seguir al sistema); tema.js lo lee antes de pintar. */
 export const guardarTema = (tema) => escribir(local, CLAVE_TEMA, tema);
 
 /** «lista» o «tarjetas»: cómo se ven los resultados (tema.js lo aplica antes de pintar). */
@@ -162,11 +169,6 @@ export const guardarModoLista = (modo) => escribir(local, CLAVE_MODO_LISTA, modo
 const CLAVE_PROPIETARIO = 'escapadas:propietario';
 export const esPropietarioGuardado = () => leer(local, CLAVE_PROPIETARIO) === '1';
 export const guardarPropietario = (si) => escribir(local, CLAVE_PROPIETARIO, si ? '1' : '0');
-
-// La bienvenida de la primera visita: una vez cerrada, no vuelve a salir.
-const CLAVE_BIENVENIDA = 'escapadas:bienvenida';
-export const bienvenidaVista = () => leer(local, CLAVE_BIENVENIDA) === '1';
-export const marcarBienvenidaVista = () => escribir(local, CLAVE_BIENVENIDA, '1');
 
 // Copia de seguridad sin cuenta: lo guardado se descarga en un archivo y se carga en otro
 // navegador o dispositivo. Solo estas claves (ni la última visita ni el modo propietario).
@@ -184,7 +186,9 @@ export function exportarGuardados(ahora = new Date()) {
 }
 
 /**
- * Carga una copia (lo que devuelve exportarGuardados) y sustituye lo de este navegador.
+ * Carga una copia (lo que devuelve exportarGuardados) y sustituye lo de este navegador, como
+ * dice «Mis cosas»: lo que la copia no trae se borra (exportarGuardados no pone lo que está
+ * vacío; antes se quedaba, p. ej. los favoritos de aquí al cargar una copia sin favoritos).
  * Solo acepta las claves conocidas y textos: un archivo cualquiera no puede escribir otra
  * cosa. Devuelve cuántas claves ha cargado; lanza un error si el archivo no es una copia.
  */
@@ -195,7 +199,10 @@ export function importarGuardados(copia) {
   let cargadas = 0;
   for (const clave of CLAVES_COPIA) {
     const valor = copia.datos[clave];
-    if (typeof valor !== 'string') continue;
+    if (typeof valor !== 'string') {
+      borrar(local, clave);
+      continue;
+    }
     escribir(local, clave, valor);
     cargadas += 1;
   }

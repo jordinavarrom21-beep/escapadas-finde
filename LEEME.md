@@ -269,8 +269,8 @@ Ya está publicada: cada escaneo despliega `site/` en **GitHub Pages**
 (`https://<tu-usuario>.github.io/escapadas-finde/`), con HTTPS y sin coste. Lo que lleva
 para cualquier visitante:
 
-- **Primera visita**: una bienvenida de una línea (qué es y cómo se usa) que se cierra con
-  «Entendido»; **Cómo funciona** (`#/ayuda`), enlazada desde el pie, con preguntas frecuentes
+- **Primera visita**: el buscador del Inicio sale desplegado y las novedades son las de las
+  últimas 24 h; **Cómo funciona** (`#/ayuda`), enlazada desde el pie, con preguntas frecuentes
   y la **privacidad** (sin cuentas, cookies ni seguimiento salvo lo que aceptes de Google Analytics,
   Google Ads o Travelpayouts, si están activados; lo guardado vive en su navegador).
 - **Aviso legal**: «Cómo funciona» → Aviso legal, enlazado desde el pie. Quién está detrás sale de

@@ -5,7 +5,7 @@
 
 import { abrirFicha, liberarFicha } from './ficha.js';
 import { fechasDeBusqueda } from './fechas-enlaces.js';
-import { diasEntre, estadoFinde, etiquetaDia, fechaLocal, findesConNoches, proximoPuente, quedanNoches, sumarDias } from './fechas.js';
+import { ZONA, diasEntre, estadoFinde, etiquetaDia, fechaLocal, findesConNoches, proximoPuente, quedanNoches, sumarDias } from './fechas.js';
 import {
   POR_PAGINA, actividadesCerca, conPeriodo, detalleEvento, periodoDeParams, traducirFormulario, buscarTexto, crearHash, criterioVigilado, filtrosVigentes, leerFiltrosActividades,
   leerFiltrosComunes, leerFiltrosEscapadas, leerFiltrosVuelos, leerRuta, medirDistancias, paramsViaje, referenciaNovedades,
@@ -200,7 +200,7 @@ function pintarReloj() {
   const antiguo = Date.now() - Date.parse(generado) > DATOS_ANTIGUOS_MS;
   const actualizado = $('#actualizado');
   // En la cabecera solo si los datos son viejos (la portada ya dice cuándo se revisó).
-  actualizado.innerHTML = `${icono('alerta')}Revisado <time datetime="${esc(generado)}" title="${esc(new Date(generado).toLocaleString('es-ES'))}. Cada web se consulta a su ritmo (de 15 min a 1 día): en cada oferta pone cuándo se comprobó.">${esc(haceCuanto(generado))}</time>`;
+  actualizado.innerHTML = `${icono('alerta')}Revisado <time datetime="${esc(generado)}" title="${esc(new Date(generado).toLocaleString('es-ES', { timeZone: ZONA, dateStyle: 'medium', timeStyle: 'short' }))}. Cada web se consulta a su ritmo (de 15 min a 1 día): en cada oferta pone cuándo se comprobó.">${esc(haceCuanto(generado))}</time>`;
   actualizado.classList.toggle('antiguo', antiguo);
   actualizado.hidden = !antiguo;
 }
@@ -258,7 +258,10 @@ function pintarNovedades() {
   // Contadas igual que las enseña «Verlas» (sin repetidas ni descartadas), para que cuadren.
   const nuevas = buscarTexto(estado.datos.ofertas, leerFiltrosComunes({ nuevas: '1' }), contextoBusqueda(estado)).length;
   const aviso = $('#novedades');
-  if (!nuevas) return;
+  if (!nuevas) {
+    aviso.hidden = true;
+    return;
+  }
   // Una pastilla junto a «Tu salida», no una franja en todas las vistas.
   const desde = estado.visitaAnterior ? `desde tu última visita (${haceCuanto(estado.visitaAnterior)})` : 'en las últimas 24 h';
   // «208 nuevas en 24 h» la primera vez, «3 nuevas desde tu última visita» después; en el móvil, «208 nuevas».
@@ -342,7 +345,20 @@ function cerrarMenuMas(evento = null) {
 // Se puede compartir y se abre al cargar; «atrás» la cierra y vuelve a la lista tal como estaba.
 // No es una página indexable (serían 1.700 que caducan en días): para buscadores ya están las guías.
 const PREFIJO_OFERTA = '#/oferta/';
-const idDeHash = (hash) => (hash.startsWith(PREFIJO_OFERTA) ? decodeURIComponent(hash.slice(PREFIJO_OFERTA.length)) : null);
+/**
+ * El id de la ficha de la dirección (null si no es una ficha). Un «%» suelto (un enlace cortado
+ * al compartirlo) no se puede decodificar: tal cual, no es ninguna oferta y se avisa de que no
+ * está. Antes, el error tumbaba el panel entero, también al «Reintentar».
+ */
+function idDeHash(hash) {
+  if (!hash.startsWith(PREFIJO_OFERTA)) return null;
+  const id = hash.slice(PREFIJO_OFERTA.length);
+  try {
+    return decodeURIComponent(id);
+  } catch {
+    return id;
+  }
+}
 /** La dirección de la lista que hay debajo de la ficha abierta (null si se entró directamente a la ficha). */
 let hashBajoFicha = null;
 /** Al cerrar la ficha se vuelve atrás en el historial: ese cambio de dirección no repinta la lista. */
@@ -354,9 +370,17 @@ let hashPintado = '#/finde';
 
 /** Abre la ficha y pone su dirección (la lista queda en el historial, para volver con «atrás»). */
 function abrirFichaConDireccion(id, disparador) {
-  if (idDeHash(location.hash) !== id) {
-    if (!idDeHash(location.hash)) hashBajoFicha = location.hash || '#/finde';
-    history.pushState(null, '', `${PREFIJO_OFERTA}${encodeURIComponent(id)}`);
+  const abierta = idDeHash(location.hash);
+  if (abierta !== id) {
+    const direccion = `${PREFIJO_OFERTA}${encodeURIComponent(id)}`;
+    // Desde otra ficha («Qué hacer allí»), la nueva ocupa su lugar en el historial: al cerrarla
+    // se vuelve a la lista con un solo «atrás». Con dos, se volvía a abrir la primera y el
+    // siguiente «atrás» dejaba la ficha abierta encima de la lista.
+    if (abierta) history.replaceState(null, '', direccion);
+    else {
+      hashBajoFicha = location.hash || '#/finde';
+      history.pushState(null, '', direccion);
+    }
   }
   return mostrarFicha(id, disparador);
 }
@@ -1250,6 +1274,9 @@ function usarDatos([datos, historial, vigilados]) {
   datosNuevos = null;
   $('#datos-nuevos').hidden = true;
   pintarCabecera();
+  // La pastilla, con la cuenta de los datos nuevos (si no, no cuadra con lo que enseña «Verlas»).
+  // Si la cerraste, sigue cerrada.
+  if (!$('#novedades').hidden) pintarNovedades();
   render({ enfocar: false });
 }
 

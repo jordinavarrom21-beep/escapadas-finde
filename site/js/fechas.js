@@ -29,12 +29,6 @@ export function fechaLocal(fecha = new Date()) {
   return partesMadrid(new Date(fecha)).dia;
 }
 
-/** 'HH:MM' en hora de Madrid de un instante ISO. */
-export function horaMadrid(iso) {
-  const { hora, minuto } = partesMadrid(new Date(iso));
-  return `${String(hora).padStart(2, '0')}:${String(minuto).padStart(2, '0')}`;
-}
-
 function aUtc(iso) {
   const [anio, mes, dia] = iso.slice(0, 10).split('-').map(Number);
   return Date.UTC(anio, mes - 1, dia);

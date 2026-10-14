@@ -534,6 +534,79 @@ ok(await nj.locator('.sin-js').isVisible(), 'sin JavaScript: lo dice y ofrece la
 ok((await nj.locator('.sin-js a[href="escapadas/"]').count()) === 1 && (await nj.locator('.sin-js a[href="vuelos/"]').count()) === 1, 'sin JavaScript: enlaces a las guías principales');
 ok(!(await nj.locator('.cargando').isVisible()), 'sin JavaScript: no se queda en «Cargando ofertas…»');
 await sinJs.close();
+// ── Auditoría de octubre de 2026: cada fallo arreglado, con el caso que lo reproducía ──
+const ca = await contexto();
+const a = await pagina(ca);
+const listo = () => a.waitForFunction(() => window.escapadasListo === true || document.documentElement.classList.contains('sin-panel'), null, { timeout: 30000 });
+// Un enlace de ficha cortado al compartirlo («%» suelto) ya no tumba el panel.
+await a.goto(`${BASE}#/oferta/buscounchollo%3`);
+await listo();
+ok(await a.evaluate(() => window.escapadasListo === true && !document.documentElement.classList.contains('sin-panel')), 'enlace de ficha roto («%3»): el panel arranca');
+ok((await aviso(a)).includes('Esa oferta ya no está'), 'enlace de ficha roto: avisa de que la oferta no está');
+// Ficha dentro de ficha («Qué hacer allí»): cerrarla vuelve a la lista, con un solo «atrás».
+await ir(a, 'escapadas');
+let conPlanes = false;
+for (let i = 0; i < 12 && !conPlanes; i++) {
+  await a.locator('#resultados [data-ficha]').nth(i).click();
+  await a.waitForSelector('#ficha[open]');
+  conPlanes = (await a.locator('#ficha .ficha__actividades [data-ficha]').count()) > 0;
+  if (!conPlanes) { await a.locator('#ficha [data-cerrar-ficha]').first().click(); await a.waitForTimeout(200); }
+}
+if (conPlanes) {
+  await a.locator('#ficha .ficha__actividades [data-ficha]').first().click();
+  await a.waitForTimeout(500);
+  await a.locator('#ficha [data-cerrar-ficha]').first().click();
+  await a.waitForTimeout(500);
+  ok(!(await a.evaluate(() => document.querySelector('#ficha').open)) && (await a.evaluate(() => location.hash)).startsWith('#/escapadas'), 'ficha desde otra ficha: al cerrarla se vuelve a la lista');
+}
+// Calendario: eligiendo la salida, el teclado no se pierde en los días que no se pueden elegir.
+await a.locator('main [data-fechas-campo="entrada"]').first().click();
+await a.locator('main [data-calendario] [data-dia]:not([disabled])').nth(3).click();
+for (let i = 0; i < 3; i++) await a.keyboard.press('PageDown');
+ok(await a.evaluate(() => document.activeElement?.matches('[data-dia]:not([disabled])')), 'calendario: Av Pág no lleva el foco a un día desactivado');
+await a.keyboard.press('Escape');
+ok(!(await a.locator('.fechas--abierta').count()), 'calendario: y Escape lo sigue cerrando');
+// «Tu viaje»: Escape en las sugerencias de la salida las cierra sin cerrar el diálogo.
+await a.locator('[data-mi-viaje]:visible').first().click();
+await a.waitForSelector('#mi-viaje[open] #salida-texto');
+await a.locator('#salida-texto').fill('Gir');
+await a.waitForFunction(() => document.querySelector('#salida-texto').getAttribute('aria-expanded') === 'true', null, { timeout: 5000 });
+await a.keyboard.press('Escape');
+await a.waitForTimeout(200);
+ok(await a.evaluate(() => document.querySelector('#mi-viaje').open && document.querySelector('#salida-texto').getAttribute('aria-expanded') === 'false'), 'tu viaje: Escape cierra las sugerencias y deja el diálogo abierto');
+await a.keyboard.press('Escape');
+// «Cargar una copia»: se ve el foco del teclado.
+await ir(a, 'mis');
+await a.focus('[data-exportar-guardados]');
+await a.keyboard.press('Tab');
+ok(await a.evaluate(() => getComputedStyle(document.activeElement.closest('label')).outlineStyle === 'solid'), 'copia de seguridad: «Cargar una copia» enseña el foco');
+// Comparar: «Ver oferta» es un enlace a oferta como los demás (se mide; con Drive, rel="sponsored").
+const ids = await a.evaluate(async () => (await (await fetch('data/ofertas.json')).json()).ofertas.filter((o) => o.url?.startsWith('https://')).slice(0, 2).map((o) => o.id));
+await a.evaluate((lista) => localStorage.setItem('escapadas:comparar', JSON.stringify(lista)), ids);
+await a.reload();
+await ir(a, 'comparar');
+ok((await a.locator('.comparar a[data-clic]').count()) === ids.length, `comparar: «Ver oferta» lleva data-clic (${ids.length} ofertas)`);
+await ca.close();
+// La pastilla de novedades cuadra con «Verlas» después de «Hay ofertas nuevas» → «Ver».
+const cn = await contexto();
+let nuevos = false;
+const doce = new Date(Date.parse(datos.generado) + 12 * 3_600_000).toISOString();
+await cn.route('**/data/version.json', (r) => (nuevos ? r.fulfill({ json: { generado: doce } }) : r.continue()));
+await cn.route('**/data/ofertas.json', (r) => (nuevos ? r.fulfill({ json: { ...datos, generado: doce } }) : r.continue()));
+const n = await pagina(cn);
+await ir(n, 'finde');
+nuevos = true;
+await n.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+await n.waitForSelector('[data-ver-datos-nuevos]', { timeout: 10000 });
+await n.locator('[data-ver-datos-nuevos]').click();
+await n.waitForTimeout(400);
+const pastilla = await n.evaluate(() => { const p = document.querySelector('#novedades'); return p.hidden ? 0 : Number(p.textContent.match(/[\d.]+/)?.[0].replace('.', '')); });
+await n.evaluate(() => { location.hash = '#/buscar?nuevas=1'; });
+await n.waitForTimeout(600);
+const verlas = Number((await n.locator('#principal').innerText()).match(/([\d.]+) ofertas?/)?.[1].replace('.', '') ?? 0);
+ok(pastilla === verlas, `novedades: tras «Ver», la pastilla cuenta lo mismo que «Verlas» (${pastilla} y ${verlas})`);
+await cn.close();
+
 ok(!errores.some((e) => /Content Security Policy|Refused to (load|apply|execute|connect)/.test(e)), 'CSP: ningún error en la consola en todo el recorrido');
 
 await cerrar();

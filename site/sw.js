@@ -61,13 +61,31 @@ self.addEventListener('install', (evento) => {
   evento.waitUntil(caches.open(VERSION).then((cache) => cache.addAll(peticiones)).then(() => self.skipWaiting()));
 });
 
+/** La dirección sin «?…»: las guías son las mismas con «?utm_…» o «?gclid=…». */
+function sinBusqueda(url) {
+  const limpia = new URL(url);
+  limpia.search = '';
+  return limpia.href;
+}
+
 self.addEventListener('activate', (evento) => {
   evento.waitUntil(
     caches.keys()
       .then((claves) => Promise.all(claves.filter((c) => c !== VERSION && c !== CACHE_DATOS).map((c) => caches.delete(c))))
+      // Antes se guardaba una copia de cada guía por cada «?…» con el que se entraba, y no se borraban.
+      .then(() => caches.open(CACHE_DATOS))
+      .then((cache) => cache.keys().then((claves) => Promise.all(claves.filter((c) => new URL(c.url).search).map((c) => cache.delete(c)))))
       .then(() => self.clients.claim()),
   );
 });
+
+/**
+ * Una guía que se ha retirado: el .htaccess la redirige a su lista (una redirección que el
+ * service worker ve como «opaqueredirect») o el servidor dice 404/410. No es un fallo de la red:
+ * con la copia guardada se seguía enseñando para siempre, con las ofertas y precios de aquel día.
+ */
+const retirada = (peticion, respuesta) => peticion.mode === 'navigate'
+  && (respuesta.type === 'opaqueredirect' || respuesta.status === 404 || respuesta.status === 410);
 
 /**
  * Primero la red; si falla, o si tarda más de ESPERA_RED_MS y hay copia guardada, la copia
@@ -76,15 +94,22 @@ self.addEventListener('activate', (evento) => {
  */
 async function primeroRed(peticion, evento) {
   const cache = await caches.open(CACHE_DATOS);
-  // Una respuesta de error (500, 404…) cuenta como fallo: con copia guardada, mejor la copia.
+  const clave = peticion.mode === 'navigate' ? sinBusqueda(peticion.url) : peticion;
   const red = fetch(peticion).then(async (respuesta) => {
+    // Una guía retirada: se borra su copia y vale lo que dice el servidor (la redirección o el 404).
+    if (retirada(peticion, respuesta)) {
+      await cache.delete(clave);
+      return respuesta;
+    }
+    // Una respuesta de error (500, o un 404 de los datos a medio publicar) cuenta como fallo: con
+    // copia guardada, mejor la copia.
     if (!respuesta.ok) throw Object.assign(new Error(`HTTP ${respuesta.status} en ${peticion.url}`), { respuesta });
-    await cache.put(peticion, respuesta.clone());
+    await cache.put(clave, respuesta.clone());
     return respuesta;
   });
   // Que el service worker no se pare antes de guardar la respuesta, aunque ya se haya usado la copia.
   evento?.waitUntil(red.catch((error) => console.warn(`Sin respuesta de la red para ${peticion.url}:`, error)));
-  const guardada = await cache.match(peticion);
+  const guardada = await cache.match(clave);
   // Sin copia, lo que haya dicho la red (también su error, para que la página lo explique).
   if (!guardada) return red.catch((error) => { if (error.respuesta) return error.respuesta; throw error; });
   const espera = new Promise((listo) => { setTimeout(() => listo(null), ESPERA_RED_MS); });

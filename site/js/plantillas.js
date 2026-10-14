@@ -127,10 +127,13 @@ function selloFoto(o) {
 /** Precio por persona y noche de una oferta o de un resumen de `equivalentes` (null si no se sabe). */
 export const porNoche = (x) => (Number.isFinite(x?.precioNoche) && x.precioNoche > 0 ? x.precioNoche : null);
 export const nombreWeb = (fuente, ctx) => esc(ctx.fuentes?.get(fuente) ?? fuente);
-/** El nombre de la otra web enlazando a la oferta en ella. */
-function webEnlazada(f, ctx) {
+/**
+ * El nombre de la otra web enlazando a la oferta en ella. Con los atributos del clic, como los
+ * demás enlaces a ofertas: se mide y, con Travelpayouts Drive aceptado, lleva rel="sponsored".
+ */
+function webEnlazada(f, ctx, tipo) {
   const url = urlSegura(f.url);
-  return url ? `<a href="${esc(url)}" target="_blank" rel="${relEnlace(Boolean(f.afiliado))}">${nombreWeb(f.fuente, ctx)}</a>` : nombreWeb(f.fuente, ctx);
+  return url ? `<a href="${esc(url)}" target="_blank" rel="${relEnlace(Boolean(f.afiliado))}"${atributosClic({ fuente: f.fuente, tipo }, f.afiliado)}>${nombreWeb(f.fuente, ctx)}</a>` : nombreWeb(f.fuente, ctx);
 }
 /** «El mismo alojamiento» en casas y hoteles; en un paquete o una actividad, «la misma oferta». */
 export const loMismo = (o) => (o.tipo === 'hotel' ? 'El mismo alojamiento' : 'La misma oferta');
@@ -162,7 +165,7 @@ function equivalentes(o, ctx) {
   const [otra] = otras;
   const resto = otras.length > 1 ? ` y en ${contar(otras.length - 1, 'web')} más` : '';
   let texto;
-  const web = webEnlazada(otra, ctx);
+  const web = webEnlazada(otra, ctx, o.tipo);
   if (!c.comparable) {
     texto = `También en ${web}${typeof otra.precio === 'number' ? ` por ${euros(otra.precio)}` : ''}${resto}`;
   } else {
@@ -360,11 +363,11 @@ const atributosClic = (o, afiliado) => ` data-clic="${esc(o.fuente)}" data-clic-
 // precio de encima ya dice «Precio en {web}»).
 export const textoVerOferta = (o, ctx = {}) => `Ver oferta<span class="boton__web"> en ${esc(ctx.fuentes?.get(o.fuente) ?? o.fuente)}</span>`;
 
-export function enlaceOferta(o, texto = null, ctx = {}) {
+export function enlaceOferta(o, texto = null, ctx = {}, clase = 'boton boton--primario') {
   texto ??= textoVerOferta(o, ctx);
   const url = urlSegura(urlPropia(o, ctx));
   const pagado = Boolean(o.afiliado || o.patrocinada);
-  return url ? `<a class="boton boton--primario" href="${esc(url)}" target="_blank" rel="${relEnlace(pagado)}"${atributosClic(o, o.afiliado)}><span class="boton__texto">${texto}</span>${icono('externo')}<span class="sr"> (se abre en otra pestaña${o.afiliado ? '; enlace de afiliado' : ''})</span></a>` : '';
+  return url ? `<a class="${clase}" href="${esc(url)}" target="_blank" rel="${relEnlace(pagado)}"${atributosClic(o, o.afiliado)}><span class="boton__texto">${texto}</span>${icono('externo')}<span class="sr"> (se abre en otra pestaña${o.afiliado ? '; enlace de afiliado' : ''})</span></a>` : '';
 }
 
 /** «Enlace de afiliado» en la tarjeta; la explicación completa, en la ficha. */
