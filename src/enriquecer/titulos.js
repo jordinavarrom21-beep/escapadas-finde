@@ -27,12 +27,15 @@ const COLETILLAS = [
   /\bp\s?x\s?p\b\.?(?:\s*m[ií]n\.?\s*\d+\s*p\b\.?)?/giu,
 ];
 
-const IMPORTE = '\\d{1,3}(?:[.,]\\d{3})*(?:[.,]\\d{1,2})?';
+// Desde el principio del número, con o sin separador de miles: «desde 1195€» dejaba «desde 1».
+const IMPORTE = '(?<![\\d.,])(?:\\d{1,3}(?:[.,]\\d{3})+|\\d+)(?:[.,]\\d{1,2})?';
+/** «desde», «por solo»… y lo mismo en inglés (Fly4free: «for €448», «from just €499»). */
+const ANTES_DEL_PRECIO = '(?:(?:desde|por|a partir de|from|for)\\s+)?(?:(?:solo|sólo|tan solo|just|only)\\s+)?';
 const POR_UNIDAD = '(?:\\s*(?:\\/|por|la|al|a la)?\\s*(?:p\\.?\\s?p\\.?|pers(?:ona)?s?\\.?|per\\.?|persona|noche|trayecto|ida y vuelta|i\\/v|p\\b|d[ií]a|diarios?))*';
-/** «desde 15€ pp.», «por solo 75€», «¡39€ PP!», «from €244», «desde 1.752 €». */
+/** «desde 15€ pp.», «por solo 75€», «¡39€ PP!», «from €244», «desde 1.752 €», «for €448». */
 const PRECIOS = [
-  new RegExp(`\\s*¡?\\s*(?:(?:desde|por|a partir de|from)\\s+)?(?:(?:solo|sólo|tan solo)\\s+)?${IMPORTE}\\s*(?:€|euros?)${POR_UNIDAD}\\s*!?`, 'giu'),
-  new RegExp(`\\s*(?:desde|por|from)?\\s*€\\s*${IMPORTE}${POR_UNIDAD}`, 'giu'),
+  new RegExp(`\\s*¡?\\s*${ANTES_DEL_PRECIO}${IMPORTE}\\s*(?:€|euros?)${POR_UNIDAD}\\s*!?`, 'giu'),
+  new RegExp(`\\s*${ANTES_DEL_PRECIO}€\\s*${IMPORTE}${POR_UNIDAD}`, 'giu'),
 ];
 
 /** Palabras corrientes que, si vienen en mayúsculas, se escriben en minúscula (sin tildes). */

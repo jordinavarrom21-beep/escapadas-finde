@@ -19,6 +19,7 @@
  */
 import * as cheerio from 'cheerio';
 import { crearOferta } from '../modelo.js';
+import { diasEntre, fechaLocal, sumarDias } from '../util/fechas.js';
 import { normalizarTexto, recortar } from '../util/xml.js';
 import { extraerLugar, extraerNoches, extraerRegimen, interpretarPrecio, limpiarTitulo } from './viajerospiratas.js';
 
@@ -39,23 +40,50 @@ function tipoDe(texto, porDefecto) {
   return alojamiento ? 'hotel' : porDefecto;
 }
 
-/** Fechas cerradas «del 10/12 al 13/12» (o «10/12/26»): año del próximo día que cae así. */
-export function fechasDe(texto, hoy) {
+/** Cuántos días antes de publicarse puede empezar una estancia (una de última hora ya empezada). */
+const DIAS_ANTES = 7;
+/** Más días que esto entre las dos fechas, sin noches que cuadren, es un periodo de validez. */
+const DIAS_ESTANCIA = 7;
+
+const iso = (d, mes, a) => `${a}-${String(mes).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+/** ¿Existe ese día? «31/11» no. */
+const existe = (fecha) => {
+  const [anio, mes, dia] = fecha.split('-').map(Number);
+  return mes >= 1 && mes <= 12 && dia >= 1 && new Date(Date.UTC(anio, mes - 1, dia)).getUTCDate() === dia;
+};
+
+/**
+ * Fechas cerradas «del 10/12 al 13/12» (o «10/12/26»). Sin año, el de la primera vez que caen
+ * así a partir de `referencia` (el día en que se publicó el mensaje; como mucho DIAS_ANTES
+ * antes). Antes se contaba desde el día del escaneo: una estancia que ya había pasado (el canal
+ * enseña los mensajes de semanas atrás) pasaba al año siguiente y no se retiraba.
+ * La vuelta, del año de la salida (o del siguiente: «del 28/12 al 02/01»).
+ */
+export function fechasDe(texto, referencia) {
   const m = texto.match(/\bdel?\s+(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\s+al?\s+(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?/i);
   if (!m) return null;
-  const anioActual = Number(hoy.slice(0, 4));
-  const iso = (d, mes, a) => `${a}-${String(mes).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-  const anio = (dato, d, mes) => {
-    if (dato) return dato.length === 2 ? 2000 + Number(dato) : Number(dato);
-    return iso(d, mes, anioActual) >= hoy ? anioActual : anioActual + 1;
-  };
+  const escrito = (dato) => (dato.length === 2 ? 2000 + Number(dato) : Number(dato));
   const [d1, m1, d2, m2] = [m[1], m[2], m[4], m[5]].map(Number);
-  if (![m1, m2].every((mes) => mes >= 1 && mes <= 12) || ![d1, d2].every((d) => d >= 1 && d <= 31)) return null;
-  const salida = iso(d1, m1, anio(m[3], d1, m1));
-  let vuelta = iso(d2, m2, anio(m[6], d2, m2));
-  if (vuelta < salida) vuelta = iso(d2, m2, Number(salida.slice(0, 4)) + 1);
+  const anio = Number(referencia.slice(0, 4));
+  const desde = sumarDias(referencia, -DIAS_ANTES);
+  const salida = m[3] ? iso(d1, m1, escrito(m[3])) : [anio - 1, anio, anio + 1].map((a) => iso(d1, m1, a)).find((f) => f >= desde);
+  let vuelta = iso(d2, m2, m[6] ? escrito(m[6]) : Number(salida.slice(0, 4)));
+  if (!m[6] && vuelta < salida) vuelta = iso(d2, m2, Number(salida.slice(0, 4)) + 1);
+  if (!existe(salida) || !existe(vuelta) || vuelta < salida) return null;
   return { salida, vuelta };
 }
+
+/**
+ * ¿Son las fechas de la estancia o hasta cuándo vale la oferta? «De 2 a 5 noches hasta enero
+ * … del 27/11 al 03/01» son 37 días para 2 noches: un periodo, no una estancia de 37 días.
+ */
+export function esEstancia({ salida, vuelta }, noches) {
+  const dias = diasEntre(salida, vuelta);
+  return noches ? Math.abs(dias - noches) <= 1 : dias <= DIAS_ESTANCIA;
+}
+
+/** El último momento de ese día en Madrid (hora de invierno: como mucho una hora tarde en verano). */
+const finDelDia = (dia) => new Date(`${dia}T23:59:59+01:00`).toISOString();
 
 /** La URL sin las marcas de campaña (utm_*), que no cambian la oferta. */
 function sinCampana(href) {
@@ -104,7 +132,7 @@ export function parsearCanal(html, canal, ctx) {
   const $ = cheerio.load(html);
   const mensajes = $('.tgme_widget_message[data-post]').toArray();
   if (!mensajes.length && !/tgme_channel_info/.test(html)) throw new Error('La página no es la vista pública de un canal de Telegram');
-  const hoy = (ctx.ahora ?? new Date()).toISOString().slice(0, 10);
+  const hoy = fechaLocal(ctx.ahora ?? new Date());
   return mensajes.flatMap((nodo) => {
     const $m = $(nodo);
     const $texto = $m.find('.tgme_widget_message_text').first().clone();
@@ -116,7 +144,11 @@ export function parsearCanal(html, canal, ctx) {
     if (!url || !titulo) return [];
     const plano = limpiarTitulo(texto.replace(/#[\p{L}\d_]+,?/gu, '').replace(/\n+/g, '. '));
     const tipo = tipoDe(texto, canal.tipo);
-    const fechas = fechasDe(texto, hoy);
+    const cuando = $m.find('time[datetime]').attr('datetime');
+    const publicada = cuando && !Number.isNaN(Date.parse(cuando)) ? new Date(cuando).toISOString() : null;
+    const noches = extraerNoches(plano);
+    const leidas = fechasDe(texto, publicada ? fechaLocal(publicada) : hoy);
+    const fechas = leidas && esEstancia(leidas, noches) ? leidas : null;
     // «3 noches del 10/12 al 13/12 por 158 €»: con fechas, es el precio de toda la estancia.
     const precio = interpretarPrecio(plano);
     const lugar = extraerLugar(titulo) ?? extraerLugar(plano.match(/situad[oa] en ([^.,]+)/i)?.[0] ?? '');
@@ -130,12 +162,14 @@ export function parsearCanal(html, canal, ctx) {
         url,
         ...precio,
         unidad: fechas && precio.unidad == null ? 'total' : precio.unidad,
-        noches: extraerNoches(plano),
+        noches,
         regimen: extraerRegimen(plano),
         transporte: tipo === 'vuelo' || tipo === 'paquete' ? 'avion' : null,
         lugar: lugar ? { nombre: lugar } : null,
         fechas: fechas ?? {},
-        publicada: $m.find('time[datetime]').attr('datetime') ? new Date($m.find('time[datetime]').attr('datetime')).toISOString() : null,
+        // Un periodo («hasta enero»): vale hasta su último día.
+        caduca: leidas && !fechas ? finDelDia(leidas.vuelta) : null,
+        publicada,
       })];
     } catch (error) {
       ctx.log(`Mensaje omitido («${titulo}»): ${error.message}`);

@@ -143,11 +143,14 @@ function ofertaDe(actividad, destino, ruta, extra = {}) {
   const precio = enEuros ? numero(actividad.offers?.price) : null;
   const anterior = precio != null && extra.precioAnterior > precio ? extra.precioAnterior : null;
   const titulo = textoPlano(actividad.name ?? '');
-  // La actividad puede ser de un pueblo del hub (Costa Brava): entonces las
-  // coordenadas del destino no valen y las completa después geo.js.
-  const enElDestino = partes[1] === destino.slug;
+  // El destino de su URL, si es uno de los que se leen, da el id y las coordenadas: «/es/gerona/…»
+  // vista desde la Costa Brava sigue siendo de Girona (antes, el día que fallaba Girona, la misma
+  // actividad se guardaba otra vez con el id de la Costa Brava). La de un pueblo del hub se queda
+  // con el id del hub, y sus coordenadas, que no son las del destino, las completa después geo.js.
+  const propio = DESTINOS.find((d) => d.slug === partes[1]);
+  const deEste = propio ?? destino;
   return crearOferta({
-    id: `${ID}:${destino.slug}:${slug}`,
+    id: `${ID}:${deEste.slug}:${slug}`,
     fuente: ID,
     tipo: 'actividad',
     titulo,
@@ -163,12 +166,12 @@ function ofertaDe(actividad, destino, ruta, extra = {}) {
     valoracion: valoracionDe(actividad.aggregateRating),
     lugar: {
       // Los exónimos («Gerona») los unifica crearOferta con util/lugares.js.
-      nombre: textoPlano(actividad.location?.address?.addressLocality ?? '') || destino.nombre,
-      region: destino.region,
+      nombre: textoPlano(actividad.location?.address?.addressLocality ?? '') || deEste.nombre,
+      region: deEste.region,
       pais: PAIS,
       codigoPais: CODIGO_PAIS,
-      lat: enElDestino ? destino.lat : null,
-      lon: enElDestino ? destino.lon : null,
+      lat: propio?.lat ?? null,
+      lon: propio?.lon ?? null,
       iata: null,
     },
     etiquetas: [extra.duracion ? `Duración: ${extra.duracion}` : null, precio === 0 ? 'gratis' : null].filter(Boolean),
