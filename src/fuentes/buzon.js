@@ -107,6 +107,12 @@ const EMAIL = /[\w.+-]+@[\w-]+(\.[\w-]+)+/g;
 /** Números que pueden identificar a alguien: teléfonos españoles y cifras de 6 dígitos o más. */
 const TELEFONO = /(?:\+34[\s.-]?)?\b[6-9](?:[\s.-]?\d){8}\b/g;
 const NUMERO_LARGO = /\b\d{6,}\b/g;
+/**
+ * Códigos personales con letras y cifras tras su etiqueta («Socio Genius nº GN4471982B»,
+ * «tu código personal XK7P9Q2M»): se quita el código y queda la etiqueta. Sin la etiqueta
+ * no se tocan: un código de descuento para todos («WINTER26») es parte de la oferta.
+ */
+const CODIGO_PERSONAL = /((?:socio|cliente|miembro|usuario|tarjeta)(?:\s+\p{L}+){0,2}\s+(?:n[º°o]\.?|n[uú]m(?:ero|\.)?)|(?:n[º°o]\.?|n[uú]m(?:ero|\.)?)\s+de\s+(?:socio|cliente|miembro|usuario|tarjeta)|c[oó]digo\s+personal|tu\s+c[oó]digo(?:\s+de\s+(?:socio|cliente))?)\s*:?\s*(?=[\p{L}\d-]*\d)[\p{L}\d][\p{L}\d-]{3,}/giu;
 const SALUDO = '(?:[Hh]ola|[Hh]i|[Hh]ello|[Hh]ey|[Qq]uerid[oa]|[Ee]stimad[oa]|[Bb]on dia|[Bb]uenos d[ií]as|[Bb]uenas(?: tardes| noches)?)';
 const NOMBRE_PROPIO = '\\p{Lu}\\p{Ll}{2,}(?:\\s+\\p{Lu}\\p{Ll}{2,}){0,2}';
 const NOMBRE_EN_SALUDO = new RegExp(`(?:${SALUDO}|[Pp]ara ti|[Gg]racias)[\\s,]+(${NOMBRE_PROPIO})`, 'gu');
@@ -156,19 +162,92 @@ export function comercioDe(de) {
   return COMERCIOS.find((c) => c.dominios.some((d) => perteneceA(dominio, d)) && (!c.remitente || c.remitente.test(local))) ?? null;
 }
 
+/** «ptype.propiedad=valor»: el valor puede llevar una parte entre comillas («"a b"@dominio»). */
+const PROPIEDAD = /^([a-z][\w-]*)(?:\.([\w-]+))?=((?:"(?:[^"\\]|\\.)*")?[^\s"]*)\s*/i;
+
+/**
+ * Los resultados de una cabecera Authentication-Results (RFC 8601):
+ * {servidor, lista: [{metodo, resultado, propiedades: {'header.d': 'x.com', …}}]}, o null si
+ * está mal formada (paréntesis o comillas sin cerrar). Los comentarios (entre paréntesis) y lo
+ * que va entre comillas no cuentan: ahí va la dirección de envío, que elige el remitente
+ * («spf=pass (google.com: domain of X designates …) smtp.mailfrom=X»). Con una dirección
+ * como «dkim=pass.header.d=comercio.es@otro.example», buscar «dkim=pass … header.d=» en el
+ * texto entero daba por verificado un correo que no lo estaba.
+ */
+export function resultadosAutenticacion(cabecera) {
+  const texto = String(cabecera ?? '');
+  const partes = [];
+  let actual = '';
+  let comentario = 0;
+  let comillas = false;
+  for (let i = 0; i < texto.length; i++) {
+    const c = texto[i];
+    if (comentario) {
+      // Dentro de un comentario, «\)» no lo cierra y puede haber otros dentro.
+      if (c === '\\') i += 1;
+      else if (c === '(') comentario += 1;
+      else if (c === ')') comentario -= 1;
+      continue;
+    }
+    if (comillas) {
+      actual += c;
+      if (c === '\\') actual += texto[++i] ?? '';
+      else if (c === '"') comillas = false;
+      continue;
+    }
+    if (c === '(') comentario = 1;
+    else if (c === ')') return null;
+    else if (c === ';') {
+      partes.push(actual);
+      actual = '';
+    } else {
+      if (c === '"') comillas = true;
+      actual += c;
+    }
+  }
+  if (comentario || comillas) return null;
+  partes.push(actual);
+  const [servidor, ...resultados] = partes.map((p) => p.replace(/\s+/g, ' ').trim());
+  const lista = [];
+  for (const parte of resultados) {
+    const inicio = /^([a-z][\w-]*)=([a-z]+)\s*/i.exec(parte);
+    if (!inicio) continue;
+    const propiedades = {};
+    let resto = parte.slice(inicio[0].length);
+    for (let m = PROPIEDAD.exec(resto); m && resto; m = PROPIEDAD.exec(resto)) {
+      if (m[2]) propiedades[`${m[1].toLowerCase()}.${m[2].toLowerCase()}`] = m[3];
+      resto = resto.slice(m[0].length);
+    }
+    // Lo que no es «propiedad=valor» no es de Gmail: ese resultado no vale como verificación.
+    lista.push({ metodo: inicio[1].toLowerCase(), resultado: inicio[2].toLowerCase(), propiedades, completo: !resto });
+  }
+  return { servidor: servidor.split(' ')[0].toLowerCase(), lista };
+}
+
+/** El dominio de una firma DKIM: «header.d=dominio» o «header.i=@dominio» / «alguien@dominio». */
+const dominioDkim = ({ propiedades }) => propiedades['header.d'] ?? propiedades['header.i']?.split('@').pop();
+
 /**
  * ¿Ha comprobado Gmail que el correo es de verdad del comercio? Mira solo la primera
  * cabecera Authentication-Results (la que añade el servidor de Gmail al recibirlo; las
  * de más abajo las puede escribir cualquiera) y exige DMARC o DKIM con el dominio del
  * comercio. Sin eso, el remitente se puede falsificar.
+ * Gmail pone las firmas DKIM antes que el resultado de SPF (el que lleva la dirección que
+ * elige el remitente) y un solo resultado de DMARC, después: solo cuentan esos, por si algún
+ * día una dirección rara se colase como resultado.
  */
 export function remitenteVerificado({ autenticacion = '' } = {}, comercio) {
-  const resultados = String(autenticacion).replace(/\s+/g, ' ');
-  if (!comercio || !/^\s*mx\.google\.com\s*;/i.test(resultados)) return false;
-  const delComercio = (dominio) => comercio.dominios.some((d) => perteneceA(dominio.toLowerCase(), d));
-  const dmarc = resultados.match(/\bdmarc=pass\b[^;]*?\bheader\.from=([\w.-]+)/i);
-  if (dmarc && delComercio(dmarc[1])) return true;
-  return [...resultados.matchAll(/\bdkim=pass\b[^;]*?\bheader\.(?:i=[\w.+-]*@|d=)([\w.-]+)/gi)].some(([, dominio]) => delComercio(dominio));
+  const resultados = resultadosAutenticacion(autenticacion);
+  if (!comercio || resultados?.servidor !== 'mx.google.com') return false;
+  const { lista } = resultados;
+  const delComercio = (dominio) => /^[a-z0-9.-]+$/i.test(dominio ?? '') && comercio.dominios.some((d) => perteneceA(dominio.toLowerCase(), d));
+  const pasa = (r) => r.resultado === 'pass' && r.completo;
+  const spf = lista.findIndex((r) => r.metodo === 'spf');
+  const firmas = spf < 0 ? lista : lista.slice(0, spf);
+  if (firmas.some((r) => r.metodo === 'dkim' && pasa(r) && delComercio(dominioDkim(r)))) return true;
+  const dmarc = lista.filter((r) => r.metodo === 'dmarc');
+  const despuesDelEnvio = lista.indexOf(dmarc[0]) > lista.findLastIndex((r) => Object.keys(r.propiedades).some((p) => p.startsWith('smtp.')));
+  return dmarc.length === 1 && despuesDelEnvio && pasa(dmarc[0]) && delComercio(dmarc[0].propiedades['header.from']);
 }
 
 /**
@@ -447,11 +526,13 @@ export function nombresPrivados({ para = '', asunto = '', html = '', texto = '' 
 
 /**
  * Quita de un texto emails, teléfonos, números de 6 cifras o más (localizadores,
- * clientes…), saludos con nombre y los nombres del destinatario, con o sin tildes y
- * en mayúsculas o minúsculas, salvo cuando forman parte de un lugar («Mas Sant Jordi»).
+ * clientes…), códigos de socio o personales, saludos con nombre y los nombres del
+ * destinatario, con o sin tildes y en mayúsculas o minúsculas, salvo cuando forman
+ * parte de un lugar («Mas Sant Jordi»).
  */
 export function limpiarTexto(texto, nombres = []) {
-  let limpio = String(texto ?? '').replace(EMAIL, ' ').replace(TELEFONO, ' ').replace(NUMERO_LARGO, ' ');
+  let limpio = String(texto ?? '').replace(EMAIL, ' ').replace(TELEFONO, ' ').replace(NUMERO_LARGO, ' ')
+    .replace(CODIGO_PERSONAL, '$1 ');
   for (const nombre of nombres) {
     const n = patronNombre(nombre);
     limpio = limpio
