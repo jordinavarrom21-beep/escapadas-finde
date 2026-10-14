@@ -85,7 +85,10 @@
     "googleHoteles": {
       "activo": true,
       "maxPorDia": 2,
-      "diasValidez": 7
+      "diasValidez": 7,
+      "entidades": {
+        "Van der Valk Hotel Barcarola": "ChcI7qzNjoegkrI7GgsvZy8xdGY5MWw2dhAB"
+      }
     }
   },
   "fuentes": {
