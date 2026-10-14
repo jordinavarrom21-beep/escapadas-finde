@@ -59,6 +59,26 @@ export function esDeAndorra(lugar) {
   return LUGARES_ANDORRA.has(normalizarTexto(lugar.nombre).replace(/[^a-z0-9]+/g, ' ').trim());
 }
 
+/**
+ * Destinos que son un país entero («Islandia», «Sri Lanka»): sin país conocido se buscaban
+ * primero en España y salían un bar o una calle de Barcelona con ese nombre, a 5 minutos en
+ * coche, primeros en «Más cerca». Van a su país.
+ */
+const PAISES = {
+  islandia: 'IS', 'sri lanka': 'LK', maldivas: 'MV', italia: 'IT', francia: 'FR', portugal: 'PT', marruecos: 'MA',
+  grecia: 'GR', irlanda: 'IE', escocia: 'GB', inglaterra: 'GB', 'reino unido': 'GB', alemania: 'DE', austria: 'AT',
+  suiza: 'CH', belgica: 'BE', holanda: 'NL', 'paises bajos': 'NL', dinamarca: 'DK', noruega: 'NO', suecia: 'SE',
+  finlandia: 'FI', laponia: 'FI', polonia: 'PL', hungria: 'HU', croacia: 'HR', eslovenia: 'SI', malta: 'MT',
+  chipre: 'CY', turquia: 'TR', egipto: 'EG', tunez: 'TN', jordania: 'JO', japon: 'JP', china: 'CN', tailandia: 'TH',
+  vietnam: 'VN', indonesia: 'ID', bali: 'ID', india: 'IN', nepal: 'NP', mexico: 'MX', cuba: 'CU', peru: 'PE',
+  argentina: 'AR', chile: 'CL', colombia: 'CO', brasil: 'BR', 'costa rica': 'CR', 'republica dominicana': 'DO',
+  'estados unidos': 'US', canada: 'CA', kenia: 'KE', tanzania: 'TZ', zanzibar: 'TZ', sudafrica: 'ZA', mauricio: 'MU',
+  'nueva zelanda': 'NZ', australia: 'AU', albania: 'AL', montenegro: 'ME', rumania: 'RO', bulgaria: 'BG',
+  'republica checa': 'CZ', chequia: 'CZ', estonia: 'EE', letonia: 'LV', lituania: 'LT', georgia: 'GE', uzbekistan: 'UZ',
+};
+/** El código ISO si el lugar es un país extranjero por su nombre; si no, null. */
+export const paisPorNombre = (lugar) => PAISES[nombreClave(lugar?.nombre)] ?? null;
+
 /** País de un lugar en ISO-3166 (minúsculas), si se sabe. */
 const codigoPais = (lugar) => (lugar.codigoPais ?? (normalizarTexto(lugar.pais ?? '') === 'espana' ? 'ES' : ''))?.toLowerCase() || '';
 /** España con Canarias: un punto de «España» fuera de esta caja es otro sitio con el mismo nombre. */
@@ -143,6 +163,12 @@ export async function geolocalizar(ofertas, ctx, { maxNuevas = 40 } = {}) {
     // Un sitio de Andorra que se situó en España se vuelve a buscar, ya en Andorra.
     if (esDeAndorra(lugar) && lugar.codigoPais !== 'AD') {
       Object.assign(lugar, { pais: 'Andorra', codigoPais: 'AD', lat: null, lon: null, provincia: null, comunidad: null });
+    }
+    // Un país extranjero que se situó en España (en Barcelona), igual: se busca en su país.
+    const extranjero = paisPorNombre(lugar);
+    if (extranjero && lugar.codigoPais !== extranjero) {
+      Object.assign(lugar, { codigoPais: extranjero, lat: null, lon: null, provincia: null, comunidad: null });
+      if (normalizarTexto(lugar.pais ?? '') === 'espana') lugar.pais = null;
     }
     const pais = codigoPais(lugar);
     const consulta = [lugar.nombre, lugar.region, lugar.pais].filter(Boolean).join(', ');
@@ -230,6 +256,13 @@ export async function calcularCoche(ofertas, ctx) {
   const candidatas = ofertas.filter((o) =>
     o.tipo !== 'vuelo' && !['avion', 'ferry'].includes(o.transporte) &&
     tieneCoordenadas(o.lugar) && !enIsla(o.lugar) && distanciaKm(origen, o.lugar) <= coche.maxKmLineaRecta);
+  // Lo que ahora está demasiado lejos (p. ej. un destino que se había situado mal) no conserva
+  // el tiempo en coche de antes.
+  for (const oferta of ofertas) {
+    if (tieneCoordenadas(oferta.lugar) && distanciaKm(origen, oferta.lugar) > coche.maxKmLineaRecta && oferta.cocheMin != null) {
+      Object.assign(oferta, { cocheMin: null, cocheKm: null, cocheEstimado: false });
+    }
+  }
 
   const pendientes = new Map();
   for (const { lugar } of candidatas) {

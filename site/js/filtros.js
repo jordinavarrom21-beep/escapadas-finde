@@ -5,7 +5,7 @@
 
 import { costeViaje } from './coste.js';
 import { diaSemana, diasEntre, etiquetaDia, fechaLocal, nombreFinde, quedanNoches, sumarDias } from './fechas.js';
-import { distanciaKm, esMismoPunto, minutosEnCoche, radioKmParaMinutos, tieneCoordenadas } from './geo.js';
+import { FACTOR_CARRETERA, distanciaKm, esMismoPunto, minutosEnCoche, radioKmParaMinutos, tieneCoordenadas } from './geo.js';
 import { clavePunto } from './rutas.js';
 import { vigencia } from './vigencia.js';
 import {
@@ -61,7 +61,7 @@ export function traducirFormulario(p) {
 export const ORDENES_VUELOS = ['precio', 'puntuacion', 'hora'];
 // Sin «Precio publicado»: comparaba un precio por noche con uno total (sin igualar unidades).
 export const ORDENES_ESCAPADAS = ['puntuacion', 'total', 'persona', 'calidad', 'comodo', 'noche', 'ahorro', 'valoracion', 'distancia', 'alojamiento', 'novedad'];
-export const ORDENES_ACTIVIDADES = ['puntuacion', 'precio', 'valoracion'];
+export const ORDENES_ACTIVIDADES = ['puntuacion', 'precio', 'valoracion', 'distancia', 'novedad'];
 /** De menos a más incluido: sirve para el filtro de «régimen mínimo». */
 export const REGIMENES_ORDEN = ['solo-alojamiento', 'desayuno', 'media-pension', 'pension-completa', 'todo-incluido'];
 export const ALOJAMIENTOS = ['hotel', 'casa-rural', 'camping', 'apartamento', 'parador', 'balneario', 'hostal'];
@@ -206,8 +206,16 @@ export function leerFiltrosEscapadas(p = {}) {
     // Con eventos cerca esos días (src/enriquecer/eventos.js): de cualquier tipo o de uno.
     evento: p.evtipo === 'todos' || Object.hasOwn(TIPOS_EVENTO, p.evtipo ?? '') ? p.evtipo : '',
     // «precio» (el publicado) ya no es un orden: los enlaces de antes van a «Viaje más barato».
-    orden: ORDENES_ESCAPADAS.includes(p.orden) ? p.orden : p.orden === 'precio' ? 'total' : 'puntuacion',
+    orden: ORDENES_ESCAPADAS.includes(p.orden) ? p.orden : p.orden === 'precio' ? 'total' : ordenPorDefecto(p),
   };
+}
+
+/**
+ * El orden sin elegir: con un sitio en «Cerca de…», lo más cerca de él primero (antes salía por
+ * «Recomendadas» y, buscando cerca de Girona, lo primero eran ofertas de Barcelona); si no, «Recomendadas».
+ */
+export function ordenPorDefecto(p = {}) {
+  return coordenada(p.lat, 90) != null && coordenada(p.lon, 180) != null ? 'distancia' : 'puntuacion';
 }
 
 /** Filtros de la vista de actividades: los comunes más temática, lugar y «solo gratis». */
@@ -679,10 +687,17 @@ export function medirDistancias(ofertas, punto, origen, rutas = null) {
   return distancias;
 }
 
+/**
+ * Kilómetros por carretera: los reales si se saben (desde el origen del escaneo, o con la ruta
+ * pedida) y, si no, la línea recta × 1,3, la misma estimación que el tiempo en coche. Antes, desde
+ * el origen contaba la carretera y desde «Cerca de…» la línea recta: «100 km» no era lo mismo.
+ */
+export const kmPorCarretera = (distancia) => distancia?.kmCoche ?? (distancia?.km == null ? null : distancia.km * FACTOR_CARRETERA);
+
 function dentroDelLimite(distancia, f) {
   if (!f.km && !f.horas) return true;
   if (!distancia) return false;
-  const km = distancia.kmCoche ?? distancia.km;
+  const km = kmPorCarretera(distancia);
   return (!f.km || km <= f.km)
     && (!f.horas || (distancia.minutos != null && distancia.minutos <= f.horas * 60));
 }
@@ -813,11 +828,17 @@ export function buscarEscapadas(ofertas, f, ctx) {
 
 // ── Actividades ──────────────────────────────────────────────────────────────
 
-const COMPARADORES_ACTIVIDADES = {
+const comparadoresActividades = (distancias) => ({
   puntuacion: (a, b) => porPuntuacion(a, b) || ascendente(a.precio, b.precio),
   precio: porPrecio,
   valoracion: (a, b) => descendente(a.valoracion?.nota, b.valoracion?.nota) || porPuntuacion(a, b),
-};
+  // Desde tu salida: primero lo que está a menos tiempo en coche y, sin tiempo, por kilómetros.
+  distancia: (a, b) => {
+    const [da, db] = [distancias?.get(a.id), distancias?.get(b.id)];
+    return ascendente(da?.minutos, db?.minutos) || ascendente(da?.km, db?.km) || porPuntuacion(a, b);
+  },
+  novedad: (a, b) => ascendente(conocidaDesde(b), conocidaDesde(a)) || porPuntuacion(a, b),
+});
 
 const cumpleActividad = (o, f, ctx) => cumpleComunes(o, f, ctx)
   && (!f.gratis || o.precio === 0)
@@ -828,8 +849,9 @@ const cumpleActividad = (o, f, ctx) => cumpleComunes(o, f, ctx)
  * Las distancias son siempre desde el origen: se toman de `ctx.distancias` si vienen.
  */
 export function buscarActividades(ofertas, f, ctx = {}) {
-  return alFinalSinComprobar(ofertas.filter((o) => esActividad(o) && cumpleActividad(o, f, ctx))
-    .sort(COMPARADORES_ACTIVIDADES[f.orden] ?? porPuntuacion), ctx);
+  const lista = ofertas.filter((o) => esActividad(o) && cumpleActividad(o, f, ctx));
+  const distancias = f.orden === 'distancia' ? ctx.distanciasSalida ?? medirDistancias(lista, ctx.salida ?? null, ctx.origen) : null;
+  return alFinalSinComprobar(lista.sort(comparadoresActividades(distancias)[f.orden] ?? porPuntuacion), ctx);
 }
 
 /** Las mejores actividades que se pueden hacer en un periodo {id, desde}. */
@@ -838,6 +860,34 @@ export function actividadesPara(ofertas, periodo, { max = 4, descartadas } = {})
     .filter((o) => esActividad(o) && !esDuplicada(o) && !descartadas?.has(o.id) && disponibleEn(o, periodo))
     .sort(porPuntuacion)
     .slice(0, max);
+}
+
+/** Donde se puede dormir: un hotel o una escapada con alojamiento o noches (no una promo de tren o un museo). */
+const esAlojamiento = (o) => !esVuelo(o) && !esActividad(o) && (o.tipo === 'hotel' || Boolean(o.alojamiento) || o.noches > 0);
+
+/** Clave de un evento entre ofertas: el mismo acto el mismo día («nombre|fecha»). */
+export const claveEvento = (ev) => `${normalizar(ev.nombre ?? '')}|${ev.fecha ?? ''}`;
+
+/**
+ * Un evento y dónde dormir cerca: las escapadas y hoteles que lo tienen a menos de 25 km
+ * esos días, del más cercano al evento al más lejano y, a igualdad, del más barato al más
+ * caro. Del evento, la copia más completa (la que trae enlace o precio, de detalles.json).
+ * null si ninguna oferta lo tiene ya (p. ej. se ha descartado o ha caducado).
+ * @returns {{evento: object, alojamientos: {oferta: object, km: number|null}[]}|null}
+ */
+export function detalleEvento(ofertas, clave, ctx = {}) {
+  let evento = null;
+  const alojamientos = [];
+  for (const o of ofertas) {
+    if (!esAlojamiento(o) || ctx.descartadas?.has(o.id) || sinComprobar(o, ctx)) continue;
+    const ev = (o.eventos ?? []).find((x) => claveEvento(x) === clave);
+    if (!ev) continue;
+    if (!evento || (!evento.url && ev.url) || (!evento.precio && ev.precio)) evento = { ...evento, ...ev };
+    alojamientos.push({ oferta: o, km: ev.km ?? null });
+  }
+  if (!evento) return null;
+  alojamientos.sort((a, b) => ascendente(a.km, b.km) || ascendente(a.oferta.precio, b.oferta.precio) || porPuntuacion(a.oferta, b.oferta));
+  return { evento, alojamientos };
 }
 
 /** Mismo pueblo o ciudad (por nombre), o a menos de 25 km si hay coordenadas. */
@@ -905,7 +955,8 @@ export function lugarDeConsulta(ofertas, consulta = '') {
 
 /** Radio en km del círculo de búsqueda (o null si no hay límite). */
 export function radioBusquedaKm(f) {
-  if (f.km) return f.km;
+  // «Distancia máx.» es por carretera: el círculo (en línea recta) es algo menor.
+  if (f.km) return f.km / FACTOR_CARRETERA;
   return f.horas ? radioKmParaMinutos(f.horas * 60) : null;
 }
 
@@ -1351,7 +1402,7 @@ function textoFiltro(clave, valor, ctx) {
     finde: () => periodo(valor),
     lugar: () => `Cerca de ${valor}`,
     h: () => `Menos de ${valor} h en coche`,
-    km: () => `Hasta ${valor} km`,
+    km: () => `Hasta ${valor} km por carretera`,
     max: () => `Hasta ${numeroEuros(valor)} publicados`,
     pres: () => `Hasta ${numeroEuros(valor)} ${ctx.params?.prespor === 'persona' ? 'por persona' : 'en total'} (viaje completo)`,
     pnMin: () => `Desde ${numeroEuros(valor)} por persona y noche`,

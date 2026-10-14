@@ -101,6 +101,65 @@ describe('buscar desde tu salida y cerca de otro punto', () => {
   });
 });
 
+describe('distancia: lo que dicen los filtros', () => {
+  const params = { lugar: 'Girona', lat: String(GIRONA.lat), lon: String(GIRONA.lon) };
+
+  it('con «Cerca de…» y sin orden elegido, lo más cerca de ese sitio primero', () => {
+    assert.equal(leerFiltrosEscapadas(params).orden, 'distancia');
+    const r = buscar(params);
+    ordenada(r.ofertas.map((o) => r.distancias.get(o.id)?.minutos), subiendo);
+    // «Recomendadas» elegida a mano se respeta.
+    assert.equal(leerFiltrosEscapadas({ ...params, orden: 'puntuacion' }).orden, 'puntuacion');
+    assert.equal(leerFiltrosEscapadas({}).orden, 'puntuacion');
+  });
+
+  it('«Distancia máx.» es por carretera desde cualquier sitio (la línea recta × 1,3 si no se sabe)', () => {
+    const r = buscar({ ...params, km: '60' });
+    assert.ok(r.ofertas.length > 0);
+    for (const o of r.ofertas) assert.ok(r.distancias.get(o.id).km * 1.3 <= 60, o.id);
+    // Las que están a menos de 60 km en línea recta pero a más por carretera ya no entran.
+    const todas = buscar(params);
+    const lejos = todas.ofertas.filter((o) => { const d = todas.distancias.get(o.id); return d && d.km <= 60 && d.km * 1.3 > 60; });
+    assert.ok(lejos.length > 0);
+    for (const o of lejos) assert.ok(!r.ofertas.some((x) => x.id === o.id), `${o.id} está a más de 60 km por carretera`);
+  });
+
+  it('el círculo del mapa es el radio en línea recta de esos kilómetros por carretera', async () => {
+    const { radioBusquedaKm } = await import('../site/js/filtros.js');
+    assert.equal(Math.round(radioBusquedaKm(leerFiltrosEscapadas({ km: '130' }))), 100);
+  });
+});
+
+describe('ordenar planes', async () => {
+  const { ORDENES_ACTIVIDADES, buscarActividades, leerFiltrosActividades } = await import('../site/js/filtros.js');
+  const { resultadosActividades } = await import('../site/js/vistas.js');
+  const planes = (orden) => buscarActividades(conCoche.ofertas, leerFiltrosActividades({ orden }), contextoBusqueda(estado()));
+
+  it('cada orden es monótono en lo que dice ordenar', () => {
+    const distancias = estado().distanciasOrigen;
+    const casos = {
+      precio: [(o) => o.precio, subiendo],
+      valoracion: [(o) => o.valoracion?.nota, bajando],
+      distancia: [(o) => distancias.get(o.id)?.minutos, subiendo],
+      puntuacion: [(o) => o.puntuacion, bajando],
+    };
+    for (const [orden, [valor, cmp]] of Object.entries(casos)) {
+      const lista = planes(orden);
+      assert.ok(lista.length > 1, orden);
+      ordenada(lista.map(valor), cmp);
+    }
+  });
+
+  it('el orden va encima de los resultados, a un toque, como en Escapadas', () => {
+    const html = resultadosActividades(estado(), { orden: 'precio' });
+    const nav = html.match(/<nav class="orden-rapido[^]*?<\/nav>/)?.[0] ?? '';
+    assert.match(nav, /chip--elegido" aria-current="true" href="#\/planes\?orden=precio">Más baratos/);
+    assert.match(nav, /href="#\/planes\?orden=distancia">Más cerca/);
+    assert.match(nav, /href="#\/planes">Recomendados/);
+    for (const orden of ORDENES_ACTIVIDADES) assert.ok(nav.includes(orden === 'puntuacion' ? 'href="#/planes"' : `orden=${orden}`), orden);
+  });
+});
+
 describe('fechas al revés', () => {
   it('«entre el 18 y el 16» se lee como «entre el 16 y el 18»', () => {
     const f = leerFiltrosEscapadas({ desde: '2026-10-18', hasta: '2026-10-16' });

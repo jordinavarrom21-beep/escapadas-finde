@@ -278,7 +278,8 @@ pre code { background: none; padding: 0; }
 .chip:has(input:focus-visible) { outline: 3px solid var(--acento); outline-offset: 2px; }
 .chip:has(input:checked) { background: var(--tinta); border-color: var(--tinta); color: var(--tinta-texto); }
 /* Orden a un toque encima de los resultados. */
-.orden-rapido { display: flex; gap: 6px; margin: 4px 0 12px; }
+.orden-rapido { display: flex; gap: 6px; margin: 4px 0 12px; align-items: center; }
+.orden-rapido__titulo { flex: none; font-size: 0.82rem; font-weight: 700; color: var(--texto-suave); }
 .orden-rapido .chip { min-height: 40px; padding: 6px 12px; font-size: 0.82rem; text-decoration: none; }
 .orden-rapido .chip--elegido { background: var(--tinta); border-color: var(--tinta); color: var(--tinta-texto); }
 .orden-rapido__otro { flex: none; display: inline-flex; }
@@ -1121,6 +1122,14 @@ html:not(.js) .cargando { display: none; }
   padding: 20px; border-radius: 24px; background: var(--superficie); border: 1px solid var(--borde); box-shadow: var(--sombra);
 }
 .ficha__cabeza { display: grid; gap: 8px; }
+/* Detalle de un evento: la hoja de calendario y sus datos; dónde dormir, debajo y como opción. */
+.evento-detalle { display: flex; align-items: center; gap: 14px; }
+.evento-detalle .idea__fecha { flex: none; width: 76px; height: 76px; border-radius: 14px; }
+.evento-detalle__datos { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.evento-detalle__datos li { display: flex; align-items: center; gap: 8px; }
+.evento-detalle__dormir { display: grid; gap: 8px; padding-top: 14px; border-top: 1px solid var(--borde); }
+.evento-detalle__dormir h3 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 1.1rem; }
+.evento-detalle__dormir .ideas__lista { padding: 0; }
 .ficha__cabeza h2 { font-size: clamp(1.6rem, 3.2vw, 2.3rem); line-height: 1.08; letter-spacing: -0.025em; }
 .ficha__cabeza .tarjeta__origen { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: 700; }
 .ficha__cabeza .tarjeta__lugar { white-space: normal; }
@@ -1469,6 +1478,7 @@ html:not(.js) .cargando { display: none; }
 
 @media (min-width: 900px) {
   .ficha__cuerpo { grid-template-columns: minmax(0, 1fr) 360px; }
+  .ficha__cuerpo--evento { grid-template-columns: minmax(0, 720px); }
   .ficha__lateral { position: sticky; top: 0; }
 }
 

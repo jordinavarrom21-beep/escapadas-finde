@@ -205,7 +205,7 @@ describe('orden a un toque', () => {
     const html = resultadosEscapadas(estadoPanel(), { cuando: 'finde', orden: 'noche' });
     const nav = html.match(/<nav class="orden-rapido[^]*?<\/nav>/)?.[0] ?? '';
     assert.match(nav, /class="chip chip--elegido" aria-current="true" href="#\/escapadas\?cuando=finde&orden=noche">Más baratas por noche/);
-    assert.match(nav, /href="#\/escapadas\?cuando=finde&orden=comodo">Más cerca/);
+    assert.match(nav, /href="#\/escapadas\?cuando=finde&orden=distancia">Más cerca/, "«Más cerca» mide desde «Cerca de…» si lo hay");
     assert.match(nav, /href="#\/escapadas\?cuando=finde">Recomendadas/, 'la recomendada es la de siempre: sin «orden»');
   });
 });

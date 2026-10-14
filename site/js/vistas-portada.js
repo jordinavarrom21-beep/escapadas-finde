@@ -7,11 +7,11 @@
 import { etiquetaDia, nombreFinde, nombreFindeEnFrase, nombreSiguienteFinde } from './fechas.js';
 import { TIPOS_EVENTO, contar, duracion, escaparHtml as esc, euros, haceCuanto, normalizar, urlSegura } from './formato.js';
 import {
-  actividadesPara, buscarActividades, buscarEscapadas, chollosDeVuelos, conPeriodo, contenidoMapa, crearHash, filtrarVuelos,
+  actividadesPara, buscarActividades, buscarEscapadas, chollosDeVuelos, claveEvento, conPeriodo, contenidoMapa, crearHash, filtrarVuelos,
   leerFiltrosActividades, leerFiltrosEscapadas, leerFiltrosVuelos, perfilFavoritos, periodoFinde, planesSorpresa,
   rangoDe, recomendadas, salidaPuente, sinComprobar, tieneVuelo,
 } from './filtros.js';
-import { colorTema, esFreeTour, estadoVacio, tarjeta, tarjetaConMotivo, textoFechas } from './plantillas.js';
+import { colorTema, esFreeTour, estadoVacio, tarjeta, tarjetaConMotivo, textoFechas, textoLugar } from './plantillas.js';
 import { escena, icono, tipoEscena } from './iconos.js';
 import { camposFechas } from './selector-fechas.js';
 import {
@@ -415,21 +415,68 @@ export function eventosCerca(e, periodo = {}, { max = FILAS_IDEAS, horas = HORAS
   return { eventos: cercanos.length >= Math.min(2, max) ? cercanos : elegir(cerca(null)), fechas };
 }
 
+/** La hoja de calendario de un evento: «sáb / 17 / oct». */
+function hojaCalendario(fecha) {
+  const [dia, numero, mes] = etiquetaDia(fecha).split(' ');
+  return `<span class="idea__foto idea__fecha" aria-hidden="true"><small>${esc(dia)}</small><strong>${esc(numero)}</strong><small>${esc(mes)}</small></span>`;
+}
+
 /**
- * Una fila de evento: el día como una hoja de calendario, el nombre (abre la escapada más
- * barata de al lado), qué es y dónde, y desde cuánto se puede dormir allí.
+ * Una fila de evento: el día como una hoja de calendario, el nombre (abre los detalles del
+ * evento, con dónde dormir como opción), qué es y dónde, y desde cuánto se puede dormir allí.
+ * Antes el nombre abría directamente la escapada de al lado y no se veía nada del evento.
  */
 export function filaEvento(ev) {
   const tipo = TIPOS_EVENTO[ev.tipo]?.[0] ?? 'Evento';
-  // Dónde es el evento (no la escapada de al lado, que abre el enlace): «Temporada Alta» en
-  // Palafrugell salía en Platja d'Aro.
+  // Dónde es el evento (no la escapada de al lado): «Temporada Alta» en Palafrugell salía en Platja d'Aro.
   const sitio = ev.municipio ?? ev.oferta.lugar?.nombre;
   const donde = sitio ? ` · ${esc(sitio)}` : '';
-  const [dia, numero, mes] = etiquetaDia(ev.fecha).split(' ');
   const dormir = typeof ev.oferta.precio === 'number' && ev.oferta.precio > 0 ? `<span class="idea__precio idea__precio--dormir"><small>dormir desde</small>${precioCorto(ev.oferta)}</span>` : '';
-  return `<li class="idea idea--evento"><span class="idea__foto idea__fecha" aria-hidden="true"><small>${esc(dia)}</small><strong>${esc(numero)}</strong><small>${esc(mes)}</small></span>
-  <span class="idea__cuerpo"><button type="button" class="enlace-ficha" data-ficha="${esc(ev.oferta.id)}" title="Ver la escapada más barata al lado">${esc(ev.nombre)}</button><span class="idea__detalle">${esc(tipo)} · ${esc(etiquetaDia(ev.fecha))}${donde}</span></span>
+  return `<li class="idea idea--evento">${hojaCalendario(ev.fecha)}
+  <span class="idea__cuerpo"><button type="button" class="enlace-ficha" data-evento="${esc(claveEvento(ev))}" title="Ver los detalles del evento">${esc(ev.nombre)}</button><span class="idea__detalle">${esc(tipo)} · ${esc(etiquetaDia(ev.fecha))}${donde}</span></span>
   ${dormir}</li>`;
+}
+
+/** Cuántos sitios para dormir enseña el detalle de un evento. */
+const ALOJAMIENTOS_EVENTO = 6;
+
+/**
+ * El detalle de un evento (en el mismo diálogo que la ficha): qué es, cuándo, dónde, cuánto
+ * cuesta y su web; y, como opción, dónde dormir cerca (cada uno abre su ficha).
+ * @param {{evento: object, alojamientos: {oferta: object, km: number|null}[]}} detalle de detalleEvento()
+ */
+export function contenidoEvento({ evento: ev, alojamientos }) {
+  const [tipo, , ic] = TIPOS_EVENTO[ev.tipo] ?? TIPOS_EVENTO.otros;
+  const sitio = ev.municipio ?? alojamientos[0]?.oferta.lugar?.nombre;
+  const url = urlSegura(ev.url);
+  const datos = [
+    [icono('calendario'), 'Cuándo', esc(etiquetaDia(ev.fecha))],
+    sitio && [icono('pin'), 'Dónde', esc(sitio)],
+    ev.precio && [icono('cartera'), 'Precio', esc(ev.precio)],
+  ].filter(Boolean).map(([i, que, valor]) => `<li>${i}<span><span class="suave">${que}:</span> ${valor}</span></li>`).join('');
+  const kmEvento = (km) => (km == null ? '' : km < 1 ? 'al lado del evento' : `a ${Math.round(km)} km del evento`);
+  const filas = alojamientos.slice(0, ALOJAMIENTOS_EVENTO).map(({ oferta: o, km }) => `<li class="idea" style="--color-tema:${colorTema(o)}">${miniatura(o)}
+  <span class="idea__cuerpo"><button type="button" class="enlace-ficha" data-ficha="${esc(o.id)}">${esc(o.titulo)}</button><span class="idea__detalle">${textoLugar(o)}${km != null ? ` · ${esc(kmEvento(km))}` : ''}</span></span>
+  ${typeof o.precio === 'number' && o.precio > 0 ? `<span class="idea__precio">${precioCorto(o)}</span>` : ''}</li>`).join('');
+  const mas = alojamientos.length > ALOJAMIENTOS_EVENTO ? `<p class="suave">Y ${esc(contar(alojamientos.length - ALOJAMIENTOS_EVENTO, 'sitio', 'sitios'))} más cerca.</p>` : '';
+  return `<div class="ficha__cuerpo ficha__cuerpo--evento">
+<div class="ficha__principal">
+  <header class="ficha__cabeza">
+    <p class="tarjeta__origen">${icono(ic)} ${esc(tipo)}</p>
+    <h2 id="ficha-titulo">${esc(ev.nombre)}</h2>
+  </header>
+  <div class="evento-detalle">${hojaCalendario(ev.fecha)}<ul class="evento-detalle__datos">${datos}</ul></div>
+  ${url
+    ? `<p><a class="boton boton--primario" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${icono('externo')}Más información en su web</a></p>`
+    // Sin web en su agenda, se busca por nombre y sitio (horarios y entradas).
+    : `<p><a class="boton boton--suave" href="${esc(`https://www.google.com/search?q=${encodeURIComponent([ev.nombre, sitio].filter(Boolean).join(' '))}`)}" target="_blank" rel="noopener noreferrer">${icono('buscar')}Buscar horarios y entradas</a></p>`}
+  ${filas ? `<section class="evento-detalle__dormir" aria-labelledby="evento-dormir-titulo">
+    <h3 id="evento-dormir-titulo">${icono('cama')}¿Quieres dormir cerca? <span class="suave">(opcional)</span></h3>
+    <p class="suave">Escapadas y alojamientos a menos de 25 km esos días, del más cercano al evento al más lejano.</p>
+    <ul class="ideas__lista">${filas}</ul>${mas}
+  </section>` : ''}
+</div>
+</div>`;
 }
 
 function columnaEventos(e, vistos, pi) {
