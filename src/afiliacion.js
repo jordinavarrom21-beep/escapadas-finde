@@ -4,6 +4,7 @@
  * enlaces quedan como estaban. Nada de esto cambia la puntuación ni el orden.
  */
 import { cargarJson } from './almacen.js';
+import { fechaLocal } from './util/fechas.js';
 
 const esTexto = (valor) => typeof valor === 'string' && valor.trim() !== '';
 /**
@@ -96,7 +97,9 @@ export function aplicarAfiliacion(oferta, { activos = [], patrocinadas = [], aho
     const marcado = conAfiliacion(enlace.url, activos);
     return { ...enlace, url: marcado.url, afiliado: marcado.afiliado };
   });
-  const pago = patrocinadas.find((p) => p?.ofertaId === oferta.id && (!p.hasta || p.hasta >= ahora.toISOString().slice(0, 10)));
+  // «hasta» es un día de Madrid: vale hasta su medianoche, no hasta la de UTC (1–2 h después).
+  const hoy = fechaLocal(ahora);
+  const pago = patrocinadas.find((p) => p?.ofertaId === oferta.id && (!p.hasta || p.hasta >= hoy));
   oferta.patrocinada = pago && esTexto(pago.anunciante) ? { anunciante: pago.anunciante.trim() } : null;
   return oferta;
 }

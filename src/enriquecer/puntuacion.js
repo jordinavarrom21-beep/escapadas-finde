@@ -74,10 +74,20 @@ function puntosPorPrecio(ofertas) {
   return { puntos, comparacion };
 }
 
+/**
+ * La bajada viene en la unidad de su serie del historial: por noche si la oferta se sigue por
+ * noche (historial.js, `sigueNoche`). Se compara con el precio en esa misma unidad: 20 € menos
+ * por noche en una estancia de 3 noches a 240 € es un 20 %, no un 8 %.
+ */
+const precioDeSerie = (oferta) => (oferta.historialPorNoche && oferta.unidad === 'total' && oferta.noches > 0
+  ? oferta.precio / oferta.noches
+  : oferta.precio);
+
 function puntosBajada(oferta) {
   if (oferta.minimoHistorico) return PESO_BAJADA;
   if (!oferta.bajada || !oferta.precio) return 0;
-  return Math.min(PESO_BAJADA, (oferta.bajada / (oferta.precio + oferta.bajada)) * 100 * 0.5);
+  const precio = precioDeSerie(oferta);
+  return Math.min(PESO_BAJADA, (oferta.bajada / (precio + oferta.bajada)) * 100 * 0.5);
 }
 
 function puntosDescuento(oferta) {

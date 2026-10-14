@@ -275,7 +275,7 @@ function filaOferta(o, nombres, d = {}) {
   <h3>${esc(o.titulo)}</h3>
   <p>${[lugar && `📍 ${esc(lugar)}`, ruta && esc(ruta), esc(fechas), llegar && esc(llegar), salidas.length && `Sale de ${esc(salidas.join(', '))}`, o.valoracion?.nota >= 0 && `⭐ ${esc(String(o.valoracion.nota).replace('.', ','))}`].filter(Boolean).join(' · ')}</p>
   ${precio}
-  <p class="suave">Publicada en ${esc(web)}${o.vistaUltima ? ` · precio visto allí el ${esc(etiquetaDia(o.vistaUltima))}` : ''}${o.patrocinada ? ' · Patrocinado' : ''}${url ? ` · <a href="${esc(url)}" rel="${rel}" target="_blank">Ver la oferta<span class="sr"> en ${esc(web)} (se abre en otra pestaña)</span></a>` : ''}</p>
+  <p class="suave">Publicada en ${esc(web)}${o.vistaUltima ? ` · precio visto allí el ${esc(etiquetaDia(fechaLocal(o.vistaUltima)))}` : ''}${o.patrocinada ? ' · Patrocinado' : ''}${url ? ` · <a href="${esc(url)}" rel="${rel}" target="_blank">Ver la oferta<span class="sr"> en ${esc(web)} (se abre en otra pestaña)</span></a>` : ''}</p>
 </li>`;
 }
 
@@ -318,7 +318,7 @@ export function enlacesGuias(guias, raiz, actual = null) {
  */
 export function htmlPagina(d, ofertas, { raiz, base = null, generado, total, todas = [d], nombres = new Map(), texto = null, contacto = null, indexable = true, webs = 0 }) {
   const canonical = base ? `${base}${d.ruta}/` : null;
-  const descripcion = `${d.descripcion ? d.descripcion(total) : `${d.titulo}: ${total} ofertas comparadas por el coste del viaje completo.`} Actualizado el ${etiquetaDia(generado)}.`;
+  const descripcion = `${d.descripcion ? d.descripcion(total) : `${d.titulo}: ${total} ofertas comparadas por el coste del viaje completo.`} Actualizado el ${etiquetaDia(fechaLocal(generado))}.`;
   const lasMigas = migas(d, todas);
   const estructurados = base && jsonLd({
     '@context': 'https://schema.org',
@@ -386,7 +386,7 @@ ${cabeza}
 <ol class="lista-guia">${ofertas.map((o) => filaOferta(o, nombres, d)).join('')}</ol>
 ${bloqueTexto(d, texto)}<section class="guia-criterios" aria-label="Cómo se ha hecho esta lista">
 <h2>Cómo se ha hecho esta lista</h2>
-<p class="suave">${esc(total)} ofertas vigentes cumplen; aquí van las ${esc(ofertas.length)} primeras. Datos del ${esc(etiquetaDia(generado))}; los precios son los que publica cada web y pueden haber cambiado. Confirma siempre en la web del proveedor.</p>
+<p class="suave">${esc(total)} ofertas vigentes cumplen; aquí van las ${esc(ofertas.length)} primeras. Datos del ${esc(etiquetaDia(fechaLocal(generado)))}; los precios son los que publica cada web y pueden haber cambiado. Confirma siempre en la web del proveedor.</p>
 ${d.ruta === 'vuelos' ? '' : `<p class="suave">Cómo se compara: el <strong>viaje completo por persona</strong> para ${VIAJEROS} personas, con 2 noches cuando la oferta se cobra por noche, y la gasolina de ida y vuelta si se va en coche (estimada, sin peajes ni aparcamiento). No incluye comidas ni actividades que la oferta no incluya. Junto a cada uno, el precio tal como lo publica su web. Solo ofertas con alojamiento que su web ha mostrado recientemente: las caducadas y las que su web ha dejado de mostrar no salen.</p>\n`}</section>
 </main>
 <footer class="pie contenedor">
@@ -438,7 +438,7 @@ export function bloquePortada(datos, guias) {
   const nombres = new Map((datos.fuentes ?? []).map((f) => [f.id, f.nombre]));
   return `<div class="portada-estatica">
 <h1>Escapadas de fin de semana desde ${esc(desde)}</h1>
-<p>Escapadas, casas rurales, hoteles con spa, planes y chollos de vuelos de ${numeroWebs(datos) || 'varias'} webs de viajes, juntos y revisados cada 15 minutos. Cada oferta con el coste del viaje completo para ${VIAJEROS} personas desde ${esc(desde)} (la oferta y la gasolina), el tiempo en coche y cuándo se comprobó. Datos del ${esc(etiquetaDia(datos.generado))}.</p>
+<p>Escapadas, casas rurales, hoteles con spa, planes y chollos de vuelos de ${numeroWebs(datos) || 'varias'} webs de viajes, juntos y revisados cada 15 minutos. Cada oferta con el coste del viaje completo para ${VIAJEROS} personas desde ${esc(desde)} (la oferta y la gasolina), el tiempo en coche y cuándo se comprobó. Datos del ${esc(etiquetaDia(fechaLocal(datos.generado)))}.</p>
 ${destacadas.length ? `<h2>Lo mejor de ahora</h2>\n<ol class="lista-guia">${destacadas.map((o) => filaOferta(o, nombres)).join('')}</ol>` : ''}
 ${guias.length ? `<nav class="guias" aria-label="Guías">${enlacesGuias(guias, '')}</nav>` : ''}
 </div>`;

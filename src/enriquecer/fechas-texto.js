@@ -13,8 +13,8 @@ const MESES = {
   noviembre: 11, nov: 11, diciembre: 12, dic: 12,
 };
 const MES = `(${Object.keys(MESES).sort((a, b) => b.length - a.length).join('|')})\\.?`;
-/** «del 13 al 15 (de) diciembre», «13-15 diciembre», «del 30 de octubre al 2 de noviembre». */
-const RANGO = new RegExp(`\\b(?:del?\\s+)?(\\d{1,2})(?:\\s+(?:de\\s+)?${MES})?\\s*(?:al|a|-|–)\\s*(\\d{1,2})\\s+(?:de\\s+)?${MES}\\b`, 'g');
+/** «del 13 al 15 (de) diciembre», «13-15 diciembre», «del 30 de octubre al 2 de noviembre», «… de 2027». */
+const RANGO = new RegExp(`\\b(?:del?\\s+)?(\\d{1,2})(?:\\s+(?:de\\s+)?${MES})?\\s*(?:al|a|-|–)\\s*(\\d{1,2})\\s+(?:de\\s+)?${MES}(?:\\s+(?:de\\s+|del\\s+)?(20\\d{2}))?\\b`, 'g');
 /** Lo que hace de las fechas un ejemplo, justo antes. */
 const EJEMPLO = /(?:ejemplo|ej\.|p\.\s?ej|como|tipo|varias fechas)[^.]{0,20}$/;
 /** Más de esto no es una escapada con fechas cerradas, es una ventana de fechas. */
@@ -22,14 +22,26 @@ const MAXIMO_DIAS = 21;
 
 const dos = (n) => String(n).padStart(2, '0');
 
-/** El primer año en que ese día aún no ha pasado. */
+/**
+ * Hasta cuánto puede haber pasado una fecha sin año para ser de este año. «Del 13 al 15 de
+ * octubre» leído el 14 o el 20 de octubre ya ha empezado o pasado (y la oferta se retira por
+ * pasada): no es del año que viene. Las ofertas con fechas en el texto se publican con días o
+ * meses de antelación (de 1 semana a 5 meses en las que hay ahora), nunca con más de 10.
+ */
+const DIAS_PASADA = 60;
+
+/** El año de ese día: el primero en que no pasó hace más de `DIAS_PASADA` días. */
 function conAnio(mes, dia, hoy) {
   const anio = Number(hoy.slice(0, 4));
-  const fecha = `${anio}-${dos(mes)}-${dos(dia)}`;
-  return fecha >= hoy ? fecha : `${anio + 1}-${dos(mes)}-${dos(dia)}`;
+  const desde = sumarDias(hoy, -DIAS_PASADA);
+  return [anio - 1, anio, anio + 1].map((a) => `${a}-${dos(mes)}-${dos(dia)}`).find((fecha) => fecha >= desde);
 }
 
-const valida = (mes, dia) => mes >= 1 && mes <= 12 && dia >= 1 && dia <= 31;
+/** ¿Existe ese día? «30 de febrero» o «31 de noviembre» no (y daban otro día de la semana). */
+const existe = (fecha) => {
+  const [anio, mes, dia] = fecha.split('-').map(Number);
+  return mes >= 1 && mes <= 12 && dia >= 1 && new Date(Date.UTC(anio, mes - 1, dia)).getUTCDate() === dia;
+};
 
 /**
  * Las fechas de un texto ({salida, vuelta} 'YYYY-MM-DD') o null si no dice un único periodo.
@@ -41,15 +53,17 @@ export function fechasDeTexto(texto, hoy) {
   const encontradas = [];
   for (const m of normal.matchAll(RANGO)) {
     if (EJEMPLO.test(normal.slice(Math.max(0, m.index - 30), m.index))) continue;
-    const [, diaIda, mesIdaTexto, diaVuelta, mesVueltaTexto] = m;
+    const [, diaIda, mesIdaTexto, diaVuelta, mesVueltaTexto, anioTexto] = m;
     const mesVuelta = MESES[mesVueltaTexto];
     const mesIda = mesIdaTexto ? MESES[mesIdaTexto] : mesVuelta;
-    if (!valida(mesIda, Number(diaIda)) || !valida(mesVuelta, Number(diaVuelta))) continue;
-    const salida = conAnio(mesIda, Number(diaIda), hoy);
+    // Con el año escrito («… de diciembre de 2026»), ese; si no, el que toca.
+    const salida = anioTexto
+      ? `${Number(anioTexto) - (mesIda > mesVuelta ? 1 : 0)}-${dos(mesIda)}-${dos(Number(diaIda))}`
+      : conAnio(mesIda, Number(diaIda), hoy);
     // La vuelta, el primer día así a partir de la salida (del 30 de diciembre al 2 de enero).
     let vuelta = `${salida.slice(0, 4)}-${dos(mesVuelta)}-${dos(Number(diaVuelta))}`;
     if (vuelta < salida) vuelta = `${Number(salida.slice(0, 4)) + 1}${vuelta.slice(4)}`;
-    if (vuelta <= salida || vuelta > sumarDias(salida, MAXIMO_DIAS)) continue;
+    if (!existe(salida) || !existe(vuelta) || vuelta <= salida || vuelta > sumarDias(salida, MAXIMO_DIAS)) continue;
     encontradas.push({ salida, vuelta });
   }
   // Varias fechas distintas («del 3 al 5 o del 10 al 12») no son unas fechas cerradas.

@@ -22,7 +22,8 @@ export function fuentesConProblemas(estado, { ahora = new Date(), horas = 24 } =
       if (f.estado === 'error' && f.desdeError && Date.parse(f.desdeError) <= limite) {
         return { id, tipo: 'error', detalle: f.error ?? 'error', desde: f.desdeError, ultimoOk: f.ultimoOk ?? null };
       }
-      if (f.aviso && f.desdeAviso && Date.parse(f.desdeAviso) <= limite) {
+      // Solo de las que funcionan, como en el panel: una desactivada conserva el aviso de antes.
+      if (f.estado === 'ok' && f.aviso && f.desdeAviso && Date.parse(f.desdeAviso) <= limite) {
         return { id, tipo: 'aviso', detalle: f.aviso, desde: f.desdeAviso, ultimoOk: f.ultimoOk ?? null };
       }
       return null;

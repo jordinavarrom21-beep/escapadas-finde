@@ -217,8 +217,12 @@ async function ejecutarFuente(fuente, { estado, ajustes, env, ahora, opciones, c
     if (ajenas.length) throw new Error(`${ajenas.length} ofertas con fuente «${ajenas[0].fuente}» en vez de «${fuente.id}»`);
     // Una lectura que no trae nada con «reemplazar» borraría todo el catálogo guardado y
     // la fuente quedaría «ok» sin avisar. Casi siempre es que la web ha cambiado: error.
-    if (!resultado.ofertas.length && resultado.reemplazar && (previo.total ?? 0) > 0) {
-      throw new Error(`0 ofertas (la última vez ${previo.total}): no se borra lo guardado (¿ha cambiado la web?)`);
+    // Se cuenta lo que hay guardado, no lo que trajo la última lectura buena: cuando lo guardado
+    // se retira solo (retencionDias), ya no hay nada que proteger y una web que de verdad se ha
+    // quedado sin ofertas vuelve a «ok» en vez de quedarse en error para siempre.
+    const guardadas = Object.values(estado.ofertas).filter((o) => o.fuente === fuente.id).length;
+    if (!resultado.ofertas.length && resultado.reemplazar && guardadas > 0) {
+      throw new Error(`0 ofertas (la última vez ${previo.total ?? guardadas}): no se borra lo guardado (¿ha cambiado la web?)`);
     }
     const revision = revisarLectura(resultado, previo, ahora);
     const { nuevas, total } = fusionar(estado, fuente.id, { ...resultado, reemplazar: revision.reemplazar }, ahora);

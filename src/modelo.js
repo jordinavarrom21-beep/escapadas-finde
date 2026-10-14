@@ -50,6 +50,8 @@ const TITULO_ROTO = { test: (titulo) => CODIGO_EN_TITULO.test(titulo) || HTML_EN
  */
 export const arreglarApostrofes = (texto) => (typeof texto === 'string' ? texto.replace(/(\p{L})[´`](?=\p{L})/gu, '$1’') : texto);
 const esFechaIso = (valor) => typeof valor === 'string' && !Number.isNaN(Date.parse(valor));
+/** Campos que son siempre una lista (vacía si no hay nada). */
+const LISTAS = ['temas', 'etiquetas', 'enlaces', 'equivalentes', 'eventos'];
 
 /** Lista de problemas de una oferta (vacía si es válida). */
 export function validarOferta(o) {
@@ -75,6 +77,10 @@ export function validarOferta(o) {
   for (const campo of ['publicada', 'caduca']) {
     if (o[campo] !== null && !esFechaIso(o[campo])) errores.push(`${campo} no es una fecha ISO`);
   }
+  // El enriquecimiento recorre estas listas en todas las ofertas: otra cosa rompía el escaneo entero.
+  for (const campo of LISTAS.filter((c) => c !== 'temas')) {
+    if (!Array.isArray(o[campo])) errores.push(`${campo} debe ser una lista`);
+  }
   return errores;
 }
 
@@ -91,13 +97,17 @@ export function crearOferta(datos) {
   return oferta;
 }
 
+/** Sin los campos `undefined`: «etiquetas: undefined» no debe tapar la lista vacía por defecto. */
+const definidos = (datos) => Object.fromEntries(Object.entries(datos ?? {}).filter(([, valor]) => valor !== undefined));
+
 /**
  * Rellena los campos que falten con sus valores por defecto, sin validar. Se usa
  * también con las ofertas guardadas antes de añadir un campo nuevo al modelo.
+ * Un campo `undefined` o una lista a `null` cuentan como que faltan.
  * @param {Partial<Oferta>} datos
  */
 export function completarOferta(datos) {
-  return {
+  const oferta = {
     id: null,
     fuente: null,
     tipo: 'escapada',
@@ -145,15 +155,17 @@ export function completarOferta(datos) {
     costeCoche: null,
     tiempo: null,
     eventos: [],
-    ...datos,
+    ...definidos(datos),
     // Los textos que se enseñan, con apóstrofos de verdad (ver arreglarApostrofes).
     titulo: arreglarApostrofes(datos.titulo ?? ''),
     descripcion: arreglarApostrofes(datos.descripcion ?? ''),
     establecimiento: arreglarApostrofes(datos.establecimiento ?? null),
-    fechas: { salida: null, vuelta: null, findeId: null, puenteId: null, ...datos.fechas },
+    fechas: { salida: null, vuelta: null, findeId: null, puenteId: null, ...definidos(datos.fechas) },
     // Un solo nombre por localidad («Gerona» → «Girona»): ver util/lugares.js.
     lugar: datos.lugar ? { ...datos.lugar, nombre: nombreOficial(arreglarApostrofes(datos.lugar.nombre)) } : null,
   };
+  for (const campo of LISTAS) oferta[campo] ??= [];
+  return oferta;
 }
 
 /**

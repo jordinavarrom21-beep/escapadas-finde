@@ -140,6 +140,26 @@ function imprimirInforme({ fuentes, total, podadas, emails, puentes, red }) {
 }
 
 /**
+ * Si el escaneo se rompe a medias, se guarda igualmente lo que ya ha pasado: el gasto de Apify
+ * del mes y los topes del día (cache.json), cuándo se consultó cada web y los emails ya enviados
+ * (estado.json). Si no, mientras durase el fallo cada escaneo (cada 15 min) volvía a pagar las
+ * consultas de Apify, a leer las webs que aún no tocaban y a mandar los mismos emails. Las ofertas
+ * a medio enriquecer no estorban: cada escaneo parte de lo que dijo su web (restaurarDeLaFuente).
+ * El historial y el panel se quedan como en el último escaneo bueno.
+ * @param {{estado: object, cache: Cache}} datos lo que ha ido modificando el escaneo
+ * @param {(clave: string) => string} ruta
+ */
+export function guardarTrasFallo({ estado, cache }, ruta, avisar = console.error) {
+  for (const [clave, datos] of [['estado', () => estado], ['cache', () => cache.exportar()]]) {
+    try {
+      guardarJson(ruta(clave), datos());
+    } catch (error) {
+      avisar(`No se ha podido guardar ${RUTAS[clave]} tras el fallo: ${error.message}`);
+    }
+  }
+}
+
+/**
  * 1 si todas las fuentes que se han ejecutado en ESTA pasada han fallado; si no, 0. Las
  * demás conservan el estado de antes, y una en «ok» de hace horas escondería que ahora
  * ha fallado todo (p. ej. sin red).
@@ -165,17 +185,25 @@ async function principal() {
   }
   // El del email a medias ya lo da el envío de emails: aquí, el resto.
   for (const aviso of avisos.filter((a) => !a.startsWith('Emails'))) console.warn(`⚠️  ${aviso}`);
-  const resultado = await escanear({
-    ajustes,
-    vigilados,
-    afiliacion,
-    peajes: cargarPeajes(ruta('peajes')),
-    // cargarEstado migra, valida y, si hace falta, recupera la copia anterior.
-    estado: cargarEstado(ruta('estado')),
-    cache: new Cache(leerDatos(ruta('cache'), {})),
-    historial: leerDatos(ruta('historial'), {}),
-    opciones,
-  });
+  // cargarEstado migra, valida y, si hace falta, recupera la copia anterior.
+  const estado = cargarEstado(ruta('estado'));
+  const cache = new Cache(leerDatos(ruta('cache'), {}));
+  let resultado;
+  try {
+    resultado = await escanear({
+      ajustes,
+      vigilados,
+      afiliacion,
+      peajes: cargarPeajes(ruta('peajes')),
+      estado,
+      cache,
+      historial: leerDatos(ruta('historial'), {}),
+      opciones,
+    });
+  } catch (error) {
+    guardarTrasFallo({ estado, cache }, ruta);
+    throw error;
+  }
   guardarJson(ruta('estado'), resultado.estado);
   guardarJson(ruta('cache'), resultado.cache.exportar());
   guardarJson(ruta('historial'), resultado.historial);
