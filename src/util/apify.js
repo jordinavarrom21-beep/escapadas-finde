@@ -31,13 +31,28 @@ export const ACTORES = {
   googleHoteles: { id: 'vittuhy~google-travel-hotel-prices', nombre: 'Google Hoteles', usdPorResultado: 0.001, usdPorEjecucion: 0.005 },
 };
 
+/**
+ * Tope de una ejecución en céntimos, redondeado hacia arriba (0,03005 → 0,04). Google Maps, el único
+ * que mandaba topes con cinco decimales y restos de coma flotante (0.026049999999999997), recibía
+ * un 400 sin llegar a crear la ejecución; los redondos (0,01 de Google Flights y 0,05 de Google
+ * Hoteles) funcionaban. Si no era eso, `motivoApify` deja el motivo real en el registro.
+ */
+export const topeEnCentimos = (usd) => Math.max(0.01, Math.ceil(Math.round(usd * 1e6) / 1e4) / 100);
+
 /** URL con la que se ejecuta un actor y se reciben sus resultados en la misma petición. */
 export function urlEjecucion(clave, maxUsd) {
   const actor = ACTORES[clave];
   if (!actor) throw new Error(`Actor de Apify desconocido: ${clave}`);
   const parametros = new URLSearchParams({ timeout: String(TIMEOUT_ACTOR_S), clean: 'true' });
-  if (maxUsd != null) parametros.set('maxTotalChargeUsd', String(maxUsd));
+  if (maxUsd != null) parametros.set('maxTotalChargeUsd', topeEnCentimos(maxUsd).toFixed(2));
   return `${API}/acts/${actor.id}/run-sync-get-dataset-items?${parametros}`;
+}
+
+/** Lo que dice Apify al rechazar una petición: `{"error": {"type", "message"}}` → «tipo: mensaje». */
+export function motivoApify(cuerpo) {
+  const tipo = /"type"\s*:\s*"([^"]+)"/.exec(cuerpo ?? '')?.[1];
+  const mensaje = /"message"\s*:\s*"([^"]*)/.exec(cuerpo ?? '')?.[1];
+  return [tipo, mensaje].filter(Boolean).join(': ');
 }
 
 /** No se lanza: pasaría del presupuesto del mes o del tope del día. No es un fallo de nadie. */
@@ -90,9 +105,11 @@ export function costeEstimado(clave, filas, maxUsd = Infinity) {
  * @param {object} entrada
  * @param {{maxUsd: number}} opciones
  */
-export async function ejecutarActor(ctx, clave, entrada, { maxUsd }) {
+export async function ejecutarActor(ctx, clave, entrada, { maxUsd: pedido }) {
   const token = ctx.env.APIFY_TOKEN;
   if (!token) throw new Error('Falta configurar el secreto APIFY_TOKEN');
+  // El tope que se manda (en céntimos) es también el que cuenta para el presupuesto.
+  const maxUsd = topeEnCentimos(pedido);
   const presupuesto = presupuestoMensual(ctx.ajustes);
   const gastado = gastoDelMes(ctx.cache, ctx.ahora).usd;
   if (gastado + maxUsd > presupuesto) {
@@ -110,6 +127,9 @@ export async function ejecutarActor(ctx, clave, entrada, { maxUsd }) {
     anotarGasto(ctx.cache, ctx.ahora, maxUsd);
     if (error.estado === 401) throw new Error('Apify no acepta el token: revisa el secreto APIFY_TOKEN', { cause: error });
     if (error.estado === 402) throw new ErrorPresupuesto('Apify dice que no queda saldo en la cuenta este mes');
+    // El motivo que da Apify, para el registro («HTTP 400 en api.apify.com» solo no decía nada).
+    const motivo = motivoApify(error.cuerpo);
+    if (motivo) error.message = `${error.message} (${motivo})`;
     throw error;
   }
   if (!Array.isArray(filas)) {

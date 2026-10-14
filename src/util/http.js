@@ -207,6 +207,14 @@ const pedir = (url, { cabeceras, timeoutMs, cuerpo }) =>
     redirect: 'follow',
   });
 
+async function muestraDeRespuesta(respuesta) {
+  try {
+    return muestraDeCuerpo(await respuesta.text());
+  } catch {
+    return '';
+  }
+}
+
 function errorDeRespuesta(respuesta, url, contexto) {
   const error = new ErrorHttp(respuesta.status, url, contexto);
   if (CON_RETRY_AFTER.has(respuesta.status)) {
@@ -244,7 +252,11 @@ export async function obtenerTexto(url, opciones = {}) {
     try {
       const respuesta = await pedir(url, { cabeceras, timeoutMs, cuerpo });
       if (!respuesta.ok) {
-        throw errorDeRespuesta(respuesta, url, { intento, duracionMs: Date.now() - inicio });
+        const error = errorDeRespuesta(respuesta, url, { intento, duracionMs: Date.now() - inicio });
+        // El principio de lo que contesta la web: las APIs dicen ahí por qué rechazan la
+        // petición (Apify: «invalid-input» y el campo).
+        error.cuerpo = await muestraDeRespuesta(respuesta);
+        throw error;
       }
       const texto = await respuesta.text();
       anotarIntento(dominio, Date.now() - inicio, true);
