@@ -5,7 +5,7 @@
  */
 
 import {
-  contar, duracion, enumerar, escaparHtml as esc, euros, haceCuanto, urlSegura, ETIQUETAS_ALOJAMIENTO, TIPOS_EVENTO,
+  contar, duracion, enumerar, escaparHtml as esc, euros, haceCuanto, ETIQUETAS_ALOJAMIENTO, TIPOS_EVENTO,
   ETIQUETAS_REGIMEN, ETIQUETAS_TIPO, ETIQUETAS_TRANSPORTE,
 } from './formato.js';
 import { etiquetaDia } from './fechas.js';
@@ -17,7 +17,7 @@ import {
   valoresUnicos, KM_CERCA_DE_LO_BUSCADO, lugarDeConsulta, encajeEnRango, periodoPasado, rangoDe, ordenPorDefecto,
 } from './filtros.js';
 import {
-  certeza, costeDe, textoAlojamiento, textoCaducidad, textoFechas, textoLugar, estadoVacio, rejilla,
+  certeza, costeDe, enlaceOferta, textoAlojamiento, textoCaducidad, textoFechas, textoLugar, estadoVacio, rejilla,
   textoAyudaUbicacion,
 } from './plantillas.js';
 import { icono, iconoTema } from './iconos.js';
@@ -622,7 +622,7 @@ export function resultadosActividades(e, params) {
   const f = leerFiltrosActividades(params);
   const { resultado: lista, aproximado } = conFaltas((g) => buscarActividades(ofertasDe(e, params), g, contextoBusqueda(e)), f);
   const gratis = lista.filter((o) => o.precio === 0).length;
-  const resumen = `${contar(lista.length, 'plan', 'planes')}${gratis ? ` · ${gratis} ${gratis === 1 ? 'gratis' : 'gratis'}` : ''}`;
+  const resumen = `${contar(lista.length, 'plan', 'planes')}${gratis ? ` · ${gratis} gratis` : ''}`;
   return `${filaActivos(e, 'actividades', params)}${eventosEnPlanes(e, f)}${resumenResultados(resumen)}${aproximado ? avisoAproximado(f.q) : ''}${avisoSinConfirmar(e, 'actividades', params, (otras) => buscarActividades(otras, f, contextoBusqueda(e)).length)}
 ${ordenRapido('actividades', params, f.orden, { rapidos: ORDEN_RAPIDO_PLANES, todos: ORDENES_ACTIVIDADES, defecto: 'puntuacion' })}
 ${lista.length
@@ -753,10 +753,8 @@ export function vistaComparar(e, params = {}) {
     fila('Cómo llegar', ofertas.map((o) => [ETIQUETAS_TRANSPORTE[o.transporte], dist(o)].filter(Boolean).join(' · '))),
     fila('Certeza', ofertas.map((o) => esc(certeza(o)))),
     fila('Comprobada', ofertas.map((o) => esc(o.vistaUltima ? haceCuanto(o.vistaUltima, e.ahora) : ''))),
-    fila('', ofertas.map((o) => {
-      const url = urlSegura(o.url);
-      return `<div class="acciones">${url ? `<a class="boton boton--primario boton--mini" href="${esc(url)}" target="_blank" rel="noopener noreferrer">Ver oferta<span class="sr"> (se abre en otra pestaña)</span></a>` : ''}<button type="button" class="boton boton--suave boton--mini" data-comparar="${esc(o.id)}" aria-pressed="true">Quitar</button></div>`;
-    })),
+    // El mismo enlace que en la tarjeta y la ficha (su web con tus fechas, rel, atributos del clic).
+    fila('', ofertas.map((o) => `<div class="acciones">${enlaceOferta(o, 'Ver oferta', ctx, 'boton boton--primario boton--mini')}<button type="button" class="boton boton--suave boton--mini" data-comparar="${esc(o.id)}" aria-pressed="true">Quitar</button></div>`)),
   ];
   const cabecera = ofertas.map((o) => `<th scope="col"><button type="button" class="enlace-ficha" data-ficha="${esc(o.id)}">${esc(o.titulo)}</button></th>`).join('');
   const enlace = crearHash('comparar', { ids: ofertas.map((o) => o.id).join(',') });

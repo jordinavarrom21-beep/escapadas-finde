@@ -21,7 +21,6 @@ export const FILTROS_SECUNDARIOS = [
 /** Los que van en «Más filtros» de la vista de vuelos. */
 export const FILTROS_MAS_VUELOS = ['dto', 'pts', 'cho', 'baja', 'hist', 'nuevas', 'fav', 'sindesc', 'sinconf', 'dup'];
 export const HORAS_SORPRESA = 3;
-export const ACTIVIDADES_FINDE = 4;
 export const ETIQUETAS_ORDEN = {
   puntuacion: 'Valor de la oferta',
   total: 'Viaje más barato (por persona y noche)',

@@ -30,6 +30,8 @@ const MAXIMO_NOCHES_VIAJE = 7;
 const DOS_MESES = '(min-width: 720px)';
 
 export const mesDe = (dia) => dia.slice(0, 7);
+/** El último día que se puede elegir: el del final del último mes que se enseña. */
+const ultimoDia = (hoy) => sumarDias(`${sumarMeses(mesDe(hoy), MESES_ADELANTE)}-01`, -1);
 
 /** '2026-12' + 1 → '2027-01'. */
 export function sumarMeses(mes, n) {
@@ -199,10 +201,13 @@ export function abrirCalendario(caja, editando = 'entrada') {
   // Solo uno abierto a la vez.
   document.querySelectorAll('[data-fechas].fechas--abierta').forEach((otra) => { if (otra !== caja) cerrarCalendario(otra); });
   const { hoy } = opcionesGlobales.contexto();
-  const entrada = caja.dataset.entrada >= hoy ? caja.dataset.entrada : '';
+  // Una entrada pasada o más allá de los meses que se enseñan (una URL hecha a mano) no se puede
+  // elegir: se empieza de cero. Si no, el calendario salía sin ningún mes.
+  const entrada = caja.dataset.entrada >= hoy && caja.dataset.entrada <= ultimoDia(hoy) ? caja.dataset.entrada : '';
   const salida = entrada && caja.dataset.salida >= entrada ? caja.dataset.salida : '';
   const modo = editando === 'salida' && entrada ? 'salida' : 'entrada';
-  const foco = (modo === 'salida' ? salida || entrada : entrada) || hoy;
+  let foco = (modo === 'salida' ? salida || entrada : entrada) || hoy;
+  if (foco > ultimoDia(hoy)) foco = ultimoDia(hoy);
   estados.set(caja, { entrada, salida, editando: modo, foco, mes: mesDe(foco), inicial: { entrada, salida }, previo: '' });
   panel(caja).hidden = false;
   caja.classList.add('fechas--abierta');
@@ -252,7 +257,10 @@ function tocarDia(caja, dia) {
 function moverFoco(caja, dias) {
   const sel = estados.get(caja);
   const { hoy } = opcionesGlobales.contexto();
-  const limite = sumarDias(`${sumarMeses(mesDe(hoy), MESES_ADELANTE)}-01`, -1);
+  // Eligiendo la salida, los días a más de 8 semanas de la entrada están desactivados: el foco no
+  // puede ir a ellos (se quedaba en <body> y el teclado dejaba de mover el calendario).
+  const lejos = sel.editando === 'salida' && sel.entrada && !sel.salida ? sumarDias(sel.entrada, MAXIMO_DIAS) : null;
+  const limite = lejos && lejos < ultimoDia(hoy) ? lejos : ultimoDia(hoy);
   let foco = sumarDias(sel.foco, dias);
   if (foco < hoy) foco = hoy;
   if (foco > limite) foco = limite;

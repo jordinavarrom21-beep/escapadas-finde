@@ -1179,28 +1179,6 @@ export const precioDeSerie = (o) => (o.historialPorNoche && o.unidad === 'total'
 /** « por noche» si el historial y la bajada de la oferta son por noche. */
 export const sufijoSerie = (o) => (o.historialPorNoche ? ' por noche' : '');
 
-/**
- * Estado de un vigilado con los datos que publica el escaneo: qué ofertas cumple
- * ahora mismo, cuál es la mejor y si esa mejor está en su precio más bajo.
- */
-export function resumenVigilado(criterio, { porId = new Map(), historial = {} } = {}) {
-  const ofertas = (criterio.coincidencias ?? []).map((id) => porId.get(id)).filter(Boolean);
-  const precios = ofertas.map((o) => o.precio).filter((precio) => typeof precio === 'number');
-  const mejor = [...ofertas].sort(porPrecio)[0] ?? null;
-  const serie = (mejor && historial[mejor.id]) ?? [];
-  const minimoSerie = serie.length >= 2 ? Math.min(...serie.map(([, precio]) => precio)) : null;
-  return {
-    criterio,
-    activo: criterio.activo !== false,
-    ofertas,
-    total: ofertas.length,
-    mejor,
-    precioMin: precios.length ? Math.min(...precios) : null,
-    enMinimo: Boolean(mejor?.minimoHistorico || (minimoSerie != null && precioDeSerie(mejor) <= minimoSerie)),
-    diasHistorial: serie.length,
-  };
-}
-
 /** Marca de `data-copiar-vigilado` para un criterio que ya está hecho (no sale de los filtros). */
 export const marcaVigilado = (criterio) => `json:${encodeURIComponent(JSON.stringify(criterio))}`;
 

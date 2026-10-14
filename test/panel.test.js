@@ -654,7 +654,7 @@ describe('comparar precios del mismo alojamiento', () => {
 
   it('la tarjeta dice si es la más barata, si hay otra web más barata o si cuesta lo mismo', () => {
     assert.match(tarjeta(casa({ equivalentes: [otra] }), ctx),
-      /La más barata de 2 webs<\/strong>: en <a href="https:\/\/www\.escapadarural\.com[^"]*" target="_blank" rel="noopener">Escapada Rural<\/a>, 40\s€ \(13\s€ más\)/);
+      /La más barata de 2 webs<\/strong>: en <a href="https:\/\/www\.escapadarural\.com[^"]*" target="_blank" rel="noopener" data-clic="escapadarural"[^>]*>Escapada Rural<\/a>, 40\s€ \(13\s€ más\)/);
     const cara = casa({ fuente: 'escapadarural', id: 'escapadarural:2', precio: 40, precioNoche: 40, equivalentes: [{ ...otra, id: 'tuscasasrurales:1', fuente: 'tuscasasrurales', precio: 27, precioNoche: 27 }] });
     assert.match(tarjeta(cara, ctx), /Más barata en <a[^>]*>Tus Casas Rurales<\/a><\/strong>: 27\s€ por persona y noche \(13\s€ menos\)/);
     assert.match(tarjeta(casa({ equivalentes: [{ ...otra, precio: 27.4, precioNoche: 27.4 }] }), ctx), /Mismo precio en <a[^>]*>Escapada Rural<\/a>/);

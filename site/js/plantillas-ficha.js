@@ -1,6 +1,6 @@
 /** La ficha de una oferta (el diálogo que se abre al pulsar su título). */
 
-import { etiquetaDia } from './fechas.js';
+import { etiquetaDia, fechaLocal } from './fechas.js';
 import {
   ETIQUETAS_REGIMEN, ETIQUETAS_TIPO, ETIQUETAS_TRANSPORTE, ETIQUETAS_UNIDAD, SIN_UNIDAD, contar, duracion, enumerar,
   escaparHtml as esc, euros, haceCuanto, normalizar, nota, tituloLegible, urlSegura,
@@ -159,7 +159,8 @@ function datosFicha(o, ctx) {
       ['Valor de la oferta', !motivosNota(o).length && `${o.puntuacion} / 100 · ${nivelNota(o)}. ${QUE_MIDE_LA_NOTA}`],
     ]],
     ['Seguimiento', [
-      ['Publicada', o.publicada && etiquetaDia(o.publicada)],
+      // El día de Madrid: cortar el ISO (en UTC) daba el día anterior a lo publicado de noche.
+      ['Publicada', o.publicada && etiquetaDia(fechaLocal(o.publicada))],
       ['Vista por primera vez', o.vistaPrimera && haceCuanto(o.vistaPrimera)],
     ]],
   ];

@@ -83,7 +83,15 @@ export function activarUbicacion(formulario, origen, { salida = null, prefijo = 
 
   texto.addEventListener('keydown', (evento) => {
     const total = sugerencias.length;
-    if (evento.key === 'Escape') return cerrar();
+    if (evento.key === 'Escape') {
+      // Con las sugerencias a la vista, Escape solo las cierra. Si no, cerraba también el diálogo
+      // «Tu viaje» y se perdía lo cambiado (se guarda al pulsar su botón).
+      if (!lista.hidden) {
+        evento.preventDefault();
+        evento.stopPropagation();
+      }
+      return cerrar();
+    }
     if (lista.hidden || !total) return;
     if (evento.key === 'ArrowDown' || evento.key === 'ArrowUp') {
       evento.preventDefault();
