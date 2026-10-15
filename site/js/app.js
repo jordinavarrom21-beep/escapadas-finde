@@ -1346,7 +1346,13 @@ function completarHistorial() {
     const { vista, params } = leerRuta(hashVista());
     if (dialogo.open) return;
     if (VISTAS_HTML[vista]?.resultados && $('#resultados')) actualizarResultados(vista, params);
-    else if (principal.querySelector('.tarjeta, .billete') && !ocupado()) render({ enfocar: false });
+    // Con «Sorpréndeme» abierto no: repintar lo cerraría y se llevaría los planes de debajo del dedo.
+    else if (principal.querySelector('.tarjeta, .billete') && !ocupado() && $('#sorpresa-bloque')?.hidden !== false) {
+      // Ni se cierra (o se abre) lo que se haya desplegado mientras tanto, como «Cambiar».
+      const abiertos = [...principal.querySelectorAll('details')].map((d) => d.open);
+      render({ enfocar: false });
+      principal.querySelectorAll('details').forEach((d, i) => { if (i < abiertos.length) d.open = abiertos[i]; });
+    }
   }).catch((error) => console.warn('No se ha podido completar el historial de precios:', error));
   return historialPendiente;
 }

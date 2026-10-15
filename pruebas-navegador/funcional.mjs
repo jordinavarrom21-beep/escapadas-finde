@@ -611,13 +611,15 @@ await cn.close();
 
 // ── Carga en un móvil lento: la portada de index.html mientras llegan las ofertas ──
 // La que pone el despliegue (scripts/preparar-web.js): scripts/servir.js sirve site/ tal cual, sin ella.
-const indicePreparado = ponerPortada(readFileSync(path.join(RAIZ, 'site/index.html'), 'utf8'), generarPaginas(datos).portada);
+// Con la fecha de ahora: tema.js no enseña una de hace más de 3 h (la del service worker de otra visita).
+const indiceCon = (generado) => ponerPortada(readFileSync(path.join(RAIZ, 'site/index.html'), 'utf8'), generarPaginas({ ...datos, generado }).portada);
+const indicePreparado = indiceCon(new Date().toISOString());
 const historial = JSON.parse(readFileSync(path.join(RAIZ, 'site/data/historial.json'), 'utf8'));
 const esperar = (ms) => new Promise((listo) => { setTimeout(listo, ms); });
 /** Una página con la portada estática y, si se pide, ofertas.json o historial.json que tardan. */
-async function cargaMovil({ ruta = 'finde', ofertasMs = 0, historialMs = 0 } = {}) {
+async function cargaMovil({ ruta = 'finde', ofertasMs = 0, historialMs = 0, indice = indicePreparado } = {}) {
   const cm = await contexto({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
-  await cm.route((url) => url.pathname === '/' || url.pathname === '/index.html', (r) => r.fulfill({ body: indicePreparado, contentType: 'text/html; charset=utf-8' }));
+  await cm.route((url) => url.pathname === '/' || url.pathname === '/index.html', (r) => r.fulfill({ body: indice, contentType: 'text/html; charset=utf-8' }));
   if (ofertasMs) await cm.route('**/data/ofertas.json', async (r) => { await esperar(ofertasMs); await r.continue(); });
   if (historialMs) await cm.route('**/data/historial.json', async (r) => { await esperar(historialMs); await r.continue(); });
   await cm.addInitScript(() => {
@@ -647,6 +649,14 @@ const inicioPedido = (pm, archivo) => pm.evaluate((a) => performance.getEntriesB
   await cm.close();
 }
 {
+  // La de hace dos días (el index.html que guardó el service worker en otra visita): no se enseña.
+  const { cm, pm, listo } = await cargaMovil({ ofertasMs: 4000, indice: indiceCon(new Date(Date.now() - 2 * 86_400_000).toISOString()) });
+  await pm.waitForTimeout(2600);
+  ok(!(await pm.locator('.portada-estatica').isVisible()) && await pm.locator('.cargando').isVisible(), 'carga lenta con una portada vieja: solo «Cargando ofertas…», no las ofertas de hace días');
+  await listo();
+  await cm.close();
+}
+{
   const { cm, pm, listo } = await cargaMovil();
   await listo();
   ok(await pm.evaluate(() => window.estaticaVista == null), 'carga rápida: la portada estática no llega a verse (no salta de un contenido a otro)');
@@ -672,6 +682,17 @@ const inicioPedido = (pm, archivo) => pm.evaluate((a) => performance.getEntriesB
     await pm.waitForSelector('#ficha[open]', { timeout: 10000 });
     ok((await pm.locator('#ficha canvas#ficha-grafica').count()) === 1, 'ficha abierta antes de que llegue el historial: sale con su gráfica');
   }
+  await cm.close();
+}
+{
+  // «Sorpréndeme» abierto antes de que llegue el historial: no se cierra al llegar.
+  const { cm, pm, listo } = await cargaMovil({ historialMs: 2500 });
+  await listo();
+  await pm.locator('.atajos-portada [data-sorpresa]').click();
+  const planes = await pm.locator('#sorpresa .tarjeta').count();
+  await pm.waitForFunction(() => performance.getEntriesByType('resource').some((e) => e.name.includes('/data/historial.json') && e.responseEnd > 0), null, { timeout: 15000 });
+  await pm.waitForTimeout(300);
+  ok(planes > 0 && await pm.locator('#sorpresa-bloque').isVisible() && (await pm.locator('#sorpresa .tarjeta').count()) === planes, `«Sorpréndeme» sigue abierto al llegar el historial (${planes} planes)`);
   await cm.close();
 }
 
