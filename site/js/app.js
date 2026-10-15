@@ -369,6 +369,8 @@ let volviendoDeFicha = false;
 const hashVista = () => (idDeHash(location.hash) ? hashBajoFicha ?? hashPintado : location.hash);
 /** La dirección de lo último que se pintó (render): lo que hay debajo si se entra a una ficha sin lista. */
 let hashPintado = '#/finde';
+/** Si se ha tocado la vista desde que se pintó: lo que llega por detrás ya no la repinta (repintarDeFondo). */
+let tocadaDesdeRender = false;
 
 /** Abre la ficha y pone su dirección (la lista queda en el historial, para volver con «atrás»). */
 function abrirFichaConDireccion(id, disparador) {
@@ -509,6 +511,8 @@ function render({ enfocar = true } = {}) {
   if (params.seccion) principal.querySelector(`#${CSS.escape(params.seccion)}`)?.scrollIntoView();
   // Otra sección (o la primera): consentimiento.js la cuenta como visita si se acepta la medición.
   if (cambiaVista) window.dispatchEvent(new CustomEvent('escapadas:vista', { detail: vista }));
+  // Al final: el foco que pone render (el título) no cuenta como tocarla.
+  tocadaDesdeRender = false;
 }
 
 function actualizarResultados(vista, params) {
@@ -1139,6 +1143,8 @@ function conectarEventos() {
     const enlace = evento.target.closest?.('a[data-clic]');
     if (enlace) contarClic(enlace);
   });
+  // Antes que nada (en captura): un clic que repinta la vista vuelve a dejarla sin tocar.
+  for (const tipo of ['click', 'input', 'focusin']) principal.addEventListener(tipo, () => { tocadaDesdeRender = true; }, true);
   principal.addEventListener('input', alCambiarFiltro);
   principal.addEventListener('change', (evento) => {
     if (!evento.target.closest?.('[data-buscador-finde]')) return;
@@ -1419,20 +1425,13 @@ async function completarRutas() {
 }
 
 /**
- * Repinta la vista con lo que ha llegado por detrás (el historial, las rutas) sin deshacer lo
- * que se ha abierto mientras tanto: los desplegables, como «Cambiar», y «Sorpréndeme» con los
- * mismos planes (si no, se cerraba y se los llevaba de debajo del dedo).
+ * Repinta la vista con lo que ha llegado por detrás (el historial, las rutas), pero solo si
+ * no se ha tocado desde que se pintó: si no, deshacía lo que se ha hecho mientras tanto (lo
+ * elegido en «Cambiar», «Sorpréndeme» abierto, el foco). Lo que ha llegado se usa al pintar
+ * la siguiente vista, y la ficha ya lo trae.
  */
 function repintarDeFondo() {
-  const abiertos = [...principal.querySelectorAll('details')].map((d) => d.open);
-  const sorpresa = $('#sorpresa-bloque')?.hidden === false ? $('#sorpresa')?.innerHTML ?? '' : null;
-  render({ enfocar: false });
-  principal.querySelectorAll('details').forEach((d, i) => { if (i < abiertos.length) d.open = abiertos[i]; });
-  const bloque = $('#sorpresa-bloque');
-  if (sorpresa === null || !bloque) return;
-  bloque.hidden = false;
-  const contenedor = $('#sorpresa');
-  if (contenedor) contenedor.innerHTML = sorpresa;
+  if (!tocadaDesdeRender) render({ enfocar: false });
 }
 
 /** A mitad de algo (una ficha o «Tu viaje» abiertos, escribiendo): mejor no recargar de golpe. */

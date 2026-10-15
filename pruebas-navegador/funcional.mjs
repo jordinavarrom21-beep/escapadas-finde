@@ -617,8 +617,9 @@ const indicePreparado = indiceCon(new Date().toISOString());
 const historial = JSON.parse(readFileSync(path.join(RAIZ, 'site/data/historial.json'), 'utf8'));
 const esperar = (ms) => new Promise((listo) => { setTimeout(listo, ms); });
 /** Una página con la portada estática y, si se pide, ofertas.json o historial.json que tardan. */
-async function cargaMovil({ ruta = 'finde', ofertasMs = 0, historialMs = 0, indice = indicePreparado } = {}) {
+async function cargaMovil({ ruta = 'finde', ofertasMs = 0, historialMs = 0, indice = indicePreparado, favoritos = null } = {}) {
   const cm = await contexto({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  if (favoritos) await cm.addInitScript((ids) => { localStorage.setItem('escapadas:favoritos', JSON.stringify(ids)); }, favoritos);
   await cm.route((url) => url.pathname === '/' || url.pathname === '/index.html', (r) => r.fulfill({ body: indice, contentType: 'text/html; charset=utf-8' }));
   if (ofertasMs) await cm.route('**/data/ofertas.json', async (r) => { await esperar(ofertasMs); await r.continue(); });
   if (historialMs) await cm.route('**/data/historial.json', async (r) => { await esperar(historialMs); await r.continue(); });
@@ -685,14 +686,35 @@ const inicioPedido = (pm, archivo) => pm.evaluate((a) => performance.getEntriesB
   await cm.close();
 }
 {
-  // «Sorpréndeme» abierto antes de que llegue el historial: no se cierra al llegar.
+  // Sin tocar nada, al llegar el historial la portada se repinta con él (con favoritos, sus
+  // tarjetas de «Recomendado para ti» lo usan).
+  const { cm, pm, listo } = await cargaMovil({ historialMs: 2500, favoritos: datos.ofertas.filter((o) => o.tipo !== 'vuelo').slice(0, 3).map((o) => o.id) });
+  await listo();
+  const recomendadas = await pm.locator('#principal .seccion:has-text("Recomendado para ti") .tarjeta').count();
+  await pm.evaluate(() => { document.querySelector('#principal .portada').dataset.deAntes = '1'; });
+  await pm.waitForFunction(() => performance.getEntriesByType('resource').some((e) => e.name.includes('/data/historial.json') && e.responseEnd > 0), null, { timeout: 15000 });
+  await pm.waitForTimeout(300);
+  ok(recomendadas > 0 && (await pm.locator('#principal .portada').count()) === 1 && (await pm.locator('#principal .portada[data-de-antes]').count()) === 0, `portada sin tocar: se repinta al llegar el historial (${recomendadas} recomendadas)`);
+  await cm.close();
+}
+{
+  // «Sorpréndeme» abierto antes de que llegue el historial: no se cierra al llegar, ni se pierde
+  // lo elegido en «Cambiar» sin buscar aún, ni el foco.
   const { cm, pm, listo } = await cargaMovil({ historialMs: 2500 });
   await listo();
+  await pm.locator('.organizar__opcion:has(input[value="vuelos"])').click();
+  await pm.locator('#buscador-finde-q').fill('Cadaqués');
   await pm.locator('.atajos-portada [data-sorpresa]').click();
   const planes = await pm.locator('#sorpresa .tarjeta').count();
   await pm.waitForFunction(() => performance.getEntriesByType('resource').some((e) => e.name.includes('/data/historial.json') && e.responseEnd > 0), null, { timeout: 15000 });
   await pm.waitForTimeout(300);
   ok(planes > 0 && await pm.locator('#sorpresa-bloque').isVisible() && (await pm.locator('#sorpresa .tarjeta').count()) === planes, `«Sorpréndeme» sigue abierto al llegar el historial (${planes} planes)`);
+  const formulario = await pm.evaluate(() => ({
+    que: document.querySelector('input[name="que"]:checked')?.value,
+    destino: document.querySelector('#buscador-finde-q')?.value,
+    foco: document.activeElement?.matches('[data-sorpresa]') ?? false,
+  }));
+  ok(formulario.que === 'vuelos' && formulario.destino === 'Cadaqués' && formulario.foco, `al llegar el historial sigue lo elegido en «Cambiar» y el foco (${JSON.stringify(formulario)})`);
   await cm.close();
 }
 {
