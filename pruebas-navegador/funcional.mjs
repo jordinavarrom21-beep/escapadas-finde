@@ -695,6 +695,32 @@ const inicioPedido = (pm, archivo) => pm.evaluate((a) => performance.getEntriesB
   ok(planes > 0 && await pm.locator('#sorpresa-bloque').isVisible() && (await pm.locator('#sorpresa .tarjeta').count()) === planes, `«Sorpréndeme» sigue abierto al llegar el historial (${planes} planes)`);
   await cm.close();
 }
+{
+  // Ni al llegar las rutas por carretera desde otra salida (OSRM, unos segundos después de pintar).
+  const cr = await contexto({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  await cr.route('https://router.project-osrm.org/**', async (r) => {
+    const n = r.request().url().split('/driving/')[1].split('?')[0].split(';').length;
+    await esperar(300);
+    const fila = Array.from({ length: n }, (_, i) => (i === 0 ? 0 : 3600 + i));
+    await r.fulfill({ contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify({ code: 'Ok', durations: [fila], distances: [fila.map((s) => s * 25)] }) });
+  });
+  await cr.addInitScript(() => {
+    if (sessionStorage.getItem('salida-puesta')) return;
+    sessionStorage.setItem('salida-puesta', '1');
+    localStorage.setItem('escapadas:salida', JSON.stringify({ nombre: 'Girona', lat: 41.9794, lon: 2.8214 }));
+  });
+  const pr = await pagina(cr);
+  await pr.goto(`${BASE}#/finde`);
+  await pr.waitForFunction(() => window.escapadasListo === true, null, { timeout: 30000 });
+  await pr.waitForFunction(() => performance.getEntriesByType('resource').some((e) => e.name.includes('/data/historial.json') && e.responseEnd > 0), null, { timeout: 15000 });
+  await pr.waitForTimeout(300);
+  await pr.locator('.atajos-portada [data-sorpresa]').click();
+  const planes = await pr.locator('#sorpresa .tarjeta').count();
+  await pr.waitForFunction(() => localStorage.getItem('escapadas:rutas'), null, { timeout: 40000, polling: 100 });
+  await pr.waitForTimeout(300);
+  ok(planes > 0 && await pr.locator('#sorpresa-bloque').isVisible() && (await pr.locator('#sorpresa .tarjeta').count()) === planes, `«Sorpréndeme» sigue abierto al llegar las rutas desde otra salida (${planes} planes)`);
+  await cr.close();
+}
 
 ok(!errores.some((e) => /Content Security Policy|Refused to (load|apply|execute|connect)/.test(e)), 'CSP: ningún error en la consola en todo el recorrido');
 
