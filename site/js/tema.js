@@ -20,8 +20,10 @@ document.documentElement.classList.add('js');
 // da el index.html que guardó entonces, y sus ofertas pueden ser de hace días.
 setTimeout(function portadaMientras() {
   const bloque = document.querySelector('.portada-estatica');
+  // Si aún no ha llegado, en cuanto acabe de leerse el HTML (antes de los módulos, no como
+  // DOMContentLoaded, que los espera y llegaba con el panel).
   if (!bloque && document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', portadaMientras, { once: true });
+    document.addEventListener('readystatechange', portadaMientras, { once: true });
     return;
   }
   if (Date.now() - Date.parse(bloque?.dataset.generado) < 3 * 3600 * 1000) document.documentElement.classList.add('portada-mientras');
