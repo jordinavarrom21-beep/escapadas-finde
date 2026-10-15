@@ -339,6 +339,11 @@ describe('direcciones internas y respuestas enormes', () => {
     // Con la arroba codificada, como lo monta encodeURIComponent.
     assert.equal(await muestra(`<a href="mailto:reservas@hotel.es?cc=${encodeURIComponent('juan.perez@empresa-cliente.es')}">x</a>`), '<a href="mailto:(correo)(correo)">x</a>');
     assert.equal(await muestra('https://uno.es/p?from=ana@uno.es&to=juan.perez%40gmail.com&x=1'), 'https:(correo)(correo)&x=1');
+    // Con letras no ASCII en el dominio, codificadas, y con la arroba codificada dos veces.
+    assert.equal(await muestra(`<a href="mailto:reservas@hotel.es?cc=${encodeURIComponent('juan.perez@peñíscola.es')}">x</a>`), '<a href="mailto:(correo)(correo)">x</a>');
+    assert.doesNotMatch(await muestra('<a href="https://t.uno.es/r?u=https%3A%2F%2Fdos.es%2Fp%3Femail%3Djuan.perez%2540gmail.com">x</a>'), /juan|gmail/);
+    assert.equal(await muestra('<p>Escribe a juan.perez&#64;gmail.com o a ana&#x40;uno.es</p>'), '<p>Escribe a (correo) o a (correo)</p>');
+    assert.equal(await muestra('{"c":"juan.perez\\u0040gmail.com"}x'), '{"c":"(correo)"}x');
     // Si el corte de la ventana cae en un correo y la muestra se queda corta (casi todo eran
     // espacios), su trozo no sale.
     assert.equal(await muestra(`<p>Hola${'\n'.repeat(4070)}escribe a juan.perez@gmail.com</p>${'x'.repeat(100)}`), '<p>Hola escribe a');

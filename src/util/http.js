@@ -179,9 +179,11 @@ export class ErrorParseo extends SyntaxError {
  * Un correo, sin las comillas, comas o llaves de alrededor (en un JSON se lo comían todo), y con
  * un dominio que solo lleva lo que puede llevar un dominio (si no, en «?cc=» o «%2C» se tragaba
  * el principio del segundo correo y dejaba ver su dominio). También con la arroba codificada
- * («%40»), como va en un enlace mailto o en una URL.
+ * («%40», o «%2540» si la URL va dentro de otra), como va en un enlace mailto o en una URL, o
+ * escrita como «&#64;» o «\u0040», y con las letras no ASCII del dominio codificadas (la ñ es
+ * «%C3%B1»; «%2C» o «%20» lo cortan).
  */
-const CORREO = /[^\s@"'<>()[\]{},;:\\]+(?:@|%40)[\p{L}\p{N}_.-]+\.[\p{L}\p{N}]+/gu;
+const CORREO = /[^\s@"'<>()[\]{},;:\\]+(?:@|%(?:25)?40|&#0*64;|&#[xX]0*40;|\\u0040)(?:[\p{L}\p{N}_.-]|%[89A-Fa-f][0-9A-Fa-f])+\.(?:[\p{L}\p{N}]|%[89A-Fa-f][0-9A-Fa-f])+/gu;
 
 // El principio del cuerpo, en una línea y sin correos: sirve para distinguir un
 // desafío anti-bot de un cambio de formato, no para guardar datos de nadie.
