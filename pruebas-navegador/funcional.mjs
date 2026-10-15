@@ -7,6 +7,8 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { RAIZ, arrancar, contexto as nuevoContexto, vigilarErrores } from './comun.mjs';
+import { ponerPortada } from '../scripts/preparar-web.js';
+import { generarPaginas } from '../src/paginas.js';
 
 const { base: BASE, navegador: b, cerrar } = await arrancar();
 const datos = JSON.parse(readFileSync(path.join(RAIZ, 'site/data/ofertas.json'), 'utf8'));
@@ -606,6 +608,72 @@ await n.waitForTimeout(600);
 const verlas = Number((await n.locator('#principal').innerText()).match(/([\d.]+) ofertas?/)?.[1].replace('.', '') ?? 0);
 ok(pastilla === verlas, `novedades: tras «Ver», la pastilla cuenta lo mismo que «Verlas» (${pastilla} y ${verlas})`);
 await cn.close();
+
+// ── Carga en un móvil lento: la portada de index.html mientras llegan las ofertas ──
+// La que pone el despliegue (scripts/preparar-web.js): scripts/servir.js sirve site/ tal cual, sin ella.
+const indicePreparado = ponerPortada(readFileSync(path.join(RAIZ, 'site/index.html'), 'utf8'), generarPaginas(datos).portada);
+const historial = JSON.parse(readFileSync(path.join(RAIZ, 'site/data/historial.json'), 'utf8'));
+const esperar = (ms) => new Promise((listo) => { setTimeout(listo, ms); });
+/** Una página con la portada estática y, si se pide, ofertas.json o historial.json que tardan. */
+async function cargaMovil({ ruta = 'finde', ofertasMs = 0, historialMs = 0 } = {}) {
+  const cm = await contexto({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  await cm.route((url) => url.pathname === '/' || url.pathname === '/index.html', (r) => r.fulfill({ body: indicePreparado, contentType: 'text/html; charset=utf-8' }));
+  if (ofertasMs) await cm.route('**/data/ofertas.json', async (r) => { await esperar(ofertasMs); await r.continue(); });
+  if (historialMs) await cm.route('**/data/historial.json', async (r) => { await esperar(historialMs); await r.continue(); });
+  await cm.addInitScript(() => {
+    // Si la portada estática llega a verse antes de que pinte el panel, y cuándo pinta.
+    window.addEventListener('escapadas:listo', () => { window.listoEn = performance.now(); });
+    const mirar = () => {
+      const estatica = document.querySelector('.portada-estatica');
+      if (estatica && getComputedStyle(estatica).display !== 'none') window.estaticaVista ??= performance.now();
+      if (!window.escapadasListo) requestAnimationFrame(mirar);
+    };
+    requestAnimationFrame(mirar);
+  });
+  const pm = await pagina(cm);
+  await pm.goto(`${BASE}#/${ruta}`);
+  return { cm, pm, listo: () => pm.waitForFunction(() => window.escapadasListo === true, null, { timeout: 30000 }) };
+}
+const inicioPedido = (pm, archivo) => pm.evaluate((a) => performance.getEntriesByType('resource').find((e) => e.name.includes(`/data/${a}`))?.startTime ?? null, archivo);
+{
+  const { cm, pm, listo } = await cargaMovil({ ofertasMs: 4000 });
+  await pm.waitForTimeout(2600);
+  const estatica = pm.locator('.portada-estatica');
+  ok(await estatica.isVisible() && (await pm.locator('.portada-estatica .fila-guia').count()) > 0, 'carga lenta: a los 2 s se ve la portada de index.html, con lo mejor de ahora');
+  const [cargando, titulo] = [await pm.locator('.cargando').boundingBox(), await pm.locator('.portada-estatica h1.titulo-vista').boundingBox()];
+  ok(cargando && titulo && cargando.y < titulo.y, 'carga lenta: «Cargando ofertas…» encima de la portada estática');
+  await listo();
+  ok((await estatica.count()) === 0 && (await pm.locator('#principal .portada').count()) === 1, 'carga lenta: al llegar las ofertas, el panel la sustituye');
+  await cm.close();
+}
+{
+  const { cm, pm, listo } = await cargaMovil();
+  await listo();
+  ok(await pm.evaluate(() => window.estaticaVista == null), 'carga rápida: la portada estática no llega a verse (no salta de un contenido a otro)');
+  await pm.waitForFunction(() => performance.getEntriesByType('resource').some((e) => e.name.includes('/data/historial.json')));
+  const [ofertas, deHistorial, listoEn] = [await inicioPedido(pm, 'ofertas.json'), await inicioPedido(pm, 'historial.json'), await pm.evaluate(() => window.listoEn)];
+  ok(ofertas < listoEn && deHistorial >= listoEn, `portada: el historial se pide después de pintar (ofertas a los ${Math.round(ofertas)} ms, panel a los ${Math.round(listoEn)}, historial a los ${Math.round(deHistorial)})`);
+  await cm.close();
+}
+{
+  const { cm, pm, listo } = await cargaMovil({ ruta: 'escapadas' });
+  await listo();
+  ok((await inicioPedido(pm, 'historial.json')) < (await pm.evaluate(() => window.listoEn)), 'Explorar: el historial se pide desde el principio (sus tarjetas lo usan)');
+  await cm.close();
+}
+{
+  // Una ficha abierta desde la portada antes de que llegue el historial espera a tenerlo.
+  const { cm, pm, listo } = await cargaMovil({ historialMs: 2500 });
+  await listo();
+  const conHistorial = Object.keys(historial).filter((id) => historial[id].length >= 2);
+  const id = await pm.evaluate((ids) => [...document.querySelectorAll('#principal [data-ficha]')].map((b) => b.dataset.ficha).find((x) => ids.includes(x)) ?? null, conHistorial);
+  if (id) {
+    await pm.evaluate((x) => { location.hash = `#/oferta/${encodeURIComponent(x)}`; }, id);
+    await pm.waitForSelector('#ficha[open]', { timeout: 10000 });
+    ok((await pm.locator('#ficha canvas#ficha-grafica').count()) === 1, 'ficha abierta antes de que llegue el historial: sale con su gráfica');
+  }
+  await cm.close();
+}
 
 ok(!errores.some((e) => /Content Security Policy|Refused to (load|apply|execute|connect)/.test(e)), 'CSP: ningún error en la consola en todo el recorrido');
 

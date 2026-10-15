@@ -2,6 +2,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { separarDatosPanel } from '../src/panel-datos.js';
+import { juntarEventos } from '../site/js/filtros.js';
 import { oferta } from './ayudas.js';
 
 describe('datos del panel en dos archivos', () => {
@@ -15,14 +16,47 @@ describe('datos del panel en dos archivos', () => {
     const [ligera, otra] = ofertas.ofertas;
     assert.ok(!('enlaces' in ligera) && !('urlReserva' in ligera));
     // La tarjeta («Concierto a 3 km»), la portada (el pueblo del evento, no el de la oferta) y el
-    // filtro de eventos funcionan sin abrir ninguna ficha.
-    assert.deepEqual(ligera.eventos, [{ nombre: 'Feria', tipo: 'ferias', km: 2.4, fecha: '2026-10-03', municipio: 'Olot' }]);
+    // filtro de eventos funcionan sin abrir ninguna ficha: cada evento va una vez en `eventos` y
+    // la oferta dice cuál y a cuántos km.
+    assert.deepEqual(ofertas.eventos, [{ nombre: 'Feria', tipo: 'ferias', fecha: '2026-10-03', municipio: 'Olot' }]);
+    assert.deepEqual(ligera.eventosCerca, [[0, 2.4]]);
+    assert.ok(!('eventos' in ligera), 'sin la lista repetida en cada oferta');
     assert.deepEqual(detalles[conTodo.id].eventos, [evento], 'la ficha recibe los eventos enteros');
     assert.ok(!('eventos' in otra), 'sin eventos, nada');
     assert.equal(otra.urlReserva, 'https://otra.es/reserva');
     assert.deepEqual(Object.keys(detalles), [conTodo.id], 'sin detalles vacíos');
     assert.equal(detalles[conTodo.id].enlaces[0].etiqueta, 'Booking');
     assert.ok(conTodo.enlaces, 'no toca las ofertas originales (las páginas y los emails las usan enteras)');
+  });
+
+  it('cada evento de cerca va una sola vez y el panel lo vuelve a poner en cada oferta, con sus km', () => {
+    const concierto = { nombre: 'Concierto', tipo: 'musica', fecha: '2026-10-17', municipio: 'Berga', url: 'https://berga.cat', precio: '12 €' };
+    const feria = { nombre: 'Feria', tipo: 'ferias', fecha: '2026-10-18', municipio: 'Olot' };
+    const una = oferta({ eventos: [{ ...concierto, km: 11.5 }, { ...feria, km: 3 }] });
+    const otra = oferta({ eventos: [{ ...concierto, km: 2 }, { ...feria }] });
+    const sin = oferta({ eventos: [] });
+    const { ofertas } = separarDatosPanel({ generado: '2026-10-01T10:00:00Z', ofertas: [una, otra, sin] });
+    assert.equal(ofertas.eventos.length, 2, 'el concierto, una vez aunque salga cerca de dos ofertas');
+    assert.deepEqual(ofertas.ofertas.map((o) => o.eventosCerca), [[[0, 11.5], [1, 3]], [[0, 2], [1]], undefined]);
+    // Lo mismo que se publicaba antes en cada oferta (nombre, tipo, km, fecha y municipio), y
+    // sobrevive a pasar por JSON, como al bajarlo.
+    const [a, b, c] = juntarEventos(JSON.parse(JSON.stringify(ofertas))).ofertas;
+    assert.deepEqual(a.eventos, [
+      { nombre: 'Concierto', tipo: 'musica', fecha: '2026-10-17', municipio: 'Berga', km: 11.5 },
+      { nombre: 'Feria', tipo: 'ferias', fecha: '2026-10-18', municipio: 'Olot', km: 3 },
+    ]);
+    assert.deepEqual(b.eventos.map((ev) => ev.km), [2, undefined]);
+    assert.ok(!('eventosCerca' in a) && !('eventos' in c));
+    assert.notEqual(a.eventos[0], b.eventos[0], 'cada oferta, su copia: la ficha completa la suya sin tocar las otras');
+  });
+
+  it('el panel lee también los datos de antes, con los eventos dentro de cada oferta', () => {
+    const evento = { nombre: 'Feria', tipo: 'ferias', km: 2.4, fecha: '2026-10-03', municipio: 'Olot' };
+    const datos = juntarEventos({ ofertas: [{ id: 'a', eventos: [evento] }, { id: 'b' }] });
+    assert.deepEqual(datos.ofertas[0].eventos, [evento]);
+    assert.ok(!('eventos' in datos.ofertas[1]));
+    // Y una posición que no está en la lista (datos a medias) no se convierte en un evento vacío.
+    assert.deepEqual(juntarEventos({ eventos: [], ofertas: [{ id: 'c', eventosCerca: [[3, 1]] }] }).ofertas[0].eventos, []);
   });
 
   it('los precios de Google Hoteles solo los usa la ficha: van aparte, y sin ellos nada', () => {

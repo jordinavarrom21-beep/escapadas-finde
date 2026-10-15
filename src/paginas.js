@@ -427,7 +427,7 @@ ${texto.parrafos.map((p) => `<p>${esc(p)}</p>`).join('\n')}${consejos}${pregunta
 /**
  * Bloque de la portada para quien no ejecuta el panel (buscadores, vistas previas): qué es
  * la web, lo mejor de ahora y todas las guías. El panel lo sustituye al pintar; con
- * JavaScript ni se llega a ver (estilos: .js .portada-estatica).
+ * JavaScript solo se ve si el panel tarda (estilos: .portada-estatica), con el mismo título.
  */
 /** Las ofertas de «Lo mejor de ahora» de la portada sin JavaScript (y de su ItemList). */
 const destacadasPortada = (datos) => datos.ofertas.filter((o) => esEscapada(o) && conTotal(o)).sort(porValor).slice(0, DESTACADAS_PORTADA);
@@ -437,7 +437,7 @@ export function bloquePortada(datos, guias) {
   const destacadas = destacadasPortada(datos);
   const nombres = new Map((datos.fuentes ?? []).map((f) => [f.id, f.nombre]));
   return `<div class="portada-estatica">
-<h1>Escapadas de fin de semana desde ${esc(desde)}</h1>
+<h1 class="titulo-vista">Escapadas de fin de semana desde <em>${esc(desde)}</em></h1>
 <p>Escapadas, casas rurales, hoteles con spa, planes y chollos de vuelos de ${numeroWebs(datos) || 'varias'} webs de viajes, juntos y revisados cada 15 minutos. Cada oferta con el coste del viaje completo para ${VIAJEROS} personas desde ${esc(desde)} (la oferta y la gasolina), el tiempo en coche y cuándo se comprobó. Datos del ${esc(etiquetaDia(fechaLocal(datos.generado)))}.</p>
 ${destacadas.length ? `<h2>Lo mejor de ahora</h2>\n<ol class="lista-guia">${destacadas.map((o) => filaOferta(o, nombres)).join('')}</ol>` : ''}
 ${guias.length ? `<nav class="guias" aria-label="Guías">${enlacesGuias(guias, '')}</nav>` : ''}

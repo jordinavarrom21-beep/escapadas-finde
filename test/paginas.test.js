@@ -135,7 +135,8 @@ describe('páginas para buscadores', () => {
 
   it('bloque de la portada sin JavaScript: qué es la web, lo mejor de ahora y todas las guías', () => {
     const { portada } = generarPaginas(datos, { base: BASE });
-    assert.match(portada, /^<div class="portada-estatica">\n<h1>Escapadas de fin de semana desde Barcelona<\/h1>/);
+    // El mismo título que la portada del panel: mientras carga se ve este y no cambia de aspecto.
+    assert.match(portada, /^<div class="portada-estatica">\n<h1 class="titulo-vista">Escapadas de fin de semana desde <em>Barcelona<\/em><\/h1>/);
     assert.ok((portada.match(/<li class="fila-guia">/g) ?? []).length >= MINIMO_OFERTAS);
     for (const ruta of indexadas) assert.ok(portada.includes(`href="${ruta}/"`), ruta);
     assert.ok(!/<script/i.test(portada), 'el JSON-LD de la portada va en el <head>, no en lo que el panel repinta');

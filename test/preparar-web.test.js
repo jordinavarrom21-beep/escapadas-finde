@@ -45,7 +45,8 @@ describe('preparar la web para publicar (GitHub Pages y Hostinger)', () => {
     assert.equal((una.match(/class="portada-estatica"/g) ?? []).length, 1);
     const [cabeza, cuerpo] = una.split('</head>');
     assert.match(cabeza, /<script type="application\/ld\+json">\{"@context":"https:\/\/schema\.org","@graph":\[\{"@type":"WebSite","@id":"https:\/\/midominio\.es\/#web"/);
-    assert.match(cuerpo, /<main id="principal"[^>]*>[^]*<div class="portada-estatica">[^]*<p class="cargando"/);
+    // «Cargando ofertas…» encima: mientras carga el panel se ven las dos cosas, en ese orden.
+    assert.match(cuerpo, /<main id="principal"[^>]*>\s*<!--[^]*?-->\s*<p class="cargando"[^>]*>[^<]*<\/p>[^]*<div class="portada-estatica">/);
     // Sin dirección (zip para cualquier dominio): el bloque sí, el JSON-LD no.
     const sinBase = ponerPortada(una, bloque, null);
     assert.doesNotMatch(sinBase, /application\/ld\+json/);

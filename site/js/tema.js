@@ -3,16 +3,20 @@
  * <head> (no un módulo): los módulos se ejecutan después de pintar. Va en archivo aparte
  * porque la CSP no permite scripts en línea.
  *  - El tema claro u oscuro guardado, para que no parpadee.
- *  - Pide ya los datos (ofertas.json, historial.json): app.js los recoge al arrancar. Si no,
- *    no se pedían hasta tener los 22 módulos del panel (en un móvil, más de un segundo).
+ *  - Pide ya los datos (ofertas.json y, fuera de la portada, historial.json): app.js los recoge
+ *    al arrancar. Si no, no se pedían hasta tener los 24 módulos del panel (en un móvil, más de
+ *    un segundo).
  *  - Si el panel no llega a arrancar (un módulo que no llega, uno viejo de la caché mezclado
  *    con los nuevos justo después de publicar, un error al pintar), en vez de «Cargando
  *    ofertas…» para siempre dice qué pasa, ofrece «Recargar» (tira la copia guardada y pide la
  *    versión publicada) y enseña la portada sin JavaScript (lo mejor de ahora y las guías).
  */
-// Con JavaScript, la portada para buscadores (.portada-estatica) no llega a verse: el panel
-// la sustituye al pintar y así no salta de un contenido a otro.
 document.documentElement.classList.add('js');
+// Con JavaScript, la portada para buscadores (.portada-estatica) solo se ve si la del panel tarda
+// más de 2 s desde que se abre la página (un móvil con poca cobertura): mientras tanto, lo mejor
+// de ahora y las guías, en vez de solo «Cargando ofertas…». Con buena conexión el panel ya está y
+// no salta de un contenido a otro. El panel la sustituye al pintar.
+setTimeout(() => document.documentElement.classList.add('portada-mientras'), Math.max(0, 2000 - performance.now()));
 // La vista que se va a pintar, ya desde el principio: en la portada la cabecera no lleva la
 // búsqueda ni «Tu salida» (estilos: body[data-vista="finde"]) y, si se quitaban al pintar, todo
 // lo de debajo subía de golpe (desplazamiento de contenido, CLS).
@@ -48,7 +52,10 @@ window.escapadasPedir = function pedirConLimite(ruta, limiteMs = 15000) {
       if (!respuesta.ok) throw new Error(`HTTP ${respuesta.status} en ${ruta}`);
       return respuesta.json();
     });
-    const pedidos = { 'data/ofertas.json': pedir('data/ofertas.json'), 'data/historial.json': pedir('data/historial.json') };
+    const pedidos = { 'data/ofertas.json': pedir('data/ofertas.json') };
+    // En la portada, el historial lo pide app.js después de pintar (HISTORIAL_DESPUES): así llega
+    // antes ofertas.json, que es lo que hace esperar. Con una ficha encima sí hace falta ya.
+    if (document.documentElement.dataset.vistaInicial !== 'finde' || location.hash.startsWith('#/oferta/')) pedidos['data/historial.json'] = pedir('data/historial.json');
     // Un fallo aquí lo trata app.js cuando los recoge: que no salga antes como error suelto.
     Object.values(pedidos).forEach((pedido) => pedido.catch(() => {}));
     window.escapadasDatos = pedidos;
