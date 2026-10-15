@@ -188,6 +188,11 @@ describe('huttopia', () => {
     assert.deepEqual(condiciones.periodos, [['16/03/2027', '02/07/2027'], ['28/08/2027', '27/11/2027']]);
     assert.equal(condiciones.todos, true);
     assert.deepEqual(condiciones.excepto, ['chalets de invierno', 'paris', 'estrasburgo', 'colmar'], 'no «el fin de semana de la Ascensión»');
+    // Otra forma de escribirlo: un asterisco y un paréntesis dentro no rompen ni cuelan nada.
+    const apertura = leerFixture('huttopia-apertura-ventas.html');
+    const raro = apertura.replace('(excepto Chalets de Invierno, Camping de Paris y', '(excepto Chalets de Invierno*, Camping de Paris (Bois de Boulogne) y');
+    assert.notEqual(raro, apertura);
+    assert.deepEqual(parsearCondiciones(raro).excepto, ['chalets de invierno', 'paris', 'estrasburgo', 'colmar']);
     const invierno = parsearCondiciones(leerFixture('huttopia-promocion-invierno.html'));
     assert.equal(invierno.codigo, 'WINTER26');
     assert.equal(invierno.todos, false);
@@ -203,8 +208,15 @@ describe('huttopia', () => {
       assert.ok(distanciaKm(BARCELONA, o.lugar) <= 450);
       assert.match(o.id, /:NATURE27$/);
       assert.equal(o.caduca, '2026-11-08T22:59:59.000Z');
-      assert.ok(!/font-romeu|hiver/.test(o.url), 'los chalets de invierno no entran');
+      assert.ok(!/\/hiver\//.test(o.url), 'los chalets de invierno no entran');
     }
+    // Su camping de verano sí: el mapa de octubre solo trae la cara de invierno, y el menú, las dos.
+    const font = ofertas.find((o) => o.id === 'huttopia:camping-font-romeu:NATURE27');
+    assert.equal(font?.url, 'https://europe.huttopia.com/es/site/camping-font-romeu/');
+    assert.equal(font.establecimiento, 'Camping Huttopia Font-Romeu');
+    assert.doesNotMatch(font.descripcion, /invern|nieve|esqu|Abierto/i, 'nada de los chalets de invierno');
+    assert.deepEqual(font.etiquetas, ['Camping']);
+    assert.equal(font.imagen, null, 'la foto del mapa es de la nieve');
     const barcelona = ofertas.find((o) => o.id === 'huttopia:barcelona-pirineos:NATURE27');
     assert.equal(barcelona.titulo, 'Camping Huttopia Barcelona Pirineos: 10 % de descuento a partir de 4 noches');
     assert.match(barcelona.descripcion, /^10 % de descuento a partir de 4 noches en estancias del 16\/03\/2027 al 02\/07\/2027 y del 28\/08\/2027 al 27\/11\/2027 con el código NATURE27, reservando hasta el 08\/11\/2026\./);
@@ -234,6 +246,9 @@ describe('huttopia', () => {
     assert.equal(font.caduca, '2026-10-18T22:59:59.000Z');
     assert.deepEqual(font.valoracion, { nota: 8.8, n: 710 }, 'la valoración, de la página de ofertas');
     assert.equal(font.lugar.nombre, 'Font Romeu Odeillo');
+    const deVerano = ofertas.find((o) => o.id === 'huttopia:camping-font-romeu:NATURE27');
+    assert.deepEqual(deVerano.valoracion, { nota: 8.8, n: 710 });
+    assert.match(deVerano.imagen, /font-romeu-ete/, 'la foto de su ficha');
     assert.ok(ofertas.filter((o) => o.id.endsWith(':NATURE27')).length >= 15);
     assert.equal(new Set(ofertas.map((o) => o.id)).size, ofertas.length);
     // Lo guardado de las promociones miradas que ya no sale se borra; lo de otra promoción que
