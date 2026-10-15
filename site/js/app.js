@@ -1143,8 +1143,12 @@ function conectarEventos() {
     const enlace = evento.target.closest?.('a[data-clic]');
     if (enlace) contarClic(enlace);
   });
-  // Antes que nada (en captura): un clic que repinta la vista vuelve a dejarla sin tocar.
-  for (const tipo of ['click', 'input', 'focusin']) principal.addEventListener(tipo, () => { tocadaDesdeRender = true; }, true);
+  // Antes que nada (en captura): un clic que repinta la vista vuelve a dejarla sin tocar. También
+  // deslizar un carrusel (scroll de algo de dentro; el de la página no llega aquí). El foco en
+  // #principal mismo («Saltar al contenido») no cuenta: repintar no lo quita.
+  for (const tipo of ['click', 'input', 'focusin', 'scroll']) {
+    principal.addEventListener(tipo, (evento) => { if (evento.target !== principal) tocadaDesdeRender = true; }, true);
+  }
   principal.addEventListener('input', alCambiarFiltro);
   principal.addEventListener('change', (evento) => {
     if (!evento.target.closest?.('[data-buscador-finde]')) return;
@@ -1431,7 +1435,13 @@ async function completarRutas() {
  * la siguiente vista, y la ficha ya lo trae.
  */
 function repintarDeFondo() {
-  if (!tocadaDesdeRender) render({ enfocar: false });
+  if (tocadaDesdeRender) return;
+  // El título con el foco (al llegar desde el menú): lo sigue teniendo en la vista repintada.
+  const enTitulo = document.activeElement?.matches?.('#principal .titulo-vista');
+  render({ enfocar: false });
+  if (!enTitulo) return;
+  principal.querySelector('.titulo-vista')?.focus({ preventScroll: true });
+  tocadaDesdeRender = false;
 }
 
 /** A mitad de algo (una ficha o «Tu viaje» abiertos, escribiendo): mejor no recargar de golpe. */
