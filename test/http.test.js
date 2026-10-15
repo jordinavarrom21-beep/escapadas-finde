@@ -319,5 +319,14 @@ describe('direcciones internas y respuestas enormes', () => {
     assert.ok(parseo instanceof ErrorParseo);
     assert.equal(parseo.cuerpo, 'x'.repeat(200));
     assert.ok(performance.now() - inicio < 1000, `${Math.round(performance.now() - inicio)} ms`);
+    const muestra = async (cuerpoJson) => (simularRed([respuesta(200, cuerpoJson)]), (await obtenerJson(URL_FEED).catch((e) => e)).cuerpo);
+    // Un JSON minificado cortado a mitad de un correo: no queda ni el trozo.
+    for (let n = 3950; n < 4100; n += 7) {
+      const cuerpo = `{"a":"ana@uno.es","b":"${'y'.repeat(n)}","web":"https://uno.es/p","c":"juanperez@gmail.com"}]}FIN`;
+      assert.doesNotMatch(await muestra(cuerpo), /juanperez|ana@/, `n=${n}`);
+    }
+    // Con el único espacio al principio, o con muchos espacios delante, la muestra no se queda vacía.
+    assert.equal((await muestra(`)]}'\n{"vuelos":[${'{"id":0,"precio":0.5},'.repeat(300)}]}`)).length, 200);
+    assert.equal(await muestra(`${' '.repeat(5000)}Access denied`), 'Access denied');
   });
 });
