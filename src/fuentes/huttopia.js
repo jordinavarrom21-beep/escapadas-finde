@@ -392,6 +392,8 @@ async function obtener(ctx) {
   }
   let leidas = 0;
   const condiciones = [];
+  // Códigos de las promociones que hoy han fallado: lo guardado de ellas no se borra.
+  const fallidos = new Set();
   for (const promocion of promociones.slice(0, MAX_PROMOCIONES)) {
     await ctx.http.esperar(PAUSA_MS);
     try {
@@ -399,6 +401,7 @@ async function obtener(ctx) {
       leidas += 1;
     } catch (error) {
       ctx.log(`${promocion.url}: ${error.message}`);
+      if (promocion.codigo) fallidos.add(promocion.codigo);
     }
   }
   const caducas = new Map(condiciones.map(([p, c]) => [p.codigo ?? c.codigo, c.caduca]).filter(([codigo, caduca]) => codigo && caduca));
@@ -417,23 +420,28 @@ async function obtener(ctx) {
     }
   }
   if (!leidas) throw new Error('No se ha podido leer ninguna página de condiciones ni de ofertas de Huttopia');
-  const fallidas = new Set();
-  for (const entrada of condiciones) {
-    const [promocion, condicion] = entrada;
+  const mirados = new Set();
+  for (const [promocion, condicion] of condiciones) {
+    const codigo = promocion.codigo ?? condicion.codigo;
     try {
       ofertas.push(...ofertasDePromocion(promocion, condicion, sitios, { ...ctx, valoraciones }));
+      if (codigo) mirados.add(codigo);
     } catch (error) {
       ctx.log(`${promocion.url}: ${error.message}`);
-      fallidas.add(entrada);
+      if (codigo) fallidos.add(codigo);
     }
   }
   const unicas = [...new Map(ofertas.map((o) => [o.id, o])).values()];
-  // Las de una promoción que hoy no se ha mirado (ya no sale en la portada) siguen hasta la fecha
-  // límite de su código; las de las promociones miradas que ya no salen, fuera.
-  // Una que ha fallado cuenta como no mirada: lo suyo no se borra.
-  const mirados = new Set(condiciones.filter((entrada) => !fallidas.has(entrada)).map(([p, c]) => p.codigo ?? c.codigo).filter(Boolean));
+  // Las de una promoción mirada hoy se cambian por lo de hoy. Las de una que hoy no sale en la
+  // portada siguen hasta la fecha límite de su código (sin fecha, fuera). Las de una que ha
+  // fallado no se borran salvo que su fecha límite ya haya pasado.
   const ahora = ctx.ahora.getTime();
-  const reemplazar = (guardada) => mirados.has(guardada.id.split(':').at(-1)) || !(Date.parse(guardada.caduca) > ahora);
+  const reemplazar = (guardada) => {
+    const codigo = guardada.id.split(':').at(-1);
+    if (mirados.has(codigo)) return true;
+    const caduca = Date.parse(guardada.caduca);
+    return fallidos.has(codigo) ? caduca <= ahora : !(caduca > ahora);
+  };
   return { ofertas: unicas, reemplazar };
 }
 

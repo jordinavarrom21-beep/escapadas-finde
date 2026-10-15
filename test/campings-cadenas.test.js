@@ -283,6 +283,21 @@ describe('huttopia', () => {
     assert.ok(ofertas.filter((o) => o.id.endsWith(':NATURE27')).length >= 15, 'NATURE27 sale igual');
     assert.ok(logs.some((l) => l.startsWith('https://europe.huttopia.com/es/promocion-de-invierno/: ')), logs.join('\n'));
     assert.equal(reemplazar({ id: 'huttopia:camping-font-romeu:WINTER26', caduca: '2026-10-18T22:59:59.000Z' }), false, 'lo de WINTER26 sigue');
+    // Sin fecha límite legible (como con «válido hasta el 18 de octubre»), tampoco se borra.
+    assert.equal(reemplazar({ id: 'huttopia:camping-font-romeu:WINTER26', caduca: null }), false, 'sin fecha, lo de WINTER26 sigue');
+    assert.equal(reemplazar({ id: 'huttopia:camping-font-romeu:WINTER26', caduca: '2026-10-14T22:59:59.000Z' }), true, 'con la fecha pasada, fuera');
     assert.equal(reemplazar({ id: 'huttopia:millau:NATURE27', caduca: '2026-11-08T22:59:59.000Z' }), true);
+    assert.equal(reemplazar({ id: 'huttopia:millau:OTRA', caduca: null }), true, 'una que no sale en la portada y sin fecha, fuera');
+
+    // Si lo que falla es leer sus condiciones, igual: la portada ya trae el código NATURE27.
+    const sinCondiciones = crearCtx({
+      ajustes: { origen: BARCELONA },
+      ahora: new Date('2026-10-15T08:00:00Z'),
+      respuestas: (url) => (url.endsWith('/apertura-ventas/') ? undefined : paginas[url]) ?? (() => { throw new ErrorHttp(404, url); })(),
+    });
+    const segunda = await huttopia.obtener(sinCondiciones.ctx);
+    assert.ok(sinCondiciones.logs.some((l) => l.startsWith('https://europe.huttopia.com/es/apertura-ventas/: ')), sinCondiciones.logs.join('\n'));
+    assert.equal(segunda.reemplazar({ id: 'huttopia:millau:NATURE27', caduca: null }), false, 'sin fecha, lo de NATURE27 sigue');
+    assert.equal(segunda.reemplazar({ id: 'huttopia:millau:NATURE27', caduca: '2026-10-14T22:59:59.000Z' }), true);
   });
 });
