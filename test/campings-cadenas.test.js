@@ -193,6 +193,11 @@ describe('huttopia', () => {
     const raro = apertura.replace('(excepto Chalets de Invierno, Camping de Paris y', '(excepto Chalets de Invierno*, Camping de Paris (Bois de Boulogne) y');
     assert.notEqual(raro, apertura);
     assert.deepEqual(parsearCondiciones(raro).excepto, ['chalets de invierno', 'paris', 'estrasburgo', 'colmar']);
+    const conArticulo = apertura.replace('(excepto Chalets de Invierno,', '(excepto los Chalets de Invierno,');
+    assert.deepEqual(parsearCondiciones(conArticulo).excepto, ['chalets de invierno', 'paris', 'estrasburgo', 'colmar']);
+    // Un paréntesis sin cerrar: mejor no dar la promoción que darla también donde no vale.
+    const sinCerrar = apertura.replace('Camping de Paris y', 'Camping de Paris (Bois de Boulogne y');
+    assert.throws(() => parsearCondiciones(sinCerrar), /No se entienden las excepciones/);
     const invierno = parsearCondiciones(leerFixture('huttopia-promocion-invierno.html'));
     assert.equal(invierno.codigo, 'WINTER26');
     assert.equal(invierno.todos, false);
@@ -256,5 +261,28 @@ describe('huttopia', () => {
     assert.equal(reemplazar({ id: 'huttopia:millau:NATURE27', caduca: '2026-11-08T22:59:59.000Z' }), true);
     assert.equal(reemplazar({ id: 'huttopia:millau:SPRING26', caduca: '2026-11-30T22:59:59.000Z' }), false);
     assert.equal(reemplazar({ id: 'huttopia:millau:SPRING26', caduca: '2026-10-01T22:59:59.000Z' }), true);
+  });
+
+  it('si una promoción falla, las otras salen y lo guardado de la que falla no se borra', async () => {
+    // Las fechas de los chalets de invierno en otro formato hacen fallar WINTER26 (y solo esa).
+    const mapa = /data-map="([^"]*)"/.exec(portada)[1];
+    const rara = portada.replace(mapa, mapa.replaceAll('&quot;dateStart&quot;:&quot;04/12/2026&quot;', '&quot;dateStart&quot;:&quot;2026-12-04&quot;'));
+    assert.notEqual(rara, portada);
+    const paginas = {
+      'https://europe.huttopia.com/es/': rara,
+      'https://europe.huttopia.com/es/apertura-ventas/': leerFixture('huttopia-apertura-ventas.html'),
+      'https://europe.huttopia.com/es/promocion-de-invierno/': leerFixture('huttopia-promocion-invierno.html'),
+      'https://europe.huttopia.com/es/nuestras-ofertas/alquiler-chalets-en-invierno/': pagina,
+    };
+    const { ctx, logs } = crearCtx({
+      ajustes: { origen: BARCELONA },
+      ahora: new Date('2026-10-15T08:00:00Z'),
+      respuestas: (url) => paginas[url] ?? (() => { throw new ErrorHttp(404, url); })(),
+    });
+    const { ofertas, reemplazar } = await huttopia.obtener(ctx);
+    assert.ok(ofertas.filter((o) => o.id.endsWith(':NATURE27')).length >= 15, 'NATURE27 sale igual');
+    assert.ok(logs.some((l) => l.startsWith('https://europe.huttopia.com/es/promocion-de-invierno/: ')), logs.join('\n'));
+    assert.equal(reemplazar({ id: 'huttopia:camping-font-romeu:WINTER26', caduca: '2026-10-18T22:59:59.000Z' }), false, 'lo de WINTER26 sigue');
+    assert.equal(reemplazar({ id: 'huttopia:millau:NATURE27', caduca: '2026-11-08T22:59:59.000Z' }), true);
   });
 });
