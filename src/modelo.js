@@ -97,6 +97,18 @@ export function crearOferta(datos) {
   return oferta;
 }
 
+/**
+ * La foto, solo por https: la web es https y su CSP (img-src https:) no carga otra cosa, así que
+ * una «http://» salía rota en vez del dibujo que se pone cuando no hay foto. «//web/foto.jpg»
+ * (sin protocolo) es la misma con https.
+ */
+function imagenHttps(imagen) {
+  if (typeof imagen !== 'string') return null;
+  const limpia = imagen.trim();
+  if (limpia.startsWith('//')) return `https:${limpia}`;
+  return /^https:\/\/./i.test(limpia) ? limpia : null;
+}
+
 /** Sin los campos `undefined`: «etiquetas: undefined» no debe tapar la lista vacía por defecto. */
 const definidos = (datos) => Object.fromEntries(Object.entries(datos ?? {}).filter(([, valor]) => valor !== undefined));
 
@@ -112,7 +124,6 @@ export function completarOferta(datos) {
     fuente: null,
     tipo: 'escapada',
     url: '',
-    imagen: null,
     precio: null,
     precioTexto: '',
     unidad: null,
@@ -163,6 +174,7 @@ export function completarOferta(datos) {
     fechas: { salida: null, vuelta: null, findeId: null, puenteId: null, ...definidos(datos.fechas) },
     // Un solo nombre por localidad («Gerona» → «Girona»): ver util/lugares.js.
     lugar: datos.lugar ? { ...datos.lugar, nombre: nombreOficial(arreglarApostrofes(datos.lugar.nombre)) } : null,
+    imagen: imagenHttps(datos.imagen),
   };
   for (const campo of LISTAS) oferta[campo] ??= [];
   return oferta;

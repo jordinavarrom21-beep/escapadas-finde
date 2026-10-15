@@ -50,7 +50,7 @@ un `try/catch`, registran el error con `ctx.log` y descartan solo esa oferta.
 | `tipo` | fuente | `vuelo` \| `escapada` \| `hotel` \| `paquete` |
 | `titulo`, `descripcion` | fuente | texto plano; descripción recortada a ≤ 300 caracteres con `recortar`. En el panel, la descripción va en `detalles.json` (solo la lee la ficha) y la de las webs de chollos no se publica (`src/panel-datos.js`); `ofertas.json` va sin los campos `null` |
 | `url` | fuente | enlace a la oferta original (sin parámetros de seguimiento) |
-| `imagen` | fuente | URL absoluta o `null` |
+| `imagen` | fuente | URL https o `null` (`completarOferta` deja `null` una «http://» y pasa «//…» a https) |
 | `precio` | fuente | número en EUR o `null` si no hay precio |
 | `precioTexto` | fuente | cómo lo presenta la web, p. ej. «desde 108 € por persona» |
 | `unidad` | fuente | `pp` (por persona, estancia completa) \| `pp/noche` \| `total` \| `i/v` (ida y vuelta por persona) \| `noche` (habitación por noche) \| `trayecto` (billete de tren, bus o ferry por persona y trayecto, solo ida) \| `null` |

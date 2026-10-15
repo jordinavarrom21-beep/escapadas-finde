@@ -35,6 +35,16 @@ function fueraDelCatalogo(catalogo) {
 const IDS_TEMAS = TEMAS.map((tema) => tema.id);
 
 describe('modelo: oferta válida', () => {
+  test('la foto, solo por https (la CSP no carga otra): «http://» se queda sin foto, «//» pasa a https', () => {
+    const foto = (imagen) => crearOferta(base({ imagen })).imagen;
+    assert.equal(foto('https://cdn.ejemplo.es/a.jpg'), 'https://cdn.ejemplo.es/a.jpg');
+    assert.equal(foto('  https://cdn.ejemplo.es/a.jpg '), 'https://cdn.ejemplo.es/a.jpg');
+    assert.equal(foto('//cdn.ejemplo.es/a.jpg'), 'https://cdn.ejemplo.es/a.jpg');
+    for (const mala of ['http://cdn.ejemplo.es/a.jpg', '/img/a.jpg', 'javascript:alert(1)', 'data:image/png;base64,AAAA', '', 42, null, undefined]) {
+      assert.equal(foto(mala), null, String(mala));
+    }
+  });
+
   test('crearOferta rellena los valores por defecto', () => {
     const oferta = crearOferta(base({ precio: 120, unidad: 'pp' }));
     assert.equal(oferta.tipo, 'escapada');
