@@ -2,6 +2,7 @@
  * Cliente HTTP común a todas las fuentes: tiempo límite, reintentos con espera
  * creciente (respetando «Retry-After»), errores con contexto y métricas por dominio.
  */
+import { isIP } from 'node:net';
 
 const REPO = process.env.GITHUB_REPOSITORY ?? 'escapadas-finde';
 
@@ -63,6 +64,70 @@ export class ErrorHttp extends Error {
     this.bloqueo = ESTADOS_BLOQUEO.has(estado);
     /** Espera que pide la web en «Retry-After» (ms), cuando la pide y la respetamos. */
     this.esperaSugeridaMs = null;
+  }
+}
+
+/** Lo más que se lee de una respuesta: la página más grande que se lee hoy no llega a 1 MB. */
+export const MAX_CUERPO = 20_000_000;
+
+/**
+ * ¿Una dirección que no es de Internet? El propio equipo, la red local o la de la nube
+ * (169.254.169.254). Solo mira lo que dice la URL (no resuelve el nombre).
+ */
+export function esDireccionInterna(url) {
+  let host;
+  try {
+    host = new URL(url).hostname.toLowerCase().replace(/^\[|\]$/g, '');
+  } catch {
+    return true;
+  }
+  if (host === 'localhost' || /\.(?:localhost|local|internal)$/.test(host)) return true;
+  if (isIP(host) === 4) {
+    const [a, b] = host.split('.').map(Number);
+    return a === 0 || a === 10 || a === 127 || a >= 224 || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31)
+      || (a === 192 && b === 168) || (a === 100 && b >= 64 && b <= 127);
+  }
+  return isIP(host) === 6 && (host === '::' || host === '::1' || /^(?:f[cd]|fe[89ab])/.test(host) || host.startsWith('::ffff:'));
+}
+
+/** Una petición que no se hace o una respuesta que no se lee: no se reintenta. */
+export class ErrorPeticion extends Error {
+  constructor(mensaje, url) {
+    super(mensaje);
+    this.name = 'ErrorPeticion';
+    this.dominio = dominioDe(url);
+  }
+}
+
+const noInterna = (url) => {
+  if (esDireccionInterna(url)) throw new ErrorPeticion(`${dominioDe(url)} es una dirección interna: no se pide`, url);
+};
+
+/** El cuerpo como texto, sin pasar de `MAX_CUERPO` (una respuesta enorme no llena la memoria). */
+async function leerTexto(respuesta, url) {
+  const demasiado = () => new ErrorPeticion(`Respuesta de más de ${MAX_CUERPO / 1_000_000} MB en ${dominioDe(url)}`, url);
+  if (Number(respuesta.headers?.get?.('content-length')) > MAX_CUERPO) {
+    await respuesta.body?.cancel?.();
+    throw demasiado();
+  }
+  const lector = respuesta.body?.getReader?.();
+  if (!lector) {
+    const texto = await respuesta.text();
+    if (texto.length > MAX_CUERPO) throw demasiado();
+    return texto;
+  }
+  const decodificador = new TextDecoder();
+  let texto = '';
+  let bytes = 0;
+  for (;;) {
+    const { done, value } = await lector.read();
+    if (done) return texto + decodificador.decode();
+    bytes += value.byteLength;
+    if (bytes > MAX_CUERPO) {
+      await lector.cancel();
+      throw demasiado();
+    }
+    texto += decodificador.decode(value, { stream: true });
   }
 }
 
@@ -178,7 +243,7 @@ function esperaCreciente(intento) {
   return Math.round(base * (0.8 + Math.random() * 0.4));
 }
 
-const esReintentable = (error) => !(error instanceof ErrorHttp) || REINTENTABLES.has(error.estado);
+const esReintentable = (error) => !(error instanceof ErrorPeticion) && (!(error instanceof ErrorHttp) || REINTENTABLES.has(error.estado));
 
 const enSegundos = (ms) => `${(ms / 1000).toFixed(ms % 1000 ? 1 : 0).replace('.', ',')} s`;
 
@@ -225,7 +290,7 @@ function errorDeRespuesta(respuesta, url, contexto) {
 
 // Todo lo que sale de `fetch` acaba siendo un ErrorHttp o un ErrorRed con contexto.
 function comoErrorPropio(causa, url, contexto) {
-  if (causa instanceof ErrorHttp) return causa;
+  if (causa instanceof ErrorHttp || causa instanceof ErrorPeticion) return causa;
   const motivo = ABORTOS.has(causa?.name) ? 'timeout' : 'red';
   return new ErrorRed(url, { ...contexto, motivo, cause: causa });
 }
@@ -246,11 +311,14 @@ export async function obtenerTexto(url, opciones = {}) {
     etiqueta = null, log = null, dormir = esperar, cuerpo,
   } = opciones;
   const dominio = dominioDe(url);
+  noInterna(url);
 
   for (let intento = 0; ; intento++) {
     const inicio = Date.now();
     try {
       const respuesta = await pedir(url, { cabeceras, timeoutMs, cuerpo });
+      // Si una redirección ha llevado a una dirección interna, no se lee lo que contesta.
+      if (respuesta.url) noInterna(respuesta.url);
       if (!respuesta.ok) {
         const error = errorDeRespuesta(respuesta, url, { intento, duracionMs: Date.now() - inicio });
         // El principio de lo que contesta la web: las APIs dicen ahí por qué rechazan la
@@ -258,7 +326,7 @@ export async function obtenerTexto(url, opciones = {}) {
         error.cuerpo = await muestraDeRespuesta(respuesta);
         throw error;
       }
-      const texto = await respuesta.text();
+      const texto = await leerTexto(respuesta, url);
       anotarIntento(dominio, Date.now() - inicio, true);
       return texto;
     } catch (causa) {
@@ -290,11 +358,14 @@ export async function obtenerJson(url, opciones = {}) {
  * Un solo salto de un enlace: pide la URL SIN seguir la redirección ni leer el cuerpo
  * y devuelve adónde apunta. Lo usa el buzón para llegar desde el enlace de rastreo de
  * una newsletter hasta la web del comercio sin llegar a pedir esa web. Sin cookies
- * (el fetch de Node no guarda ninguna) y sin reintentos.
+ * (el fetch de Node no guarda ninguna), sin reintentos y nunca a una dirección interna.
  * @returns {Promise<{estado: number, destino: string|null}>}
  */
-export async function obtenerRedireccion(url, { timeoutMs = 3_000, cabeceras = {} } = {}) {
+export async function obtenerRedireccion(url, { timeoutMs = 3_000, cabeceras = {}, permitirInterna = false } = {}) {
   const dominio = dominioDe(url);
+  // Un enlace de newsletter que apunta a la red local no se sigue (`permitirInterna`: solo
+  // para las pruebas con un servidor local).
+  if (!permitirInterna) noInterna(url);
   const inicio = Date.now();
   try {
     const respuesta = await fetch(url, {

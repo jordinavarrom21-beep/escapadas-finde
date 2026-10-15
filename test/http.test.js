@@ -2,8 +2,8 @@ import { afterEach, beforeEach, describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
-  ErrorHttp, ErrorParseo, ErrorRed, USER_AGENT,
-  metricasHttp, obtenerJson, obtenerTexto, reiniciarMetricas,
+  ErrorHttp, ErrorParseo, ErrorPeticion, ErrorRed, MAX_CUERPO, USER_AGENT,
+  esDireccionInterna, metricasHttp, obtenerJson, obtenerRedireccion, obtenerTexto, reiniciarMetricas,
 } from '../src/util/http.js';
 
 const URL_FEED = 'https://www.viajerospiratas.es/feed/';
@@ -259,5 +259,48 @@ describe('métricas', () => {
     assert.equal(Object.keys(metricasHttp()).length, 1);
     reiniciarMetricas();
     assert.deepEqual(metricasHttp(), {});
+  });
+});
+
+describe('direcciones internas y respuestas enormes', () => {
+  test('reconoce las direcciones que no son de Internet (solo por la URL)', () => {
+    for (const url of ['http://localhost/', 'http://127.0.0.1:8080/', 'http://169.254.169.254/latest/meta-data/', 'http://10.1.2.3/',
+      'http://172.20.0.1/', 'http://192.168.1.1/', 'http://100.64.0.1/', 'http://[::1]/', 'http://[fd00::1]/', 'http://[::ffff:127.0.0.1]/',
+      'http://2130706433/', 'http://intranet.local/', 'http://metadata.google.internal/', 'no es una url']) {
+      assert.equal(esDireccionInterna(url), true, url);
+    }
+    for (const url of ['https://www.atrapalo.com/', 'https://8.8.8.8/', 'https://172.32.0.1/', 'https://[2001:4860::8888]/']) {
+      assert.equal(esDireccionInterna(url), false, url);
+    }
+  });
+
+  test('no pide una dirección interna ni sigue un enlace que lleva a ella', async () => {
+    const peticiones = simularRed([respuesta(200, 'secreto')]);
+    await assert.rejects(obtenerTexto('http://169.254.169.254/latest/meta-data/'), ErrorPeticion);
+    await assert.rejects(obtenerRedireccion('http://127.0.0.1/admin'), /dirección interna/);
+    assert.equal(peticiones.length, 0);
+  });
+
+  test('si una redirección acaba en una dirección interna, no se lee ni se reintenta', async () => {
+    const peticiones = simularRed([{ ...respuesta(200, 'secreto'), url: 'http://10.0.0.5/' }]);
+    await assert.rejects(obtenerTexto(URL_FEED, cronometro()), /dirección interna/);
+    assert.equal(peticiones.length, 1);
+  });
+
+  test('una respuesta de más de 20 MB no se lee entera ni se reintenta', async () => {
+    const enorme = respuesta(200, 'x', { 'content-length': String(MAX_CUERPO + 1) });
+    const peticiones = simularRed([enorme]);
+    await assert.rejects(obtenerTexto(URL_FEED, cronometro()), /más de 20 MB/);
+    assert.equal(peticiones.length, 1);
+    // Sin content-length: se corta al pasar del límite mientras llega.
+    const trozo = new Uint8Array(1_000_000);
+    let enviados = 0;
+    const cuerpo = new ReadableStream({ pull(control) { enviados += 1; control.enqueue(trozo); } });
+    simularRed([{ ok: true, status: 200, headers: new Headers(), body: cuerpo, text: async () => { throw new Error('no se usa'); } }]);
+    await assert.rejects(obtenerTexto(URL_FEED, cronometro()), /más de 20 MB/);
+    assert.ok(enviados <= 22, `${enviados} MB leídos`);
+    // Y una normal por trozos se lee igual que con text().
+    simularRed([{ ok: true, status: 200, headers: new Headers(), body: new Response('¡hola, señor!').body }]);
+    assert.equal(await obtenerTexto(URL_FEED), '¡hola, señor!');
   });
 });

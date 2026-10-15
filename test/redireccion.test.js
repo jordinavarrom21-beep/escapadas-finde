@@ -28,28 +28,30 @@ describe('http: obtenerRedireccion (un salto, sin seguirlo)', () => {
     base = `http://127.0.0.1:${servidor.address().port}`;
   });
   after(() => servidor.close());
+  // En el escáner nunca se pide una dirección interna: aquí el servidor de prueba es local.
+  const local = { permitirInterna: true };
 
   it('devuelve el destino de la redirección sin pedirlo', async () => {
     pedidas.length = 0;
-    const r = await obtenerRedireccion(`${base}/click`);
+    const r = await obtenerRedireccion(`${base}/click`, local);
     assert.deepEqual(r, { estado: 302, destino: 'https://www.booking.com/hotel/es/peralada.es.html?aid=1' });
     assert.deepEqual(pedidas.map((p) => p.url), ['/click'], 'solo se pide el enlace, no la web del comercio');
   });
 
   it('resuelve los destinos relativos y no guarda cookies entre peticiones', async () => {
     pedidas.length = 0;
-    await obtenerRedireccion(`${base}/click`);
-    const r = await obtenerRedireccion(`${base}/relativa`);
+    await obtenerRedireccion(`${base}/click`, local);
+    const r = await obtenerRedireccion(`${base}/relativa`, local);
     assert.deepEqual(r, { estado: 301, destino: `${base}/destino?x=1` });
     assert.deepEqual(pedidas.map((p) => p.cookie), [null, null]);
   });
 
   it('sin redirección devuelve el estado y destino null', async () => {
-    assert.deepEqual(await obtenerRedireccion(`${base}/final`), { estado: 200, destino: null });
+    assert.deepEqual(await obtenerRedireccion(`${base}/final`, local), { estado: 200, destino: null });
   });
 
   it('corta con un ErrorRed de tiempo agotado', async () => {
-    await assert.rejects(obtenerRedireccion(`${base}/lento`, { timeoutMs: 50 }), (error) => error instanceof ErrorRed && error.motivo === 'timeout');
+    await assert.rejects(obtenerRedireccion(`${base}/lento`, { ...local, timeoutMs: 50 }), (error) => error instanceof ErrorRed && error.motivo === 'timeout');
   });
 
   it('los clientes que reciben las fuentes lo exponen (el buzón lo necesita)', () => {
