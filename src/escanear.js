@@ -10,7 +10,7 @@ import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { CARPETAS, generarPaginas } from './paginas.js';
 import { fileURLToPath } from 'node:url';
 import { Cache } from './cache.js';
-import { cargarEstado, cargarJson, guardarJson } from './almacen.js';
+import { cargarEstado, cargarJson, estadoParaGuardar, fuentesSinTexto, guardarJson } from './almacen.js';
 import { cargarAjustes } from './ajustes.js';
 import { cargarVigilados } from './vigilados.js';
 import { cargarAfiliacion } from './afiliacion.js';
@@ -38,6 +38,9 @@ const RUTAS = {
   panelVersion: 'site/data/version.json',
   panelVigilados: 'site/data/vigilados.json',
 };
+
+// Las fuentes cuyo texto no se guarda en estado.json, que va a la rama «datos» (pública): el buzón.
+const SIN_TEXTO = fuentesSinTexto(FUENTES);
 
 const USO = 'Uso: node src/escanear.js [--forzar] [--solo=<fuente>] [--sin-emails] [--diagnostico]';
 
@@ -150,7 +153,7 @@ function imprimirInforme({ fuentes, total, podadas, emails, puentes, red }) {
  * @param {(clave: string) => string} ruta
  */
 export function guardarTrasFallo({ estado, cache }, ruta, avisar = console.error) {
-  for (const [clave, datos] of [['estado', () => estado], ['cache', () => cache.exportar()]]) {
+  for (const [clave, datos] of [['estado', () => estadoParaGuardar(estado, SIN_TEXTO)], ['cache', () => cache.exportar()]]) {
     try {
       guardarJson(ruta(clave), datos());
     } catch (error) {
@@ -204,7 +207,7 @@ async function principal() {
     guardarTrasFallo({ estado, cache }, ruta);
     throw error;
   }
-  guardarJson(ruta('estado'), resultado.estado);
+  guardarJson(ruta('estado'), estadoParaGuardar(resultado.estado, SIN_TEXTO));
   guardarJson(ruta('cache'), resultado.cache.exportar());
   guardarJson(ruta('historial'), resultado.historial);
   // El panel carga primero lo ligero; lo de la ficha, al abrir la primera (panel-datos.js).

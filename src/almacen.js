@@ -2,9 +2,11 @@
  * Estado persistente entre ejecuciones (data/estado.json): ofertas vistas, estado
  * de cada fuente y control de emails enviados. Formato y campos en docs/CONTRATOS.md.
  */
+import { createHash } from 'node:crypto';
 import { copyFileSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { fechaLocal } from './util/fechas.js';
+import { normalizarTexto } from './util/xml.js';
 
 const DIA_MS = 24 * 60 * 60 * 1000;
 
@@ -171,11 +173,6 @@ export function guardarJson(ruta, datos, { legible = false } = {}) {
 }
 
 /**
- * Incorpora el resultado de una fuente: conserva `vistaPrimera`, actualiza
- * `vistaUltima` y, con `reemplazar`, borra las ofertas de la fuente que ya no aparecen.
- * @returns {{nuevas: number, total: number, borradas: number}}
- */
-/**
  * Lo que dice la propia web de cada oferta y luego completa el enriquecimiento (temas,
  * transporte, alojamiento…). Se guarda tal cual llega para recalcularlo en cada escaneo: si no,
  * lo deducido con reglas de antes (un «spa» de una etiqueta de menú) se quedaba para siempre en
@@ -197,6 +194,42 @@ export function restaurarDeLaFuente(oferta) {
   return oferta;
 }
 
+/** Las fuentes cuyo texto no se guarda en estado.json (`guardarTexto: false`: el buzón). */
+export const fuentesSinTexto = (fuentes) => new Set(fuentes.filter((f) => f.guardarTexto === false).map((f) => f.id));
+
+/**
+ * Huella del texto de una oferta, para saber si dos dicen lo mismo (duplicados.js): sale del
+ * texto o, si ya no se guarda (`estadoParaGuardar`), es la que se anotó al quitarlo.
+ */
+export function huellaDelTexto(oferta) {
+  const texto = normalizarTexto(oferta.descripcion ?? '').trim();
+  return texto ? createHash('sha256').update(texto).digest('hex').slice(0, 16) : oferta.huellaTexto ?? '';
+}
+
+/**
+ * El estado tal como se guarda en estado.json, que acaba en la rama «datos», pública como el
+ * repositorio: sin el texto de las ofertas de las fuentes `sinTexto` (las newsletters que
+ * llegan a tu buzón, escritas por cada comercio). Lo que el escaneo dedujo de ese texto (temas,
+ * alojamiento, niños, fechas…) sí se guarda, y la oferta lleva `textoRetirado` para que el
+ * siguiente escaneo no lo vuelva a deducir sin él (scan-pipeline.js). En memoria no se toca
+ * nada: el panel, las guías y los emails ya se han hecho con el texto.
+ */
+export function estadoParaGuardar(estado, sinTexto) {
+  if (!sinTexto.size) return estado;
+  const ofertas = {};
+  for (const [id, oferta] of Object.entries(estado.ofertas)) {
+    ofertas[id] = sinTexto.has(oferta.fuente) && oferta.descripcion
+      ? { ...oferta, descripcion: '', huellaTexto: huellaDelTexto(oferta) }
+      : oferta;
+  }
+  return { ...estado, ofertas };
+}
+
+/**
+ * Incorpora el resultado de una fuente: conserva `vistaPrimera`, actualiza
+ * `vistaUltima` y, con `reemplazar`, borra las ofertas de la fuente que ya no aparecen.
+ * @returns {{nuevas: number, total: number, borradas: number}}
+ */
 export function fusionar(estado, fuenteId, { ofertas, reemplazar = false }, ahora) {
   const iso = ahora.toISOString();
   const recibidas = new Set(ofertas.map((o) => o.id));

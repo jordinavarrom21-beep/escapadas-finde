@@ -12,6 +12,7 @@ import { normalizarTexto } from '../util/xml.js';
 import { distanciaKm } from './geo.js';
 import { precioPorPersonaNoche } from './puntuacion.js';
 import { deWebDeChollos } from '../fuentes/chollos.js';
+import { huellaDelTexto } from '../almacen.js';
 
 export const ETIQUETA_DUPLICADA = 'duplicada';
 
@@ -171,7 +172,7 @@ const RECLAMO = /\b(?:descuento|barat[ao]s?|ofertas?|promo(?:cion)?|nuev[ao]s?|n
 function huella(oferta) {
   return JSON.stringify([
     oferta.fuente, normalizarTexto(oferta.titulo).trim(), oferta.precio, oferta.unidad, oferta.noches,
-    normalizarTexto(oferta.lugar?.nombre ?? ''), oferta.regimen, normalizarTexto(oferta.descripcion ?? '').trim(),
+    normalizarTexto(oferta.lugar?.nombre ?? ''), oferta.regimen, huellaDelTexto(oferta),
     oferta.fechas?.salida ?? null, oferta.fechas?.vuelta ?? null,
     [...oferta.etiquetas].filter((e) => e !== ETIQUETA_DUPLICADA && !RECLAMO.test(normalizarTexto(e))).sort(),
   ]);

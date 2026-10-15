@@ -6,7 +6,7 @@
 import { performance } from 'node:perf_hooks';
 import { legalParaPanel } from '../legal.js';
 import { Cache } from '../cache.js';
-import { estadoInicial, fusionar, podar, restaurarDeLaFuente } from '../almacen.js';
+import { estadoInicial, fuentesSinTexto, fusionar, podar, restaurarDeLaFuente } from '../almacen.js';
 import { FUENTES } from '../fuentes/index.js';
 import { TEMAS, completarOferta } from '../modelo.js';
 import { normalizarTexto } from '../util/xml.js';
@@ -380,21 +380,28 @@ export async function escanear({
   for (const [id, oferta] of Object.entries(estado.ofertas)) estado.ofertas[id] = completarOferta(oferta);
   const ofertas = Object.values(estado.ofertas);
   const fotosConPermiso = new Set(ajustes.fotos?.fuentesConPermiso ?? []);
+  const sinTexto = fuentesSinTexto(fuentes);
   for (const oferta of ofertas) {
+    // Una newsletter que ya no se relee (más de 3 días) está guardada sin su texto
+    // (estadoParaGuardar): se queda con lo que se dedujo de él, que sin el texto se perdería.
+    const deducida = oferta.textoRetirado === true && !oferta.descripcion;
     // Cada escaneo parte de lo que dijo su web: las reglas de ahora valen también para lo guardado.
-    restaurarDeLaFuente(oferta);
+    if (!deducida) restaurarDeLaFuente(oferta);
     // Solo las fotos de las webs que dan permiso; las demás, de Wikimedia (anadirFotos).
     quitarFotoSinPermiso(oferta, fotosConPermiso);
-    m.clasificarVueloSinFecha(oferta);
+    if (!deducida) m.clasificarVueloSinFecha(oferta);
     // Sale de otra ciudad (Madrid…): ni guías ni viaje completo desde tu origen.
     oferta.otraSalida = otraSalida(oferta, { origen: ajustes.origen, aeropuertos: ajustes.vuelos.aeropuertos });
-    aplicarFechasDelTexto(oferta, hoy);
-    m.aplicarClasificacion(oferta);
-    aplicarNinos(oferta);
-    // El tipo de alojamiento antes que la categoría: si no, las estrellas («Hotel 3*» de Weekendesk)
-    // lo daban por hotel y ya no se leía «apartamento» en el título.
-    m.aplicarAlojamiento(oferta);
-    aplicarCategoria(oferta);
+    if (!deducida) {
+      aplicarFechasDelTexto(oferta, hoy);
+      m.aplicarClasificacion(oferta);
+      aplicarNinos(oferta);
+      // El tipo de alojamiento antes que la categoría: si no, las estrellas («Hotel 3*» de Weekendesk)
+      // lo daban por hotel y ya no se leía «apartamento» en el título.
+      m.aplicarAlojamiento(oferta);
+      aplicarCategoria(oferta);
+    }
+    if (sinTexto.has(oferta.fuente)) oferta.textoRetirado = true;
     // «LA MASSANA», «Vall D'aran» → «La Massana», «Vall d'Aran».
     if (oferta.lugar?.nombre) oferta.lugar.nombre = formatearToponimo(oferta.lugar.nombre);
     m.aplicarZona(oferta);

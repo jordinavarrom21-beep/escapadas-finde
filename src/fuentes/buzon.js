@@ -862,6 +862,9 @@ export default {
   requiere: ['GMAIL_USER', 'GMAIL_APP_PASSWORD'],
   // IMAP (imap.gmail.com:993), no HTTP: el orquestador no comprueba robots.txt en modo «buzon».
   urls: [],
+  // El texto de cada newsletter (lo escribe el comercio y llega a tu buzón) no se guarda en
+  // estado.json, que va a la rama «datos», pública; lo que se deduce de él, sí (almacen.js).
+  guardarTexto: false,
   /**
    * @param {object} ctx contexto de fuente; admite `ctx.crearClienteImap(env)` para
    *   sustituir el cliente IMAP (tests) y usa `ctx.http.redireccion` para los enlaces.

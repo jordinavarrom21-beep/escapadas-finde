@@ -297,6 +297,16 @@ export default {
   archivo temporal y después renombrar).
 - `fusionar(estado, fuenteId, {ofertas, reemplazar}, ahora)`: conserva `vistaPrimera`,
   actualiza `vistaUltima` y aplica `reemplazar`.
+- `estadoParaGuardar(estado, fuentesSinTexto(FUENTES))`: lo que se escribe en `estado.json`. Las
+  fuentes con `guardarTexto: false` (el buzón: el texto de cada newsletter lo escribe el comercio)
+  se guardan con `descripcion: ''` y `huellaTexto` (16 caracteres hexadecimales del texto, para
+  `marcarEquivalentes`). Tras enriquecer, sus ofertas llevan `textoRetirado: true`: el siguiente
+  escaneo no les pasa `restaurarDeLaFuente` ni los pasos que leen el texto (`clasificarVueloSinFecha`,
+  `aplicarFechasDelTexto`, `aplicarClasificacion`, `aplicarNinos`, `aplicarAlojamiento`,
+  `aplicarCategoria`), y se quedan con lo que se dedujo cuando llegó el email. Si el email se vuelve a
+  leer (los últimos 3 días), vuelve con su texto y se deduce otra vez. En memoria no se quita nada.
+  `guardarTrasFallo` también lo usa; lo guardado ahí, sin enriquecer, va sin la marca. El panel no
+  recibe ni `textoRetirado` ni `huellaTexto`.
 - `podar(estado, ahora, {retencionDias, fuentes})`: quita las ofertas caducadas, cualquier oferta
   (no solo vuelos) cuya salida ya ha pasado, las que no se ven desde hace más de `retencionDias`
   (o `fuentes[id].retencionDias`) y, en las fuentes `adaptable` (modo html o api) sin retención
