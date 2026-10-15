@@ -24,19 +24,17 @@ const DOS_DIAS_MS = 2 * 24 * 60 * 60 * 1000;
  * Actores que se usan y lo que cobra cada uno (plan gratuito de Apify, octubre de 2026):
  * `usdPorResultado` por cada fila que devuelve y `usdPorEjecucion` fijo por arrancarlo.
  * Sirven para estimar el gasto; el tope real de cada ejecución es `maxTotalChargeUsd`.
+ * `minimoUsd`: el tope más bajo que acepta el actor. Google Maps rechaza con un 400 cualquier
+ * `maxTotalChargeUsd` por debajo de 0,50 $ («max-total-charge-usd-below-minimum», 15/10/2026),
+ * aunque lo que gasta de verdad con 1 sitio por búsqueda son céntimos.
  */
 export const ACTORES = {
   googleFlights: { id: 'lergassy~google-flights-scraper', nombre: 'Google Flights', usdPorResultado: 0.0002, usdPorEjecucion: 0.00005 },
-  googleMaps: { id: 'compass~crawler-google-places', nombre: 'Google Maps', usdPorResultado: 0.004, usdPorEjecucion: 0.00005 },
+  googleMaps: { id: 'compass~crawler-google-places', nombre: 'Google Maps', usdPorResultado: 0.004, usdPorEjecucion: 0.00005, minimoUsd: 0.5 },
   googleHoteles: { id: 'vittuhy~google-travel-hotel-prices', nombre: 'Google Hoteles', usdPorResultado: 0.001, usdPorEjecucion: 0.005 },
 };
 
-/**
- * Tope de una ejecución en céntimos, redondeado hacia arriba (0,03005 → 0,04). Google Maps, el único
- * que mandaba topes con cinco decimales y restos de coma flotante (0.026049999999999997), recibía
- * un 400 sin llegar a crear la ejecución; los redondos (0,01 de Google Flights y 0,05 de Google
- * Hoteles) funcionaban. Si no era eso, `motivoApify` deja el motivo real en el registro.
- */
+/** Tope de una ejecución en céntimos, redondeado hacia arriba (0,03005 → 0,04; no 0.026049999999999997). */
 export const topeEnCentimos = (usd) => Math.max(0.01, Math.ceil(Math.round(usd * 1e6) / 1e4) / 100);
 
 /** URL con la que se ejecuta un actor y se reciben sus resultados en la misma petición. */
@@ -60,6 +58,14 @@ export function motivoApify(cuerpo) {
  * pudo con esa entrada (p. ej. Google Hoteles no encuentra el hotel). Repetirla daría lo mismo.
  */
 export const ejecucionFallida = (error) => /"type"\s*:\s*"run-failed"/.test(error?.cuerpo ?? '');
+
+/**
+ * Apify rechazó la petición antes de arrancar el actor (entrada o tope no válidos): no ha
+ * cobrado nada. Cualquier otro fallo puede haber gastado algo.
+ */
+const RECHAZOS_SIN_EJECUCION = new Set(['invalid-input', 'max-total-charge-usd-below-minimum']);
+export const sinEjecucion = (error) => error?.estado === 400
+  && RECHAZOS_SIN_EJECUCION.has(/"type"\s*:\s*"([^"]+)"/.exec(error?.cuerpo ?? '')?.[1]);
 
 /** No se lanza: pasaría del presupuesto del mes o del tope del día. No es un fallo de nadie. */
 export class ErrorPresupuesto extends Error {
@@ -103,9 +109,11 @@ export function costeEstimado(clave, filas, maxUsd = Infinity) {
 
 /**
  * Ejecuta un actor con `entrada` y devuelve sus resultados (array). Lanza `ErrorPresupuesto`
- * si no queda presupuesto para gastar hasta `maxUsd`. Sin reintentos: repetir la petición
- * lanzaría (y cobraría) otra ejecución. Si la petición falla, se apunta `maxUsd` como gastado,
- * porque el actor puede haber trabajado igual.
+ * si no queda presupuesto para gastar hasta el tope de la ejecución (`maxUsd`, o el mínimo del
+ * actor si es mayor). Sin reintentos: repetir la petición lanzaría (y cobraría) otra ejecución.
+ * Si la petición falla, se apunta como gastado lo que pidió quien llama (`maxUsd`, su estimación
+ * de lo peor), porque el actor puede haber trabajado igual; si Apify la rechazó sin arrancar
+ * nada, no se apunta nada.
  * @param {{ajustes: object, cache: import('../cache.js').Cache, env: object, http: object, ahora: Date}} ctx
  * @param {keyof typeof ACTORES} clave
  * @param {object} entrada
@@ -114,8 +122,9 @@ export function costeEstimado(clave, filas, maxUsd = Infinity) {
 export async function ejecutarActor(ctx, clave, entrada, { maxUsd: pedido }) {
   const token = ctx.env.APIFY_TOKEN;
   if (!token) throw new Error('Falta configurar el secreto APIFY_TOKEN');
-  // El tope que se manda (en céntimos) es también el que cuenta para el presupuesto.
-  const maxUsd = topeEnCentimos(pedido);
+  // El tope que se manda (en céntimos y no por debajo del mínimo del actor) es el que cuenta
+  // para saber si queda presupuesto.
+  const maxUsd = Math.max(topeEnCentimos(pedido), ACTORES[clave].minimoUsd ?? 0);
   const presupuesto = presupuestoMensual(ctx.ajustes);
   const gastado = gastoDelMes(ctx.cache, ctx.ahora).usd;
   if (gastado + maxUsd > presupuesto) {
@@ -130,7 +139,7 @@ export async function ejecutarActor(ctx, clave, entrada, { maxUsd: pedido }) {
       reintentos: 0,
     });
   } catch (error) {
-    anotarGasto(ctx.cache, ctx.ahora, maxUsd);
+    if (!sinEjecucion(error)) anotarGasto(ctx.cache, ctx.ahora, topeEnCentimos(pedido));
     if (error.estado === 401) throw new Error('Apify no acepta el token: revisa el secreto APIFY_TOKEN', { cause: error });
     if (error.estado === 402) throw new ErrorPresupuesto('Apify dice que no queda saldo en la cuenta este mes');
     // El motivo que da Apify, para el registro («HTTP 400 en api.apify.com» solo no decía nada).
@@ -139,7 +148,7 @@ export async function ejecutarActor(ctx, clave, entrada, { maxUsd: pedido }) {
     throw error;
   }
   if (!Array.isArray(filas)) {
-    anotarGasto(ctx.cache, ctx.ahora, maxUsd);
+    anotarGasto(ctx.cache, ctx.ahora, topeEnCentimos(pedido));
     throw new Error(`Respuesta inesperada de Apify (${ACTORES[clave].nombre}): no es una lista de resultados`);
   }
   anotarGasto(ctx.cache, ctx.ahora, costeEstimado(clave, filas.length, maxUsd));
