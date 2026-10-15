@@ -83,7 +83,7 @@ un `try/catch`, registran el error con `ctx.log` y descartan solo esa oferta.
 | `equivalentes` | `duplicados.js` | el mismo alojamiento en otras webs, de la más barata a la más cara: `[{id, fuente, precio, unidad, precioNoche, url}]` |
 | `costeCoche` | `geo.js` | `{eur, litros}` del viaje de ida y vuelta desde `ajustes.origen`, solo si se va en coche (`transporte` `coche` o `null`): una oferta de tren, bus, avión o ferry no gasta gasolina (`vaEnCoche`) |
 | `tiempo` | `tiempo.js` | `{dia, maxC, minC, lluviaPct, codigo, texto}` del finde o puente asignado |
-| `eventos` | `eventos.js` | hasta 6 `{nombre, fecha, url, municipio, tipo, km, precio?}` a menos de 25 km del destino esos días (agenda de Cataluña, Kulturklik, Castilla y León, Madrid, Comunitat Valenciana, Zaragoza, Málaga y, con `TICKETMASTER_KEY`, Ticketmaster), del más cercano al más lejano y sin repetir el mismo acto en el mismo municipio (`sinRepetir`). `tipo` es uno de `TIPOS_EVENTO` (`agendas.js`). En una oferta sin fechas propias son los del próximo finde al que aún se puede ir (el domingo, el siguiente): el panel los enseña en la ficha avisando y, en la tarjeta, solo si filtras por eventos («si vas el sáb 10»). En `ofertas.json` va una copia ligera (`nombre`, `tipo`, `km`, `fecha`) para la tarjeta y el filtro; enteros, en `detalles.json` (`src/panel-datos.js`) |
+| `eventos` | `eventos.js` | hasta 6 `{nombre, fecha, url, municipio, tipo, km, precio?}` a menos de 25 km del destino esos días (agenda de Cataluña, Kulturklik, Castilla y León, Madrid, Comunitat Valenciana, Zaragoza, Málaga y, con `TICKETMASTER_KEY`, Ticketmaster), del más cercano al más lejano y sin repetir el mismo acto en el mismo municipio (`sinRepetir`). `tipo` es uno de `TIPOS_EVENTO` (`agendas.js`). En una oferta sin fechas propias son los del próximo finde al que aún se puede ir (el domingo, el siguiente): el panel los enseña en la ficha avisando y, en la tarjeta, solo si filtras por eventos («si vas el sáb 10»). En `ofertas.json` va una copia ligera (`nombre`, `tipo`, `fecha`, `municipio`) una sola vez en `eventos`, y cada oferta lleva `eventosCerca: [[posición, km], …]` (el panel los vuelve a poner en `o.eventos` al cargar: `juntarEventos`); enteros, en `detalles.json` (`src/panel-datos.js`) |
 
 Etiquetas especiales (en `etiquetas`) que otros módulos entienden:
 `temperatura:<grados>` (popularidad en Chollometro), `promocion` y `sale-de:<ciudad>` (`vuelos.js`), `top-chollo` (destacado por la
@@ -354,6 +354,7 @@ Otros archivos de `data/`: `cache.json` (Cache), `historial.json`.
   findes: Finde[],        // {id, viernes, sabado, domingo, etiqueta, puenteId}
   puentes: Puente[],
   fuentes: [{ id, nombre, web, modo, estado: 'ok'|'error'|'desactivada'|'bloqueada'|'pendiente', motivo, ultimoOk, error, total, falta: [], intervaloMin }],
+  eventos: [{ nombre, tipo, fecha, municipio }], // cada evento de cerca una vez (la oferta: eventosCerca)
   ofertas: Oferta[]       // ordenadas por puntuación descendente
 }
 ```

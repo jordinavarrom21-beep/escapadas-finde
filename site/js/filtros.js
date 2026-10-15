@@ -706,6 +706,24 @@ const cumpleRegimenMinimo = (o, minimo) => !minimo
   || REGIMENES_ORDEN.indexOf(o.regimen) >= REGIMENES_ORDEN.indexOf(minimo);
 
 /**
+ * Los eventos de cerca de cada oferta, con todos sus datos: ofertas.json trae cada evento una
+ * sola vez (`eventos`) y, en cada oferta, su posición en esa lista y los km (`eventosCerca`,
+ * ver src/panel-datos.js). Los datos de antes, con los eventos dentro de cada oferta, se
+ * quedan como están. Cambia las ofertas de `datos` (recién bajados) y los devuelve.
+ */
+export function juntarEventos(datos) {
+  const tabla = Array.isArray(datos.eventos) ? datos.eventos : [];
+  for (const o of datos.ofertas ?? []) {
+    if (!Array.isArray(o.eventosCerca)) continue;
+    o.eventos = o.eventosCerca
+      .filter(([posicion]) => tabla[posicion])
+      .map(([posicion, km]) => ({ ...tabla[posicion], ...(km == null ? {} : { km }) }));
+    delete o.eventosCerca;
+  }
+  return datos;
+}
+
+/**
  * Los eventos que cuentan para «¿Algo que hacer cerca esos días?»: en una oferta con fechas
  * cerradas, los suyos; en una flexible, los que caen en las fechas que buscas (los mismos que
  * enseña su tarjeta). Antes contaban todos y salían ofertas con eventos de otro finde.

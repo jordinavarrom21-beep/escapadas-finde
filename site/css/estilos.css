@@ -449,8 +449,9 @@ html:not(.js) .cargando { display: none; }
 
 /* ── Portada ──────────────────────────────────────────────────────────────── */
 
-.portada .titulo-vista { margin: 0; font-size: clamp(1.8rem, 3.8vw, 2.7rem); line-height: 1.05; letter-spacing: -0.03em; }
-.portada .titulo-vista em { font-style: normal; color: var(--acento); }
+/* El mismo título en la portada para buscadores (.portada-estatica), que se ve mientras carga. */
+:is(.portada, .portada-estatica) .titulo-vista { margin: 0; font-size: clamp(1.8rem, 3.8vw, 2.7rem); line-height: 1.05; letter-spacing: -0.03em; }
+:is(.portada, .portada-estatica) .titulo-vista em { font-style: normal; color: var(--acento); }
 
 .buscador-finde {
   display: grid; gap: 18px; padding: 20px; border-radius: 24px;
@@ -1359,6 +1360,14 @@ html:not(.js) .cargando { display: none; }
 /* La portada para buscadores (index.html sin JavaScript): con JavaScript, el panel la sustituye. */
 .portada-estatica { display: grid; gap: 14px; max-width: 900px; padding-block: 12px; }
 .js .portada-estatica { display: none; }
+/*
+ * Si la portada del panel tarda (un móvil con poca cobertura), a los 2 s la de index.html: lo
+ * mejor de ahora y las guías, con sus enlaces, en vez de una pantalla vacía (tema.js pone
+ * «portada-mientras»). Con buena conexión el panel ya está y no se ve un contenido y enseguida otro.
+ */
+.js.portada-mientras[data-vista-inicial="finde"] .portada-estatica { display: grid; }
+/* «Cargando ofertas…», encima y en una línea: lo de debajo se puede leer. */
+.js[data-vista-inicial="finde"] .cargando:has(~ .portada-estatica) { padding: 10px 0 0; text-align: left; }
 /* Si el panel no arranca (tema.js, app.js), la portada sin JavaScript hace de alternativa. */
 .js.sin-panel .portada-estatica { display: grid; }
 
@@ -1432,7 +1441,7 @@ html:not(.js) .cargando { display: none; }
   .ficha__contenido { padding: 0 14px 22px; }
   .buscador-finde { padding: 16px; border-radius: 22px; }
   /* Portada en el móvil: menos alto antes del planificador. */
-  .portada .titulo-vista { font-size: 2rem; }
+  :is(.portada, .portada-estatica) .titulo-vista { font-size: 2rem; }
   .opciones--cuando { display: grid; grid-template-columns: 1fr 1fr; }
   .opciones--cuando .opcion { flex: auto; }
   .seccion { margin-top: 36px; }

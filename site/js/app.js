@@ -8,7 +8,7 @@ import { fechasDeBusqueda } from './fechas-enlaces.js';
 import { ZONA, diasEntre, estadoFinde, etiquetaDia, fechaLocal, findesConNoches, proximoPuente, quedanNoches, sumarDias } from './fechas.js';
 import {
   POR_PAGINA, actividadesCerca, conPeriodo, detalleEvento, periodoDeParams, traducirFormulario, buscarTexto, crearHash, criterioVigilado, filtrosVigentes, leerFiltrosActividades,
-  leerFiltrosComunes, leerFiltrosEscapadas, leerFiltrosVuelos, leerRuta, medirDistancias, paramsViaje, referenciaNovedades,
+  juntarEventos, leerFiltrosComunes, leerFiltrosEscapadas, leerFiltrosVuelos, leerRuta, medirDistancias, paramsViaje, referenciaNovedades,
   viajeDeParams,
 } from './filtros.js';
 import { AVISO_DRIVE, contar, cuentaAtras, escaparHtml as esc, haceCuanto, urlSegura } from './formato.js';
@@ -136,7 +136,9 @@ function detectarPropietario() {
   return esPropietarioGuardado() || ['localhost', '127.0.0.1'].includes(location.hostname);
 }
 
-function crearEstado(datos, historial, vigilados) {
+function crearEstado(bajados, historial, vigilados) {
+  // Los eventos de cerca, dentro de cada oferta (ofertas.json trae cada uno una sola vez).
+  const datos = juntarEventos(bajados);
   const ahora = new Date();
   const hoy = fechaLocal(ahora);
   // El domingo, el finde en curso ya no se propone: no le queda ninguna noche.
@@ -931,7 +933,8 @@ async function mostrarFicha(id, disparador) {
     return;
   }
   fichaAbierta = id;
-  await cargarDetalles();
+  // Y el historial, si aún no ha llegado (portada): sin él, la ficha saldría sin su gráfica.
+  await Promise.all([cargarDetalles(), historialPendiente]);
   const { vista, params } = leerRuta(hashVista());
   const { punto } = ['escapadas', 'mapa'].includes(vista) ? leerFiltrosEscapadas(params) : {};
   const distancias = punto ? medirDistancias([oferta], punto, estado.datos.origen) : estado.distanciasOrigen;
@@ -1325,13 +1328,36 @@ function falloAlArrancar(titulo, texto) {
   document.documentElement.classList.add('sin-panel');
 }
 
+/**
+ * En la portada (sin una ficha encima), el historial de precios se pide después de pintar: la
+ * portada no lo usa, salvo las tarjetas de «Recomendado para ti», que se repintan al llegar. Así
+ * no le quita ancho de banda a ofertas.json, que es lo que hace esperar en un móvil lento
+ * (tema.js tampoco lo adelanta). Mientras tanto, la ficha lo espera (mostrarFicha).
+ */
+const HISTORIAL_DESPUES = document.documentElement.dataset.vistaInicial === 'finde' && !location.hash.startsWith('#/oferta/');
+let historialPendiente = null;
+
+function completarHistorial() {
+  const para = estado;
+  historialPendiente = cargarJson('data/historial.json', {}).then((historial) => {
+    // Si mientras tanto se han renovado los datos, ya traen su historial.
+    if (estado !== para) return;
+    estado.historial = historial;
+    const { vista, params } = leerRuta(hashVista());
+    if (dialogo.open) return;
+    if (VISTAS_HTML[vista]?.resultados && $('#resultados')) actualizarResultados(vista, params);
+    else if (principal.querySelector('.tarjeta, .billete') && !ocupado()) render({ enfocar: false });
+  }).catch((error) => console.warn('No se ha podido completar el historial de precios:', error));
+  return historialPendiente;
+}
+
 async function iniciar() {
   pintarBotonTema();
   let cargados;
   try {
     cargados = await Promise.all([
       cargarJson('data/ofertas.json'),
-      cargarJson('data/historial.json', {}),
+      HISTORIAL_DESPUES ? {} : cargarJson('data/historial.json', {}),
       cargarJson('data/vigilados.json', { vigilados: [] }),
     ]);
   } catch (error) {
@@ -1359,6 +1385,7 @@ async function iniciar() {
   // Para tema.js (ya no hace falta avisar de que no arranca) y consentimiento.js (Drive, después).
   window.escapadasListo = true;
   window.dispatchEvent(new Event('escapadas:listo'));
+  if (HISTORIAL_DESPUES) completarHistorial();
   setInterval(pintarReloj, 30_000);
   setInterval(comprobarDatosNuevos, NOVEDADES_MS);
   activarActualizaciones();

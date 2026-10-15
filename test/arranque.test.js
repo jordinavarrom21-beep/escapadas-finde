@@ -39,7 +39,16 @@ describe('arranque de la web', () => {
     assert.match(tema, /fetch\(ruta, \{ cache: 'no-cache', signal: control\?\.signal \}\)/);
     assert.match(tema, /window\.escapadasPedir\(ruta\)/);
     assert.match(app, /window\.escapadasPedir \? window\.escapadasPedir\(url\) : fetch\(url, \{ cache: 'no-cache' \}\)/);
-    for (const ruta of ['data/ofertas.json', 'data/historial.json']) assert.ok(tema.includes(`'${ruta}': pedir('${ruta}')`), ruta);
+    assert.ok(tema.includes("'data/ofertas.json': pedir('data/ofertas.json')"));
+    // El historial, fuera de la portada o con una ficha encima: la portada lo pide después de
+    // pintar (app.js), con la misma condición.
+    const condicion = "dataset.vistaInicial !== 'finde' || location.hash.startsWith('#/oferta/')";
+    assert.ok(tema.includes(`if (document.documentElement.${condicion}) pedidos['data/historial.json'] = pedir('data/historial.json');`));
+    assert.ok(app.includes("const HISTORIAL_DESPUES = document.documentElement.dataset.vistaInicial === 'finde' && !location.hash.startsWith('#/oferta/');"));
+    assert.match(app, /HISTORIAL_DESPUES \? \{\} : cargarJson\('data\/historial\.json', \{\}\)/);
+    assert.match(app, /if \(HISTORIAL_DESPUES\) completarHistorial\(\);/);
+    // La ficha no sale sin su gráfica por haberse abierto antes de que llegue.
+    assert.match(app, /await Promise\.all\(\[cargarDetalles\(\), historialPendiente\]\);/);
     // Con datos de otra web (hosting con datos remotos), no se adelantan: los pide app.js.
     assert.match(tema, /meta\[name="escapadas-datos"\]/);
     assert.match(app, /delete window\.escapadasDatos\[ruta\]/);
@@ -70,6 +79,19 @@ describe('arranque de la web', () => {
     const css = readFileSync(new URL('css/estilos.css', SITE), 'utf8');
     assert.match(css, /html\[data-vista-inicial="finde"\] body:not\(\[data-vista\]\) #boton-viaje/);
     assert.match(css, /\.js #principal:has\(> \.cargando\) \{ min-height: 100vh; \}/);
+  });
+
+  it('si la portada tarda más de 2 s, la de index.html (lo mejor de ahora), con el mismo título', () => {
+    const css = readFileSync(new URL('css/estilos.css', SITE), 'utf8');
+    assert.match(css, /\.js \.portada-estatica \{ display: none; \}/, 'en las demás vistas no se ve');
+    assert.match(css, /\.js\.portada-mientras\[data-vista-inicial="finde"\] \.portada-estatica \{ display: grid; \}/);
+    // A los 2 s de abrir la página (no de ejecutar tema.js): con buena conexión el panel ya ha llegado.
+    assert.match(leer('js/tema.js'), /setTimeout\(\(\) => document\.documentElement\.classList\.add\('portada-mientras'\), Math\.max\(0, 2000 - performance\.now\(\)\)\);/);
+    assert.match(css, /\.js\.sin-panel \.portada-estatica \{ display: grid; \}/, 'si el panel no arranca, ya');
+    assert.match(css, /:is\(\.portada, \.portada-estatica\) \.titulo-vista \{/);
+    // «Cargando ofertas…» va encima de la portada estática.
+    const indice = leer('index.html');
+    assert.ok(indice.indexOf('<p class="cargando"') < indice.indexOf('<!-- portada-estatica'));
   });
 
   it('el service worker no mezcla versiones: la interfaz guardada no se cambia por detrás', () => {
