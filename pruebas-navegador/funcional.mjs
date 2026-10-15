@@ -744,6 +744,44 @@ const inicioPedido = (pm, archivo) => pm.evaluate((a) => performance.getEntriesB
   await cr.close();
 }
 
+// En Puentes, desde el menú, al llegar las rutas: sin tocar, se repinta y el título sigue con el
+// foco; con un carrusel deslizado, no se repinta (no vuelve a la primera tarjeta).
+for (const deslizar of [false, true]) {
+  const cr = await contexto({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  await cr.route('https://router.project-osrm.org/**', async (r) => {
+    const n = r.request().url().split('/driving/')[1].split('?')[0].split(';').length;
+    await esperar(300);
+    const fila = Array.from({ length: n }, (_, i) => (i === 0 ? 0 : 3600 + i));
+    await r.fulfill({ contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify({ code: 'Ok', durations: [fila], distances: [fila.map((x) => x * 25)] }) });
+  });
+  await cr.addInitScript(() => {
+    if (sessionStorage.getItem('salida-puesta')) return;
+    sessionStorage.setItem('salida-puesta', '1');
+    localStorage.setItem('escapadas:salida', JSON.stringify({ nombre: 'Girona', lat: 41.9794, lon: 2.8214 }));
+  });
+  const pr = await pagina(cr);
+  await pr.goto(`${BASE}#/finde`);
+  await pr.waitForFunction(() => window.escapadasListo === true, null, { timeout: 30000 });
+  await pr.evaluate(() => { location.hash = '#/puentes'; });
+  await pr.waitForFunction(() => document.activeElement?.matches('#principal .titulo-vista'), null, { timeout: 10000 });
+  const rejilla = pr.locator('#principal .carruseles .rejilla').first();
+  if (deslizar) await rejilla.evaluate((r) => { r.scrollLeft = 200; });
+  await pr.waitForTimeout(200);
+  const izquierda = deslizar ? await rejilla.evaluate((r) => Math.round(r.scrollLeft)) : 0;
+  await pr.evaluate(() => { document.querySelector('#principal .titulo-vista').dataset.deAntes = '1'; });
+  await pr.waitForFunction(() => localStorage.getItem('escapadas:rutas'), null, { timeout: 40000, polling: 100 });
+  await pr.waitForTimeout(300);
+  const repintada = (await pr.locator('#principal .titulo-vista[data-de-antes]').count()) === 0;
+  if (deslizar) {
+    const ahora = await pr.locator('#principal .carruseles .rejilla').first().evaluate((r) => Math.round(r.scrollLeft));
+    ok(izquierda > 0 && !repintada && ahora === izquierda, `Puentes con un carrusel deslizado: no se repinta al llegar las rutas (${izquierda} → ${ahora})`);
+  } else {
+    const foco = await pr.evaluate(() => document.activeElement?.matches('#principal .titulo-vista') ?? false);
+    ok(repintada && foco, `Puentes sin tocar: se repinta al llegar las rutas y el título sigue con el foco (repintada ${repintada}, foco ${foco})`);
+  }
+  await cr.close();
+}
+
 ok(!errores.some((e) => /Content Security Policy|Refused to (load|apply|execute|connect)/.test(e)), 'CSP: ningún error en la consola en todo el recorrido');
 
 await cerrar();
