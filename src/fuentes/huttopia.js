@@ -87,6 +87,10 @@ function sitiosDe($) {
   } catch {
     return new Map();
   }
+  // En otoño el mapa solo trae la cara de invierno de los campings con chalets de invierno
+  // («…/site/camping-font-romeu/hiver/»), pero el menú enlaza también su camping de verano.
+  const verano = (id) => $(`a[data-site="${String(id).replace(/[^\w-]/g, '')}"]`).map((_, a) => $(a).attr('href')).get()
+    .find((url) => url?.startsWith(`${WEB}/`) && !/\/hiver\/$/.test(url)) ?? null;
   const sitios = new Map();
   for (const s of Object.values(mapa ?? {})) {
     const lat = Number(s?.lat);
@@ -95,11 +99,14 @@ function sitiosDe($) {
     if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
     const region = decodificar(s.region);
     const apertura = s.openingPeriods?.universalFormat;
+    const invierno = s.season === 'winter' || /\/hiver\/$/.test(s.url);
     sitios.set(s.url, {
       nombre: decodificar(s.title),
       url: s.url,
       citykamp: s.universe === 'citykamp',
-      invierno: s.season === 'winter' || /\/hiver\/$/.test(s.url),
+      invierno,
+      // La página de su camping de verano, si es un chalet de invierno: ver `caraDeVerano`.
+      verano: invierno && s.id != null ? verano(s.id) : null,
       lat,
       lon,
       region: PAISES[region] ? null : region.split(' - ')[0] || null,
@@ -140,15 +147,34 @@ export function fechaLimite(texto) {
 const EXONIMOS = { estrasburgo: 'strasbourg', paris: 'paris', ginebra: 'geneve', lion: 'lyon' };
 function excepciones(textos) {
   return textos
-    .flatMap((texto) => texto.split(/,\s*|\s+y\s+/))
-    .map((parte) => normalizarTexto(parte).replace(/^(?:los|las|el|la)\s+de\s+/, '').replace(/^(?:campings?|citykamps?)\s+(?:de\s+)?/, '').trim())
+    .flatMap((texto) => texto.replace(/\([^)]*\)?/g, ' ').split(/,\s*|\s+y\s+/))
+    // Sin lo que no son letras: «Chalets de Invierno*», «Paris (Bois de Boulogne)».
+    .map((parte) => normalizarTexto(parte).replace(/[^a-z\s-]+/g, ' ').replace(/\s+/g, ' ').trim())
+    .map((parte) => parte.replace(/^(?:los|las|el|la)\s+de\s+/, '').replace(/^(?:campings?|citykamps?)\s+(?:de\s+)?/, '').trim())
     .filter(Boolean);
 }
+// Los términos solo llevan letras, espacios y guiones: van tal cual en la expresión.
 const excluido = (sitio, terminos) => terminos.some((termino) => {
   if (/^chalets? de invierno$/.test(termino)) return sitio.invierno;
-  const nombre = normalizarTexto(`${sitio.nombre} ${new URL(sitio.url).hostname} ${new URL(sitio.url).pathname}`);
+  const nombre = normalizarTexto(`${sitio.nombre} ${new URL(sitio.url).hostname} ${new URL(sitio.url).pathname}`).replace(/[^a-z\s-]+/g, ' ');
   return [termino, EXONIMOS[termino]].filter(Boolean).some((t) => new RegExp(`(^|[^a-z])${t}([^a-z]|$)`).test(nombre));
 });
+
+/**
+ * El camping de verano de un chalet de invierno: mismo sitio, sin lo de invierno (descripción,
+ * etiquetas, apertura y foto, que son de los chalets y la nieve). La foto, de su ficha.
+ */
+const caraDeVerano = (sitio) => ({ ...sitio, url: sitio.verano, invierno: false, verano: null, imagen: null, descripcion: '', etiquetas: [], apertura: null });
+
+/** Los campings de una promoción «en todos los campings» salvo `excepto`. */
+function sitiosDeTodos(sitios, excepto) {
+  return [...sitios.values()].flatMap((sitio) => {
+    if (!excluido(sitio, excepto)) return [sitio];
+    if (!sitio.verano || sitios.has(sitio.verano)) return [];
+    const deVerano = caraDeVerano(sitio);
+    return excluido(deVerano, excepto) ? [] : [deVerano];
+  });
+}
 
 /**
  * Página de condiciones de una promoción: {caduca, limite, codigo, descuento, nochesMin,
@@ -163,7 +189,7 @@ export function parsearCondiciones(html) {
   principal.find('script, style, noscript').remove();
   const texto = limpiar(principal.text()).replace(/\u200b/g, '');
   const ambito = /en tod[oa]s (?:los|las|nuestros|nuestras) (?:campings|destinos)/i;
-  const excepto = [...texto.matchAll(/en tod[oa]s (?:los|las|nuestros|nuestras) (?:campings|destinos)[^()\d]{0,80}\(excepto ([^)]+)\)/gi)].map((m) => m[1]);
+  const excepto = [...texto.matchAll(/en tod[oa]s (?:los|las|nuestros|nuestras) (?:campings|destinos)[^()\d]{0,80}\(excepto ((?:[^()]|\([^()]*\))+)\)/gi)].map((m) => m[1]);
   const periodos = [...new Set([...texto.matchAll(/\bdel (\d{1,2}\/\d{1,2}\/\d{4}) al (\d{1,2}\/\d{1,2}\/\d{4})/g)].map((m) => `${m[1]}|${m[2]}`))]
     .map((p) => p.split('|'));
   const limite = diaLimite(texto);
@@ -180,6 +206,9 @@ export function parsearCondiciones(html) {
     sitios,
   };
 }
+
+/** La primera foto del JSON-LD de un camping (`image`: una URL, una lista o un ImageObject). */
+const fotoDe = (ficha) => [ficha?.image].flat().map((i) => (typeof i === 'string' ? i : i?.url)).find((u) => typeof u === 'string' && u.startsWith('https://')) ?? null;
 
 const aDia = (fecha) => {
   const [d, m, a] = fecha.split('/');
@@ -198,7 +227,7 @@ export function ofertasDePromocion(promocion, condiciones, sitios, { valoracione
   const nochesMin = promocion.nochesMin ?? condiciones.nochesMin;
   if (!(descuento > 0)) return [];
   const elegidos = condiciones.todos
-    ? [...sitios.values()].filter((s) => !excluido(s, condiciones.excepto))
+    ? sitiosDeTodos(sitios, condiciones.excepto)
     : condiciones.sitios.map((url) => sitios.get(url)).filter(Boolean);
   const origen = ajustes?.origen;
   const estancias = condiciones.periodos.map(([desde, hasta]) => `del ${desde} al ${hasta}`).join(' y ');
@@ -224,7 +253,7 @@ export function ofertasDePromocion(promocion, condiciones, sitios, { valoracione
         establecimiento: nombre,
         descripcion: recortar(`${descuento} % de descuento${nochesMin ? ` a partir de ${nochesMin} noches` : ''}${estancias ? ` en estancias ${estancias}` : ''}${codigo ? ` con el código ${codigo}` : ''}${reserva}.${abierto} ${sitio.descripcion}`),
         url: sitio.url,
-        imagen: sitio.imagen,
+        imagen: sitio.imagen ?? fotoDe(ficha),
         precio: null,
         precioTexto: `${descuento} % de descuento`,
         descuento,
@@ -383,7 +412,13 @@ async function obtener(ctx) {
     }
   }
   if (!leidas) throw new Error('No se ha podido leer ninguna página de condiciones ni de ofertas de Huttopia');
-  for (const [promocion, condicion] of condiciones) ofertas.push(...ofertasDePromocion(promocion, condicion, sitios, { ...ctx, valoraciones }));
+  for (const [promocion, condicion] of condiciones) {
+    try {
+      ofertas.push(...ofertasDePromocion(promocion, condicion, sitios, { ...ctx, valoraciones }));
+    } catch (error) {
+      ctx.log(`${promocion.url}: ${error.message}`);
+    }
+  }
   const unicas = [...new Map(ofertas.map((o) => [o.id, o])).values()];
   // Las de una promoción que hoy no se ha mirado (ya no sale en la portada) siguen hasta la fecha
   // límite de su código; las de las promociones miradas que ya no salen, fuera.
