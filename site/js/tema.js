@@ -16,7 +16,16 @@ document.documentElement.classList.add('js');
 // más de 2 s desde que se abre la página (un móvil con poca cobertura): mientras tanto, lo mejor
 // de ahora y las guías, en vez de solo «Cargando ofertas…». Con buena conexión el panel ya está y
 // no salta de un contenido a otro. El panel la sustituye al pintar.
-setTimeout(() => document.documentElement.classList.add('portada-mientras'), Math.max(0, 2000 - performance.now()));
+// Solo si es de las últimas 3 horas (data-generado): a quien ya ha venido, el service worker le
+// da el index.html que guardó entonces, y sus ofertas pueden ser de hace días.
+setTimeout(function portadaMientras() {
+  const bloque = document.querySelector('.portada-estatica');
+  if (!bloque && document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', portadaMientras, { once: true });
+    return;
+  }
+  if (Date.now() - Date.parse(bloque?.dataset.generado) < 3 * 3600 * 1000) document.documentElement.classList.add('portada-mientras');
+}, Math.max(0, 2000 - performance.now()));
 // La vista que se va a pintar, ya desde el principio: en la portada la cabecera no lleva la
 // búsqueda ni «Tu salida» (estilos: body[data-vista="finde"]) y, si se quitaban al pintar, todo
 // lo de debajo subía de golpe (desplazamiento de contenido, CLS).

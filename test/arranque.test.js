@@ -107,7 +107,10 @@ describe('arranque de la web', () => {
     assert.match(css, /\.js \.portada-estatica \{ display: none; \}/, 'en las demás vistas no se ve');
     assert.match(css, /\.js\.portada-mientras\[data-vista-inicial="finde"\] \.portada-estatica \{ display: grid; \}/);
     // A los 2 s de abrir la página (no de ejecutar tema.js): con buena conexión el panel ya ha llegado.
-    assert.match(leer('js/tema.js'), /setTimeout\(\(\) => document\.documentElement\.classList\.add\('portada-mientras'\), Math\.max\(0, 2000 - performance\.now\(\)\)\);/);
+    // Y solo si es de las últimas 3 h: la de una visita anterior la da el service worker.
+    const tema = leer('js/tema.js');
+    assert.match(tema, /setTimeout\(function portadaMientras\(\) \{[^]*?\}, Math\.max\(0, 2000 - performance\.now\(\)\)\);/);
+    assert.match(tema, /if \(Date\.now\(\) - Date\.parse\(bloque\?\.dataset\.generado\) < 3 \* 3600 \* 1000\) document\.documentElement\.classList\.add\('portada-mientras'\);/);
     assert.match(css, /\.js\.sin-panel \.portada-estatica \{ display: grid; \}/, 'si el panel no arranca, ya');
     assert.match(css, /:is\(\.portada, \.portada-estatica\) \.titulo-vista \{/);
     // «Cargando ofertas…» va encima de la portada estática.

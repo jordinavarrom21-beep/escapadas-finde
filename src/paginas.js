@@ -469,7 +469,7 @@ export function bloquePortada(datos, guias) {
   const desde = datos.origen.nombre;
   const destacadas = destacadasPortada(datos);
   const nombres = new Map((datos.fuentes ?? []).map((f) => [f.id, f.nombre]));
-  return `<div class="portada-estatica">
+  return `<div class="portada-estatica" data-generado="${esc(datos.generado)}">
 <h1 class="titulo-vista">Escapadas de fin de semana desde <em>${esc(desde)}</em></h1>
 <p>Escapadas, casas rurales, hoteles con spa, planes y chollos de vuelos de ${numeroWebs(datos) || 'varias'} webs de viajes, juntos y revisados cada 15 minutos. Cada oferta con el coste del viaje completo para ${VIAJEROS} personas desde ${esc(desde)} (la oferta y la gasolina), el tiempo en coche y cuándo se comprobó. Datos del ${esc(etiquetaDia(fechaLocal(datos.generado)))}.</p>
 ${destacadas.length ? `<h2>Lo mejor de ahora</h2>\n<ol class="lista-guia">${destacadas.map((o) => filaOferta(o, nombres)).join('')}</ol>` : ''}
