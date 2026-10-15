@@ -333,6 +333,9 @@ describe('direcciones internas y respuestas enormes', () => {
       '{"reservas":[{"titular":"(correo)","acompanante":"(correo)","noches":2}]}x',
     );
     assert.equal(await muestra('<a href="mailto:info@hotel.es,juan.perez@gmail.com">escribenos</a>'), '<a href="mailto:(correo),(correo)">escribenos</a>');
+    assert.equal(await muestra('<a href="mailto:reservas@hotel.es?cc=juan.perez@empresa-cliente.es">x</a>'), '<a href="mailto:(correo)(correo)">x</a>');
+    assert.equal(await muestra('<a href="mailto:reservas@hotel.es%2Cjuan.perez@empresa-cliente.es">x</a>'), '<a href="mailto:(correo)(correo)">x</a>');
+    assert.equal(await muestra('https://uno.es/p?from=ana@uno.es&to=juan.perez@gmail.com&x=1'), 'https:(correo)(correo)&x=1');
     // Con el único espacio al principio, o con muchos espacios delante, la muestra no se queda vacía.
     assert.equal((await muestra(`)]}'\n{"vuelos":[${'{"id":0,"precio":0.5},'.repeat(300)}]}`)).length, 200);
     assert.equal(await muestra(`${' '.repeat(5000)}Access denied`), 'Access denied');
@@ -342,14 +345,25 @@ describe('direcciones internas y respuestas enormes', () => {
     assert.ok(performance.now() - desde < 1000, `${Math.round(performance.now() - desde)} ms`);
   });
 
-  test('de un error cortado al leerlo no sale medio correo, aunque casi todo sean espacios', async () => {
-    const trozos = [`<html>${'\n    '.repeat(820)}<p>Servicio no disponible. Escribe a juan.perez@empr`, 'esa-cliente.es</p></html>']
-      .map((t) => new TextEncoder().encode(t));
-    const cuerpo = new ReadableStream({ pull(control) { const t = trozos.shift(); if (t) control.enqueue(t); else control.close(); } });
-    simularRed([{ ok: false, status: 503, headers: new Headers(), body: cuerpo, text: async () => { throw new Error('no se usa'); } }]);
-    const error = await obtenerTexto(URL_FEED, { reintentos: 0 }).catch((e) => e);
-    assert.ok(error instanceof ErrorHttp);
-    assert.doesNotMatch(error.cuerpo, /juan|empr/, error.cuerpo);
-    assert.ok(error.cuerpo.startsWith('<html>'), error.cuerpo);
+  test('de un error con muchos espacios delante, la muestra empieza en el texto y no sale ningún correo', async () => {
+    const deError = async (trozos, estado = 503) => {
+      const cola = trozos.map((t) => new TextEncoder().encode(t));
+      const cuerpo = new ReadableStream({ pull(control) { const t = cola.shift(); if (t) control.enqueue(t); else control.close(); } });
+      simularRed([{ ok: false, status: estado, headers: new Headers(), body: cuerpo, text: async () => { throw new Error('no se usa'); } }]);
+      const error = await obtenerTexto(URL_FEED, { reintentos: 0 }).catch((e) => e);
+      assert.ok(error instanceof ErrorHttp);
+      return error.cuerpo;
+    };
+    // El correo partido entre dos trozos: se sigue leyendo y se tapa entero.
+    assert.equal(
+      await deError([`${'\n    '.repeat(820)}<html><p>Servicio no disponible. Escribe a juan.perez@empr`, 'esa-cliente.es</p></html>']),
+      '<html><p>Servicio no disponible. Escribe a (correo)</p></html>',
+    );
+    // Leído entero en un trozo, no se toma por cortado (antes se perdía la última palabra).
+    assert.equal(await deError([`${' '.repeat(5000)}Access denied`], 403), 'Access denied');
+    assert.equal(await deError([`${' '.repeat(5000)}{"error":"Forbidden"}`], 403), '{"error":"Forbidden"}');
+    // Cortado al leerlo, después de la ventana: sin el final, que podría ser medio correo.
+    const cortado = await deError([`${' '.repeat(3000)}<p>${'Servicio no disponible. '.repeat(200)}Escribe a juan.perez@empr`, 'esa-cliente.es</p>', 'x'.repeat(70_000)]);
+    assert.ok(cortado.startsWith('<p>Servicio no disponible.') && !/juan|empr/.test(cortado), cortado);
   });
 });

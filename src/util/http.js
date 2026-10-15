@@ -175,8 +175,12 @@ export class ErrorParseo extends SyntaxError {
   }
 }
 
-/** Un correo, sin las comillas, comas o llaves de alrededor (en un JSON se lo comían todo). */
-const CORREO = /[^\s@"'<>()[\]{},;:\\]+@[^\s@"'<>()[\]{},;:\\]+\.\w+/g;
+/**
+ * Un correo, sin las comillas, comas o llaves de alrededor (en un JSON se lo comían todo), y con
+ * un dominio que solo lleva lo que puede llevar un dominio (si no, en «?cc=» o «%2C» se tragaba
+ * el principio del segundo correo y dejaba ver su dominio).
+ */
+const CORREO = /[^\s@"'<>()[\]{},;:\\]+@[\p{L}\p{N}_.-]+\.[\p{L}\p{N}]+/gu;
 
 // El principio del cuerpo, en una línea y sin correos: sirve para distinguir un
 // desafío anti-bot de un cambio de formato, no para guardar datos de nadie.
@@ -293,10 +297,14 @@ async function muestraDeRespuesta(respuesta) {
     if (!lector) return muestraDeCuerpo(await respuesta.text());
     const decodificador = new TextDecoder();
     let texto = '';
-    while (texto.length <= LECTURA_MUESTRA) {
+    let inicio = -1;
+    // Hasta tener la ventana entera desde el primer carácter que no es espacio (con un tope): si
+    // no, un cuerpo con muchos espacios delante, leído entero, se tomaba por cortado.
+    while ((inicio < 0 || texto.length - inicio <= LECTURA_MUESTRA) && texto.length <= 16 * LECTURA_MUESTRA) {
       const { done, value } = await lector.read();
       if (done) return muestraDeCuerpo(texto + decodificador.decode());
       texto += decodificador.decode(value, { stream: true });
+      if (inicio < 0) inicio = texto.search(/\S/);
     }
     await lector.cancel().catch(() => {});
     return muestraDeCuerpo(texto, { cortado: true });
