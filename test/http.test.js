@@ -303,4 +303,21 @@ describe('direcciones internas y respuestas enormes', () => {
     simularRed([{ ok: true, status: 200, headers: new Headers(), body: new Response('¡hola, señor!').body }]);
     assert.equal(await obtenerTexto(URL_FEED), '¡hola, señor!');
   });
+
+  test('de una respuesta de error sin fin solo se lee el principio, para la muestra', async () => {
+    let enviados = 0;
+    const trozo = new TextEncoder().encode(`{"error":{"type":"run-failed"}} ${'x'.repeat(999)} `);
+    const cuerpo = new ReadableStream({ pull(control) { enviados += 1; control.enqueue(trozo); } });
+    simularRed([{ ok: false, status: 500, headers: new Headers(), body: cuerpo, text: async () => { throw new Error('no se usa'); } }]);
+    const error = await obtenerTexto(URL_FEED, { reintentos: 0 }).catch((e) => e);
+    assert.ok(error instanceof ErrorHttp);
+    assert.ok(enviados <= 6, `${enviados} KB leídos`);
+    assert.ok(error.cuerpo.startsWith('{"error":{"type":"run-failed"}} xxx'), error.cuerpo);
+    // Un texto enorme sin espacios no se queda buscando correos (antes, segundos).
+    const inicio = performance.now();
+    const parseo = await (simularRed([respuesta(200, 'x'.repeat(200_000))]), obtenerJson(URL_FEED).catch((e) => e));
+    assert.ok(parseo instanceof ErrorParseo);
+    assert.equal(parseo.cuerpo, 'x'.repeat(200));
+    assert.ok(performance.now() - inicio < 1000, `${Math.round(performance.now() - inicio)} ms`);
+  });
 });

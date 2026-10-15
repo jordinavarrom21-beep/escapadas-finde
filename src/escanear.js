@@ -245,6 +245,8 @@ async function principal() {
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   principal().catch((error) => {
     console.error(textoDelFallo(error));
-    process.exitCode = 1;
+    // Lo que se ha podido guardar ya está escrito (guardarTrasFallo): se sale aunque una fuente
+    // cortada por tiempo siga esperando a su web, para que el workflow lo suba.
+    process.exit(1);
   });
 }

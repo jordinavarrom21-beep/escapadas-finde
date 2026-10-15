@@ -18,6 +18,11 @@ const CON_RETRY_AFTER = new Set([429, 503]);
 const ESPERA_MAXIMA_MS = 30_000;
 /** Cuánto cuerpo se guarda cuando la respuesta no es JSON. */
 const MUESTRA_CUERPO = 200;
+/**
+ * Cuánto se mira para sacar esa muestra. Lo de después no sale en ella, y buscar correos en un
+ * texto largo sin espacios tarda mucho (en un JSON minificado de 80 KB, 12 s).
+ */
+const LECTURA_MUESTRA = 4096;
 /** Nombres con los que `fetch` avisa de que se agotó el tiempo de espera. */
 const ABORTOS = new Set(['AbortError', 'TimeoutError']);
 
@@ -173,7 +178,9 @@ export class ErrorParseo extends SyntaxError {
 // El principio del cuerpo, en una línea y sin correos: sirve para distinguir un
 // desafío anti-bot de un cambio de formato, no para guardar datos de nadie.
 function muestraDeCuerpo(cuerpo) {
-  return String(cuerpo ?? '')
+  const texto = String(cuerpo ?? '');
+  // Si se corta, sin la última palabra, que podría ser medio correo.
+  return (texto.length > LECTURA_MUESTRA ? texto.slice(0, LECTURA_MUESTRA).replace(/\s\S*$/, '') : texto)
     .replace(/[^\s@]+@[^\s@]+\.\w+/g, '(correo)')
     .replace(/\s+/g, ' ')
     .trim()
@@ -272,9 +279,23 @@ const pedir = (url, { cabeceras, timeoutMs, cuerpo }) =>
     redirect: 'follow',
   });
 
+/**
+ * La muestra del cuerpo de una respuesta de error, leyendo solo su principio: una web que
+ * contesta 500 con un cuerpo enorme no se descarga entera (`leerTexto` solo cubre las buenas).
+ */
 async function muestraDeRespuesta(respuesta) {
   try {
-    return muestraDeCuerpo(await respuesta.text());
+    const lector = respuesta.body?.getReader?.();
+    if (!lector) return muestraDeCuerpo(await respuesta.text());
+    const decodificador = new TextDecoder();
+    let texto = '';
+    while (texto.length <= LECTURA_MUESTRA) {
+      const { done, value } = await lector.read();
+      if (done) return muestraDeCuerpo(texto + decodificador.decode());
+      texto += decodificador.decode(value, { stream: true });
+    }
+    await lector.cancel().catch(() => {});
+    return muestraDeCuerpo(texto);
   } catch {
     return '';
   }
