@@ -1,6 +1,7 @@
 /**
  * Respeto a robots.txt: el orquestador comprueba, antes de ejecutar una fuente,
- * que el robots.txt de cada web permite todas las URLs que la fuente declara.
+ * que el robots.txt de cada web permite todas las URLs que la fuente declara, y
+ * después cada petición que hace (conRobots, en src/core/scan-pipeline.js).
  */
 import { ErrorHttp } from './http.js';
 

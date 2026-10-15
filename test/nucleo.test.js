@@ -234,6 +234,44 @@ describe('escanear', () => {
     assert.equal(estado.fuentes.mala.estado, 'error');
   });
 
+  test('robots.txt se mira en cada petición, no solo en las urls que declara la fuente', async () => {
+    const pedidas = [];
+    const robots = 'User-agent: *\nDisallow: /privado/';
+    const http = {
+      ...sinRed,
+      texto: async (url) => {
+        pedidas.push(url);
+        return url.endsWith('/robots.txt') ? robots : '<p>ok</p>';
+      },
+    };
+    // Lee una página que no declara (permitida) y luego otra que robots.txt prohíbe.
+    const curiosa = fuente('curiosa', async (ctx) => {
+      await ctx.http.texto('https://curiosa.es/ofertas/2');
+      await ctx.http.texto('https://curiosa.es/privado/precios');
+      return { ofertas: [] };
+    });
+    // Si la fuente salta la página prohibida, sigue con las demás.
+    const prudente = fuente('prudente', async (ctx) => {
+      const ofertas = [];
+      for (const url of ['https://prudente.es/privado/a', 'https://prudente.es/ofertas']) {
+        try {
+          await ctx.http.texto(url);
+          ofertas.push(oferta({ fuente: 'prudente', url }));
+        } catch (error) {
+          if (!(error instanceof ErrorRobots)) throw error;
+        }
+      }
+      return { ofertas };
+    });
+    const { estado } = await escanear({ ajustes, fuentes: [curiosa, prudente], http, ahora: AHORA, env: {}, modulos, opciones: { sinEmails: true }, log: () => {} });
+    assert.equal(estado.fuentes.curiosa.estado, 'bloqueada');
+    assert.match(estado.fuentes.curiosa.motivo, /no permite consultar https:\/\/curiosa\.es\/privado\/precios/);
+    assert.equal(estado.fuentes.prudente.estado, 'ok');
+    assert.deepEqual(Object.values(estado.ofertas).map((o) => o.url), ['https://prudente.es/ofertas']);
+    assert.ok(!pedidas.some((url) => url.includes('/privado/')), 'lo prohibido no se llega a pedir');
+    assert.equal(pedidas.filter((url) => url === 'https://curiosa.es/robots.txt').length, 1, 'robots.txt, una vez por web');
+  });
+
   test('respeta intervalos; --forzar y --solo los ignoran', async () => {
     let llamadas = 0;
     const f = fuente('f', async () => { llamadas++; return { ofertas: [] }; });

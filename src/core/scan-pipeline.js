@@ -212,6 +212,20 @@ function conLimite(promesa, minutos) {
   return Promise.race([promesa, tope]).finally(() => clearTimeout(reloj));
 }
 
+/**
+ * El contexto de una fuente con un cliente que mira el robots.txt de cada petición, no solo de
+ * las `urls` que declara: también las páginas que salen de otra (las condiciones de cada
+ * promoción de Huttopia, las de Sandaya, la página N de Atrápalo). Si robots.txt no la permite,
+ * esa petición lanza ErrorRobots sin llegar a pedirse. Cada robots.txt se lee una vez al día.
+ */
+export function conRobots(ctx) {
+  const comprobada = (pedir) => async (url, opciones) => {
+    if (!/\/robots\.txt$/.test(new URL(url).pathname)) await comprobarRobots(ctx, [url]);
+    return pedir(url, opciones);
+  };
+  return { ...ctx, http: { ...ctx.http, texto: comprobada(ctx.http.texto), json: comprobada(ctx.http.json) } };
+}
+
 async function ejecutarFuente(fuente, { estado, ajustes, env, ahora, opciones, crearCtx, cortadas }) {
   const config = ajustes.fuentes?.[fuente.id] ?? {};
   const previo = estado.fuentes[fuente.id] ?? {};
@@ -231,12 +245,14 @@ async function ejecutarFuente(fuente, { estado, ajustes, env, ahora, opciones, c
   const ctx = crearCtx(fuente.id);
   try {
     const resultado = await conLimite((async () => {
-      // El buzón lee un correo propio por IMAP: no es una web y no tiene robots.txt.
-      if (fuente.modo !== 'buzon') {
-        if (!fuente.urls?.length) throw new Error('La fuente no declara sus urls: no se puede comprobar robots.txt');
-        await comprobarRobots(ctx, fuente.urls);
-      }
-      return fuente.obtener(ctx);
+      // El buzón lee un correo propio por IMAP: no es una web y no tiene robots.txt (los enlaces
+      // de las newsletters solo se resuelven, sin leer la web: ver buzon.js).
+      if (fuente.modo === 'buzon') return fuente.obtener(ctx);
+      if (!fuente.urls?.length) throw new Error('La fuente no declara sus urls: no se puede comprobar robots.txt');
+      // Antes de empezar, todas las que declara: si alguna está prohibida, la fuente queda
+      // «bloqueada» sin pedir nada. Las demás, al pedirlas (conRobots).
+      await comprobarRobots(ctx, fuente.urls);
+      return fuente.obtener(conRobots(ctx));
     })(), fuente.limiteMin ?? LIMITE_FUENTE_MIN);
     // Una fuente copiada de otra que no cambió su ID publicaría ofertas «ajenas», y el
     // «reemplazar» de la original las borraría sin avisar a nadie.

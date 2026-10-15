@@ -14,8 +14,8 @@ necesita algo que no está aquí, no lo inventes en otro archivo: documéntalo c
   comentarios que repitan el código.
 - Las fuentes **nunca** llaman a `fetch` directamente: usan `ctx.http` (así se pueden
   simular en los tests).
-- Uso justo: respetar robots.txt (lo comprueba el orquestador con `src/util/robots.js` a partir de
-  las `urls` que declara cada fuente), espaciar las peticiones y no intentar nunca saltarse
+- Uso justo: respetar robots.txt (lo comprueba el orquestador con `src/util/robots.js`: las `urls`
+  que declara cada fuente antes de ejecutarla y cada petición al hacerla), espaciar las peticiones y no intentar nunca saltarse
   captchas, desafíos de Cloudflare ni ninguna otra protección anti-bot. Si una web
   devuelve un desafío, la fuente lanza un error descriptivo y ya está.
 - Tests con `node:test` + `node:assert/strict` en `test/<modulo>.test.js`, con
@@ -30,7 +30,7 @@ necesita algo que no está aquí, no lo inventes en otro archivo: documéntalo c
   - `src/util/fechas.js`: `ZONA`, `fechaLocal`, `horaLocal`, `sumarDias`, `diaSemana`, `diasEntre`, `etiquetaDia`, `etiquetaFechaHora`, `etiquetaRango`, `findesProximos`
   - `src/modelo.js`: `TEMAS`, `TIPOS`, `UNIDADES`, `REGIMENES`, `TRANSPORTES`, `crearOferta`, `validarOferta`
   - `src/cache.js`: clase `Cache` (`obtener(clave, maxEdadMs)`, `guardar(clave, valor)`, `podar`, `exportar`)
-  - `src/util/robots.js`: `rutaPermitida(texto, ruta)`, `comprobarRobots(ctx, urls)` (caché `robots:<origen>` 1 día) y `ErrorRobots`
+  - `src/util/robots.js`: `rutaPermitida(texto, ruta)`, `comprobarRobots(ctx, urls)` (caché `robots:<origen>` 1 día) y `ErrorRobots`; `conRobots(ctx)` en `src/core/scan-pipeline.js`
   - `src/util/apify.js` (datos de pago a través de Apify, solo con `APIFY_TOKEN`): `ACTORES`, `urlEjecucion(clave, maxUsd)`,
     `ejecutarActor(ctx, clave, entrada, {maxUsd})` (POST sin reintentos, token en la cabecera, nunca en la URL),
     `gastoDelMes`, `consultasDeHoy`, `anotarConsultas`, `costeEstimado`, `presupuestoMensual` y `ErrorPresupuesto`
@@ -160,6 +160,9 @@ export default {
 - Antes de ejecutarla (salvo las de `modo: 'buzon'`, que leen un correo propio por IMAP), el orquestador llama a `comprobarRobots(ctx, fuente.urls)`. Si alguna
   ruta está prohibida (`ErrorRobots`), la fuente queda `bloqueada` con el motivo y no se
   ejecuta. Las páginas extra con parámetros (paginación, filtros) también van en `urls`.
+  Además, cada petición que hace la fuente (`conRobots`) mira el robots.txt de su web: una
+  página prohibida que no estaba en `urls` lanza `ErrorRobots` sin llegar a pedirse (si la
+  fuente no la salta, queda `bloqueada`).
 - Si no acaba en `limiteMin` minutos (por defecto `LIMITE_FUENTE_MIN`, 8; Google Flights, 12),
   queda en `error` («No ha terminado en N minutos…»), conserva sus ofertas y el escaneo sigue
   con las demás. Como no se puede parar, `escanear.js` sale en cuanto lo ha guardado todo.
