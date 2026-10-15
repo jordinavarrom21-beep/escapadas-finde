@@ -6,6 +6,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { definiciones, htmlPagina } from '../src/paginas.js';
 
 const SITE = new URL('../site/', import.meta.url);
 const leer = (ruta) => readFileSync(new URL(ruta, SITE), 'utf8');
@@ -79,6 +80,26 @@ describe('arranque de la web', () => {
     const css = readFileSync(new URL('css/estilos.css', SITE), 'utf8');
     assert.match(css, /html\[data-vista-inicial="finde"\] body:not\(\[data-vista\]\) #boton-viaje/);
     assert.match(css, /\.js #principal:has\(> \.cargando\) \{ min-height: 100vh; \}/);
+  });
+
+  it('sin saltos al llegar la letra: respaldo del sistema ajustado y, en las guías, las dos pedidas ya', () => {
+    const css = readFileSync(new URL('css/estilos.css', SITE), 'utf8');
+    // Detrás de cada letra, su respaldo ajustado (Arial y equivalentes; Roboto en Android).
+    assert.match(css, /--fuente: "Figtree", "Figtree respaldo", "Figtree respaldo Roboto", system-ui/);
+    assert.match(css, /--fuente-titulos: "Bricolage Grotesque", "Bricolage respaldo", "Bricolage respaldo Roboto",/);
+    const caras = [...css.matchAll(/@font-face \{([^}]*)\}/g)].map(([, cuerpo]) => cuerpo).filter((c) => /respaldo/.test(c));
+    assert.equal(caras.length, 6);
+    for (const cara of caras) {
+      assert.match(cara, /src: local\("[^"]+"\)/, 'solo letras del sistema: nada que bajar');
+      assert.match(cara, /size-adjust: [\d.]+%; ascent-override: [\d.]+%; descent-override: [\d.]+%; line-gap-override: 0%;/);
+    }
+    // Las guías piden las dos letras con la hoja de estilos, como index.html (mismas URL que en el CSS).
+    const guia = htmlPagina(definiciones({ origen: { nombre: 'Barcelona', lat: 41.39, lon: 2.17 } })[0], [], { raiz: '../', generado: '2026-10-15T08:00:00Z', total: 0 });
+    for (const fuente of ['figtree', 'bricolage-grotesque']) {
+      assert.match(guia, new RegExp(`<link rel="preload" href="\\.\\./fonts/${fuente}\\.woff2" as="font" type="font/woff2" crossorigin>`));
+      assert.match(css, new RegExp(`url\\("\\.\\./fonts/${fuente}\\.woff2"\\)`));
+      assert.match(leer('index.html'), new RegExp(`<link rel="preload" href="fonts/${fuente}\\.woff2" as="font" type="font/woff2" crossorigin>`));
+    }
   });
 
   it('si la portada tarda más de 2 s, la de index.html (lo mejor de ahora), con el mismo título', () => {

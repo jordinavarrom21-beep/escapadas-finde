@@ -15,6 +15,51 @@
   font-display: swap;
   src: url("../fonts/bricolage-grotesque.woff2") format("woff2");
 }
+/*
+ * Mientras llegan, la letra del sistema ajustada para que ocupe lo mismo que Figtree y Bricolage:
+ * si no, al cambiar de una a otra los párrafos cortan las líneas en otro sitio y todo lo de debajo
+ * se mueve (CLS). Ajuste medido en Chromium con todo el texto de ocho guías, cada trozo con su
+ * tamaño y su peso (ancho con Figtree o Bricolage entre el ancho con la del sistema, en normal
+ * y en negrita), y con la altura de Figtree (950/250 de 1000) y de Bricolage (930/270). Arial vale también para Arimo (ChromeOS) y Liberation Sans
+ * (Linux), que miden lo mismo; en Android, donde no hay Arial, Roboto.
+ */
+@font-face {
+  font-family: "Figtree respaldo";
+  font-weight: 100 549;
+  src: local("Arial"), local("ArialMT"), local("Arimo"), local("Liberation Sans");
+  size-adjust: 98.57%; ascent-override: 96.38%; descent-override: 25.36%; line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Figtree respaldo";
+  font-weight: 550 900;
+  src: local("Arial Bold"), local("Arial-BoldMT"), local("Arimo Bold"), local("Liberation Sans Bold");
+  size-adjust: 96.68%; ascent-override: 98.26%; descent-override: 25.86%; line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Figtree respaldo Roboto";
+  font-weight: 100 549;
+  src: local("Roboto"), local("Roboto-Regular"), local("Roboto Regular");
+  size-adjust: 100.02%; ascent-override: 94.98%; descent-override: 25%; line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Figtree respaldo Roboto";
+  font-weight: 550 900;
+  src: local("Roboto Bold"), local("Roboto-Bold");
+  size-adjust: 102.63%; ascent-override: 92.57%; descent-override: 24.36%; line-gap-override: 0%;
+}
+/* Los títulos van casi siempre a 800: en negrita. */
+@font-face {
+  font-family: "Bricolage respaldo";
+  font-weight: 100 900;
+  src: local("Arial Bold"), local("Arial-BoldMT"), local("Arimo Bold"), local("Liberation Sans Bold");
+  size-adjust: 103.04%; ascent-override: 90.26%; descent-override: 26.2%; line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Bricolage respaldo Roboto";
+  font-weight: 100 900;
+  src: local("Roboto Bold"), local("Roboto-Bold");
+  size-adjust: 109.9%; ascent-override: 84.62%; descent-override: 24.57%; line-gap-override: 0%;
+}
 
 :root {
   color-scheme: light;
@@ -59,8 +104,8 @@
   --radio-chico: 999px;
   --espacio: 16px;
   --barra-movil: 0px;
-  --fuente: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --fuente-titulos: "Bricolage Grotesque", "Figtree", system-ui, sans-serif;
+  --fuente: "Figtree", "Figtree respaldo", "Figtree respaldo Roboto", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --fuente-titulos: "Bricolage Grotesque", "Bricolage respaldo", "Bricolage respaldo Roboto", "Figtree", system-ui, sans-serif;
 
   --tema-spa: #0c8599;
   --tema-romantico: #c2255c;
