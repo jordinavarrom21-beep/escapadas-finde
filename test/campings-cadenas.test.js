@@ -2,7 +2,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
 import sandaya, { MAX_KM, combinar, fechaLimite, parsearIndice, parsearPromocion, ventaja } from '../src/fuentes/sandaya.js';
-import huttopia, { fechaLimite as limiteHuttopia, parsearOfertas, parsearPortada } from '../src/fuentes/huttopia.js';
+import huttopia, { fechaLimite as limiteHuttopia, ofertasDePromocion, parsearCondiciones, parsearOfertas, parsearPortada } from '../src/fuentes/huttopia.js';
 import { distanciaKm } from '../src/enriquecer/geo.js';
 import { detectarAlojamiento } from '../src/enriquecer/alojamiento.js';
 import { validarOferta } from '../src/modelo.js';
@@ -152,11 +152,94 @@ describe('huttopia', () => {
       if (url.startsWith('https://europe.huttopia.com/es/')) return pagina;
       throw new ErrorHttp(404, url);
     } });
-    const { ofertas, reemplazar } = await huttopia.obtener(ctx);
-    assert.equal(reemplazar, true);
+    const { ofertas } = await huttopia.obtener(ctx);
     assert.equal(peticiones.length, 3);
+    assert.ok(ofertas.length >= 1);
     assert.ok(ofertas.every((o) => o.caduca === '2026-10-18T22:59:59.000Z'));
     const sinOfertas = crearCtx({ respuestas: () => '<html><body><a href="/es/">Inicio</a></body></html>' });
-    assert.deepEqual((await huttopia.obtener(sinOfertas.ctx)).ofertas, [], 'sin páginas de ofertas en el menú: no hay promoción');
+    assert.deepEqual((await huttopia.obtener(sinOfertas.ctx)).ofertas, [], 'sin promociones ni páginas de ofertas: no hay promoción');
+  });
+
+  // Páginas reales del 15/10/2026 (de data/muestras, la portada sin scripts ni estilos y con 3 de
+  // los 308 vivacs de su mapa): la franja ya no está en la página de ofertas sino en la portada.
+  const portada = leerFixture('huttopia-portada-nature27.html');
+  const condiciones = parsearCondiciones(leerFixture('huttopia-apertura-ventas.html'));
+
+  it('portada de octubre de 2026: la franja, las diapositivas con descuento y el mapa de campings', () => {
+    const { promociones, sitios } = parsearPortada(portada);
+    assert.deepEqual(promociones.map((p) => [p.url, p.descuento, p.codigo, p.nochesMin]), [
+      ['https://europe.huttopia.com/es/apertura-ventas/', 10, 'NATURE27', null],
+      ['https://europe.huttopia.com/es/promocion-de-invierno/', 20, null, 7],
+    ]);
+    const barcelona = sitios.get('https://europe.huttopia.com/es/site/barcelona-pirineos/');
+    assert.equal(barcelona.codigoPais, 'ES');
+    assert.ok(Number.isFinite(barcelona.lat) && Number.isFinite(barcelona.lon));
+    assert.match(barcelona.imagen, /^https:\/\/europe\.huttopia\.com\/uploads\//);
+    assert.ok(sitios.get('https://europe.huttopia.com/es/site/camping-font-romeu/hiver/').invierno);
+    assert.ok([...sitios.values()].every((s) => !/bivouacs|americas/.test(s.url)), 'ni vivacs ni campings de América');
+    assert.equal(sitios.get('https://europe.huttopia.com/es/site/lac-de-luby-gers/').nombre, 'Lac de l’Uby – Gers', 'sin entidades HTML');
+  });
+
+  it('condiciones de NATURE27: código, fecha límite de un solo dígito, noches, fechas y excepciones', () => {
+    assert.equal(condiciones.codigo, 'NATURE27');
+    assert.equal(condiciones.caduca, '2026-11-08T22:59:59.000Z', '«código válido hasta el 8/11/2026»');
+    assert.equal(condiciones.limite, '08/11/2026');
+    assert.equal(condiciones.nochesMin, 4);
+    assert.deepEqual(condiciones.periodos, [['16/03/2027', '02/07/2027'], ['28/08/2027', '27/11/2027']]);
+    assert.equal(condiciones.todos, true);
+    assert.deepEqual(condiciones.excepto, ['chalets de invierno', 'paris', 'estrasburgo', 'colmar'], 'no «el fin de semana de la Ascensión»');
+    const invierno = parsearCondiciones(leerFixture('huttopia-promocion-invierno.html'));
+    assert.equal(invierno.codigo, 'WINTER26');
+    assert.equal(invierno.todos, false);
+    assert.equal(invierno.sitios.length, 7, 'los 7 chalets que enlaza, no los del menú');
+  });
+
+  it('NATURE27 en todos los campings cercanos, salvo los chalets de invierno, Paris, Estrasburgo y Colmar', () => {
+    const { promociones, sitios } = parsearPortada(portada);
+    const ofertas = ofertasDePromocion(promociones[0], condiciones, sitios, ctxBcn);
+    assert.ok(ofertas.length >= 15, `${ofertas.length} campings a menos de 450 km`);
+    for (const o of ofertas) {
+      assert.deepEqual(validarOferta(o), []);
+      assert.ok(distanciaKm(BARCELONA, o.lugar) <= 450);
+      assert.match(o.id, /:NATURE27$/);
+      assert.equal(o.caduca, '2026-11-08T22:59:59.000Z');
+      assert.ok(!/font-romeu|hiver/.test(o.url), 'los chalets de invierno no entran');
+    }
+    const barcelona = ofertas.find((o) => o.id === 'huttopia:barcelona-pirineos:NATURE27');
+    assert.equal(barcelona.titulo, 'Camping Huttopia Barcelona Pirineos: 10 % de descuento a partir de 4 noches');
+    assert.match(barcelona.descripcion, /^10 % de descuento a partir de 4 noches en estancias del 16\/03\/2027 al 02\/07\/2027 y del 28\/08\/2027 al 27\/11\/2027 con el código NATURE27, reservando hasta el 08\/11\/2026\./);
+    assert.equal(barcelona.lugar.pais, 'España');
+    // Sin origen (todos): las excepciones de lejos tampoco entran.
+    const todas = ofertasDePromocion(promociones[0], condiciones, sitios, {});
+    const urls = todas.map((o) => o.url).join(' ');
+    assert.ok(!/campingparis|camping-strasbourg|campingdelill/.test(urls), urls);
+    assert.ok(/campingangers|camping-lyon/.test(urls), 'los demás CityKamp sí');
+  });
+
+  it('obtener con la portada de octubre: NATURE27 y WINTER26, cada una con su fecha límite', async () => {
+    const paginas = {
+      'https://europe.huttopia.com/es/': portada,
+      'https://europe.huttopia.com/es/apertura-ventas/': leerFixture('huttopia-apertura-ventas.html'),
+      'https://europe.huttopia.com/es/promocion-de-invierno/': leerFixture('huttopia-promocion-invierno.html'),
+      'https://europe.huttopia.com/es/nuestras-ofertas/alquiler-chalets-en-invierno/': pagina,
+    };
+    const { ctx, peticiones } = crearCtx({
+      ajustes: { origen: BARCELONA },
+      ahora: new Date('2026-10-15T08:00:00Z'),
+      respuestas: (url) => paginas[url] ?? (() => { throw new ErrorHttp(404, url); })(),
+    });
+    const { ofertas, reemplazar } = await huttopia.obtener(ctx);
+    assert.equal(peticiones.length, 4);
+    const font = ofertas.find((o) => o.id === 'huttopia:camping-font-romeu:WINTER26');
+    assert.equal(font.caduca, '2026-10-18T22:59:59.000Z');
+    assert.deepEqual(font.valoracion, { nota: 8.8, n: 710 }, 'la valoración, de la página de ofertas');
+    assert.equal(font.lugar.nombre, 'Font Romeu Odeillo');
+    assert.ok(ofertas.filter((o) => o.id.endsWith(':NATURE27')).length >= 15);
+    assert.equal(new Set(ofertas.map((o) => o.id)).size, ofertas.length);
+    // Lo guardado de las promociones miradas que ya no sale se borra; lo de otra promoción que
+    // hoy no está en la portada sigue hasta la fecha límite de su código.
+    assert.equal(reemplazar({ id: 'huttopia:millau:NATURE27', caduca: '2026-11-08T22:59:59.000Z' }), true);
+    assert.equal(reemplazar({ id: 'huttopia:millau:SPRING26', caduca: '2026-11-30T22:59:59.000Z' }), false);
+    assert.equal(reemplazar({ id: 'huttopia:millau:SPRING26', caduca: '2026-10-01T22:59:59.000Z' }), true);
   });
 });
