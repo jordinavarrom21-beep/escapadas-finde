@@ -320,13 +320,36 @@ describe('direcciones internas y respuestas enormes', () => {
     assert.equal(parseo.cuerpo, 'x'.repeat(200));
     assert.ok(performance.now() - inicio < 1000, `${Math.round(performance.now() - inicio)} ms`);
     const muestra = async (cuerpoJson) => (simularRed([respuesta(200, cuerpoJson)]), (await obtenerJson(URL_FEED).catch((e) => e)).cuerpo);
-    // Un JSON minificado cortado a mitad de un correo: no queda ni el trozo.
+    // Un JSON minificado cortado a mitad de un correo: no queda ni el trozo, y la muestra no se vacía.
     for (let n = 3950; n < 4100; n += 7) {
       const cuerpo = `{"a":"ana@uno.es","b":"${'y'.repeat(n)}","web":"https://uno.es/p","c":"juanperez@gmail.com"}]}FIN`;
-      assert.doesNotMatch(await muestra(cuerpo), /juanperez|ana@/, `n=${n}`);
+      const texto = await muestra(cuerpo);
+      assert.doesNotMatch(texto, /juanperez|ana@/, `n=${n}`);
+      assert.ok(texto.startsWith('{"a":"(correo)","b":"yyy') && texto.length === 200, `n=${n}: «${texto}»`);
     }
+    // Dos correos seguidos: de ninguno queda nada, ni el dominio.
+    assert.equal(
+      await muestra('{"reservas":[{"titular":"ana@uno.es","acompanante":"juan.perez@empresa-cliente.es","noches":2}]}x'),
+      '{"reservas":[{"titular":"(correo)","acompanante":"(correo)","noches":2}]}x',
+    );
+    assert.equal(await muestra('<a href="mailto:info@hotel.es,juan.perez@gmail.com">escribenos</a>'), '<a href="mailto:(correo),(correo)">escribenos</a>');
     // Con el único espacio al principio, o con muchos espacios delante, la muestra no se queda vacía.
     assert.equal((await muestra(`)]}'\n{"vuelos":[${'{"id":0,"precio":0.5},'.repeat(300)}]}`)).length, 200);
     assert.equal(await muestra(`${' '.repeat(5000)}Access denied`), 'Access denied');
+    // Un cuerpo enorme con muchos espacios tampoco se recorre entero (antes, unos 3 s con 18 MB).
+    const desde = performance.now();
+    assert.ok((await muestra(`<html><p>Hola</p>${'a '.repeat(9_000_000)}`)).startsWith('<html><p>Hola</p>a a a'));
+    assert.ok(performance.now() - desde < 1000, `${Math.round(performance.now() - desde)} ms`);
+  });
+
+  test('de un error cortado al leerlo no sale medio correo, aunque casi todo sean espacios', async () => {
+    const trozos = [`<html>${'\n    '.repeat(820)}<p>Servicio no disponible. Escribe a juan.perez@empr`, 'esa-cliente.es</p></html>']
+      .map((t) => new TextEncoder().encode(t));
+    const cuerpo = new ReadableStream({ pull(control) { const t = trozos.shift(); if (t) control.enqueue(t); else control.close(); } });
+    simularRed([{ ok: false, status: 503, headers: new Headers(), body: cuerpo, text: async () => { throw new Error('no se usa'); } }]);
+    const error = await obtenerTexto(URL_FEED, { reintentos: 0 }).catch((e) => e);
+    assert.ok(error instanceof ErrorHttp);
+    assert.doesNotMatch(error.cuerpo, /juan|empr/, error.cuerpo);
+    assert.ok(error.cuerpo.startsWith('<html>'), error.cuerpo);
   });
 });

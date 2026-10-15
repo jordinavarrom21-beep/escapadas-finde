@@ -175,14 +175,20 @@ export class ErrorParseo extends SyntaxError {
   }
 }
 
+/** Un correo, sin las comillas, comas o llaves de alrededor (en un JSON se lo comían todo). */
+const CORREO = /[^\s@"'<>()[\]{},;:\\]+@[^\s@"'<>()[\]{},;:\\]+\.\w+/g;
+
 // El principio del cuerpo, en una línea y sin correos: sirve para distinguir un
 // desafío anti-bot de un cambio de formato, no para guardar datos de nadie.
-function muestraDeCuerpo(cuerpo) {
-  const texto = String(cuerpo ?? '').replace(/\s+/g, ' ').trimStart();
-  const cortado = texto.length > LECTURA_MUESTRA;
-  const muestra = (cortado ? texto.slice(0, LECTURA_MUESTRA) : texto).replace(/[^\s@]+@[^\s@]+\.\w+/g, '(correo)');
+// `cortado`: el cuerpo ya viene cortado (de una respuesta de la que solo se ha leído el principio).
+function muestraDeCuerpo(cuerpo, { cortado = false } = {}) {
+  const crudo = String(cuerpo ?? '');
+  // Desde el primer carácter que no es espacio, y solo esa ventana: el resto ni se recorre.
+  const inicio = Math.max(crudo.search(/\S/), 0);
+  const recortado = cortado || crudo.length > inicio + LECTURA_MUESTRA;
+  const muestra = crudo.slice(inicio, inicio + LECTURA_MUESTRA).replace(/\s+/g, ' ').replace(CORREO, '(correo)');
   // Si se ha cortado, sin el final, que podría ser medio correo (como mucho, 254 caracteres).
-  return (cortado ? muestra.replace(/\s?\S{0,254}$/, '') : muestra).trim().slice(0, MUESTRA_CUERPO);
+  return (recortado ? muestra.replace(/\s?\S{0,254}$/, '') : muestra).trim().slice(0, MUESTRA_CUERPO);
 }
 
 // ---------------------------------------------------------------- métricas
@@ -293,7 +299,7 @@ async function muestraDeRespuesta(respuesta) {
       texto += decodificador.decode(value, { stream: true });
     }
     await lector.cancel().catch(() => {});
-    return muestraDeCuerpo(texto);
+    return muestraDeCuerpo(texto, { cortado: true });
   } catch {
     return '';
   }
