@@ -5,9 +5,12 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import { MODULOS, codigoSalida, escanear, leerDatos, leerOpciones, urlPanel } from '../src/escanear.js';
+import { MODULOS, codigoSalida, escanear, leerDatos, leerOpciones, textoDelFallo, urlPanel } from '../src/escanear.js';
+import { ErrorHttp } from '../src/util/http.js';
 import * as nucleo from '../src/core/scan-pipeline.js';
-import { AHORA, AJUSTES } from './ayudas.js';
+import { FUENTES } from '../src/fuentes/index.js';
+import { estadoInicial } from '../src/almacen.js';
+import { AHORA, AJUSTES, oferta } from './ayudas.js';
 
 const esperar = (ms) => new Promise((resolver) => setTimeout(resolver, ms));
 const sinRed = { json: async () => [], texto: async () => '', esperar: async () => {} };
@@ -40,6 +43,28 @@ describe('escanear (CLI)', () => {
     });
     assert.equal(pico, 2);
     assert.deepEqual(salida.ofertas.fuentes.map((f) => f.estado), ['ok', 'ok', 'ok', 'ok', 'ok']);
+  });
+
+  test('una fuente que no acaba en su tiempo queda en error, con lo guardado, y las demás siguen', async () => {
+    const fuente = (id, obtener, extra = {}) => ({ id, nombre: id, web: `https://${id}.es`, modo: 'feed', requiere: [], urls: [`https://${id}.es/feed`], obtener, ...extra });
+    // Una web que se queda a medias: ni contesta ni falla.
+    const lenta = fuente('lenta', () => new Promise(() => {}), { limiteMin: 0.002 });
+    const rapida = fuente('rapida', async () => ({ ofertas: [oferta({ id: 'rapida:1', fuente: 'rapida' })] }));
+    const estado = estadoInicial();
+    estado.ofertas['lenta:1'] = oferta({ id: 'lenta:1', fuente: 'lenta' });
+    const { estado: final, informe } = await escanear({
+      ajustes: { ...AJUSTES, fuentes: {} }, estado, fuentes: [lenta, rapida], http: sinRed, ahora: AHORA, env: {}, modulos,
+      opciones: { sinEmails: true }, log: () => {},
+    });
+    assert.equal(final.fuentes.lenta.estado, 'error');
+    assert.match(final.fuentes.lenta.error, /^No ha terminado en 0\.002 minutos/);
+    assert.ok(final.ofertas['lenta:1'], 'conserva sus ofertas');
+    assert.equal(final.fuentes.rapida.estado, 'ok');
+    assert.deepEqual(informe.cortadas, ['lenta']);
+  });
+
+  test('ninguna fuente tiene más tiempo que el que deja el job de 20 minutos (vigilar.yml)', () => {
+    for (const f of FUENTES) assert.ok((f.limiteMin ?? nucleo.LIMITE_FUENTE_MIN) <= 12, f.id);
   });
 });
 
@@ -82,5 +107,16 @@ describe('escanear (CLI): argumentos, datos y código de salida', () => {
     assert.equal(codigoSalida({ fuentes: [f('error'), f('ok')] }, ahora), 0);
     assert.equal(codigoSalida({ fuentes: [f('error'), f('ok', antes)] }, ahora), 1, 'una «ok» de otra pasada no lo esconde');
     assert.equal(codigoSalida({ fuentes: [f('ok', antes), f('desactivada')] }, ahora), 0, 'si no se ha ejecutado ninguna, no es un fallo');
+  });
+
+  test('si se rompe, el registro dice qué ha pasado sin la URL ni la respuesta de la web', () => {
+    const http = new ErrorHttp(401, 'https://app.ticketmaster.com/discovery/v2/events.json?apikey=SECRETO');
+    http.cuerpo = '{"fault":"clave SECRETO no válida"}';
+    const texto = textoDelFallo(new Error('Fallo al leer la agenda', { cause: http }));
+    assert.match(texto, /^Error: Fallo al leer la agenda/);
+    assert.match(texto, /Causa: ErrorHttp: HTTP 401 .*app\.ticketmaster\.com/);
+    assert.match(texto, /escanear\.test\.js/, 'con la pila, para saber dónde');
+    assert.doesNotMatch(texto, /SECRETO/);
+    assert.equal(textoDelFallo('texto suelto'), 'texto suelto');
   });
 });

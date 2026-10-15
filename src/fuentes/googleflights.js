@@ -166,5 +166,8 @@ export default {
   requiere: ['APIFY_TOKEN'],
   // Se lee a través de la API de Apify (su robots.txt lo permite todo).
   urls: [urlEjecucion('googleFlights')],
+  // Más que las demás (LIMITE_FUENTE_MIN): una consulta a Apify por finde y puente, y cada una
+  // puede tardar hasta 2,5 minutos. La última vez tardó 2 en total.
+  limiteMin: 12,
   obtener,
 };
