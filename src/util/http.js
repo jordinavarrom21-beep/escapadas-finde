@@ -178,13 +178,11 @@ export class ErrorParseo extends SyntaxError {
 // El principio del cuerpo, en una línea y sin correos: sirve para distinguir un
 // desafío anti-bot de un cambio de formato, no para guardar datos de nadie.
 function muestraDeCuerpo(cuerpo) {
-  const texto = String(cuerpo ?? '');
-  // Si se corta, sin la última palabra, que podría ser medio correo.
-  return (texto.length > LECTURA_MUESTRA ? texto.slice(0, LECTURA_MUESTRA).replace(/\s\S*$/, '') : texto)
-    .replace(/[^\s@]+@[^\s@]+\.\w+/g, '(correo)')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .slice(0, MUESTRA_CUERPO);
+  const texto = String(cuerpo ?? '').replace(/\s+/g, ' ').trimStart();
+  const cortado = texto.length > LECTURA_MUESTRA;
+  const muestra = (cortado ? texto.slice(0, LECTURA_MUESTRA) : texto).replace(/[^\s@]+@[^\s@]+\.\w+/g, '(correo)');
+  // Si se ha cortado, sin el final, que podría ser medio correo (como mucho, 254 caracteres).
+  return (cortado ? muestra.replace(/\s?\S{0,254}$/, '') : muestra).trim().slice(0, MUESTRA_CUERPO);
 }
 
 // ---------------------------------------------------------------- métricas
