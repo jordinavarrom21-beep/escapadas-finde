@@ -336,6 +336,12 @@ describe('direcciones internas y respuestas enormes', () => {
     assert.equal(await muestra('<a href="mailto:reservas@hotel.es?cc=juan.perez@empresa-cliente.es">x</a>'), '<a href="mailto:(correo)(correo)">x</a>');
     assert.equal(await muestra('<a href="mailto:reservas@hotel.es%2Cjuan.perez@empresa-cliente.es">x</a>'), '<a href="mailto:(correo)(correo)">x</a>');
     assert.equal(await muestra('https://uno.es/p?from=ana@uno.es&to=juan.perez@gmail.com&x=1'), 'https:(correo)(correo)&x=1');
+    // Con la arroba codificada, como lo monta encodeURIComponent.
+    assert.equal(await muestra(`<a href="mailto:reservas@hotel.es?cc=${encodeURIComponent('juan.perez@empresa-cliente.es')}">x</a>`), '<a href="mailto:(correo)(correo)">x</a>');
+    assert.equal(await muestra('https://uno.es/p?from=ana@uno.es&to=juan.perez%40gmail.com&x=1'), 'https:(correo)(correo)&x=1');
+    // Si el corte de la ventana cae en un correo y la muestra se queda corta (casi todo eran
+    // espacios), su trozo no sale.
+    assert.equal(await muestra(`<p>Hola${'\n'.repeat(4070)}escribe a juan.perez@gmail.com</p>${'x'.repeat(100)}`), '<p>Hola escribe a');
     // Con el único espacio al principio, o con muchos espacios delante, la muestra no se queda vacía.
     assert.equal((await muestra(`)]}'\n{"vuelos":[${'{"id":0,"precio":0.5},'.repeat(300)}]}`)).length, 200);
     assert.equal(await muestra(`${' '.repeat(5000)}Access denied`), 'Access denied');
@@ -362,8 +368,9 @@ describe('direcciones internas y respuestas enormes', () => {
     // Leído entero en un trozo, no se toma por cortado (antes se perdía la última palabra).
     assert.equal(await deError([`${' '.repeat(5000)}Access denied`], 403), 'Access denied');
     assert.equal(await deError([`${' '.repeat(5000)}{"error":"Forbidden"}`], 403), '{"error":"Forbidden"}');
-    // Cortado al leerlo, después de la ventana: sin el final, que podría ser medio correo.
-    const cortado = await deError([`${' '.repeat(3000)}<p>${'Servicio no disponible. '.repeat(200)}Escribe a juan.perez@empr`, 'esa-cliente.es</p>', 'x'.repeat(70_000)]);
-    assert.ok(cortado.startsWith('<p>Servicio no disponible.') && !/juan|empr/.test(cortado), cortado);
+    // Cortado al leerlo justo en un correo, con casi todo espacios: sin ese final.
+    assert.equal(await deError([`${' '.repeat(3000)}<p>Servicio${'\n'.repeat(4055)}no disponible. Escribe a juan.perez@em`, 'presa-cliente.es</p>', 'x'.repeat(70_000)]), '<p>Servicio no disponible. Escribe a');
+    // Solo espacios y sin fin: se deja de leer (con un tope) y la muestra queda vacía.
+    assert.equal(await deError(Array.from({ length: 40 }, () => ' '.repeat(4096))), '');
   });
 });

@@ -178,9 +178,10 @@ export class ErrorParseo extends SyntaxError {
 /**
  * Un correo, sin las comillas, comas o llaves de alrededor (en un JSON se lo comían todo), y con
  * un dominio que solo lleva lo que puede llevar un dominio (si no, en «?cc=» o «%2C» se tragaba
- * el principio del segundo correo y dejaba ver su dominio).
+ * el principio del segundo correo y dejaba ver su dominio). También con la arroba codificada
+ * («%40»), como va en un enlace mailto o en una URL.
  */
-const CORREO = /[^\s@"'<>()[\]{},;:\\]+@[\p{L}\p{N}_.-]+\.[\p{L}\p{N}]+/gu;
+const CORREO = /[^\s@"'<>()[\]{},;:\\]+(?:@|%40)[\p{L}\p{N}_.-]+\.[\p{L}\p{N}]+/gu;
 
 // El principio del cuerpo, en una línea y sin correos: sirve para distinguir un
 // desafío anti-bot de un cambio de formato, no para guardar datos de nadie.
@@ -303,8 +304,11 @@ async function muestraDeRespuesta(respuesta) {
     while ((inicio < 0 || texto.length - inicio <= LECTURA_MUESTRA) && texto.length <= 16 * LECTURA_MUESTRA) {
       const { done, value } = await lector.read();
       if (done) return muestraDeCuerpo(texto + decodificador.decode());
-      texto += decodificador.decode(value, { stream: true });
-      if (inicio < 0) inicio = texto.search(/\S/);
+      const trozo = decodificador.decode(value, { stream: true });
+      texto += trozo;
+      // Solo en lo nuevo: buscar en todo lo leído cada vez era cuadrático con trozos pequeños.
+      const enTrozo = inicio < 0 ? trozo.search(/\S/) : -1;
+      if (enTrozo >= 0) inicio = texto.length - trozo.length + enTrozo;
     }
     await lector.cancel().catch(() => {});
     return muestraDeCuerpo(texto, { cortado: true });
