@@ -9,6 +9,7 @@
  */
 import Anthropic from '@anthropic-ai/sdk';
 import { createHash } from 'node:crypto';
+import { deWebDeChollos } from '../fuentes/chollos.js';
 
 const MODELO = 'claude-opus-5-5';
 const LOTE = 20;
@@ -45,8 +46,11 @@ const ESQUEMA = {
 const huella = (o) => createHash('sha256').update(`${o.titulo}\n${o.descripcion}\n${o.precioTexto ?? ''}`).digest('hex').slice(0, 16);
 const clave = (o) => `resumen:${o.id}:${huella(o)}`;
 
-/** Las ofertas que merecen resumen: con un texto que resumir (los vuelos ya dicen lo que son). */
-export const resumibles = (ofertas) => ofertas.filter((o) => o.tipo !== 'vuelo' && (o.descripcion?.length ?? 0) >= 60);
+/**
+ * Las ofertas que merecen resumen: con un texto que resumir (los vuelos ya dicen lo que son). Las
+ * de las webs de chollos no: el panel no enseña ni su texto ni su resumen (src/fuentes/chollos.js).
+ */
+export const resumibles = (ofertas) => ofertas.filter((o) => o.tipo !== 'vuelo' && !deWebDeChollos(o) && (o.descripcion?.length ?? 0) >= 60);
 
 /** El mensaje con un lote de ofertas. */
 export function mensajeLote(lote) {

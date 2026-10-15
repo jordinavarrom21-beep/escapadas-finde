@@ -58,8 +58,9 @@ export function separarDatosPanel(datos) {
     return posiciones.get(clave);
   };
   const ofertas = datos.ofertas.map((oferta) => {
-    // Lo que dio su web antes de enriquecer (almacen.js) y el título sin limpiar: el panel no los usa.
-    const { deLaFuente: _f, tituloOriginal: _t, ...ligera } = oferta;
+    // Lo que dio su web antes de enriquecer, las marcas del texto que no se guarda (almacen.js) y
+    // el título sin limpiar: el panel no los usa.
+    const { deLaFuente: _f, textoRetirado: _r, huellaTexto: _h, tituloOriginal: _t, ...ligera } = oferta;
     // De las webs de chollos, solo título, precio y enlace (src/fuentes/chollos.js): su texto no
     // va ni a la ficha.
     if (deWebDeChollos(ligera)) {
