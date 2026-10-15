@@ -391,6 +391,9 @@ export function htmlPagina(d, ofertas, { raiz, base = null, generado, total, tod
     `<link rel="icon" href="${raiz}icono.svg" type="image/svg+xml">`,
     `<link rel="apple-touch-icon" href="${raiz}apple-touch-icon.png">`,
     `<link rel="stylesheet" href="${raiz}css/estilos.css">`,
+    // Las dos letras, ya: si llegan antes de pintar, no hay cambio de letra (ni salto) al llegar.
+    `<link rel="preload" href="${raiz}fonts/figtree.woff2" as="font" type="font/woff2" crossorigin>`,
+    `<link rel="preload" href="${raiz}fonts/bricolage-grotesque.woff2" as="font" type="font/woff2" crossorigin>`,
     estructurados,
   ].filter(Boolean).join('\n');
   const listaMigas = lasMigas.map((m, i) => (i === lasMigas.length - 1
