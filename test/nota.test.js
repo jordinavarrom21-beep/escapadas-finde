@@ -1,14 +1,19 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { puntuar } from '../src/enriquecer/puntuacion.js';
-import { motivoPrincipal, motivosNota } from '../site/js/nota.js';
+import { MAXIMOS_NOTA, puntuar } from '../src/enriquecer/puntuacion.js';
+import { MAXIMOS, motivoPrincipal, motivosNota } from '../site/js/nota.js';
 import { textoPrecioLitro } from '../site/js/plantillas.js';
 import { AJUSTES, oferta } from './ayudas.js';
 
 const AHORA = new Date('2026-10-01T10:00:00Z');
 
 describe('nota del chollo explicada con los datos de cada oferta', () => {
+  it('el panel dibuja cada parte sobre el mismo máximo que usa el escaneo', () => {
+    // site/js/nota.js no puede importar src/ (no se publica): si cambia un peso, esto avisa.
+    assert.deepEqual(MAXIMOS, MAXIMOS_NOTA);
+  });
+
   const ofertas = [10, 20, 30, 40, 50].map((precio, i) => oferta({ tipo: 'escapada', precio, unidad: 'pp/noche', vistaPrimera: '2026-09-01T00:00:00Z', ...(i === 0 ? { minimoHistorico: true, valoracion: { nota: 9.4, n: 120 } } : {}) }));
   puntuar(ofertas, AJUSTES, { ahora: AHORA });
   const [barata, , , , cara] = ofertas;

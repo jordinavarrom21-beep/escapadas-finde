@@ -193,7 +193,10 @@ const esFavorita = (oferta, preferencias = {}) => {
   return favoritos.length > 0 && oferta.temas.some((tema) => favoritos.includes(normal(tema)));
 };
 
-/** Máximo de cada parte de la nota: el panel dibuja cada motivo sobre su máximo. */
+/**
+ * Máximo de cada parte de la nota: el panel dibuja cada motivo sobre su máximo. La web lleva su
+ * copia (MAXIMOS de site/js/nota.js) y test/nota.test.js comprueba que coincidan.
+ */
 export const MAXIMOS_NOTA = {
   precio: PESO_PRECIO, bajada: PESO_BAJADA, descuento: PESO_DESCUENTO, opiniones: PESO_VALORACION,
   novedad: PESO_NOVEDAD, senales: PESO_SENALES, comodidad: PESO_COMODIDAD, fechas: PESO_FECHAS, favorito: PESO_FAVORITO,
