@@ -160,6 +160,9 @@ export default {
 - Antes de ejecutarla (salvo las de `modo: 'buzon'`, que leen un correo propio por IMAP), el orquestador llama a `comprobarRobots(ctx, fuente.urls)`. Si alguna
   ruta está prohibida (`ErrorRobots`), la fuente queda `bloqueada` con el motivo y no se
   ejecuta. Las páginas extra con parámetros (paginación, filtros) también van en `urls`.
+- Si no acaba en `limiteMin` minutos (por defecto `LIMITE_FUENTE_MIN`, 8; Google Flights, 12),
+  queda en `error` («No ha terminado en N minutos…»), conserva sus ofertas y el escaneo sigue
+  con las demás. Como no se puede parar, `escanear.js` sale en cuanto lo ha guardado todo.
 - `ajustes.fuentes[id]` puede llevar `activa: false` y un `motivo` (se muestra en el panel).
 - El intervalo y la activación salen de `ajustes.fuentes[id]`.
 - `src/fuentes/index.js` exporta `FUENTES` (array con todos los módulos).

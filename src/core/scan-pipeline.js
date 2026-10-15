@@ -187,7 +187,32 @@ function referenciaDe(previo) {
   return previo.total ? { total: previo.total, detalles: {} } : null;
 }
 
-async function ejecutarFuente(fuente, { estado, ajustes, env, ahora, opciones, crearCtx }) {
+/**
+ * Lo más que puede tardar una fuente, en minutos, si no declara su propio `limiteMin` (hoy la más
+ * lenta tarda poco más de 2). Una web que se queda a medias (contesta muy despacio, sin llegar
+ * a agotar el tiempo de cada petición) ya no tiene parado el escaneo hasta que GitHub lo corta a
+ * los 20 minutos sin guardar ni publicar nada: esa fuente queda en error y lo demás sigue.
+ */
+export const LIMITE_FUENTE_MIN = 8;
+
+/** La fuente no ha acabado en su tiempo (ver LIMITE_FUENTE_MIN). */
+export class ErrorTiempoFuente extends Error {
+  constructor(minutos) {
+    super(`No ha terminado en ${minutos} minutos: se vuelve a intentar en el siguiente escaneo`);
+    this.name = 'ErrorTiempoFuente';
+  }
+}
+
+/** `promesa`, o ErrorTiempoFuente si no acaba en `minutos` (la fuente no se puede parar: se deja). */
+function conLimite(promesa, minutos) {
+  let reloj;
+  const tope = new Promise((_, rechazar) => {
+    reloj = setTimeout(() => rechazar(new ErrorTiempoFuente(minutos)), minutos * 60_000);
+  });
+  return Promise.race([promesa, tope]).finally(() => clearTimeout(reloj));
+}
+
+async function ejecutarFuente(fuente, { estado, ajustes, env, ahora, opciones, crearCtx, cortadas }) {
   const config = ajustes.fuentes?.[fuente.id] ?? {};
   const previo = estado.fuentes[fuente.id] ?? {};
   if (config.activa === false) {
@@ -205,12 +230,14 @@ async function ejecutarFuente(fuente, { estado, ajustes, env, ahora, opciones, c
   const inicio = performance.now();
   const ctx = crearCtx(fuente.id);
   try {
-    // El buzón lee un correo propio por IMAP: no es una web y no tiene robots.txt.
-    if (fuente.modo !== 'buzon') {
-      if (!fuente.urls?.length) throw new Error('La fuente no declara sus urls: no se puede comprobar robots.txt');
-      await comprobarRobots(ctx, fuente.urls);
-    }
-    const resultado = await fuente.obtener(ctx);
+    const resultado = await conLimite((async () => {
+      // El buzón lee un correo propio por IMAP: no es una web y no tiene robots.txt.
+      if (fuente.modo !== 'buzon') {
+        if (!fuente.urls?.length) throw new Error('La fuente no declara sus urls: no se puede comprobar robots.txt');
+        await comprobarRobots(ctx, fuente.urls);
+      }
+      return fuente.obtener(ctx);
+    })(), fuente.limiteMin ?? LIMITE_FUENTE_MIN);
     // Una fuente copiada de otra que no cambió su ID publicaría ofertas «ajenas», y el
     // «reemplazar» de la original las borraría sin avisar a nadie.
     const ajenas = resultado.ofertas.filter((o) => o.fuente !== fuente.id);
@@ -239,6 +266,7 @@ async function ejecutarFuente(fuente, { estado, ajustes, env, ahora, opciones, c
       estado.fuentes[fuente.id] = { ...previo, estado: 'desactivada', motivo: error.message, error: null, desdeError: null, falta: [], ultimoIntento: iso, nuevas: 0 };
       return;
     }
+    if (error instanceof ErrorTiempoFuente) cortadas.push(fuente.id);
     const bloqueada = error instanceof ErrorRobots;
     estado.fuentes[fuente.id] = {
       ...previo,
@@ -354,9 +382,11 @@ export async function escanear({
   // Las páginas que lee cada fuente, por si hay que guardarlas como muestra (ver `muestrasPara`).
   const leidas = new Map();
   const crearCtx = (id) => ({ ...ctxBase, http: conMuestras(httpDe(id), leidas, id), log: conPrefijo(id), findes, puentes });
+  // Las que se han cortado por tiempo (pueden seguir con peticiones abiertas: ver escanear.js).
+  const cortadas = [];
   const ejecutadas = await ejecutarFuentes(fuentes, {
     maxParalelo: ajustes.maxFuentesEnParalelo,
-    ejecutar: (fuente) => ejecutarFuente(fuente, { estado, ajustes, env, ahora, opciones, crearCtx }),
+    ejecutar: (fuente) => ejecutarFuente(fuente, { estado, ajustes, env, ahora, opciones, crearCtx, cortadas }),
   });
   // ejecutarFuente ya anota sus propios errores en el estado; esto solo cazaría un fallo del orquestador.
   for (const { fuente, error } of ejecutadas) {
@@ -492,6 +522,6 @@ export async function escanear({
     historial,
     salida,
     muestras: muestrasPara(estado, fuentes, leidas, ahora),
-    informe: { fuentes: estadoFuentes, podadas, total: ofertas.length, emails, puentes, red: metricasHttp() },
+    informe: { fuentes: estadoFuentes, podadas, total: ofertas.length, emails, puentes, red: metricasHttp(), cortadas },
   };
 }

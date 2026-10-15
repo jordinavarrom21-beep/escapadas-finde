@@ -172,6 +172,21 @@ export function codigoSalida(informe, generado) {
   return ejecutadas.length && ejecutadas.every((f) => f.estado === 'error') ? 1 : 0;
 }
 
+/**
+ * Lo que sale en el registro si el escaneo se rompe: el mensaje y la pila de cada error de la
+ * cadena (`cause`), sin sus demás propiedades. console.error(error) las imprime todas, y la `url`
+ * de un ErrorHttp puede llevar una clave en la consulta (la de Ticketmaster va así) o su
+ * `cuerpo`, lo que contestó la web. El registro de las Actions se puede leer desde fuera.
+ */
+export function textoDelFallo(error) {
+  const lineas = [];
+  for (let e = error, n = 0; e != null && n < 5; e = e.cause, n++) {
+    const texto = e instanceof Error ? (e.stack ?? `${e.name}: ${e.message}`) : String(e);
+    lineas.push(n ? `Causa: ${texto}` : texto);
+  }
+  return lineas.join('\n');
+}
+
 async function principal() {
   const ruta = (clave) => path.join(RAIZ, RUTAS[clave]);
   const opciones = leerOpciones(process.argv.slice(2), FUENTES.map((f) => f.id));
@@ -222,11 +237,14 @@ async function principal() {
   imprimirInforme(resultado.informe);
 
   if (codigoSalida(resultado.informe, resultado.salida.ofertas.generado)) process.exitCode = 1;
+  // Una fuente cortada por tiempo puede seguir esperando a su web, y Node no acaba mientras
+  // tenga una petición abierta: todo está guardado, así que se sale ya para que se publique.
+  if (resultado.informe.cortadas?.length) process.exit();
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   principal().catch((error) => {
-    console.error(error);
+    console.error(textoDelFallo(error));
     process.exitCode = 1;
   });
 }
