@@ -147,10 +147,10 @@ export function fechaLimite(texto) {
 const EXONIMOS = { estrasburgo: 'strasbourg', paris: 'paris', ginebra: 'geneve', lion: 'lyon' };
 function excepciones(textos) {
   return textos
-    .flatMap((texto) => texto.replace(/\([^)]*\)?/g, ' ').split(/,\s*|\s+y\s+/))
+    .flatMap((texto) => texto.replace(/\([^()]*\)/g, ' ').split(/,\s*|\s+y\s+/))
     // Sin lo que no son letras: «Chalets de Invierno*», «Paris (Bois de Boulogne)».
     .map((parte) => normalizarTexto(parte).replace(/[^a-z\s-]+/g, ' ').replace(/\s+/g, ' ').trim())
-    .map((parte) => parte.replace(/^(?:los|las|el|la)\s+de\s+/, '').replace(/^(?:campings?|citykamps?)\s+(?:de\s+)?/, '').trim())
+    .map((parte) => parte.replace(/^(?:los|las|el|la|nuestros|nuestras)\s+(?:de\s+)?/, '').replace(/^(?:campings?|citykamps?)\s+(?:de\s+)?/, '').trim())
     .filter(Boolean);
 }
 // Los términos solo llevan letras, espacios y guiones: van tal cual en la expresión.
@@ -190,6 +190,11 @@ export function parsearCondiciones(html) {
   const texto = limpiar(principal.text()).replace(/\u200b/g, '');
   const ambito = /en tod[oa]s (?:los|las|nuestros|nuestras) (?:campings|destinos)/i;
   const excepto = [...texto.matchAll(/en tod[oa]s (?:los|las|nuestros|nuestras) (?:campings|destinos)[^()\d]{0,80}\(excepto ((?:[^()]|\([^()]*\))+)\)/gi)].map((m) => m[1]);
+  // Con excepciones que no se entienden (paréntesis sin cerrar…), mejor nada que dar la promoción
+  // donde no vale: obtener se salta esta promoción y lo guardado sigue.
+  if (!excepto.length && /en tod[oa]s (?:los|las|nuestros|nuestras) (?:campings|destinos)[^()\d]{0,80}\(excepto\b/i.test(texto)) {
+    throw new Error('No se entienden las excepciones de la promoción');
+  }
   const periodos = [...new Set([...texto.matchAll(/\bdel (\d{1,2}\/\d{1,2}\/\d{4}) al (\d{1,2}\/\d{1,2}\/\d{4})/g)].map((m) => `${m[1]}|${m[2]}`))]
     .map((p) => p.split('|'));
   const limite = diaLimite(texto);
@@ -412,17 +417,21 @@ async function obtener(ctx) {
     }
   }
   if (!leidas) throw new Error('No se ha podido leer ninguna página de condiciones ni de ofertas de Huttopia');
-  for (const [promocion, condicion] of condiciones) {
+  const fallidas = new Set();
+  for (const entrada of condiciones) {
+    const [promocion, condicion] = entrada;
     try {
       ofertas.push(...ofertasDePromocion(promocion, condicion, sitios, { ...ctx, valoraciones }));
     } catch (error) {
       ctx.log(`${promocion.url}: ${error.message}`);
+      fallidas.add(entrada);
     }
   }
   const unicas = [...new Map(ofertas.map((o) => [o.id, o])).values()];
   // Las de una promoción que hoy no se ha mirado (ya no sale en la portada) siguen hasta la fecha
   // límite de su código; las de las promociones miradas que ya no salen, fuera.
-  const mirados = new Set(condiciones.map(([p, c]) => p.codigo ?? c.codigo).filter(Boolean));
+  // Una que ha fallado cuenta como no mirada: lo suyo no se borra.
+  const mirados = new Set(condiciones.filter((entrada) => !fallidas.has(entrada)).map(([p, c]) => p.codigo ?? c.codigo).filter(Boolean));
   const ahora = ctx.ahora.getTime();
   const reemplazar = (guardada) => mirados.has(guardada.id.split(':').at(-1)) || !(Date.parse(guardada.caduca) > ahora);
   return { ofertas: unicas, reemplazar };
