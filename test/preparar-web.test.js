@@ -4,7 +4,8 @@ import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import { htaccess, leerArgumentos, normalizarBase, ponerDireccion, ponerPortada, prepararWeb, versionarReferencias } from '../scripts/preparar-web.js';
+import { htaccess, leerArgumentos, normalizarBase, ponerDireccion, ponerGuiasPortada, ponerPortada, prepararWeb, versionarReferencias } from '../scripts/preparar-web.js';
+import { definiciones, enlacesPortada } from '../src/paginas.js';
 
 const SITE = new URL('../site/', import.meta.url);
 
@@ -51,6 +52,25 @@ describe('preparar la web para publicar (GitHub Pages y Hostinger)', () => {
     const sinBase = ponerPortada(una, bloque, null);
     assert.doesNotMatch(sinBase, /application\/ld\+json/);
     assert.match(sinBase, /class="portada-estatica"/);
+  });
+
+  it('el pie y el aviso sin JavaScript de la portada enlazan las guías que se indexan hoy', () => {
+    const guias = definiciones({ origen: { nombre: 'Barcelona', lat: 41.39, lon: 2.17 } });
+    // Hoy «por menos de 100 €» se publica sin indexar (repite otra) y «con niños» no se publica.
+    const indexadas = guias.filter((d) => !['escapadas/menos-de-100-euros', 'escapadas/con-ninos'].includes(d.ruta));
+    const html = ponerGuiasPortada(readFileSync(new URL('index.html', SITE), 'utf8'), enlacesPortada(indexadas));
+    const pie = html.match(/<!-- guias-pie[^]*?<!-- \/guias-pie -->/)[0];
+    const sinJs = html.match(/<!-- guias-sin-js[^]*?<!-- \/guias-sin-js -->/)[0];
+    for (const parte of [pie, sinJs]) {
+      assert.doesNotMatch(parte, /menos-de-100-euros|con-ninos/);
+      assert.match(parte, /href="escapadas\/spa\/"/);
+      assert.equal((parte.match(/<a /g) ?? []).length, 6, 'las que faltan, con otras que sí se indexan');
+    }
+    assert.match(pie, /<p>Guías: <a href="escapadas\/">escapadas<\/a> · <a href="escapadas\/spa\/">con spa<\/a> · /);
+    assert.match(sinJs, /<li><a href="escapadas\/spa\/">Escapadas con spa<\/a><\/li>/);
+    assert.equal(ponerGuiasPortada(html, enlacesPortada(indexadas)), html, 'se puede repetir');
+    // Sin guías (sin datos), lo que trae index.html.
+    assert.equal(ponerGuiasPortada(html, enlacesPortada([])), html);
   });
 
   it('en una copia de la web: quita las copias de datos, versiona la caché y escribe el .htaccess', () => {
