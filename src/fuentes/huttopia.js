@@ -392,8 +392,11 @@ async function obtener(ctx) {
   }
   let leidas = 0;
   const condiciones = [];
-  // Códigos de las promociones que hoy han fallado: lo guardado de ellas no se borra.
+  // Códigos (o descuentos, sin código) de las promociones que hoy han fallado: lo guardado de
+  // ellas no se borra. Si falla una cuyo código solo dice su página (como WINTER26), no se sabe
+  // cuál es: entonces no se borra nada de lo que hoy no se ha mirado.
   const fallidos = new Set();
+  let falloSinCodigo = false;
   for (const promocion of promociones.slice(0, MAX_PROMOCIONES)) {
     await ctx.http.esperar(PAUSA_MS);
     try {
@@ -402,6 +405,7 @@ async function obtener(ctx) {
     } catch (error) {
       ctx.log(`${promocion.url}: ${error.message}`);
       if (promocion.codigo) fallidos.add(promocion.codigo);
+      else falloSinCodigo = true;
     }
   }
   const caducas = new Map(condiciones.map(([p, c]) => [p.codigo ?? c.codigo, c.caduca]).filter(([codigo, caduca]) => codigo && caduca));
@@ -422,7 +426,8 @@ async function obtener(ctx) {
   if (!leidas) throw new Error('No se ha podido leer ninguna página de condiciones ni de ofertas de Huttopia');
   const mirados = new Set();
   for (const [promocion, condicion] of condiciones) {
-    const codigo = promocion.codigo ?? condicion.codigo;
+    // Lo que llevan al final los id de sus ofertas (ofertasDePromocion).
+    const codigo = String(promocion.codigo ?? condicion.codigo ?? promocion.descuento ?? condicion.descuento ?? '');
     try {
       ofertas.push(...ofertasDePromocion(promocion, condicion, sitios, { ...ctx, valoraciones }));
       if (codigo) mirados.add(codigo);
@@ -440,7 +445,7 @@ async function obtener(ctx) {
     const codigo = guardada.id.split(':').at(-1);
     if (mirados.has(codigo)) return true;
     const caduca = Date.parse(guardada.caduca);
-    return fallidos.has(codigo) ? caduca <= ahora : !(caduca > ahora);
+    return fallidos.has(codigo) || falloSinCodigo ? caduca <= ahora : !(caduca > ahora);
   };
   return { ofertas: unicas, reemplazar };
 }

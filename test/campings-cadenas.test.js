@@ -299,5 +299,36 @@ describe('huttopia', () => {
     assert.ok(sinCondiciones.logs.some((l) => l.startsWith('https://europe.huttopia.com/es/apertura-ventas/: ')), sinCondiciones.logs.join('\n'));
     assert.equal(segunda.reemplazar({ id: 'huttopia:millau:NATURE27', caduca: null }), false, 'sin fecha, lo de NATURE27 sigue');
     assert.equal(segunda.reemplazar({ id: 'huttopia:millau:NATURE27', caduca: '2026-10-14T22:59:59.000Z' }), true);
+
+    // WINTER26 no lleva el código en la portada, solo en su página: si esa página falla, no se
+    // sabe qué código era, y no se borra nada de lo que hoy no se ha mirado (salvo lo caducado).
+    const sinInvierno = crearCtx({
+      ajustes: { origen: BARCELONA },
+      ahora: new Date('2026-10-15T08:00:00Z'),
+      respuestas: (url) => (url.endsWith('/promocion-de-invierno/') ? undefined : paginas[url]) ?? (() => { throw new ErrorHttp(500, url); })(),
+    });
+    const tercera = await huttopia.obtener(sinInvierno.ctx);
+    assert.ok(sinInvierno.logs.some((l) => l.startsWith('https://europe.huttopia.com/es/promocion-de-invierno/: ')), sinInvierno.logs.join('\n'));
+    assert.equal(tercera.reemplazar({ id: 'huttopia:camping-font-romeu:WINTER26', caduca: null }), false, 'sin su página, lo de WINTER26 sigue');
+    assert.equal(tercera.reemplazar({ id: 'huttopia:camping-font-romeu:WINTER26', caduca: '2026-10-14T22:59:59.000Z' }), true);
+    assert.equal(tercera.reemplazar({ id: 'huttopia:millau:NATURE27', caduca: null }), true, 'NATURE27 sí se ha mirado');
+  });
+
+  it('una promoción sin código se sigue por su descuento, como el final de sus id', async () => {
+    const paginas = {
+      'https://europe.huttopia.com/es/': portada,
+      'https://europe.huttopia.com/es/apertura-ventas/': leerFixture('huttopia-apertura-ventas.html'),
+      'https://europe.huttopia.com/es/promocion-de-invierno/': leerFixture('huttopia-promocion-invierno.html').replaceAll('WINTER26', ''),
+      'https://europe.huttopia.com/es/nuestras-ofertas/alquiler-chalets-en-invierno/': pagina,
+    };
+    const { ctx } = crearCtx({
+      ajustes: { origen: BARCELONA },
+      ahora: new Date('2026-10-15T08:00:00Z'),
+      respuestas: (url) => paginas[url] ?? (() => { throw new ErrorHttp(404, url); })(),
+    });
+    const { ofertas, reemplazar } = await huttopia.obtener(ctx);
+    assert.ok(ofertas.some((o) => o.id === 'huttopia:camping-font-romeu:20'), ofertas.map((o) => o.id).join(' '));
+    // Mirada hoy: lo guardado de ella que hoy no sale se cambia por lo de hoy, como con código.
+    assert.equal(reemplazar({ id: 'huttopia:millau:20', caduca: '2026-10-18T22:59:59.000Z' }), true);
   });
 });
