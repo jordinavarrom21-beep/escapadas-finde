@@ -90,11 +90,38 @@ describe('apify: ejecutar un actor sin pasarse del presupuesto', () => {
     }
   });
 
-  it('el presupuesto cuenta el tope que se manda, no el pedido', async () => {
-    const { ctx, peticiones } = ctxApify({ respuesta: new ErrorHttp(500, urlEjecucion('googleMaps')) });
-    await assert.rejects(ejecutarActor(ctx, 'googleMaps', {}, { maxUsd: 0.03005 }), ErrorHttp);
+  it('el tope que se manda va en céntimos y, si falla, se apunta como gastado', async () => {
+    const { ctx, peticiones } = ctxApify({ respuesta: new ErrorHttp(500, urlEjecucion('googleHoteles')) });
+    await assert.rejects(ejecutarActor(ctx, 'googleHoteles', {}, { maxUsd: 0.03005 }), ErrorHttp);
     assert.equal(new URL(peticiones[0].url).searchParams.get('maxTotalChargeUsd'), '0.04');
     assert.equal(gastoDelMes(ctx.cache, AHORA).usd, 0.04);
+  });
+
+  it('Google Maps no acepta topes por debajo de 0,50 $: se manda el mínimo y se apunta lo pedido', async () => {
+    const { ctx, peticiones } = ctxApify({ respuesta: new ErrorHttp(500, urlEjecucion('googleMaps')) });
+    await assert.rejects(ejecutarActor(ctx, 'googleMaps', {}, { maxUsd: 0.03005 }), ErrorHttp);
+    assert.equal(new URL(peticiones[0].url).searchParams.get('maxTotalChargeUsd'), '0.50');
+    assert.equal(gastoDelMes(ctx.cache, AHORA).usd, 0.04, 'el fallo cuenta lo que se esperaba gastar, no el mínimo');
+    // Con resultados, lo de siempre: arranque más cada sitio.
+    const bien = ctxApify({ respuesta: [{}, {}] });
+    await ejecutarActor(bien.ctx, 'googleMaps', {}, { maxUsd: 0.02 });
+    assert.equal(gastoDelMes(bien.ctx.cache, AHORA).usd, costeEstimado('googleMaps', 2));
+    // Sin presupuesto para ese mínimo, no se lanza.
+    const justo = ctxApify({ presupuesto: 0.4 });
+    await assert.rejects(ejecutarActor(justo.ctx, 'googleMaps', {}, { maxUsd: 0.02 }), ErrorPresupuesto);
+    assert.equal(justo.peticiones.length, 0);
+  });
+
+  it('un rechazo antes de arrancar (entrada o tope no válidos) no gasta; una ejecución fallida, sí', async () => {
+    const rechazo = (tipo) => Object.assign(new ErrorHttp(400, urlEjecucion('googleMaps')), { cuerpo: `{"error":{"type":"${tipo}","message":"…"}}` });
+    for (const tipo of ['max-total-charge-usd-below-minimum', 'invalid-input']) {
+      const { ctx } = ctxApify({ respuesta: rechazo(tipo) });
+      await assert.rejects(ejecutarActor(ctx, 'googleMaps', {}, { maxUsd: 0.02 }), ErrorHttp);
+      assert.deepEqual(gastoDelMes(ctx.cache, AHORA), { usd: 0, ejecuciones: 0 }, tipo);
+    }
+    const { ctx } = ctxApify({ respuesta: rechazo('run-failed') });
+    await assert.rejects(ejecutarActor(ctx, 'googleMaps', {}, { maxUsd: 0.02 }), ErrorHttp);
+    assert.equal(gastoDelMes(ctx.cache, AHORA).usd, 0.02);
   });
 
   it('si Apify rechaza la petición, el registro dice su motivo', async () => {
