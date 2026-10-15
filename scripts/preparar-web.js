@@ -362,6 +362,15 @@ export function ponerPortada(html, bloque, base = null, destacadas = []) {
 }
 
 /**
+ * Las guías del pie de la portada y de su aviso sin JavaScript: las que se indexan hoy
+ * (enlacesPortada, en src/paginas.js), no siempre las mismas. Sin ninguna, se queda lo que hay.
+ */
+export function ponerGuiasPortada(html, { pie, sinJs }) {
+  if (!pie) return html;
+  return entreMarcas(entreMarcas(html, 'guias-pie', pie), 'guias-sin-js', sinJs);
+}
+
+/**
  * .htaccess para Apache/LiteSpeed (Hostinger). Con `base`, ese dominio es el único válido
  * (con o sin www, el que diga); sin ella, vale cualquier dominio y solo se fuerza HTTPS.
  */
@@ -504,12 +513,12 @@ export function prepararWeb({ dir = 'site', base = null, version = null, conHtac
   const rutaOfertas = path.join(dir, 'data', 'ofertas.json');
   const datosPanel = existsSync(rutaOfertas) ? JSON.parse(readFileSync(rutaOfertas, 'utf8')) : null;
   if (datosPanel?.origen && Array.isArray(datosPanel.ofertas)) {
-    const { portada, destacadas } = generarPaginas(datosPanel, { base });
+    const { portada, destacadas, enlacesPortada } = generarPaginas(datosPanel, { base });
     const indice = path.join(dir, 'index.html');
     // La misma cifra de webs que la portada, las guías y «Cómo funciona» (antes, «más de 20»).
     const webs = numeroWebs(datosPanel);
     const conCifra = (html) => (webs ? html.replace(/de (?:más de )?\d+ webs/g, `de ${webs} webs`) : html);
-    writeFileSync(indice, conCifra(ponerPortada(readFileSync(indice, 'utf8'), portada, base, destacadas)));
+    writeFileSync(indice, conCifra(ponerGuiasPortada(ponerPortada(readFileSync(indice, 'utf8'), portada, base, destacadas), enlacesPortada)));
     hecho.push('portada para buscadores');
   }
   if (conHtaccess) {

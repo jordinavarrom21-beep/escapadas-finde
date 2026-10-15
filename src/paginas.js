@@ -312,6 +312,36 @@ export function enlacesGuias(guias, raiz, actual = null) {
 }
 
 /**
+ * Las guías que enlaza la portada (index.html) en su pie y en el aviso para quien no tiene
+ * JavaScript: estas, en este orden y con este nombre, si hoy se indexan. Una guía con pocas
+ * ofertas no se publica y otra que repite las de otra se publica sin indexar: el pie de la
+ * portada no puede enlazar siempre las mismas. Las que falten, con otras de las que se indexan.
+ */
+const GUIAS_PORTADA = [
+  ['escapadas', 'escapadas'], ['escapadas/menos-de-100-euros', 'por menos de 100 €'], ['escapadas/spa', 'con spa'],
+  ['escapadas/con-ninos', 'con niños'], ['vuelos', 'chollos de vuelos'], ['actividades/gratis', 'actividades gratis'],
+];
+const minuscula = (texto) => texto.charAt(0).toLowerCase() + texto.slice(1);
+
+/** `{pie, sinJs}`: el párrafo «Guías: …» del pie y la lista para quien no tiene JavaScript. */
+export function enlacesPortada(indexadas) {
+  const elegidas = GUIAS_PORTADA.flatMap(([ruta, nombre]) => {
+    const d = indexadas.find((g) => g.ruta === ruta);
+    return d ? [{ d, nombre }] : [];
+  });
+  for (const d of [...indexadas].sort((a, b) => PRIORIDAD(a) - PRIORIDAD(b))) {
+    if (elegidas.length >= GUIAS_PORTADA.length) break;
+    if (!elegidas.some((e) => e.d === d)) elegidas.push({ d, nombre: minuscula(d.enlace ?? d.titulo) });
+  }
+  if (!elegidas.length) return { pie: '', sinJs: '' };
+  const enlace = (d, nombre) => `<a href="${esc(d.ruta)}/">${esc(nombre)}</a>`;
+  return {
+    pie: `    <p>Guías: ${elegidas.map(({ d, nombre }) => enlace(d, nombre)).join(' · ')}</p>`,
+    sinJs: `        <ul>\n${elegidas.map(({ d }) => `          <li>${enlace(d, d.enlace ?? d.titulo)}</li>`).join('\n')}\n        </ul>`,
+  };
+}
+
+/**
  * HTML completo de una página. `raiz` es el camino relativo hasta site/ («../» o «../../»);
  * `base`, la dirección pública (sin ella no hay canónica, imagen para compartir ni JSON-LD,
  * que necesitan direcciones absolutas); `todas`, las guías que se publican.
@@ -509,7 +539,9 @@ export function generarPaginas(todasLasOfertas, { base = null } = {}) {
   // X-Robots-Tag (el .htaccess). El sitemap, si se sabe la URL. (robots.txt solo cuenta en la
   // raíz de un dominio propio; en usuario.github.io/repo/ manda el de usuario.github.io.)
   archivos.push({ ruta: 'robots.txt', contenido: `User-agent: *\nAllow: /\n${base ? `\nSitemap: ${base}sitemap.xml\n` : ''}` });
-  return { archivos, rutas, indexadas: todas.map((d) => d.ruta), portada: bloquePortada(datos, todas), destacadas: destacadasPortada(datos) };
+  return {
+    archivos, rutas, indexadas: todas.map((d) => d.ruta), portada: bloquePortada(datos, todas), destacadas: destacadasPortada(datos), enlacesPortada: enlacesPortada(todas),
+  };
 }
 
 /** De cada destino, el vuelo más barato (la lista ya viene ordenada): si no, 24 fechas del mismo Palermo. */

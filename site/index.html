@@ -114,12 +114,13 @@
       <section class="sin-js" aria-labelledby="sin-js-titulo">
         <h2 id="sin-js-titulo">El panel necesita JavaScript</h2>
         <p>Para filtrar, ver el mapa y guardar ofertas hay que activarlo. Mientras, tienes las guías, que se leen sin él:</p>
+        <!-- guias-sin-js: el despliegue (scripts/preparar-web.js) pone aquí las guías que se indexan hoy. -->
         <ul>
           <li><a href="escapadas/">Todas las escapadas</a></li>
-          <li><a href="escapadas/menos-de-100-euros/">Escapadas por menos de 100 €</a></li>
           <li><a href="vuelos/">Vuelos baratos</a></li>
           <li><a href="actividades/gratis/">Actividades gratis</a></li>
         </ul>
+        <!-- /guias-sin-js -->
       </section>
     </noscript>
   </main>
@@ -133,9 +134,9 @@
       Lugares con <a href="https://photon.komoot.io" target="_blank" rel="noopener noreferrer">Photon</a></p>
     <p><a id="estado-fuentes" class="estado-fuentes" href="#/fuentes" hidden><span class="punto" aria-hidden="true"></span><span class="estado-fuentes__texto">Estado de las webs</span></a></p>
     <p id="aviso-comercial"></p>
-    <p>Guías: <a href="escapadas/">escapadas</a> · <a href="escapadas/menos-de-100-euros/">por menos de 100 €</a> ·
-      <a href="escapadas/spa/">con spa</a> · <a href="escapadas/con-ninos/">con niños</a> · <a href="vuelos/">chollos de vuelos</a> ·
-      <a href="actividades/gratis/">actividades gratis</a></p>
+    <!-- guias-pie: el despliegue (scripts/preparar-web.js) pone aquí las guías que se indexan hoy. -->
+    <p>Guías: <a href="escapadas/">escapadas</a> · <a href="vuelos/">chollos de vuelos</a> · <a href="actividades/gratis/">actividades gratis</a></p>
+    <!-- /guias-pie -->
   </footer>
 
   <dialog id="ficha" class="ficha" aria-labelledby="ficha-titulo">
