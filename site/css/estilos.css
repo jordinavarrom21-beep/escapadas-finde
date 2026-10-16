@@ -121,48 +121,7 @@
   --tema-singular: #ae3ec9;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    color-scheme: dark;
-    --fondo: #0f1514;
-    --superficie: #18201f;
-    --superficie-2: #202a28;
-    --superficie-3: #283331;
-    --borde: #2c3735;
-    --borde-fuerte: #3e4b48;
-    --texto: #eef2f0;
-    --texto-suave: #a7b3b0;
-    --acento: #5cc8b8;
-    --acento-fuerte: #8fe0d3;
-    --enlace: #7fd8cb;
-    --acento-texto: #062220;
-    --acento-suave: #16302c;
-    --acento-suave-texto: #9de3d8;
-    --tinta: #eef2f0;
-    --tinta-texto: #17211f;
-    --banda: #1c2624;
-    --banda-2: #26322f;
-    --banda-texto: #eef2f0;
-    --banda-suave: #a7b3b0;
-    --chollo: #f08a4b;
-    --chollo-texto: #1b0d05;
-    --chollo-suave: #3a2214;
-    --chollo-fuerte: #f6a574;
-    --chollo-claro: #f6a574;
-    --exito: #4ade80;
-    --peligro: #ff8a80;
-    --tema-eventos-texto: #ff8a80;
-    --aviso: #fbbf24;
-    --aviso-suave: #3a2a08;
-    --puente: #d6b4ff;
-    --puente-suave: #2e2140;
-    --favorito: #f08a4b;
-    --foto: #202a28;
-    --sombra: 0 1px 2px rgb(0 0 0 / 40%);
-    --sombra-alta: 0 18px 40px rgb(0 0 0 / 45%);
-  }
-}
-
+/* El tema claro es el de siempre; el oscuro, solo si se elige con el botón de la cabecera (tema.js). */
 :root[data-theme="dark"] {
   color-scheme: dark;
   --fondo: #0f1514;
@@ -305,9 +264,9 @@ pre code { background: none; padding: 0; }
 .enlace-boton:focus-visible { outline: 3px solid var(--acento); outline-offset: 2px; border-radius: 4px; }
 
 .chips { border: 0; padding: 0; margin: 0; min-width: 0; }
+/* Como el rótulo de cualquier campo («Tiempo en coche», «Hasta (€)»): antes, en versalitas, parecían otro título. */
 .chips legend, .ubicacion legend {
-  font-weight: 800; font-size: 0.75rem; letter-spacing: 0.07em; text-transform: uppercase;
-  color: var(--texto-suave); padding: 0; margin-bottom: 8px;
+  font-weight: 750; font-size: 0.84rem; color: var(--texto-suave); padding: 0; margin-bottom: 8px;
 }
 .chips__lista { display: flex; flex-wrap: wrap; gap: 8px; }
 .chips--desplazables .chips__lista, .chips--desplazables-lista {
@@ -326,6 +285,8 @@ pre code { background: none; padding: 0; }
 .chip:has(input:checked) { background: var(--tinta); border-color: var(--tinta); color: var(--tinta-texto); }
 /* Orden a un toque encima de los resultados. */
 .orden-rapido { display: flex; gap: 6px; margin: 4px 0 12px; align-items: center; }
+.orden-rapido__caja > .info-texto { margin: -4px 0 14px; }
+.orden-rapido__caja .explicacion-orden { margin: 0; }
 .orden-rapido__titulo { flex: none; font-size: 0.82rem; font-weight: 700; color: var(--texto-suave); }
 .orden-rapido .chip { min-height: 40px; padding: 6px 12px; font-size: 0.82rem; text-decoration: none; }
 .orden-rapido .chip--elegido { background: var(--tinta); border-color: var(--tinta); color: var(--tinta-texto); }
@@ -477,6 +438,7 @@ html:not(.js) .cargando { display: none; }
 .seccion__cabeza { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
 .seccion__cabeza h2 { display: flex; align-items: center; gap: 12px; font-size: clamp(1.35rem, 2.4vw, 1.85rem); }
 .seccion__cabeza h2 .suave { font-family: var(--fuente); font-size: 0.95rem; font-weight: 500; letter-spacing: 0; }
+.portada__ideas .seccion__cabeza h2 { display: block; }
 .seccion__icono {
   display: inline-grid; place-items: center; width: 40px; height: 40px; flex: none; border-radius: 13px;
   background: var(--acento-suave); color: var(--acento-suave-texto);
@@ -613,7 +575,7 @@ html:not(.js) .cargando { display: none; }
 /* Jerarquía: cuatro preguntas arriba (¿cuándo?, ¿qué?, ¿dónde?, ¿cuánto?) y el resto plegado. */
 .bloque { border: 0; margin: 0; padding: 16px 0 0; min-width: 0; display: grid; gap: 10px; border-top: 1px solid var(--borde); }
 .bloque > legend { float: left; width: 100%; }
-.bloque__titulo { font-family: var(--fuente-titulos); font-size: 1.08rem; font-weight: 800; color: var(--texto); padding: 0; margin: 0; }
+.bloque__titulo { display: flex; align-items: center; gap: 4px; font-family: var(--fuente-titulos); font-size: 1.08rem; font-weight: 800; color: var(--texto); padding: 0; margin: 0; }
 .grupo { display: grid; gap: 10px; padding: 12px 0; border-top: 1px dashed var(--borde); }
 .grupo:first-of-type { border-top: 0; padding-top: 0; }
 .grupo__titulo { font-size: 0.76rem; font-weight: 800; color: var(--texto-suave); text-transform: uppercase; letter-spacing: 0.07em; margin: 0; }
@@ -640,7 +602,10 @@ html:not(.js) .cargando { display: none; }
 .aviso-memoria {
   margin: 0 0 14px; padding: 10px 14px; border-radius: var(--radio-medio); background: var(--superficie-2); font-size: 0.9rem;
 }
-.aviso-memoria > .ic { margin-right: 6px; color: var(--acento); }
+.aviso-memoria > .ic, .aviso-sin-confirmar > p > .ic { margin-right: 6px; color: var(--acento); }
+.aviso-sin-confirmar { display: grid; gap: 8px; }
+.aviso-sin-confirmar > p { margin: 0; }
+.aviso-sin-confirmar .info-texto { background: var(--superficie); }
 
 @media (max-width: 719px) {
   .chip, .boton, .boton--mini, .interruptor { min-height: 44px; }
@@ -666,7 +631,7 @@ html:not(.js) .cargando { display: none; }
 .combo { position: relative; flex: 1 1 0; min-width: 0; }
 .boton-ubicacion { flex: none; padding-inline: 14px; white-space: nowrap; }
 /* Donde no cabe el texto (panel de filtros estrecho), solo el icono. */
-@container (max-width: 289px) { .boton-ubicacion__texto { display: none; } .boton-ubicacion { padding-inline: 12px; } }
+@container (max-width: 314px) { .boton-ubicacion__texto { display: none; } .boton-ubicacion { padding-inline: 12px; } }
 .ubicacion { container-type: inline-size; }
 .combo input[type="text"] { width: 100%; }
 .combo__lista {
@@ -676,10 +641,51 @@ html:not(.js) .cargando { display: none; }
 .combo__lista li { padding: 10px 12px; border-radius: 10px; cursor: pointer; overflow-wrap: anywhere; }
 .combo__lista li:hover, .combo__lista li[aria-selected="true"] { background: var(--acento-suave); }
 .ayuda { font-size: 0.82rem; color: var(--texto-suave); }
+/* El aviso de «Cerca de…» solo ocupa sitio cuando dice algo («Obteniendo tu ubicación…»). Vacío
+   sigue en la página (oculto a la vista y sin hueco): con «display: none», los lectores de
+   pantalla no leían lo que dijera después. */
+.ayuda:empty { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+
+/* «ⓘ»: la explicación de un filtro o un apartado, a un toque (antes, siempre a la vista). */
+.boton-info {
+  display: inline-grid; place-items: center; flex: none; width: 28px; height: 28px; margin: -4px 0 -4px 2px; padding: 0;
+  border: 0; border-radius: 50%; background: transparent; color: var(--texto-suave); cursor: pointer; vertical-align: middle;
+  font: inherit; line-height: 1;
+}
+.boton-info .ic { width: 18px; height: 18px; }
+.boton-info:hover, .boton-info[aria-expanded="true"] { color: var(--acento); background: var(--acento-suave); }
+.boton-info:focus-visible { outline: 3px solid var(--acento); outline-offset: 1px; }
+.info-texto {
+  margin: 0; padding: 10px 12px; border-radius: var(--radio-medio); background: var(--superficie-2); color: var(--texto-suave);
+  font-family: var(--fuente); font-size: 0.84rem; font-weight: 500; line-height: 1.45; letter-spacing: 0; text-transform: none; text-align: left;
+}
+.info-texto[hidden] { display: none; }
+.info-texto p { margin: 0 0 6px; }
+.info-texto p:last-child { margin-bottom: 0; }
+.info-texto a { color: var(--enlace); }
+.con-info { min-width: 0; }
+.con-info__fila { display: flex; align-items: center; gap: 2px; min-width: 0; }
+.con-info__fila > .interruptor { flex: 0 1 auto; min-width: 0; }
+.con-info > .info-texto { margin: 2px 0 6px; }
+/* La «ⓘ» sigue a la última palabra del rótulo (rotuloConInfo), también cuando ocupa dos líneas. */
+.campo__rotulo { display: block; min-height: 20px; }
+.sin-corte { white-space: nowrap; }
+.con-boton-info { display: flex; align-items: center; gap: 4px; }
+/* Título y «ⓘ» lado a lado (la «ⓘ», fuera del título: no forma parte de su nombre). */
+.titulo-con-info { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.titulo-con-info > :is(h1, h2) { min-width: 0; }
+.titulo-con-info > .titulo-vista { margin-bottom: 0; }
+.titulo-con-info:has(> .titulo-vista) { margin-bottom: 18px; }
+:is(.titulo-vista, .titulo-con-info) + .info-texto { margin: -8px 0 16px; max-width: 72ch; }
+.seccion__intro + .info-texto, .seccion__cabeza + .info-texto { margin: -6px 0 14px; max-width: 72ch; }
+/* En el móvil, el mismo icono con un área de toque de 40 px (sin ensanchar la línea). */
+@media (max-width: 719px) {
+  .boton-info { width: 40px; height: 40px; margin: -10px -6px -10px -4px; }
+}
 
 .resultados__cabeza { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
 .resultados__cuenta { margin-right: auto; font-family: var(--fuente-titulos); font-weight: 800; font-size: 1.35rem; letter-spacing: -0.015em; }
-.explicacion-orden { font-size: 0.92rem; }
+.resultados__cabeza > .info-texto { flex-basis: 100%; order: 10; }
 
 /* ── Tarjetas ─────────────────────────────────────────────────────────────── */
 
@@ -698,10 +704,10 @@ html:not(.js) .cargando { display: none; }
 }
 .tarjeta__sellos { position: absolute; top: 12px; left: 12px; right: 64px; display: flex; flex-wrap: wrap; gap: 6px; }
 .sello {
-  display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: var(--radio-chico); white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 5px; max-width: 100%; padding: 5px 10px; border-radius: var(--radio-chico);
   background: rgb(255 255 255 / 94%); color: #17211f; font-size: 0.76rem; font-weight: 800; line-height: 1.25;
 }
-.sello .ic { width: 14px; height: 14px; }
+.sello .ic { flex: none; width: 14px; height: 14px; }
 .sello--chollazo { background: var(--chollo); color: var(--chollo-texto); }
 .sello--descuento { color: #9a3a0c; }
 .tarjeta__media .boton-fav {
@@ -724,8 +730,10 @@ html:not(.js) .cargando { display: none; }
 .tema-icono { display: inline-flex; }
 .tarjeta__temas .ic { width: 17px; height: 17px; color: var(--color-tema, var(--acento)); }
 .tarjeta__lugar {
-  flex: 1; min-width: 0; font-size: 0.74rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
-  color: var(--texto-suave); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  flex: 1; min-width: 0; font-size: 0.74rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; line-height: 1.35;
+  color: var(--texto-suave); overflow-wrap: anywhere;
+  /* Entero en dos líneas (antes, «CASTELL DE L'ARENY…» en una). */
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden;
 }
 .tarjeta__lugar .suave { font-weight: 800; }
 /* Dos líneas como mucho: el título entero está en la ficha (y en el title del botón). */
@@ -755,28 +763,28 @@ html:not(.js) .cargando { display: none; }
 /* El título es un botón: el recorte a 2 líneas va en él (en el h3 no se aplicaba). */
 .tarjeta .tarjeta__titulo .enlace-ficha { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; overflow: hidden; }
 .tarjeta__opiniones {
-  margin: 0; height: 20px; display: flex; align-items: center; gap: 5px; min-width: 0;
-  font-size: 0.86rem; color: var(--texto-suave); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  margin: 0; min-height: 20px; display: flex; align-items: center; gap: 5px; min-width: 0;
+  font-size: 0.86rem; line-height: 1.3; color: var(--texto-suave);
 }
 .tarjeta__opiniones strong { color: var(--texto); font-weight: 800; }
 .tarjeta__opiniones .ic { flex: none; width: 15px; height: 15px; color: var(--chollo); fill: currentColor; }
 .tarjeta__opiniones--sin { color: var(--texto-suave); font-weight: 500; }
 .tarjeta__opiniones--sin .ic { color: var(--borde-fuerte); }
-.tarjeta__opiniones-texto { overflow: hidden; text-overflow: ellipsis; }
+.tarjeta__opiniones-texto { min-width: 0; }
 .aviso-suave { color: var(--aviso); font-weight: 650; }
 /* El motivo principal de la nota, entero en dos líneas como mucho (no a media frase). */
 .tarjeta__motivo {
   margin: 0; height: calc(2 * 1.35em); line-height: 1.35; font-size: 0.84rem; color: var(--texto-suave);
   display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden;
 }
-.tarjeta .tarjeta__datos { height: 45px; overflow: hidden; align-content: flex-start; }
+.tarjeta .tarjeta__datos { min-height: 45px; align-content: flex-start; }
 /* En una sola columna no hay filas que alinear: sin huecos fijos (título corto, sin opiniones). */
 @media (max-width: 599px) {
   .tarjeta .tarjeta__titulo, .tarjeta__motivo { height: auto; }
   .tarjeta__opiniones--sin { display: none; }
 }
-.tarjeta .tarjeta__datos li { max-width: 100%; white-space: nowrap; }
-.tarjeta .tarjeta__datos li > span { overflow: hidden; text-overflow: ellipsis; }
+.tarjeta .tarjeta__datos li { max-width: 100%; }
+.tarjeta .tarjeta__datos li > span { min-width: 0; }
 /* Las insignias bajan de línea en vez de cortarse («Concierto en Llo…»); el hueco mínimo sigue
    alineando las tarjetas de una fila. */
 .insignias--tarjeta, .insignias--tarjeta:empty { display: flex; flex-wrap: wrap; min-height: 26px; }
@@ -972,6 +980,9 @@ html:not(.js) .cargando { display: none; }
   .modo-lista #resultados .tarjeta__pie .acciones > :not(:last-child) { display: none; }
   .modo-lista #resultados .tarjeta__pie .coste-total { order: 3; flex-basis: 100%; padding: 4px 8px; font-size: 0.76rem; }
   .modo-lista #resultados .tarjeta__pie .acciones .boton { min-height: 40px; padding-inline: 14px; }
+  /* El botón mide su ancho sin el texto (container: inline-size): con la fila ajustada a lo que
+     ocupa, quedaba en 30 px y sin letras. Con sitio, «Ver oferta en …» se lee entero. */
+  .modo-lista #resultados .tarjeta__pie .acciones { flex: 1 1 140px; }
   .modo-lista #resultados .tarjeta__datos { font-size: 0.8rem; }
 }
 
@@ -1013,7 +1024,6 @@ html:not(.js) .cargando { display: none; }
   display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px;
   padding: 12px 16px; border-top: 2px dashed var(--borde);
 }
-.minigrafica { color: var(--acento); max-width: 100%; }
 /* En una rejilla de cuatro el billete es estrecho: el talón (precio) pasa debajo de la ruta. */
 .billete { container-type: inline-size; }
 @container (max-width: 440px) {
@@ -1024,6 +1034,7 @@ html:not(.js) .cargando { display: none; }
   }
   .billete__talon .puntuacion { order: 5; margin-left: auto; align-self: center; }
   .billete__talon .precio { flex-direction: row; align-items: baseline; gap: 2px 7px; }
+  .billete__talon .tendencia { flex: 1 1 10em; min-width: 0; }
 }
 
 .vacio {
@@ -1050,10 +1061,6 @@ html:not(.js) .cargando { display: none; }
 .escena--cielo .escena__lejos { fill: #ffffff; opacity: 0.85; }
 :root[data-theme="dark"] .escena__cielo { fill: color-mix(in oklab, var(--e) 26%, #26302e); }
 :root[data-theme="dark"] .escena__lejos { fill: color-mix(in oklab, var(--e) 45%, #56615d); }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .escena__cielo { fill: color-mix(in oklab, var(--e) 26%, #26302e); }
-  :root:not([data-theme="light"]) .escena__lejos { fill: color-mix(in oklab, var(--e) 45%, #56615d); }
-}
 
 /* ── Calendario ───────────────────────────────────────────────────────────── */
 
@@ -1180,7 +1187,7 @@ html:not(.js) .cargando { display: none; }
 .evento-detalle__dormir .ideas__lista { padding: 0; }
 .ficha__cabeza h2 { font-size: clamp(1.6rem, 3.2vw, 2.3rem); line-height: 1.08; letter-spacing: -0.025em; }
 .ficha__cabeza .tarjeta__origen { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: 700; }
-.ficha__cabeza .tarjeta__lugar { white-space: normal; }
+.ficha__cabeza .tarjeta__lugar { display: block; -webkit-line-clamp: none; line-clamp: none; overflow: visible; }
 .ficha__media { position: relative; border-radius: 22px; overflow: hidden; aspect-ratio: 16 / 8; background: var(--foto); }
 .ficha__media > .escena, .ficha__imagen { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .ficha__precio { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
@@ -1343,9 +1350,14 @@ html:not(.js) .cargando { display: none; }
   box-shadow: var(--sombra-alta); text-align: center;
 }
 .aviso-flotante:empty { display: none; }
-.aviso-flotante--datos { display: flex; align-items: center; gap: 12px; text-align: left; }
+/* Con su ancho (antes, con left: 50%, se encogía a media pantalla y el texto ocupaba cuatro líneas en el móvil). */
+.aviso-flotante--datos { display: flex; align-items: center; gap: 10px; text-align: left; width: max-content; padding: 8px 8px 8px 16px; }
 .aviso-flotante--datos[hidden] { display: none; }
 .aviso-flotante--datos .boton { flex: none; min-height: 36px; padding: 6px 14px; }
+.aviso-flotante__texto { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.aviso-flotante__texto .ic { flex: none; }
+.aviso-flotante__cerrar { flex: none; color: inherit; background: transparent; border-color: transparent; }
+.aviso-flotante__cerrar:hover { background: rgb(255 255 255 / 12%); }
 /* Si también hay un aviso corto, el de datos nuevos sube para no taparlo. */
 .aviso-flotante--datos:not([hidden]) ~ .aviso-flotante:not(:empty) { bottom: calc(76px + var(--barra-movil) + var(--alto-cookies, 0px)); }
 
@@ -1569,9 +1581,6 @@ html:not(.js) .cargando { display: none; }
 /* Colores del coste (validados para daltonismo en claro y oscuro): la oferta y lo estimado. */
 :root { --coste-oferta: #00897b; --coste-estimado: #c8611a; --medidor: #00897b; }
 :root[data-theme="dark"] { --coste-oferta: #1f9e8e; --coste-estimado: #d9733a; --medidor: #1f9e8e; }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) { --coste-oferta: #1f9e8e; --coste-estimado: #d9733a; --medidor: #1f9e8e; }
-}
 
 /* «Por qué tiene un N»: cada motivo con su barra sobre el máximo. */
 .ficha__nota, .ficha__opiniones { display: grid; gap: 10px; }
@@ -1641,10 +1650,9 @@ body:has([data-plegable-movil][open]) .barra-comparar [data-abrir-filtros] { dis
 .insignia--encaje.insignia--fuera { background: var(--puente-suave); color: var(--puente); }
 
 /* Tendencia del precio: verde si baja, rojo si sube, gris si sigue igual (con texto, no solo color). */
-.tendencia { display: inline-flex; align-items: center; gap: 6px; font-size: 0.74rem; font-weight: 700; color: var(--texto-suave); }
+.tendencia { margin: 0; font-size: 0.76rem; font-weight: 700; line-height: 1.35; color: var(--texto-suave); overflow-wrap: anywhere; }
 .tendencia--baja { color: var(--exito); }
 .tendencia--sube { color: var(--peligro); }
-.tendencia .minigrafica { color: inherit; }
 
 /* Inicio: «¿Qué buscas?» con tres opciones grandes, y lo demás plegado debajo. */
 /* Al ancho de la página, como «Lo mejor para este finde» de debajo (antes se quedaba más estrecho). */
@@ -1672,9 +1680,14 @@ body:has([data-plegable-movil][open]) .barra-comparar [data-abrir-filtros] { dis
   .opciones--cuando > :last-child:nth-child(odd) { grid-column: auto; }
 }
 .buscador-finde__fechas[hidden] { display: none; }
-.opcion--fecha { gap: 4px; min-height: 64px; padding: 10px 14px; border-radius: var(--radio-medio); }
-.opcion--fecha small { font-size: 0.7rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; padding-right: 14px; }
-.opcion--fecha span { font-size: 0.95rem; }
+/* Nombre y días en dos filas compartidas por toda la fila de tarjetas: si un nombre ocupa dos
+   líneas («El próximo finde» en el móvil), los días siguen a la misma altura en las dos. */
+.opcion--fecha {
+  display: grid; grid-row: span 2; grid-template-rows: subgrid; grid-template-columns: minmax(0, 1fr); justify-content: stretch; row-gap: 4px;
+  min-height: 64px; padding: 10px 14px; border-radius: var(--radio-medio);
+}
+.opcion--fecha small { align-self: end; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; padding-right: 14px; }
+.opcion--fecha span { align-self: start; font-size: 0.95rem; }
 .opcion--fecha:has(input:checked) { background: var(--acento-suave); border-color: var(--acento); border-width: 2px; color: var(--texto); }
 .opcion--fecha:has(input:checked) small { color: var(--acento-suave-texto); }
 .opcion--fecha:has(input:checked)::after { content: ""; position: absolute; top: 12px; right: 12px; width: 10px; height: 10px; border-radius: 50%; background: var(--acento); }
@@ -1732,7 +1745,7 @@ body:has([data-plegable-movil][open]) .barra-comparar [data-abrir-filtros] { dis
   .organizar__icono { width: 34px; height: 34px; }
   .organizar__texto small { font-size: 0.72rem; }
   .organizar__opcion .organizar__texto { padding-bottom: 0; }
-  .organizar__estado { position: static; font-size: 0.72rem; }
+  .organizar__estado { position: static; margin-top: auto; font-size: 0.72rem; }
   .organizar__estado::after { content: "Elegir"; }
   .buscador-finde__enviar { width: 100%; }
   .buscador-finde__mas > summary .suave { display: none; }
@@ -1799,9 +1812,9 @@ body:has([data-plegable-movil][open]) .barra-comparar [data-abrir-filtros] { dis
 .idea__foto > .escena, .idea__foto > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
 .idea__foto--vuelo { background: color-mix(in srgb, var(--tema-playa) 18%, var(--superficie)); }
 .idea__ruta {
-  position: absolute; inset: auto 4px 6px; display: flex; justify-content: center; gap: 2px;
-  padding: 2px 4px; border-radius: 8px; background: rgb(255 255 255 / 92%); color: #17211f;
-  font-family: var(--fuente-titulos); font-size: 0.7rem; font-weight: 800; letter-spacing: 0.02em;
+  position: absolute; inset: auto 3px 5px; display: flex; justify-content: center; gap: 1px;
+  padding: 2px 3px; border-radius: 8px; background: rgb(255 255 255 / 92%); color: #17211f; white-space: nowrap;
+  font-family: var(--fuente-titulos); font-size: 0.62rem; font-weight: 800; letter-spacing: 0;
 }
 .idea__ruta span { color: var(--tema-playa); }
 .idea__fecha {
@@ -1842,7 +1855,7 @@ body:has([data-plegable-movil][open]) .barra-comparar [data-abrir-filtros] { dis
   .idea__foto { width: 52px; height: 52px; }
   .idea__precio { min-width: 0; padding: 3px 8px; font-size: 0.95rem; }
   .idea__precio--dormir { font-size: 0.88rem; }
-  .idea__ruta { inset: auto 2px 4px; padding: 1px 2px; gap: 1px; font-size: 0.56rem; letter-spacing: 0; }
+  .idea__ruta { inset: auto 2px 4px; padding: 1px 2px; gap: 0; font-size: 0.52rem; }
 }
 .planes-eventos { margin: 0 0 16px; padding: 14px 16px; border: 1px solid var(--borde); border-radius: var(--radio-medio); background: var(--superficie); }
 .planes-eventos h2 { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin: 0 0 4px; font-size: 1.05rem; }
@@ -1965,8 +1978,8 @@ html[data-vista-inicial="finde"] body:not([data-vista]) .cabecera-info:not(:has(
 .desglose-fechas .ic { flex: none; width: 16px; height: 16px; margin-top: 2px; color: var(--acento); }
 .desglose-fechas strong { color: var(--texto); }
 /* Aviso discreto (favoritos que ya no se publican). */
-.aviso-suave { display: flex; gap: 8px; align-items: center; margin: 0 0 14px; padding: 10px 14px; border-radius: var(--radio-medio); background: var(--aviso-suave); color: var(--aviso); font-size: 0.9rem; }
-.aviso-suave .ic { flex: none; width: 16px; height: 16px; }
+p.aviso-suave { display: flex; gap: 8px; align-items: center; margin: 0 0 14px; padding: 10px 14px; border-radius: var(--radio-medio); background: var(--aviso-suave); color: var(--aviso); font-size: 0.9rem; }
+p.aviso-suave .ic { flex: none; width: 16px; height: 16px; }
 .solo-estrecho-flex { display: none !important; }
 /* Explorar en el móvil: que los resultados empiecen en la primera pantalla. */
 @media (max-width: 719px) {

@@ -274,9 +274,8 @@ function pintarNovedades() {
   aviso.hidden = false;
 }
 
-function temaEfectivo() {
-  return document.documentElement.dataset.theme ?? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-}
+/** Claro, salvo que se haya elegido el oscuro (ya no sigue el del sistema: tema.js). */
+const temaEfectivo = () => (document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light');
 
 function pintarBotonTema() {
   const oscuro = temaEfectivo() === 'dark';
@@ -311,6 +310,7 @@ function cambiarModoLista(modo) {
 function cambiarTema() {
   const nuevo = temaEfectivo() === 'dark' ? 'light' : 'dark';
   document.documentElement.dataset.theme = nuevo;
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', nuevo === 'dark' ? '#0f1514' : '#f4efe6');
   guardarTema(nuevo === 'dark' ? 'oscuro' : 'claro');
   pintarBotonTema();
 }
@@ -420,7 +420,11 @@ function alCambiarDireccion() {
     return;
   }
   hashBajoFicha = null;
-  if (!location.hash || location.hash.startsWith('#/')) render();
+  if (!location.hash || location.hash.startsWith('#/')) {
+    // Los datos nuevos que no se pidieron con «Ver»: ahora, que se repinta igualmente.
+    if (datosNuevos) usarDatos(datosNuevos, { pintar: false });
+    render();
+  }
 }
 
 function rutaActual() {
@@ -1050,7 +1054,7 @@ function alternarMiEstado(id, nuevo) {
 
 const ACCIONES = '[data-actualizar], [data-compartir-busqueda], [data-usar-viaje], [data-mi-estado], [data-abrir-filtros], [data-comparar], [data-vaciar-comparar], [data-mi-viaje], [data-cerrar-viaje], [data-ficha], [data-fav], [data-descartar], [data-mas], [data-sorpresa], [data-evento],'
   + ' [data-guardar-busqueda], [data-borrar-busqueda], [data-copiar-vigilado], [data-cerrar-ficha], [data-cerrar-novedades],'
-  + ' [data-olvidar-filtros], [data-cerrar-mas], [data-modo-lista], [data-abrir-busqueda], [data-ver-datos-nuevos], [data-exportar-guardados], [data-fechas-rapida]';
+  + ' [data-olvidar-filtros], [data-cerrar-mas], [data-modo-lista], [data-abrir-busqueda], [data-ver-datos-nuevos], [data-cerrar-datos-nuevos], [data-info], [data-exportar-guardados], [data-fechas-rapida]';
 
 function manejarClic(evento) {
   const objetivo = evento.target.closest(ACCIONES);
@@ -1058,6 +1062,8 @@ function manejarClic(evento) {
   const d = objetivo.dataset;
   if ('actualizar' in d) location.reload();
   else if ('verDatosNuevos' in d) aplicarDatosNuevos();
+  else if ('cerrarDatosNuevos' in d) cerrarAvisoDatos({ porUsuario: true });
+  else if (d.info) alternarInfo(objetivo);
   else if ('exportarGuardados' in d) descargarGuardados();
   // Un atajo de fechas (este finde, un puente, cualquier fecha) o quitarlas: aquí mismo.
   else if ('fechasRapida' in d) elegirFechas(objetivo.closest('[data-fechas]'), { cuando: d.fechasRapida });
@@ -1088,6 +1094,15 @@ function manejarClic(evento) {
     pintarAvisoMis();
   }
   else $('#novedades').hidden = true;
+}
+
+/** La «ⓘ» de un filtro o un apartado: abre o cierra su explicación, justo debajo. */
+function alternarInfo(boton) {
+  const texto = document.getElementById(boton.dataset.info);
+  if (!texto) return;
+  const abrir = texto.hidden;
+  texto.hidden = !abrir;
+  boton.setAttribute('aria-expanded', String(abrir));
 }
 
 /** Cierra «Más filtros» (en el móvil ocupa toda la pantalla) y lleva a los resultados. */
@@ -1218,7 +1233,6 @@ function conectarEventos() {
     location.hash = crearHash('buscar', { q });
   });
   $('#cambiar-tema').addEventListener('click', cambiarTema);
-  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', pintarBotonTema);
   dialogo.addEventListener('click', (evento) => {
     if (evento.target === dialogo) dialogo.close();
   });
@@ -1279,46 +1293,88 @@ const cargarTodo = () => Promise.all([
   cargarJson('data/vigilados.json', { vigilados: [] }),
 ]);
 
-function usarDatos([datos, historial, vigilados]) {
-  const { paginas, salto } = estado;
+/** `pintar: false`: los datos nuevos se usan en el repintado que ya viene (al cambiar de vista). */
+function usarDatos([datos, historial, vigilados], { pintar = true } = {}) {
+  // Lo de esta navegación sigue: al usar los datos nuevos al cambiar de vista desde el menú, sin
+  // «filtrosRecordados» desaparecía el aviso «Con los filtros de la última vez».
+  const { paginas, salto, filtrosRecordados } = estado;
   detalles = null;
-  estado = { ...crearEstado(datos, historial, vigilados), paginas, salto };
+  estado = { ...crearEstado(datos, historial, vigilados), paginas, salto, filtrosRecordados };
   cargadoEn = Date.now();
   datosNuevos = null;
-  $('#datos-nuevos').hidden = true;
+  if (!$('#datos-nuevos [data-actualizar]')) cerrarAvisoDatos();
   pintarCabecera();
   // La pastilla, con la cuenta de los datos nuevos (si no, no cuadra con lo que enseña «Verlas»).
   // Si la cerraste, sigue cerrada.
   if (!$('#novedades').hidden) pintarNovedades();
-  render({ enfocar: false });
+  if (pintar) render({ enfocar: false });
 }
 
 /** Con la pestaña abierta se mira cada 10 min si hay un escaneo nuevo (llega uno cada 15). */
 const NOVEDADES_MS = 10 * 60_000;
+/**
+ * «Hay ofertas nuevas» se va solo a los 10 s: con un escaneo cada 15 min salía casi siempre y,
+ * en el móvil, se quedaba encima de las tarjetas. Si no se pulsa «Ver», los datos nuevos se usan
+ * al cambiar de vista (que repinta igualmente) o al volver a la pestaña.
+ */
+const AVISO_DATOS_MS = 10_000;
 let datosNuevos = null;
+let relojAvisoDatos = null;
+/** Cerrado con ✕: no vuelve a salir en esta visita. */
+let avisoDatosCerrado = false;
+/** El escaneo que ya se avisó: se va solo y no vuelve cada 10 min por los mismos datos. */
+let avisoDatosDe = null;
+
+function cerrarAvisoDatos({ porUsuario = false } = {}) {
+  clearTimeout(relojAvisoDatos);
+  const aviso = $('#datos-nuevos');
+  // Cerrar «Hay una versión nueva» no apaga los avisos de ofertas nuevas.
+  if (porUsuario && !aviso.querySelector('[data-actualizar]')) avisoDatosCerrado = true;
+  const teniaFoco = aviso.contains(document.activeElement);
+  aviso.hidden = true;
+  aviso.replaceChildren();
+  // Con el teclado, el foco no se pierde con el aviso: vuelve al contenido.
+  if (teniaFoco) principal.focus({ preventScroll: true });
+}
+
+/**
+ * A los 10 s se va, salvo que lo estés usando (el foco del teclado en «Ver» o ✕, o el ratón
+ * encima): entonces espera otros 10 s.
+ */
+function cerrarAvisoDatosSiNoSeUsa() {
+  const aviso = $('#datos-nuevos');
+  const encima = matchMedia('(hover: hover)').matches && aviso.matches(':hover');
+  if (aviso.contains(document.activeElement) || encima) relojAvisoDatos = setTimeout(cerrarAvisoDatosSiNoSeUsa, AVISO_DATOS_MS);
+  else cerrarAvisoDatos();
+}
 
 /**
  * Si hay un escaneo más reciente, no se repinta por sorpresa (movería lo que estás mirando):
- * sale «Hay ofertas nuevas» con un botón para verlas.
+ * sale un momento «Hay ofertas nuevas» con un botón para verlas y otro para cerrarlo.
  */
 async function comprobarDatosNuevos() {
   if (document.visibilityState !== 'visible' || !estado) return;
   try {
     // Primero la fecha del último escaneo (unos bytes); todo lo demás, solo si es nuevo.
     const version = await cargarJson('data/version.json', null).catch(() => null);
-    if (version?.generado && Date.parse(version.generado) <= Date.parse(estado.datos.generado)) return;
+    if (version?.generado && (Date.parse(version.generado) <= Date.parse(estado.datos.generado) || version.generado === avisoDatosDe)) return;
     const todo = await cargarTodo();
     if (todo[0].generado === estado.datos.generado || Date.parse(todo[0].generado) < Date.parse(estado.datos.generado)) return;
     datosNuevos = todo;
     const aviso = $('#datos-nuevos');
     // «Actualizar» (versión nueva) ya trae también los datos nuevos: no se tapa.
-    if (aviso.querySelector('[data-actualizar]')) return;
-    aviso.innerHTML = `<span>${icono('nuevo')} Hay ofertas nuevas (revisado ${esc(haceCuanto(todo[0].generado))})</span><button type="button" class="boton boton--primario" data-ver-datos-nuevos>Ver</button>`;
+    if (aviso.querySelector('[data-actualizar]') || avisoDatosCerrado || todo[0].generado === avisoDatosDe) return;
+    avisoDatosDe = todo[0].generado;
+    aviso.innerHTML = `<span class="aviso-flotante__texto">${icono('nuevo')}Hay ofertas nuevas</span><button type="button" class="boton boton--primario" data-ver-datos-nuevos>Ver</button>${botonCerrarAviso}`;
     aviso.hidden = false;
+    clearTimeout(relojAvisoDatos);
+    relojAvisoDatos = setTimeout(cerrarAvisoDatosSiNoSeUsa, AVISO_DATOS_MS);
   } catch (error) {
     console.warn('No se ha podido mirar si hay ofertas nuevas:', error);
   }
 }
+
+const botonCerrarAviso = `<button type="button" class="boton-icono boton-icono--mini aviso-flotante__cerrar" data-cerrar-datos-nuevos aria-label="Cerrar el aviso">${icono('cerrar')}</button>`;
 
 function aplicarDatosNuevos() {
   if (datosNuevos) usarDatos(datosNuevos);
@@ -1452,8 +1508,9 @@ const ocupado = () => dialogo.open || dialogoViaje.open || ['INPUT', 'TEXTAREA',
  * y, dentro de él, pulsar «Actualizar» llevaba a las novedades en vez de solo recargar.
  */
 function avisarVersionNueva() {
+  clearTimeout(relojAvisoDatos);
   const aviso = $('#datos-nuevos');
-  aviso.innerHTML = `<span>${icono('nuevo')} Hay una versión nueva del panel</span><button type="button" class="boton boton--primario" data-actualizar>Actualizar</button>`;
+  aviso.innerHTML = `<span class="aviso-flotante__texto">${icono('nuevo')}Hay una versión nueva de la web</span><button type="button" class="boton boton--primario" data-actualizar>Actualizar</button>${botonCerrarAviso}`;
   aviso.hidden = false;
 }
 

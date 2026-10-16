@@ -2,7 +2,8 @@
  * Lo primero que hace la página, antes de pintar nada. Es un script clásico y síncrono en el
  * <head> (no un módulo): los módulos se ejecutan después de pintar. Va en archivo aparte
  * porque la CSP no permite scripts en línea.
- *  - El tema claro u oscuro guardado, para que no parpadee.
+ *  - El tema: claro siempre, salvo que se haya elegido el oscuro con el botón de la cabecera
+ *    (antes seguía el del sistema). Aquí, para que no parpadee.
  *  - Pide ya los datos (ofertas.json y, fuera de la portada, historial.json): app.js los recoge
  *    al arrancar. Si no, no se pedían hasta tener los 24 módulos del panel (en un móvil, más de
  *    un segundo).
@@ -34,12 +35,15 @@ setTimeout(function portadaMientras() {
 // El enlace de una ficha (#/oferta/<id>) abre la portada con la ficha encima.
 document.documentElement.dataset.vistaInicial = location.hash.startsWith('#/oferta/') ? 'finde' : location.hash.replace(/^#\/?/, '').split('?')[0] || 'finde';
 try {
-  const tema = localStorage.getItem('escapadas:tema');
-  if (tema === 'claro' || tema === 'oscuro') document.documentElement.dataset.theme = tema === 'claro' ? 'light' : 'dark';
+  if (localStorage.getItem('escapadas:tema') === 'oscuro') {
+    document.documentElement.dataset.theme = 'dark';
+    // La barra del navegador del móvil, del mismo color que la página (la de index.html es la clara).
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#0f1514');
+  }
   // Lo mismo con «Lista» o «Tarjetas» en los resultados.
   if (localStorage.getItem('escapadas:modoLista') === 'lista') document.documentElement.classList.add('modo-lista');
 } catch (error) {
-  // Sin acceso a localStorage (bloqueado o modo privado) se usa el tema del sistema.
+  // Sin acceso a localStorage (bloqueado o modo privado), el tema claro.
   console.warn('No se puede leer el tema guardado:', error);
 }
 

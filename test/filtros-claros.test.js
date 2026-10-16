@@ -94,8 +94,9 @@ describe('filtros claros: jerarquía del formulario', () => {
   const html = vistaEscapadas(estado(), {});
 
   it('«¿Cuándo?» en la barra de fechas, encima; en los filtros, cuatro preguntas (sin repetir las fechas ni el orden)', () => {
+    // De lo general a lo concreto: dónde, cómo vas, cuánto y, al final, la lista larga de temáticas.
     const titulos = [...html.matchAll(/class="bloque__titulo">([^<]+)</g)].map(([, t]) => t);
-    assert.deepEqual(titulos, ['¿Qué te apetece?', '¿Dónde?', '¿Cómo vas?', '¿Cuánto?']);
+    assert.deepEqual(titulos, ['¿Dónde?', '¿Cómo vas?', '¿Cuánto?', '¿Qué te apetece?']);
     assert.match(html, /<h2 class="fechas__titulo"[^>]*>[^]*?¿Cuándo\?<\/h2>/);
     assert.ok(html.indexOf('class="fechas"') < html.indexOf('<form class="filtros"'), 'la barra va antes que los filtros');
     assert.doesNotMatch(html, /<select name="orden">/, 'el orden está encima de los resultados');
@@ -105,7 +106,11 @@ describe('filtros claros: jerarquía del formulario', () => {
 
   it('«Más filtros» agrupado por bloques, siempre plegado y con contador', () => {
     const grupos = [...html.matchAll(/class="grupo__titulo">([^<]+)</g)].map(([, t]) => t);
-    assert.deepEqual(grupos, ['Con niños, planes cerca y noches', 'Precio y chollos', 'Viaje y alojamiento', 'Zona, web y tipo', 'Fechas de las ofertas', 'Mis listas']);
+    // Cada filtro con los de su tema (antes «Noches» iba con los niños y «Alojamiento» con la distancia).
+    assert.deepEqual(grupos, ['Alojamiento', 'Precio y chollos', 'Con niños y planes cerca', 'Zona y transporte', 'Fechas de las ofertas', 'Web y tipo de oferta', 'Mis listas']);
+    const grupo = (titulo) => html.slice(html.indexOf(`>${titulo}</h3>`), html.indexOf('<div class="grupo">', html.indexOf(`>${titulo}</h3>`)));
+    for (const nombre of ['aloj', 'est', 'regimen', 'nota', 'noches']) assert.match(grupo('Alojamiento'), new RegExp(`name="${nombre}"`), nombre);
+    for (const nombre of ['pais', 'region', 'km', 'transporte']) assert.match(grupo('Zona y transporte'), new RegExp(`name="${nombre}"`), nombre);
     assert.match(html, /<details class="filtros__mas filtros__mas--panel">/);
     const conFiltros = vistaEscapadas(estado(), { aloj: 'casa-rural', cho: '1', max: '100' });
     // No se abre solo (en el móvil taparía la pantalla): lo puesto se ve en los chips y en el contador.

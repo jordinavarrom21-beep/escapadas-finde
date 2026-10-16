@@ -15,6 +15,8 @@ const problemas = [];
 for (const tema of TEMAS) for (const ancho of ANCHOS) {
   const movil = ancho < 720;
   const c = await contexto(b, { viewport: { width: ancho, height: movil ? 800 : 900 }, colorScheme: tema, hasTouch: movil });
+  // El oscuro ya no sigue al sistema: hay que elegirlo (se guarda como «oscuro»).
+  if (tema === 'dark') await c.addInitScript(() => { try { localStorage.setItem('escapadas:tema', 'oscuro'); } catch {} });
   if (process.env.LISTA) await c.addInitScript(() => { window.__LISTA__ = true; });
   if (process.env.MIS) await c.addInitScript(() => {
     try {

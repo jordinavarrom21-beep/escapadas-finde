@@ -131,25 +131,6 @@ export function contar(n, singular, plural = `${singular}s`) {
 }
 
 /**
- * Puntos «x,y» de una polilínea SVG para la serie de precios `[[día, precio], ...]`
- * dentro de un rectángulo `ancho × alto`. Cadena vacía si hay menos de dos puntos.
- */
-export function puntosMinigrafica(serie, ancho = 96, alto = 28, margen = 2) {
-  if (!Array.isArray(serie) || serie.length < 2) return '';
-  const precios = serie.map(([, precio]) => precio);
-  const minimo = Math.min(...precios);
-  const maximo = Math.max(...precios);
-  const paso = (ancho - 2 * margen) / (precios.length - 1);
-  const redondear = (n) => Math.round(n * 10) / 10;
-  return precios
-    .map((precio, i) => {
-      const y = maximo === minimo ? alto / 2 : margen + ((maximo - precio) / (maximo - minimo)) * (alto - 2 * margen);
-      return `${redondear(margen + i * paso)},${redondear(y)}`;
-    })
-    .join(' ');
-}
-
-/**
  * El título de una oferta, más legible: sin palabras enteras en MAYÚSCULAS («ESCALDES,
  * ANDORRA» → «Escaldes, Andorra»; las siglas cortas como SPA o BCN se quedan) ni emojis.
  * Solo para enseñar: el título original sigue en los datos y en la búsqueda.

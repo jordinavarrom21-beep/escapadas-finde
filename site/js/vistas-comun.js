@@ -53,9 +53,12 @@ export function formularioViaje(e) {
   const noches = Array.from({ length: NOCHES.max - NOCHES.min + 1 }, (_, i) => [String(NOCHES.min + i), contar(NOCHES.min + i, 'noche')]);
   return `<div class="ficha__barra"><button type="button" class="boton-icono" data-cerrar-viaje aria-label="Cerrar sin guardar">${icono('cerrar')}</button></div>
 <div class="ficha__contenido">
-  <h2 id="viaje-titulo">Tu viaje</h2>
-  <p class="suave">Sirve para medir distancias, elegir tus aeropuertos y calcular el coste total. Se guarda solo en este navegador.</p>
-  <fieldset class="ubicacion"><legend>Salgo desde</legend>
+  ${tituloConInfo('<h2 id="viaje-titulo">Tu viaje</h2>', 'viaje', 'Tu viaje')}
+  ${textoInfo('viaje', 'Sirve para medir distancias, elegir tus aeropuertos y calcular el coste total. Se guarda solo en este navegador.')}
+  <fieldset class="ubicacion" aria-label="Salgo desde"><legend class="con-boton-info">Salgo desde${botonInfo('salida', 'Salgo desde')}</legend>
+    ${textoInfo('salida', s
+    ? `Desde ${esc(s.nombre)} se piden los km y el tiempo reales por carretera (tarda unos segundos la primera vez; mientras, se estiman). Déjalo vacío para volver a ${esc(e.datos.origen.nombre)}.`
+    : `Desde ${esc(e.datos.origen.nombre)} hay tiempos reales por carretera. Escribe otra ciudad si sales de otro sitio.`)}
     <div class="ubicacion__fila">
       <div class="combo">
         <label class="sr" for="salida-texto">Ciudad o pueblo de salida</label>
@@ -65,9 +68,7 @@ export function formularioViaje(e) {
       </div>
       <button type="button" class="boton boton--suave boton-ubicacion" data-mi-ubicacion title="Usar mi ubicación" aria-label="Usar mi ubicación">${icono('ubicacion')}<span class="boton-ubicacion__texto">Mi ubicación</span></button>
     </div>
-    <p class="ayuda" id="salida-ayuda" role="status">${s
-    ? `Desde ${esc(s.nombre)} se piden los km y el tiempo reales por carretera (tarda unos segundos la primera vez; mientras, se estiman). Déjalo vacío para volver a ${esc(e.datos.origen.nombre)}.`
-    : `Desde ${esc(e.datos.origen.nombre)} hay tiempos reales por carretera. Escribe otra ciudad si sales de otro sitio.`}</p>
+    <p class="ayuda" id="salida-ayuda" role="status"></p>
   </fieldset>
   <div class="filtros__fila">
     <label class="campo">Viajeros <input type="number" name="viajeros" min="${VIAJEROS.min}" max="${VIAJEROS.max}" step="1" inputmode="numeric" value="${e.viaje.viajeros}"></label>
@@ -186,19 +187,56 @@ export function avisoSinConfirmar(e, vista, params, buscar) {
   const n = buscar(sinConfirmar);
   if (!n) return '';
   const [la, cuenta] = n === 1 ? ['la', 'se cuenta'] : ['las', 'se cuentan'];
-  return `<p class="aviso-memoria aviso-sin-confirmar">${icono('alerta')}${esc(contar(n, 'oferta más está', 'ofertas más están'))} sin confirmar: su web no ${la} ha vuelto a mostrar en el tiempo previsto, así que no ${cuenta}. <a href="${esc(crearHash(vista, { ...params, sinconf: '1' }))}">Ver${la} al final</a></p>`;
+  // El porqué, en la «ⓘ»: a la vista solo cuántas y cómo verlas.
+  return `<div class="aviso-memoria aviso-sin-confirmar"><p>${icono('alerta')}${esc(contar(n, 'oferta más', 'ofertas más'))} sin confirmar${botonInfo(`sinconf-${vista}`, 'Sin confirmar')} · <a href="${esc(crearHash(vista, { ...params, sinconf: '1' }))}">Ver${la} al final</a></p>
+  ${textoInfo(`sinconf-${vista}`, `Su web no ${la} ha vuelto a mostrar en el tiempo previsto, así que no ${cuenta} en la lista.`)}</div>`;
 }
 
-export const resumenResultados = (texto, extra = '', { conModo = true } = {}) => `<div class="resultados__cabeza" data-resumen="${esc(texto)}"><p class="resultados__cuenta">${esc(texto)}</p>${conModo ? selectorModo : ''}${extra}</div>`;
+/** `info`: [id, html, de qué es] de lo que explica la lista (va en una «ⓘ» junto a la cuenta). */
+export const resumenResultados = (texto, extra = '', { conModo = true, info = null } = {}) => `<div class="resultados__cabeza" data-resumen="${esc(texto)}"><p class="resultados__cuenta">${esc(texto)}${info ? botonInfo(info[0], info[2] ?? 'esta lista') : ''}</p>${conModo ? selectorModo : ''}${extra}${info ? textoInfo(info[0], info[1]) : ''}</div>`;
 // «data-olvidar-filtros»: al quitar los filtros también se olvidan los recordados de esa vista.
 export const botonLimpiar = (vista) => `<a class="boton boton--suave" href="#/${vista}" data-olvidar-filtros>${icono('deshacer')}Quitar filtros</a>`;
 export const opciones = (lista, actual, vacia) => `${vacia ? `<option value="">${vacia}</option>` : ''}${
   lista.map(([valor, texto]) => `<option value="${esc(valor)}"${String(valor) === String(actual ?? '') ? ' selected' : ''}>${esc(texto)}</option>`).join('')}`;
 export const marcado = (condicion) => (condicion ? ' checked' : '');
-export const interruptor = (nombre, etiqueta, activo) => `<label class="interruptor"><input type="checkbox" name="${nombre}" value="1"${marcado(activo)}> ${etiqueta}</label>`;
+
+/**
+ * Lo que explica un filtro o un apartado, detrás de un botón «ⓘ» a su lado: antes iba siempre a
+ * la vista y había demasiado texto. app.js lo abre y lo cierra (data-info). `id`, único en la
+ * página; `tema`, de qué es, para el lector de pantalla.
+ */
+export const botonInfo = (id, tema) => `<button type="button" class="boton-info" data-info="info-${id}" aria-expanded="false" aria-controls="info-${id}" aria-label="Qué es: ${esc(tema)}" title="Más información">${icono('info')}</button>`;
+/** El texto de la «ⓘ» (HTML ya escapado), plegado hasta que se pulsa. */
+export const textoInfo = (id, html) => `<div class="info-texto" id="info-${id}" hidden>${html}</div>`;
+/**
+ * Un título (h1, h2) con su «ⓘ» al lado, fuera de él: dentro, «Qué es: …» pasaba a ser parte del
+ * nombre del título (y del diálogo o el apartado que se llama como él) en los lectores de pantalla.
+ */
+export const tituloConInfo = (titulo, id, tema) => `<div class="titulo-con-info">${titulo}${botonInfo(id, tema)}</div>`;
+/**
+ * El rótulo de un campo con su «ⓘ» pegada a la última palabra: si no, cuando el rótulo justo cabía,
+ * la «ⓘ» bajaba sola a otra línea (ni «nowrap» ni un carácter de unión lo evitan en Chrome). La
+ * última palabra va en otro <label> del mismo campo: el nombre del campo sigue siendo el rótulo entero.
+ */
+const rotuloConInfo = (para, etiqueta, id, tema = etiqueta) => {
+  const corte = etiqueta.lastIndexOf(' ');
+  const [inicio, ultima] = corte > 0 ? [etiqueta.slice(0, corte), etiqueta.slice(corte + 1)] : ['', etiqueta];
+  return `<span class="campo__rotulo">${inicio ? `<label for="${para}">${inicio}</label> ` : ''}<span class="sin-corte"><label for="${para}">${ultima}</label>${botonInfo(id, tema)}</span></span>`;
+};
+
+/**
+ * Un interruptor con su «ⓘ» al lado (`info`: [id, html]); el texto, debajo al abrirlo. La «ⓘ» va en
+ * la misma fila que el rótulo aunque este ocupe dos líneas (antes bajaba sola a la línea siguiente).
+ */
+const conInfo = (control, etiqueta, info) => (info
+  ? `<div class="con-info"><div class="con-info__fila">${control}${botonInfo(info[0], etiqueta)}</div>${textoInfo(info[0], info[1])}</div>`
+  : control);
+export const interruptor = (nombre, etiqueta, activo, info = null) => conInfo(`<label class="interruptor"><input type="checkbox" name="${nombre}" value="1"${marcado(activo)}> ${etiqueta}</label>`, etiqueta, info);
 /** Interruptor que viene activado de fábrica: al desmarcarlo, app.js escribe «<nombre>=0» en la URL. */
-export const interruptorDefecto = (nombre, etiqueta, activo) => `<label class="interruptor"><input type="checkbox" name="${nombre}" value="1" data-defecto${marcado(activo)}> ${etiqueta}</label>`;
-export const numero = (nombre, etiqueta, valor, extra = '') => `<label class="campo">${etiqueta} <input type="number" name="${nombre}" min="0" step="1" inputmode="numeric" value="${valor ?? ''}"${extra}></label>`;
+export const interruptorDefecto = (nombre, etiqueta, activo, info = null) => conInfo(`<label class="interruptor"><input type="checkbox" name="${nombre}" value="1" data-defecto${marcado(activo)}> ${etiqueta}</label>`, etiqueta, info);
+export const numero = (nombre, etiqueta, valor, extra = '', info = null) => (info
+  ? `<div class="campo">${rotuloConInfo(`campo-${nombre}`, etiqueta, info[0])}${textoInfo(info[0], info[1])}<input id="campo-${nombre}" type="number" name="${nombre}" min="0" step="1" inputmode="numeric" value="${valor ?? ''}"${extra}></div>`
+  : `<label class="campo">${etiqueta} <input type="number" name="${nombre}" min="0" step="1" inputmode="numeric" value="${valor ?? ''}"${extra}></label>`);
 
 /** Horas fallando para contarlo en la portada: un fallo suelto se arregla solo en la siguiente revisión. */
 export const HORAS_PROBLEMA = 12;
@@ -286,17 +324,19 @@ export function etiquetaFinde(finde, puentes = []) {
  * Buscar dentro de la pestaña (`ambito`: «escapadas», «vuelos», «planes»). El buscador de arriba
  * busca en todo: el rótulo dice en qué busca cada uno.
  */
+// En Planes se buscan las actividades (tours, visitas, entradas), no los eventos de la lista de arriba.
+const EJEMPLO_BUSQUEDA = { vuelos: 'Ciudad o país', planes: 'Actividad o lugar' };
 export function campoTexto(f, ambito = '') {
   return `<label class="campo campo--ancho">${ambito ? `Buscar en ${ambito}` : 'Buscar palabras'}
-  <input type="search" name="q" value="${esc(f.q)}" placeholder="Destino u hotel" autocomplete="off" enterkeyhint="search">
+  <input type="search" name="q" value="${esc(f.q)}" placeholder="${EJEMPLO_BUSQUEDA[ambito] ?? 'Destino u hotel'}" autocomplete="off" enterkeyhint="search">
 </label>`;
 }
 
 /** Filtros de chollo que valen igual para vuelos y escapadas. */
 export function filtrosChollo(f) {
   return `${numero('dto', 'Descuento mín. (%)', f.dto, ' max="99" placeholder="Cualquiera"')}
-${numero('pts', 'Valor de la oferta mín. (0–100)', f.puntos, ' max="100" placeholder="0–100"')}
-${interruptor('cho', 'Solo chollazos', f.chollazo)}
+${numero('pts', 'Valor de la oferta mín. (0\u2060–\u2060100)', f.puntos, ' max="100" placeholder="0–100"', ['valor', 'Lo buena que es la oferta como chollo, de 0 a 100: sobre todo el precio frente a otras parecidas y si ha bajado. No es la opinión de los clientes (esa va de 0 a 10). <a href="#/ayuda">Cómo se calcula</a>'])}
+${interruptor('cho', 'Solo chollazos', f.chollazo, ['chollazos', 'Las que su web publica como error de tarifa, las que bajan del precio límite (vuelos de ida y vuelta, o escapadas por persona y noche) y las de Valor muy alto. <a href="#/ayuda">Los límites, en «Cómo funciona»</a>'])}
 ${interruptor('baja', 'Solo con bajada de precio', f.bajada)}
 ${interruptor('hist', 'Solo mínimo histórico', f.historico)}`;
 }
@@ -306,7 +346,7 @@ export function filtrosListas(f) {
   return `${interruptor('fav', 'Solo favoritos', f.fav)}
 ${interruptor('nuevas', 'Solo novedades', f.nuevas)}
 ${interruptorDefecto('sindesc', 'Ocultar las descartadas y las no disponibles', f.sinDescartadas)}
-${interruptor('sinconf', 'Incluir las sin confirmar (su web no las ha vuelto a mostrar)', f.incluirSinConfirmar)}
+${interruptor('sinconf', 'Incluir las sin confirmar', f.incluirSinConfirmar, ['sinconf-filtro', 'Las que su web no ha vuelto a mostrar en el tiempo previsto: puede que ya no estén. Van al final y marcadas.'])}
 ${interruptor('dup', 'Mostrar las repetidas en varias webs', f.conDuplicadas)}`;
 }
 
@@ -326,14 +366,14 @@ export function bloqueExclusiones(e, f, ofertas) {
     ${chipsExcluidos('nodest', f.noDestinos)}
   </div>
   <div class="filtros__fila">
-    <label class="campo">Quitar una temática
-      <select name="notemas" data-repintar>${opciones(e.datos.temas.filter((t) => !f.noTemas.includes(t.id)).map((t) => [t.id, t.nombre]), '', 'Elige una temática')}</select>
-    </label>
+    <div class="campo">${rotuloConInfo('campo-notemas', 'Quitar una temática', 'excluir', 'No quiero ver')}${textoInfo('excluir', 'Lo que quites aquí no sale en ninguna lista. Desmarca el chip para volver a verlo.')}
+      <select id="campo-notemas" name="notemas" data-repintar>${opciones(e.datos.temas.filter((t) => !f.noTemas.includes(t.id)).map((t) => [t.id, t.nombre]), '', 'Elige…')}</select>
+    </div>
     <label class="campo">Quitar un destino
-      <select name="nodest" data-repintar>${opciones(destinos.map((d) => [d, d]), '', 'Elige un destino')}</select>
+      <select name="nodest" data-repintar>${opciones(destinos.map((d) => [d, d]), '', 'Elige…')}</select>
     </label>
   </div>
-  <p class="ayuda">Lo que quites aquí no aparece en ninguna lista. Desmarca el chip para volver a verlo.</p>
+  ${temasFuera.length || f.noDestinos.length ? '<p class="ayuda">Desmarca uno para volver a verlo.</p>' : ''}
 </details>`;
 }
 
@@ -346,13 +386,14 @@ export function bloqueBusquedas(e, vista) {
   return `<details class="filtros__mas"${e.busquedas.length ? ' open' : ''}>
   <summary>Guardar búsqueda</summary>
   <div class="filtros__fila">
-    <label class="campo campo--ancho">Nombre
-      <input type="text" data-nombre-busqueda placeholder="Spa cerca y barato" autocomplete="off" maxlength="60">
-    </label>
+    <div class="campo campo--ancho">${rotuloConInfo(`nombre-busqueda-${esc(vista)}`, 'Nombre', `guardar-${vista}`, 'Guardar búsqueda')}
+      ${textoInfo(`guardar-${vista}`, `Se guarda en este navegador. No te llega nada: cuando vuelvas, en <a href="#/mis">Guardados</a> verás las ofertas nuevas que la cumplen.`)}
+      <input id="nombre-busqueda-${esc(vista)}" type="text" data-nombre-busqueda placeholder="Spa cerca y barato" autocomplete="off" maxlength="60">
+    </div>
     <button type="button" class="boton boton--primario" data-guardar-busqueda="${esc(vista)}">${icono('guardar')}Guardar búsqueda</button>
     <button type="button" class="boton boton--suave" data-compartir-busqueda="${esc(vista)}">${icono('enlace')}Compartir esta búsqueda</button>
   </div>
-  <p class="ayuda">Se guarda en este navegador. No te llega nada: cuando vuelvas, en <a href="#/mis">Guardados</a> verás las ofertas nuevas que la cumplen.${e.propietario ? ` ¿La quieres por email? <button type="button" class="enlace-boton" data-copiar-vigilado="${esc(vista)}">Copiar para los avisos por email</button> y pégala en <code>config/vigilados.json</code>.` : ''}</p>
+  ${e.propietario ? `<p class="ayuda">¿La quieres por email? <button type="button" class="enlace-boton" data-copiar-vigilado="${esc(vista)}">Copiar para los avisos por email</button> y pégala en <code>config/vigilados.json</code>.</p>` : ''}
   ${chips ? `<div class="chips__lista">${chips}</div>` : ''}
 </details>`;
 }

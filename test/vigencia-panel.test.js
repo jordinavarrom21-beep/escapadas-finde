@@ -64,7 +64,9 @@ describe('las «sin confirmar» en el panel', () => {
     const [vieja, ...resto] = e.datos.ofertas.filter((o) => o.tipo !== 'vuelo' && o.tipo !== 'actividad');
     const estado = { ...e, datos: { ...e.datos, ofertas: resto, sinConfirmar: [vieja], todas: [...resto, vieja] } };
     const sin = resultadosEscapadas(estado, {});
-    assert.match(sin, /1 oferta más está sin confirmar: su web no la ha vuelto a mostrar en el tiempo previsto, así que no se cuenta\. <a href="#\/escapadas\?sinconf=1">Verla al final/);
+    // A la vista, cuántas y cómo verlas; el porqué, en su «ⓘ».
+    assert.match(sin, /1 oferta más sin confirmar<button type="button" class="boton-info" data-info="info-sinconf-escapadas"[^>]*>[^]*?<\/button> · <a href="#\/escapadas\?sinconf=1">Verla al final/);
+    assert.match(sin, /<div class="info-texto" id="info-sinconf-escapadas" hidden>Su web no la ha vuelto a mostrar en el tiempo previsto, así que no se cuenta en la lista\.<\/div>/);
     assert.ok(!sin.includes(`data-ficha="${vieja.id}"`), 'no sale en la lista');
     const con = resultadosEscapadas(estado, { sinconf: '1' });
     assert.ok(con.includes(`data-ficha="${vieja.id}"`), 'pedidas, salen');
