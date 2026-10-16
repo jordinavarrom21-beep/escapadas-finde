@@ -1,13 +1,15 @@
 /**
  * Lo que pidió el propietario el 16/10/2026: filtros en un orden coherente, las explicaciones
  * detrás de un botón «ⓘ» (antes, demasiado texto a la vista), el tema claro por defecto, el
- * aviso de ofertas nuevas que no se queda fijo, textos que no se cortan y la tarjeta de vuelo
- * sin la minigráfica de ancho fijo.
+ * aviso de ofertas nuevas que no se queda fijo, textos que no se cortan ni se descolocan y la
+ * tarjeta de vuelo sin la minigráfica de ancho fijo.
  */
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
+
+import { load } from 'cheerio';
 
 import { estadoPanel } from './ayudas-panel.js';
 import {
@@ -15,7 +17,7 @@ import {
   vistaFuentes, vistaMis, vistaVuelos,
 } from '../site/js/vistas.js';
 import { campoTexto, formularioViaje, interruptor } from '../site/js/vistas-comun.js';
-import { tarjetaVuelo, tendenciaPrecio } from '../site/js/plantillas.js';
+import { tarjetaOferta, tarjetaVuelo, tendenciaPrecio } from '../site/js/plantillas.js';
 
 const SITE = new URL('../site/', import.meta.url);
 const leer = (ruta) => readFileSync(new URL(ruta, SITE), 'utf8');
@@ -178,7 +180,7 @@ describe('aviso de ofertas nuevas que no se queda fijo', () => {
     assert.match(app, /relojAvisoDatos = setTimeout\(cerrarAvisoDatosSiNoSeUsa, AVISO_DATOS_MS\);/);
     assert.match(app, /data-cerrar-datos-nuevos aria-label="Cerrar el aviso"/);
     assert.match(app, /if \(aviso\.querySelector\('\[data-actualizar\]'\) \|\| avisoDatosCerrado \|\| todo\[0\]\.generado === avisoDatosDe\) return;\s+avisoDatosDe = todo\[0\]\.generado;/);
-    // Cerrar «Hay una versión nueva» no apaga los de ofertas nuevas; con el foco dentro, no se va.
+    // Cerrar «Nueva versión» no apaga los de ofertas nuevas; con el foco dentro, no se va.
     assert.match(app, /if \(porUsuario && !aviso\.querySelector\('\[data-actualizar\]'\)\) avisoDatosCerrado = true;/);
     assert.match(app, /if \(aviso\.contains\(document\.activeElement\) \|\| encima\) relojAvisoDatos = setTimeout\(cerrarAvisoDatosSiNoSeUsa, AVISO_DATOS_MS\);/);
     // Al usar los datos nuevos al cambiar de vista, sigue el aviso «Con los filtros de la última vez».
@@ -187,6 +189,12 @@ describe('aviso de ofertas nuevas que no se queda fijo', () => {
     assert.match(app, /if \(datosNuevos\) usarDatos\(datosNuevos, \{ pintar: false \}\);\s+render\(\);/);
     // En el móvil ocupaba media pantalla y cuatro líneas: ahora, con su ancho.
     assert.match(CSS, /\.aviso-flotante--datos \{[^}]*width: max-content;/);
+  });
+
+  it('el de versión nueva también cabe en una línea en un móvil de 320 px', () => {
+    // «Hay una versión nueva de la web» ocupaba cuatro líneas junto a «Actualizar» y la ✕.
+    assert.match(app, /\$\{icono\('nuevo'\)\}Nueva versión<\/span><button type="button" class="boton boton--primario" data-actualizar>Actualizar<\/button>\$\{botonCerrarAviso\}/);
+    assert.match(CSS, /@media \(max-width: 359px\) \{\s+\.aviso-flotante--datos \{ gap: 6px; padding-left: 12px; \}\s+\.aviso-flotante--datos \.boton \{ padding-inline: 10px; \}/);
   });
 });
 
@@ -198,6 +206,10 @@ describe('textos que no se cortan', () => {
     assert.match(regla('.tarjeta__lugar'), /line-clamp: 2/);
     assert.doesNotMatch(regla('.tarjeta__opiniones'), /nowrap|ellipsis|(?<!-)height: 20px/);
     assert.doesNotMatch(regla('.tarjeta .tarjeta__datos'), /overflow: hidden|(?<!-)height: 45px/);
+    // En lista, un tope de 45 px sin recorte montaba la tercera línea sobre «Precio visto…».
+    assert.doesNotMatch(CSS, /\.modo-lista #resultados \.tarjeta \.tarjeta__datos[^{]*\{[^}]*max-height: 45px/);
+    assert.match(CSS, /\.modo-lista #resultados \.tarjeta \.tarjeta__datos, \.modo-lista #resultados \.insignias--tarjeta \{ height: auto; max-height: none; \}/);
+    assert.match(CSS, /\n\.modo-lista #resultados \.tarjeta \.tarjeta__datos \{ min-height: 0; \}/);
     // El aviso de bloque de Guardados ya no convierte «pocas opiniones» de las tarjetas en una caja.
     assert.doesNotMatch(CSS, /\n\.aviso-suave \{ display: flex/);
     assert.match(CSS, /\np\.aviso-suave \{ display: flex/);
@@ -212,6 +224,8 @@ describe('rótulos, buscadores y billetes alineados', () => {
     assert.match(CSS, /\.con-info__fila > \.interruptor \{ flex: 0 1 auto; min-width: 0; \}/);
     assert.match(CSS, /\.campo__rotulo \{ display: block;/);
     assert.match(CSS, /\.sin-corte \{ white-space: nowrap; \}/);
+    // En el móvil, el círculo de 40 px de la «ⓘ» abierta tapaba la última letra del rótulo.
+    assert.match(CSS, /\.boton-info:hover, \.boton-info\[aria-expanded="true"\] \{ background: radial-gradient\(circle, var\(--acento-suave\) 13\.5px, transparent 14px\); \}/);
     // Los avisos de «Cerca de…» (role="status"), vacíos pero en la página: con display: none no se leían.
     assert.doesNotMatch(CSS, /\.ayuda:empty \{ display: none; \}/);
     assert.match(CSS, /\.ayuda:empty \{ position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset\(50%\); \}/);
@@ -234,7 +248,7 @@ describe('rótulos, buscadores y billetes alineados', () => {
     assert.match(tendenciaPrecio([['2026-10-07', 34], ['2026-10-08', 34]]), /tendencia--igual/);
   });
 
-  it('en el billete, los sellos van con la ruta: el precio queda a la misma altura en toda la fila', () => {
+  it('en el billete, los sellos van con la ruta (en su parte principal), no en el pie', () => {
     const e = estadoPanel();
     const vuelo = e.datos.ofertas.find((o) => o.vuelo);
     const html = tarjetaVuelo({ ...vuelo, vuelo: { ...vuelo.vuelo, horarioIdeal: true } }, { ...estadoPanel(), historial: {} });
@@ -242,5 +256,36 @@ describe('rótulos, buscadores y billetes alineados', () => {
     const pie = html.slice(html.indexOf('billete__pie'));
     assert.match(principal, /<div class="insignias">[^]*Horario ideal/);
     assert.doesNotMatch(pie, /class="insignias"/);
+  });
+});
+
+describe('tarjetas y billetes alineados por filas', () => {
+  /** Los hijos de un elemento, por su primera clase. */
+  const hijos = ($, sel) => $(sel).first().children().toArray().map((el) => $(el).attr('class').split(' ')[0]);
+
+  it('en la rejilla, cada parte va en una fila compartida con las de su fila (subgrid)', () => {
+    const desde = CSS.indexOf('@supports (grid-template-rows: subgrid) {\n  @media (min-width: 600px)');
+    assert.ok(desde >= 0, 'falta el bloque de la subgrid');
+    const subgrid = CSS.slice(desde);
+    assert.match(subgrid, /:where\(\.rejilla:not\(\.modo-lista #resultados \.rejilla\):has\(\.tarjeta\)\) \.tarjeta \{ display: grid; grid-row: span 8; grid-template-rows: subgrid; row-gap: 0; \}/);
+    assert.match(subgrid, /:where\(\.rejilla:not\(\.modo-lista #resultados \.rejilla\):has\(\.tarjeta\)\) \.tarjeta__cuerpo \{ display: grid; grid-row: span 7; grid-template-rows: subgrid; \}/);
+    // El billete, sin «container-type»: un contenedor no puede compartir filas.
+    assert.match(subgrid, /:where\(\.rejilla:not\(\.modo-lista #resultados \.rejilla\)\) \.billete \{ container-type: normal; display: grid; grid-template-rows: subgrid; row-gap: 0; \}/);
+    assert.match(subgrid, /:where\(\.rejilla:not\(\.modo-lista #resultados \.rejilla, :has\(\.tarjeta\)\)\) \.billete__cuerpo \{ grid-row: span 2; display: grid; grid-template-rows: subgrid; \}/);
+    assert.match(subgrid, /:where\(\.rejilla:not\(\.modo-lista #resultados \.rejilla\):has\(\.tarjeta\)\) \.billete__cuerpo \{ grid-row: span 7; flex-direction: column; \}/);
+  });
+
+  it('las filas que reserva la rejilla son justo las partes de la tarjeta y del billete', () => {
+    // Una parte de más se montaría sobre otra (en una subgrid no se crean filas nuevas).
+    const e = estadoPanel();
+    const ctx = { ...e, historial: {}, fuentes: new Map() };
+    const escapada = e.datos.ofertas.find((o) => !o.vuelo);
+    const $t = load(tarjetaOferta(escapada, ctx));
+    assert.deepEqual(hijos($t, '.tarjeta'), ['tarjeta__media', 'tarjeta__cuerpo']);
+    assert.deepEqual(hijos($t, '.tarjeta__cuerpo'), ['tarjeta__cabeza', 'tarjeta__titulo', 'tarjeta__opiniones', 'tarjeta__datos', 'insignias', 'tarjeta__estado', 'tarjeta__pie']);
+    const vuelo = e.datos.ofertas.find((o) => o.vuelo);
+    const $b = load(tarjetaVuelo(vuelo, ctx));
+    assert.deepEqual(hijos($b, '.billete'), ['billete__cuerpo', 'billete__pie']);
+    assert.deepEqual(hijos($b, '.billete__cuerpo'), ['billete__principal', 'billete__talon']);
   });
 });

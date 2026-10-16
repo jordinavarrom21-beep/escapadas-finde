@@ -1,5 +1,6 @@
 // Mide la maquetación en varios anchos: desbordes horizontales, textos cortados, cosas que se salen
-// de su caja, iconos vacíos y objetivos táctiles pequeños. Guarda la parte de arriba de cada vista.
+// de su caja (también por abajo), tarjetas de una fila con las partes a distinta altura, la «ⓘ»
+// encima de su rótulo, iconos vacíos y objetivos táctiles pequeños. Guarda la parte de arriba de cada vista.
 // Uso: npm run test:maquetacion (sale con error si encuentra algo). Variables: ANCHOS, RUTAS,
 // TEMAS (light,dark), LISTA=1 (modo lista), FOTOS=carpeta para guardar capturas.
 import { mkdirSync } from 'node:fs';
@@ -75,6 +76,65 @@ for (const tema of TEMAS) for (const ancho of ANCHOS) {
           if (desliza) continue;
           const hb = h.getBoundingClientRect();
           if (hb.right > cb.right + 1.5 || hb.left < cb.left - 1.5) { out.push(`se sale de ${caja.className.split(' ')[0]}: ${h.tagName.toLowerCase()}.${[...h.classList].join('.')} «${(h.textContent || '').trim().slice(0, 30)}» (${Math.round(hb.left)}–${Math.round(hb.right)} vs ${Math.round(cb.left)}–${Math.round(cb.right)})`); break; }
+        }
+      }
+      // Partes de una tarjeta que se salen por abajo de su caja o se montan sobre la siguiente.
+      for (const t of document.querySelectorAll('.tarjeta, .billete')) {
+        if (!visible(t)) continue;
+        const partes = [...t.querySelectorAll(':scope > *, .tarjeta__cuerpo > *, .billete__cuerpo > *, .billete__principal > *')].filter(visible);
+        for (const h of partes) {
+          if (getComputedStyle(h).overflowY === 'visible' && h.scrollHeight > h.clientHeight + 2) { out.push(`se sale por abajo: ${h.className.split(' ')[0]} «${h.textContent.trim().slice(0, 30)}» (${h.scrollHeight}>${h.clientHeight})`); break; }
+        }
+        const cuerpo = [...t.querySelectorAll('.tarjeta__cuerpo > *, .billete__principal > *')].filter(visible);
+        for (let i = 1; i < cuerpo.length; i++) {
+          // (En lista, el precio va en otra columna: solo cuenta si además coinciden en horizontal.)
+          const [a, z] = [cuerpo[i - 1].getBoundingClientRect(), cuerpo[i].getBoundingClientRect()];
+          if (a.bottom > z.top + 1.5 && a.right > z.left + 1.5 && z.right > a.left + 1.5) { out.push(`se monta: ${cuerpo[i - 1].className.split(' ')[0]} sobre ${cuerpo[i].className.split(' ')[0]} «${cuerpo[i].textContent.trim().slice(0, 30)}»`); break; }
+        }
+      }
+      // En una fila de la rejilla, cada parte de las tarjetas (y el talón y el pie de los billetes)
+      // empieza a la misma altura. Solo donde se comparten filas (subgrid: desde 600 px, y los
+      // billetes desde 720 sin tarjetas al lado).
+      if (vw >= 600 && CSS.supports('grid-template-rows: subgrid') && !document.documentElement.classList.contains('modo-lista')) {
+        const PARTES = { tarjeta: ['.tarjeta__titulo', '.tarjeta__opiniones', '.tarjeta__datos', '.insignias--tarjeta', '.tarjeta__estado', '.tarjeta__pie'], billete: ['.billete__talon', '.billete__pie'] };
+        for (const rejilla of document.querySelectorAll('.rejilla')) {
+          const filas = new Map();
+          for (const t of rejilla.querySelectorAll('.tarjeta, .billete')) {
+            if (!visible(t)) continue;
+            const tipo = t.matches('.billete') ? 'billete' : 'tarjeta';
+            if (tipo === 'billete' && (vw < 720 || rejilla.querySelector('.tarjeta'))) continue;
+            const caja = t.getBoundingClientRect();
+            const clave = `${tipo}:${Math.round(t.closest('.rejilla > *').getBoundingClientRect().top)}`;
+            if (!filas.has(clave)) filas.set(clave, []);
+            filas.get(clave).push({ t, y: PARTES[tipo].map((s) => { const e = t.querySelector(s); return e && visible(e) ? e.getBoundingClientRect().top - caja.top : null; }) });
+          }
+          for (const [clave, fila] of filas) {
+            if (fila.length < 2) continue;
+            PARTES[clave.split(':')[0]].forEach((s, i) => {
+              const ys = fila.map((x) => x.y[i]).filter((y) => y !== null);
+              if (ys.length > 1 && Math.max(...ys) - Math.min(...ys) > 2) out.push(`fila desalineada: ${s} (${Math.round(Math.min(...ys))}–${Math.round(Math.max(...ys))} px) «${fila[0].t.querySelector('.tarjeta__titulo')?.textContent.trim().slice(0, 25)}»`);
+            });
+          }
+        }
+      }
+      // En el móvil, el círculo de la «ⓘ» abierta (28 px dentro de su área de 40) no tapa la palabra de antes.
+      if (movil) {
+        for (const boton of document.querySelectorAll('.boton-info')) {
+          if (!visible(boton)) continue;
+          let antes = boton.previousSibling;
+          while (antes && !(antes.textContent ?? '').trim()) antes = antes.previousSibling;
+          if (!antes) continue;
+          const rango = document.createRange();
+          rango.selectNodeContents(antes);
+          const letras = [...rango.getClientRects()].at(-1);
+          const b = boton.getBoundingClientRect();
+          // Lo que se pinta al abrirla: un círculo de 28 px (radial-gradient) o el botón entero.
+          const abierta = boton.getAttribute('aria-expanded');
+          boton.setAttribute('aria-expanded', 'true');
+          const pintado = getComputedStyle(boton).backgroundImage.includes('radial-gradient') ? 28 : b.width;
+          boton.setAttribute('aria-expanded', abierta);
+          const circulo = b.left + (b.width - pintado) / 2;
+          if (letras && letras.bottom > b.top && letras.top < b.bottom && letras.right > circulo + 0.5) out.push(`la ⓘ tapa «${antes.textContent.trim().slice(-12)}» (${Math.round(letras.right)} > ${Math.round(circulo)})`);
         }
       }
       // Iconos sin dibujo.

@@ -681,6 +681,9 @@ html:not(.js) .cargando { display: none; }
 /* En el móvil, el mismo icono con un área de toque de 40 px (sin ensanchar la línea). */
 @media (max-width: 719px) {
   .boton-info { width: 40px; height: 40px; margin: -10px -6px -10px -4px; }
+  /* Lo que se ve es un círculo de 28 px: el de 40 tapaba la última letra del rótulo al abrirlo. */
+  .boton-info:hover, .boton-info[aria-expanded="true"] { background: radial-gradient(circle, var(--acento-suave) 13.5px, transparent 14px); }
+  .boton-info:focus-visible { outline-offset: -6px; }
 }
 
 .resultados__cabeza { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
@@ -756,8 +759,9 @@ html:not(.js) .cargando { display: none; }
 .tarjeta__pie .coste-total { margin: 0; }
 .tarjeta__acciones { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 /*
- * Tarjeta con huecos fijos: título (2 líneas), opiniones (1), datos (2), etiquetas (1),
- * precio y coste. Así, en una fila, todas miden lo mismo y cada cosa está a la misma altura.
+ * Tarjeta con huecos mínimos: título (3 líneas), opiniones (1), datos (2), etiquetas (1), precio
+ * y coste. Si una parte necesita más, crece sin cortarse; en la rejilla, las de su fila crecen con
+ * ella (subgrid, más abajo) y todo sigue a la misma altura.
  */
 .tarjeta .tarjeta__titulo { display: block; height: calc(3 * 1.3em); }
 /* El título es un botón: el recorte a 2 líneas va en él (en el h3 no se aplicaba). */
@@ -828,6 +832,7 @@ html:not(.js) .cargando { display: none; }
 .precio { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 7px; }
 .precio strong { font-family: var(--fuente-titulos); font-size: 1.7rem; font-weight: 800; letter-spacing: -0.02em; line-height: 1.05; }
 .precio__consultar { font-size: 1rem !important; font-family: var(--fuente) !important; }
+
 .precio__unidad { font-size: 0.8rem; color: var(--texto-suave); }
 .precio__desde { font-size: 0.8rem; color: var(--texto-suave); }
 .precio__gratis { color: var(--acento); }
@@ -961,7 +966,11 @@ html:not(.js) .cargando { display: none; }
 .modo-lista #resultados .tarjeta__pie .acciones { margin-top: auto; }
 /* En lista cada fila es independiente: sin los huecos fijos de la rejilla. */
 .modo-lista #resultados .tarjeta .tarjeta__titulo { height: auto; }
-.modo-lista #resultados .tarjeta .tarjeta__datos, .modo-lista #resultados .insignias--tarjeta { height: auto; max-height: 45px; }
+/* Los datos y las etiquetas, con todo su texto: con un tope de alto y sin recorte, la tercera línea
+   se montaba sobre «Precio visto…» o las etiquetas. */
+.modo-lista #resultados .tarjeta .tarjeta__datos, .modo-lista #resultados .insignias--tarjeta { height: auto; max-height: none; }
+/* Ni el hueco mínimo de dos líneas: en lista, «Casa rural» sola dejaba una línea en blanco debajo. */
+.modo-lista #resultados .tarjeta .tarjeta__datos { min-height: 0; }
 .modo-lista #resultados .insignias--tarjeta:empty, .modo-lista #resultados .tarjeta__opiniones--sin, .modo-lista #resultados .tarjeta__coste:empty { display: none; }
 .modo-lista #resultados .tarjeta__precio, .modo-lista #resultados .tarjeta__coste { min-height: 0; }
 .modo-lista #resultados .tarjeta__pie .acciones { flex: 0 1 auto; min-width: 0; max-width: 100%; }
@@ -1035,6 +1044,47 @@ html:not(.js) .cargando { display: none; }
   .billete__talon .puntuacion { order: 5; margin-left: auto; align-self: center; }
   .billete__talon .precio { flex-direction: row; align-items: baseline; gap: 2px 7px; }
   .billete__talon .tendencia { flex: 1 1 10em; min-width: 0; }
+}
+/*
+ * En la rejilla, las tarjetas de una fila comparten las filas de sus partes (subgrid): la foto,
+ * el título, las opiniones, los datos, las etiquetas, «Precio visto…» y el precio empiezan a la
+ * misma altura en todas aunque a una le toque una línea más, y sin cortar el texto. Los billetes,
+ * igual con la ruta, el talón (precio) y el pie; junto a tarjetas (Buscar), el billete ocupa sus
+ * mismas filas y su pie va con el de ellas. En lista, cada fila va por su cuenta. Sin subgrid o
+ * sin :has, el navegador se queda con lo de siempre.
+ */
+@supports (grid-template-rows: subgrid) {
+  @media (min-width: 600px) {
+    :where(.rejilla:not(.modo-lista #resultados .rejilla):has(.tarjeta)) > .con-motivo { display: grid; grid-row: span 9; grid-template-rows: subgrid; row-gap: 8px; }
+    :where(.rejilla:not(.modo-lista #resultados .rejilla):has(.tarjeta)) .tarjeta { display: grid; grid-row: span 8; grid-template-rows: subgrid; row-gap: 0; }
+    :where(.rejilla:not(.modo-lista #resultados .rejilla):has(.tarjeta)) .tarjeta__cuerpo { display: grid; grid-row: span 7; grid-template-rows: subgrid; }
+    /* El pie, arriba de su fila (la raya y «Precio en …» alineados) y el botón, abajo del todo. */
+    :where(.rejilla:not(.modo-lista #resultados .rejilla):has(.tarjeta)) .tarjeta__pie { margin-top: 0; }
+    :where(.rejilla:not(.modo-lista #resultados .rejilla):has(.tarjeta)) .tarjeta__pie > .acciones { margin-top: auto; }
+    :where(.rejilla:not(.modo-lista #resultados .rejilla):has(.tarjeta)) .billete { grid-row: span 8; }
+  }
+  /*
+   * Desde dos columnas, el billete también comparte filas. Un contenedor de «@container» no puede
+   * (el navegador lo aísla), así que aquí deja de serlo y lleva siempre el talón debajo de la
+   * ruta, que es como queda en cuanto hay dos columnas.
+   */
+  @media (min-width: 720px) {
+    :where(.rejilla:not(.modo-lista #resultados .rejilla, :has(.tarjeta))) > .con-motivo { display: grid; grid-row: span 4; grid-template-rows: subgrid; row-gap: 8px; }
+    :where(.rejilla:not(.modo-lista #resultados .rejilla)) .billete { container-type: normal; display: grid; grid-template-rows: subgrid; row-gap: 0; }
+    :where(.rejilla:not(.modo-lista #resultados .rejilla, :has(.tarjeta))) .billete { grid-row: span 3; }
+    :where(.rejilla:not(.modo-lista #resultados .rejilla, :has(.tarjeta))) .billete__cuerpo { grid-row: span 2; display: grid; grid-template-rows: subgrid; }
+    /* Junto a tarjetas: la ruta y el talón, en las filas de la foto a «Precio visto…»; el pie, con el suyo. */
+    :where(.rejilla:not(.modo-lista #resultados .rejilla):has(.tarjeta)) .billete__cuerpo { grid-row: span 7; flex-direction: column; }
+    /* El talón, como en el billete estrecho; con el alto de la fila, sus líneas siguen arriba. */
+    :where(.rejilla:not(.modo-lista #resultados .rejilla)) .billete__talon {
+      width: auto; flex-direction: row; flex-wrap: wrap; align-items: center; align-content: flex-start; gap: 6px 14px;
+      border-left: 0; border-top: 2px dashed var(--borde);
+    }
+    :where(.rejilla:not(.modo-lista #resultados .rejilla)) .billete__talon .puntuacion { order: 5; margin-left: auto; align-self: center; }
+    :where(.rejilla:not(.modo-lista #resultados .rejilla)) .billete__talon .precio { flex-direction: row; align-items: baseline; gap: 2px 7px; }
+    :where(.rejilla:not(.modo-lista #resultados .rejilla)) .billete__talon .tendencia { flex: 1 1 10em; min-width: 0; }
+    :where(.rejilla:not(.modo-lista #resultados .rejilla)) .billete__pie { align-content: flex-start; }
+  }
 }
 
 .vacio {
@@ -1358,6 +1408,12 @@ html:not(.js) .cargando { display: none; }
 .aviso-flotante__texto .ic { flex: none; }
 .aviso-flotante__cerrar { flex: none; color: inherit; background: transparent; border-color: transparent; }
 .aviso-flotante__cerrar:hover { background: rgb(255 255 255 / 12%); }
+/* En un móvil de 320 px, lo justo para que «Nueva versión · Actualizar · ✕» quepa en una línea. */
+@media (max-width: 359px) {
+  .aviso-flotante--datos { gap: 6px; padding-left: 12px; }
+  .aviso-flotante--datos .boton { padding-inline: 10px; }
+  .aviso-flotante--datos .aviso-flotante__cerrar { width: 36px; }
+}
 /* Si también hay un aviso corto, el de datos nuevos sube para no taparlo. */
 .aviso-flotante--datos:not([hidden]) ~ .aviso-flotante:not(:empty) { bottom: calc(76px + var(--barra-movil) + var(--alto-cookies, 0px)); }
 

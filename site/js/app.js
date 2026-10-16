@@ -1328,7 +1328,7 @@ let avisoDatosDe = null;
 function cerrarAvisoDatos({ porUsuario = false } = {}) {
   clearTimeout(relojAvisoDatos);
   const aviso = $('#datos-nuevos');
-  // Cerrar «Hay una versión nueva» no apaga los avisos de ofertas nuevas.
+  // Cerrar «Nueva versión» no apaga los avisos de ofertas nuevas.
   if (porUsuario && !aviso.querySelector('[data-actualizar]')) avisoDatosCerrado = true;
   const teniaFoco = aviso.contains(document.activeElement);
   aviso.hidden = true;
@@ -1510,7 +1510,7 @@ const ocupado = () => dialogo.open || dialogoViaje.open || ['INPUT', 'TEXTAREA',
 function avisarVersionNueva() {
   clearTimeout(relojAvisoDatos);
   const aviso = $('#datos-nuevos');
-  aviso.innerHTML = `<span class="aviso-flotante__texto">${icono('nuevo')}Hay una versión nueva de la web</span><button type="button" class="boton boton--primario" data-actualizar>Actualizar</button>${botonCerrarAviso}`;
+  aviso.innerHTML = `<span class="aviso-flotante__texto">${icono('nuevo')}Nueva versión</span><button type="button" class="boton boton--primario" data-actualizar>Actualizar</button>${botonCerrarAviso}`;
   aviso.hidden = false;
 }
 

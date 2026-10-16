@@ -646,8 +646,9 @@ function insigniasTarjeta(o, ctx) {
 /** Tarjeta de escapada, hotel, paquete o chollo de vuelo sin fechas. */
 export function tarjetaOferta(o, ctx) {
   const web = ctx.fuentes?.get(o.fuente) ?? o.fuente;
-  // Siempre los mismos huecos y del mismo alto (ver estilos): en una fila, el título, las
-  // opiniones, los datos, las etiquetas y el precio de todas las tarjetas quedan alineados.
+  // Siempre las mismas partes y en este orden: en la rejilla, cada una ocupa una fila compartida
+  // con las tarjetas de al lado (ver estilos), y el título, las opiniones, los datos, las etiquetas
+  // y el precio quedan alineados. Una parte de más se montaría sobre otra.
   return `<article class="tarjeta" style="--color-tema:${colorTema(o)}">
   ${cabeceraFoto(o, ctx)}
   <div class="tarjeta__cuerpo">
