@@ -9,10 +9,17 @@ import path from 'node:path';
 import { RAIZ, arrancar, contexto as nuevoContexto, vigilarErrores } from './comun.mjs';
 import { ponerPortada } from '../scripts/preparar-web.js';
 import { generarPaginas } from '../src/paginas.js';
+import { repartir } from '../site/js/vigencia.js';
 
 const { base: BASE, navegador: b, cerrar } = await arrancar();
 const datos = JSON.parse(readFileSync(path.join(RAIZ, 'site/data/ofertas.json'), 'utf8'));
 const conVuelosConFecha = datos.ofertas.some((o) => o.vuelo?.ida?.salida);
+// Las que la web enseña, como en app.js: con datos de otro día, una oferta caducada ya no sale al buscarla.
+const { vigentes } = repartir(datos.ofertas, {
+  ahora: new Date(),
+  revision: Number.isFinite(Date.parse(datos.generado)) ? new Date(datos.generado) : new Date(),
+  intervalos: new Map((datos.fuentes ?? []).map((f) => [f.id, f.intervaloMin])),
+});
 const fallos = [];
 const hechos = [];
 const errores = [];
@@ -359,7 +366,7 @@ await ir(p, 'fuentes');
 ok((await p.locator('.tabla-fuentes tbody tr').count()) > 10, 'fuentes: tabla completa');
 // Un pueblo de una oferta que no se haya descartado antes en esta prueba (las descartadas no salen).
 const descartadas = await p.evaluate(() => JSON.parse(localStorage.getItem('escapadas:descartadas') ?? '[]'));
-const palabra = (datos.ofertas.find((o) => o.tipo !== 'vuelo' && !descartadas.includes(o.id) && o.lugar?.nombre && /^[a-záéíóúñ]{5,}$/i.test(o.lugar.nombre)
+const palabra = (vigentes.find((o) => o.tipo !== 'vuelo' && !descartadas.includes(o.id) && o.lugar?.nombre && /^[a-záéíóúñ]{5,}$/i.test(o.lugar.nombre)
   && !datos.ofertas.some((x) => x.lugar?.nombre === o.lugar.nombre && descartadas.includes(x.id)))?.lugar.nombre ?? 'spa').toLowerCase();
 await p.locator('#q').fill(palabra);
 await p.locator('#buscador button[type="submit"]').click();
@@ -756,7 +763,7 @@ const inicioPedido = (pm, archivo) => pm.evaluate((a) => performance.getEntriesB
 {
   // Sin tocar nada, al llegar el historial la portada se repinta con él (con favoritos, sus
   // tarjetas de «Recomendado para ti» lo usan).
-  const { cm, pm, listo } = await cargaMovil({ historialMs: 2500, favoritos: datos.ofertas.filter((o) => o.tipo !== 'vuelo').slice(0, 3).map((o) => o.id) });
+  const { cm, pm, listo } = await cargaMovil({ historialMs: 2500, favoritos: vigentes.filter((o) => o.tipo !== 'vuelo').slice(0, 3).map((o) => o.id) });
   await listo();
   const recomendadas = await pm.locator('#principal .seccion:has-text("Recomendado para ti") .tarjeta').count();
   await pm.evaluate(() => { document.querySelector('#principal .portada').dataset.deAntes = '1'; });
