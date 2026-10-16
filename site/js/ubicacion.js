@@ -24,6 +24,8 @@ export function activarUbicacion(formulario, origen, { salida = null, prefijo = 
   if (!texto) return;
   const lista = formulario.querySelector(`#${prefijo}-sugerencias`);
   const ayuda = formulario.querySelector(`#${prefijo}-ayuda`);
+  // Desde dónde se mide va en la «ⓘ» del apartado; `ayuda` solo dice lo que pasa al buscar.
+  const info = formulario.querySelector(`#info-${prefijo}`);
   const { lugar, lat, lon } = formulario.elements;
   let sugerencias = [];
   let activa = -1;
@@ -50,7 +52,8 @@ export function activarUbicacion(formulario, origen, { salida = null, prefijo = 
     lat.value = punto ? punto.lat.toFixed(4) : '';
     lon.value = punto ? punto.lon.toFixed(4) : '';
     texto.value = punto?.nombre ?? '';
-    ayuda.textContent = textoAyudaUbicacion(punto, origen, salida);
+    ayuda.textContent = '';
+    if (info) info.textContent = textoAyudaUbicacion(punto, origen, salida);
     cerrar();
     formulario.dispatchEvent(new Event('change', { bubbles: true }));
   }

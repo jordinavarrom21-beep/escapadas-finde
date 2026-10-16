@@ -7,7 +7,7 @@ import { costeViaje, resumenCoste } from './coste.js';
 import { diasEntre, etiquetaDia, etiquetaRango, fechaLocal, horaDe } from './fechas.js';
 import {
   ETIQUETAS_ALOJAMIENTO, ETIQUETAS_REGIMEN, ETIQUETAS_TIPO, ETIQUETAS_TRANSPORTE, ETIQUETAS_UNIDAD, SIN_UNIDAD, TIPOS_EVENTO,
-  contar, duracion, enumerar, escaparHtml as esc, euros, grados, haceCuanto, nota, puntosMinigrafica, tituloLegible, unDecimal, urlSegura,
+  contar, duracion, enumerar, escaparHtml as esc, euros, grados, haceCuanto, nota, tituloLegible, unDecimal, urlSegura,
 } from './formato.js';
 import {
   SIN_COCHE, duracionActividad, encajeEnRango, esDuplicada, esNovedad, precioDeSerie, referenciaPrecisa, salidasDe, sinComprobar,
@@ -51,8 +51,13 @@ function detalleReferencia(r) {
   return `La media de ${esc(r.descripcion ?? 'ofertas parecidas')}${r.n ? `, con ${r.n} ofertas,` : ''} es ${euros(r.mediana)}`;
 }
 
-/** «Más barata que la media de escapadas parecidas» (el % y con qué se compara, en el título). */
-const textoReferencia = (o) => (o.tipo === 'vuelo' ? 'Más barato que la media de esta ruta' : 'Más barata que la media de escapadas parecidas');
+/**
+ * «Más barata que la media de escapadas parecidas» (el % y con qué se compara, en el título).
+ * `corto`, en el sello de la foto: entero no cabía y se metía debajo del corazón.
+ */
+const textoReferencia = (o, { corto = false } = {}) => (o.tipo === 'vuelo'
+  ? `Más barato que la media${corto ? '' : ' de esta ruta'}`
+  : `Más barata que la media${corto ? '' : ' de escapadas parecidas'}`);
 
 function insigniaReferencia(o) {
   const r = referenciaPrecisa(o);
@@ -120,7 +125,7 @@ export function insignias(o, ctx, { enFoto = false, sinBajada = false } = {}) {
 function selloFoto(o) {
   if (o.chollazo) return insigniaChollazo(o, 'sello sello--chollazo');
   const r = referenciaPrecisa(o);
-  if (r) return `<span class="sello" title="Un ${r.ahorroPct} % menos. ${detalleReferencia(r)}">${icono('bajada')}${textoReferencia(o)}</span>`;
+  if (r) return `<span class="sello" title="Un ${r.ahorroPct} % menos. ${detalleReferencia(r)}">${icono('bajada')}${textoReferencia(o, { corto: true })}</span>`;
   return '';
 }
 
@@ -835,15 +840,17 @@ export function textoTendencia(serie) {
   ].filter(Boolean).join(' · ');
 }
 
-/** Minigráfica SVG del historial de precios (vacía si hay menos de dos puntos). */
-export function minigrafica(serie) {
-  const puntos = puntosMinigrafica(serie);
-  if (!puntos) return '';
-  const [primero, ultimo] = [serie[0][1], serie.at(-1)[1]];
-  // El color dice hacia dónde va el precio (verde, baja; rojo, sube; gris, igual) y lo repite en palabras.
-  const tendencia = ultimo < primero ? 'baja' : ultimo > primero ? 'sube' : 'igual';
-  const texto = textoTendencia(serie);
-  return `<span class="tendencia tendencia--${tendencia}" title="Precio de los últimos ${serie.length} días: de ${euros(primero)} a ${euros(ultimo)}"><svg class="minigrafica" viewBox="0 0 96 28" width="96" height="28" role="img" aria-label="Historial de ${serie.length} días: de ${euros(primero)} a ${euros(ultimo)}"><polyline points="${puntos}" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/></svg><span class="tendencia__texto">${texto}</span></span>`;
+/**
+ * Cómo va el precio, en palabras (vacío si hay menos de dos días). Antes llevaba al lado una
+ * minigráfica de ancho fijo que no se adaptaba a la tarjeta: la gráfica está en la ficha.
+ */
+export function tendenciaPrecio(serie) {
+  if (!Array.isArray(serie) || serie.length < 2) return '';
+  const [primero, anterior, ultimo] = [serie[0][1], serie.at(-2)[1], serie.at(-1)[1]];
+  // El color va con lo que dice primero la frase, frente al día anterior (verde, baja; rojo, sube;
+  // gris, igual): con toda la serie, «1 € más que ayer» salía en verde si al principio costaba más.
+  const tendencia = ultimo < anterior ? 'baja' : ultimo > anterior ? 'sube' : 'igual';
+  return `<p class="tendencia tendencia--${tendencia}" title="Precio de los últimos ${serie.length} días: de ${euros(primero)} a ${euros(ultimo)}">${esc(textoTendencia(serie))}</p>`;
 }
 
 /** «vie 16 oct · 19:05 → 20:50 · Directo»: la llegada si se sabe; si no, la duración. */
@@ -880,16 +887,16 @@ export function tarjetaVuelo(o, ctx) {
       <h3 class="tarjeta__titulo"><button type="button" class="enlace-ficha" data-ficha="${esc(o.id)}">${esc(o.lugar?.nombre ?? o.titulo)}</button>${pais}</h3>
       ${v.aerolinea ? `<p class="billete__aerolinea suave">${esc(v.aerolinea)}</p>` : ''}
       <dl class="billete__tramos">${tramo('Ida', v.ida)}${tramo('Vuelta', v.vuelta)}</dl>
+      <div class="insignias">${insigniaEncaje(o, ctx)}${extras}${insignias(o, ctx, { sinBajada: true })}</div>
     </div>
     <div class="billete__talon">
       ${puntuacion(o, ctx)}
       ${precio(o)}
       ${desglose}
-      ${minigrafica(ctx.historial?.[o.id])}
+      ${tendenciaPrecio(ctx.historial?.[o.id])}
     </div>
   </div>
   <div class="billete__pie">
-    <div class="insignias">${insigniaEncaje(o, ctx)}${extras}${insignias(o, ctx, { sinBajada: true })}</div>
     ${textoComprobada(o, ctx)}
     <div class="acciones">${botonDescartar(o)}${botonComparar(o, ctx)}${botonFavorito(o, ctx)}${enlaceOferta(o, null, ctx)}</div>
   </div>

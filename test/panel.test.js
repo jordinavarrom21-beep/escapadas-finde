@@ -598,7 +598,9 @@ describe('fechas, formato, geocodificación y plantillas', () => {
     assert.ok(!html.includes('<img src=x') && html.includes('&lt;img src=x'));
     assert.ok(!html.includes('javascript:'));
     const vuelo = ofertas.find((o) => o.vuelo && historial[o.id]?.length >= 2);
-    assert.match(tarjeta(vuelo, ctxTarjeta), /class="billete"[^]*<svg class="minigrafica"/);
+    // La tendencia en palabras; la gráfica, en la ficha (la minigráfica de ancho fijo no cabía en la tarjeta).
+    assert.match(tarjeta(vuelo, ctxTarjeta), /class="billete"[^]*<p class="tendencia tendencia--(baja|sube|igual)"/);
+    assert.doesNotMatch(tarjeta(vuelo, ctxTarjeta), /<svg class="minigrafica"|<polyline/);
     assert.match(tarjeta(ofertas.find((o) => o.tipo === 'vuelo' && !o.vuelo), ctxTarjeta), /class="tarjeta"/);
   });
 
@@ -609,7 +611,8 @@ describe('fechas, formato, geocodificación y plantillas', () => {
       referencia: { mediana: 120, ahorroPct: 35, grupo: 'escapada:rural:girona', descripcion: 'escapadas rurales en Girona, por persona y noche', n: 15 },
     };
     const besalu = tarjeta(casaBesalu, ctxTarjeta);
-    assert.match(besalu, /Más barata que la media de escapadas parecidas/);
+    // En el sello de la foto, corto (entero se metía debajo del corazón); con qué se compara, en su título.
+    assert.match(besalu, /<span class="sello" title="Un 35 % menos\. La media de escapadas rurales en Girona[^"]*">[^]*?Más barata que la media<\/span>/);
     assert.ok(!/por debajo de lo normal/.test(besalu), 'no parece un descuento de la web');
     // Con un grupo amplio («rural · 2 noches»: casas, hoteles y paquetes de cualquier zona), no.
     assert.ok(!/Más barata que la media/.test(tarjeta(porId('chollometro:besalu-casa-rural-para-6-personas-por-18'), ctxTarjeta)));

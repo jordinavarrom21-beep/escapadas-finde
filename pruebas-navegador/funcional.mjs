@@ -609,6 +609,52 @@ const verlas = Number((await n.locator('#principal').innerText()).match(/([\d.]+
 ok(pastilla === verlas, `novedades: tras «Ver», la pastilla cuenta lo mismo que «Verlas» (${pastilla} y ${verlas})`);
 await cn.close();
 
+// Móvil con el sistema en oscuro: la web sale clara (el oscuro solo si se elige), la «ⓘ» abre y
+// cierra su explicación, y «Hay ofertas nuevas» se va solo, se cierra con ✕ y no vuelve.
+const cd = await contexto({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, colorScheme: 'dark' });
+let escaneo = null;
+await cd.route('**/data/version.json', (r) => (escaneo ? r.fulfill({ json: { generado: escaneo } }) : r.continue()));
+await cd.route('**/data/ofertas.json', (r) => (escaneo ? r.fulfill({ json: { ...datos, generado: escaneo } }) : r.continue()));
+const d = await pagina(cd);
+await ir(d, 'escapadas');
+ok(await d.evaluate(() => !document.documentElement.dataset.theme && getComputedStyle(document.body).backgroundColor === 'rgb(244, 239, 230)'), 'tema: con el sistema en oscuro y nada elegido, la web sale clara');
+// La de «¿Dónde?», que sale siempre (la de los resultados depende de los datos de ese día).
+await d.evaluate(() => document.querySelectorAll('[data-plegable-movil]').forEach((x) => { x.open = true; }));
+const info = d.locator('[data-info="info-lugar"]');
+const textoInfo = d.locator(`#${await info.getAttribute('aria-controls')}`);
+ok(!(await textoInfo.isVisible()), 'ⓘ: la explicación empieza plegada');
+await info.click();
+ok(await textoInfo.isVisible() && (await info.getAttribute('aria-expanded')) === 'true', 'ⓘ: al pulsarla se abre la explicación');
+await info.click();
+ok(!(await textoInfo.isVisible()) && (await info.getAttribute('aria-expanded')) === 'false', 'ⓘ: al pulsarla otra vez se pliega');
+const avisoDatos = d.locator('#datos-nuevos');
+const nuevoEscaneo = async (horas) => {
+  escaneo = new Date(Date.parse(datos.generado) + horas * 3_600_000).toISOString();
+  await d.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+};
+await nuevoEscaneo(12);
+await d.waitForSelector('#datos-nuevos [data-cerrar-datos-nuevos]', { timeout: 10000 });
+const caja = await avisoDatos.boundingBox();
+ok(caja.x >= 0 && caja.x + caja.width <= 390 && caja.height < 70, `aviso de ofertas nuevas: cabe en una línea en el móvil (${Math.round(caja.width)}×${Math.round(caja.height)})`);
+// Con el foco del teclado en «Ver» no se va (si no, el foco se perdía con él); sin él, sí.
+await d.focus('#datos-nuevos [data-ver-datos-nuevos]');
+await d.waitForTimeout(10_500);
+ok(await avisoDatos.isVisible(), 'aviso de ofertas nuevas: con el foco en «Ver» no se va');
+await d.evaluate(() => document.querySelector('#principal').focus());
+await d.waitForTimeout(10_500);
+ok(!(await avisoDatos.isVisible()), 'aviso de ofertas nuevas: se va solo a los 10 s');
+await d.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+await d.waitForTimeout(1500);
+ok(!(await avisoDatos.isVisible()), 'aviso de ofertas nuevas: no vuelve por los mismos datos');
+await nuevoEscaneo(13);
+await d.waitForSelector('#datos-nuevos [data-cerrar-datos-nuevos]', { timeout: 10000 });
+await d.locator('#datos-nuevos [data-cerrar-datos-nuevos]').click();
+ok(!(await avisoDatos.isVisible()) && (await d.evaluate(() => document.activeElement?.id)) === 'principal', 'aviso de ofertas nuevas: se cierra con ✕ y el foco vuelve al contenido');
+await nuevoEscaneo(14);
+await d.waitForTimeout(1500);
+ok(!(await avisoDatos.isVisible()), 'aviso de ofertas nuevas: cerrado con ✕, no vuelve en esta visita');
+await cd.close();
+
 // ── Carga en un móvil lento: la portada de index.html mientras llegan las ofertas ──
 // La que pone el despliegue (scripts/preparar-web.js): scripts/servir.js sirve site/ tal cual, sin ella.
 // Con la fecha de ahora: tema.js no enseña una de hace más de 3 h (la del service worker de otra visita).

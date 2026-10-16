@@ -10,7 +10,8 @@ import {
 import { QUE_MIDE_LA_NOTA, estadoVacio, filaOferta, insigniaEstado, rejilla } from './plantillas.js';
 import { icono } from './iconos.js';
 import {
-  conIcono, contextoBusqueda, ctxTarjetas, diasExplicitos, estadoPublico, estadoWebs, mostradas, motivoFuente, ocultas, pestanas, seccion,
+  botonInfo, conIcono, contextoBusqueda, ctxTarjetas, diasExplicitos, estadoPublico, estadoWebs, mostradas, motivoFuente, ocultas, pestanas, seccion,
+  textoInfo, tituloConInfo,
 } from './vistas-comun.js';
 
 // ── Calendario ───────────────────────────────────────────────────────────────
@@ -45,10 +46,10 @@ export function vistaCalendario(e) {
   <span class="finde-celda__acciones">${verEscapadas}${verVuelos}</span>
 </div></li>`;
   });
-  return `${pestanas('fechas', 'calendario')}<h1 class="titulo-vista" tabindex="-1">Calendario</h1>
-<p class="seccion__intro">${hayVuelos
+  return `${pestanas('fechas', 'calendario')}${tituloConInfo('<h1 class="titulo-vista" tabindex="-1">Calendario</h1>', 'calendario', 'Calendario')}
+${textoInfo('calendario', hayVuelos
     ? `Los próximos ${findes.length} findes con las escapadas que tienen fecha ese finde (las flexibles valen para todos) y el vuelo más barato. Los puentes llevan borde y su nombre.`
-    : `Los próximos ${findes.length} findes con las escapadas que tienen fecha ese finde (las flexibles valen para todos). Los puentes llevan borde y su nombre.`}</p>
+    : `Los próximos ${findes.length} findes con las escapadas que tienen fecha ese finde (las flexibles valen para todos). Los puentes llevan borde y su nombre.`)}
 ${leyendaCalendario(hayVuelos)}
 <ol class="calendario">${celdas.join('')}</ol>`;
 }
@@ -344,7 +345,8 @@ export function vistaFuentes(e) {
   <ul class="lista-pausa">${enPausa.map((f) => `<li><strong>${esc(f.nombre)}</strong> · <span class="suave">${esc(e.propietario ? motivoFuente(f) || 'No se consulta' : 'No se consulta')}</span> · ${direccionWeb(f)}</li>`).join('')}</ul>
 </section>` : '';
   return `<h1 class="titulo-vista" tabindex="-1">Estado de las webs</h1>
-<p class="seccion__intro"><strong>${esc(webs.texto)}.</strong> Cada web se revisa por su cuenta, entre cada 15 minutos y una vez al día. Si una web no se puede leer, sus ofertas siguen a la vista marcadas como «Sin confirmar» y no cuentan en los totales ni en las guías. Datos generados ${esc(haceCuanto(e.datos.generado, e.ahora))}.</p>
+<p class="seccion__intro"><strong>${esc(webs.texto)}.</strong> Datos generados ${esc(haceCuanto(e.datos.generado, e.ahora))}.${botonInfo('fuentes', 'Estado de las webs')}</p>
+${textoInfo('fuentes', 'Cada web se revisa por su cuenta, entre cada 15 minutos y una vez al día. Si una web no se puede leer, sus ofertas siguen a la vista marcadas como «Sin confirmar» y no cuentan en los totales ni en las guías.')}
 <div class="tabla-envoltorio"><table class="tabla-fuentes">
   <caption class="sr">Estado de cada web de ofertas</caption>
   <thead><tr><th scope="col">Web</th><th scope="col">Estado</th><th scope="col">Detalle</th><th scope="col">Última lectura correcta</th><th scope="col">Último intento</th><th scope="col" class="num">Ofertas</th><th scope="col">Dirección</th></tr></thead>
@@ -427,8 +429,8 @@ export function vistaMis(e, params = {}) {
 <p class="acciones"><button type="button" class="boton boton--suave boton--mini" data-exportar-guardados>${icono('externo')}Descargar mis guardados</button>
 <label class="boton boton--suave boton--mini">${icono('deshacer')}Cargar una copia<input type="file" accept="application/json,.json" data-importar-guardados class="sr"></label></p>`);
   if (params.ver === 'busquedas') {
-    return `${pestanas('mis', 'mis?ver=busquedas', e)}<h1 class="titulo-vista" tabindex="-1">Búsquedas guardadas</h1>
-<p class="seccion__intro">Una búsqueda guardada son unos filtros con nombre. <strong>No te llega ningún aviso:</strong> cuando vuelvas, aquí verás cuántas ofertas nuevas la cumplen desde la última vez que la miraste.</p>
+    return `${pestanas('mis', 'mis?ver=busquedas', e)}${tituloConInfo('<h1 class="titulo-vista" tabindex="-1">Búsquedas guardadas</h1>', 'busquedas', 'Búsquedas guardadas')}
+${textoInfo('busquedas', 'Una búsqueda guardada son unos filtros con nombre. <strong>No te llega ningún aviso:</strong> cuando vuelvas, aquí verás cuántas ofertas nuevas la cumplen desde la última vez que la miraste.')}
 ${bloqueAvisos(e)}
 ${e.propietario ? seccion(conIcono('vigilados', 'Avisos por email'), `<p>${email === true ? 'Activos: te llega un email cuando una oferta cumple uno de tus criterios y baja de precio.' : 'Para recibirlos por email hay que configurar el correo y los criterios en GitHub.'} <a class="boton boton--suave boton--mini" href="#/vigilados">Ver los avisos por email${icono('flecha')}</a></p>`) : ''}
 ${copia}`;

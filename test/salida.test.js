@@ -138,7 +138,7 @@ describe('encuéntrame un finde', async () => {
   const { buscadorFinde, paramsBuscadorFinde, resumenViaje, textoEnviar } = await import('../site/js/vistas.js');
   it('un solo formulario desde tu salida y lleva a escapadas con esos filtros, por coste total', () => {
     const html = buscadorFinde({ ...estado(GIRONA) });
-    assert.match(resumenViaje({ ...estado(GIRONA) }), /<small>Tu viaje<\/small><strong>Girona · 3 personas · 2 noches<\/strong>/);
+    assert.match(resumenViaje({ ...estado(GIRONA) }), /<small>Tu viaje<\/small><strong>Girona · 3\u00a0personas · 2\u00a0noches<\/strong>/);
     for (const campo of ['cuando', 'que', 'q', 'pres', 'como', 'temas']) assert.match(html, new RegExp(`name="${campo}"`));
     // El botón dice qué se va a ver y para cuándo.
     assert.match(html, /<span data-enviar-accion>Ver escapadas<\/span><small data-enviar-para>para [^<]+<\/small>/);

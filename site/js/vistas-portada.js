@@ -191,7 +191,9 @@ export function paramsBuscadorFinde({ cuando = '', pres = '', como = '', temas =
 
 /** Tu viaje, una sola vez y arriba: desde dónde, cuántos y cuántas noches, con «Cambiar». */
 export function resumenViaje(e) {
-  const viaje = `${nombreSalida(e)} · ${contar(e.viaje?.viajeros ?? 2, 'persona')} · ${contar(e.viaje?.noches ?? 2, 'noche')}`;
+  // Sin partir «2 noches» en dos líneas en el móvil (el número arriba y «noches» debajo).
+  const junto = (texto) => texto.replace(' ', '\u00a0');
+  const viaje = `${nombreSalida(e)} · ${junto(contar(e.viaje?.viajeros ?? 2, 'persona'))} · ${junto(contar(e.viaje?.noches ?? 2, 'noche'))}`;
   return `<button type="button" class="viaje-resumen" data-mi-viaje aria-haspopup="dialog" aria-label="Tu viaje: ${esc(viaje)}. Cambiar salida, viajeros o noches">
     <span class="viaje-resumen__icono" aria-hidden="true">${icono('pin')}</span><span class="viaje-resumen__texto"><small>Tu viaje</small><strong>${esc(viaje)}</strong></span><span class="viaje-resumen__cambiar" aria-hidden="true">Cambiar</span></button>`;
 }
