@@ -2,7 +2,7 @@
 // de su caja (también por abajo), tarjetas de una fila con las partes a distinta altura, la «ⓘ»
 // encima de su rótulo, iconos vacíos y objetivos táctiles pequeños. Guarda la parte de arriba de cada vista.
 // Uso: npm run test:maquetacion (sale con error si encuentra algo). Variables: ANCHOS, RUTAS,
-// TEMAS (light,dark), LISTA=1 (modo lista), FOTOS=carpeta para guardar capturas.
+// TEMAS (light,dark), LISTA=1 (modo lista), MIS=1 (búsquedas guardadas y favoritos), FOTOS=carpeta para guardar capturas.
 import { mkdirSync } from 'node:fs';
 import { arrancar, contexto } from './comun.mjs';
 
@@ -29,6 +29,16 @@ for (const tema of TEMAS) for (const ancho of ANCHOS) {
     try { if (window.__LISTA__) localStorage.setItem('escapadas:modoLista', 'lista'); } catch {}
   });
   const p = await c.newPage();
+  if (process.env.MIS) {
+    // Con favoritos sale «Recomendado para ti» en la portada (tarjetas con su «Porque…»).
+    await p.goto(BASE);
+    await p.evaluate(async () => {
+      const { ofertas } = await (await fetch('data/ofertas.json')).json();
+      localStorage.setItem('escapadas:favoritos', JSON.stringify(ofertas.filter((o) => o.tipo !== 'vuelo').slice(0, 5).map((o) => o.id)));
+    });
+    // Los favoritos se leen al abrir la web: la primera ruta tiene que ser una carga nueva, no un cambio de #.
+    await p.goto('about:blank');
+  }
   p.on('pageerror', (e) => problemas.push(`[${tema} ${ancho}] pageerror: ${e.message}`));
   p.on('console', (m) => { if (m.type() === 'error' && !/ERR_TUNNEL|ERR_FAILED|tile\.openstreetmap/.test(m.text())) problemas.push(`[${tema} ${ancho}] console: ${m.text()}`); });
   for (const ruta of RUTAS) {
@@ -57,6 +67,17 @@ for (const tema of TEMAS) for (const ancho of ANCHOS) {
           while (a && a !== document.body) { const s = getComputedStyle(a); if (/(auto|scroll|hidden)/.test(s.overflowX)) return false; a = a.parentElement; }
           return b.right > vw + 1;
         }).slice(0, 5).map((el) => `${el.tagName.toLowerCase()}.${[...el.classList].join('.')} (${Math.round(el.getBoundingClientRect().right)})`);
+        // Si ninguna caja se sale, es texto que no cabe en la suya.
+        if (!culpables.length) {
+          const textos = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+          const rango = document.createRange();
+          for (let t; (t = textos.nextNode()) && culpables.length < 5;) {
+            if (!t.textContent.trim() || t.parentElement.closest('.sr')) continue;
+            rango.selectNodeContents(t);
+            const right = rango.getBoundingClientRect().right;
+            if (right > vw + 1) culpables.push(`texto de ${t.parentElement.tagName.toLowerCase()}.${[...t.parentElement.classList].join('.')} «${t.textContent.trim().slice(0, 30)}» (${Math.round(right)})`);
+          }
+        }
         out.push(`scroll horizontal: ${document.documentElement.scrollWidth} > ${vw} · ${culpables.join(', ')}`);
       }
       const visible = (el) => { const b = el.getBoundingClientRect(); const s = getComputedStyle(el); return b.width > 0 && b.height > 0 && s.visibility !== 'hidden' && s.display !== 'none'; };
@@ -85,7 +106,7 @@ for (const tema of TEMAS) for (const ancho of ANCHOS) {
         for (const h of partes) {
           if (getComputedStyle(h).overflowY === 'visible' && h.scrollHeight > h.clientHeight + 2) { out.push(`se sale por abajo: ${h.className.split(' ')[0]} «${h.textContent.trim().slice(0, 30)}» (${h.scrollHeight}>${h.clientHeight})`); break; }
         }
-        const cuerpo = [...t.querySelectorAll('.tarjeta__cuerpo > *, .billete__principal > *')].filter(visible);
+        const cuerpo = [...t.querySelectorAll(':scope > .tarjeta__media, .tarjeta__cuerpo > *, .billete__principal > *')].filter(visible);
         for (let i = 1; i < cuerpo.length; i++) {
           // (En lista, el precio va en otra columna: solo cuenta si además coinciden en horizontal.)
           const [a, z] = [cuerpo[i - 1].getBoundingClientRect(), cuerpo[i].getBoundingClientRect()];
@@ -95,9 +116,10 @@ for (const tema of TEMAS) for (const ancho of ANCHOS) {
       // En una fila de la rejilla, cada parte de las tarjetas (y el talón y el pie de los billetes)
       // empieza a la misma altura. Solo donde se comparten filas (subgrid: desde 600 px, y los
       // billetes desde 720 sin tarjetas al lado).
-      if (vw >= 600 && CSS.supports('grid-template-rows: subgrid') && !document.documentElement.classList.contains('modo-lista')) {
+      if (vw >= 600 && CSS.supports('grid-template-rows: subgrid') && CSS.supports('selector(:has(*))')) {
         const PARTES = { tarjeta: ['.tarjeta__titulo', '.tarjeta__opiniones', '.tarjeta__datos', '.insignias--tarjeta', '.tarjeta__estado', '.tarjeta__pie'], billete: ['.billete__talon', '.billete__pie'] };
         for (const rejilla of document.querySelectorAll('.rejilla')) {
+          if (rejilla.matches('.modo-lista #resultados .rejilla')) continue;
           const filas = new Map();
           for (const t of rejilla.querySelectorAll('.tarjeta, .billete')) {
             if (!visible(t)) continue;

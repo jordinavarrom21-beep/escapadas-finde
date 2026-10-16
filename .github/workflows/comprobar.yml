@@ -49,3 +49,11 @@ jobs:
           TEMAS: light,dark
         run: npm run test:maquetacion
 
+      # Lo que la anterior no ve: los resultados en modo lista y la portada con favoritos.
+      - name: Maquetación en modo lista y con favoritos
+        env:
+          LISTA: '1'
+          MIS: '1'
+          ANCHOS: 390,800,1280
+        run: npm run test:maquetacion
+

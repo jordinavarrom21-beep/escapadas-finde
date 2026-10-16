@@ -13,11 +13,11 @@ import { load } from 'cheerio';
 
 import { estadoPanel } from './ayudas-panel.js';
 import {
-  resultadosActividades, resultadosBuscar, resultadosEscapadas, resultadosVuelos, vistaActividades, vistaBuscar, vistaCalendario, vistaEscapadas,
+  avisoPresupuesto, resultadosActividades, resultadosBuscar, resultadosEscapadas, resultadosVuelos, vistaActividades, vistaBuscar, vistaCalendario, vistaEscapadas,
   vistaFuentes, vistaMis, vistaVuelos,
 } from '../site/js/vistas.js';
 import { campoTexto, formularioViaje, interruptor } from '../site/js/vistas-comun.js';
-import { tarjetaOferta, tarjetaVuelo, tendenciaPrecio } from '../site/js/plantillas.js';
+import { tarjetaConMotivo, tarjetaOferta, tarjetaVuelo, tendenciaPrecio } from '../site/js/plantillas.js';
 
 const SITE = new URL('../site/', import.meta.url);
 const leer = (ruta) => readFileSync(new URL(ruta, SITE), 'utf8');
@@ -99,6 +99,8 @@ describe('las explicaciones, detrás de una «ⓘ»', () => {
     assert.match(html, /<p class="aviso-memoria aviso-presupuesto">[^]*?\d+ ofertas no salen con el presupuesto: les faltan datos para calcular el viaje completo\.<\/p>/);
     assert.match(resultadosEscapadas(e, { pres: '300' }), /class="aviso-memoria aviso-presupuesto"/, 'también con el orden de siempre');
     assert.doesNotMatch(resultadosEscapadas(e, {}), /aviso-presupuesto/, 'sin presupuesto, nada');
+    assert.match(avisoPresupuesto({ presupuesto: 300 }, 1), /1 oferta no sale con el presupuesto: le faltan datos/);
+    assert.match(avisoPresupuesto({ presupuesto: 300 }, 2), /2 ofertas no salen con el presupuesto: les faltan datos/);
     assert.doesNotMatch(html, /<p class="seccion__intro[^"]*">(Ordenadas|Presupuesto)/);
     // Con el orden de siempre no hay nada que explicar.
     assert.doesNotMatch(resultadosEscapadas(e, {}), /info-orden-escapadas/);
@@ -191,7 +193,8 @@ describe('aviso de ofertas nuevas que no se queda fijo', () => {
     assert.match(CSS, /\.aviso-flotante--datos \{[^}]*width: max-content;/);
   });
 
-  it('el de versión nueva también cabe en una línea en un móvil de 320 px', () => {
+  it('el de versión nueva es corto («Nueva versión») y, en un móvil estrecho, más apretado', () => {
+    // Que quepa en una línea en 320 px lo mide pruebas-navegador/funcional.mjs.
     // «Hay una versión nueva de la web» ocupaba cuatro líneas junto a «Actualizar» y la ✕.
     assert.match(app, /\$\{icono\('nuevo'\)\}Nueva versión<\/span><button type="button" class="boton boton--primario" data-actualizar>Actualizar<\/button>\$\{botonCerrarAviso\}/);
     assert.match(CSS, /@media \(max-width: 359px\) \{\s+\.aviso-flotante--datos \{ gap: 6px; padding-left: 12px; \}\s+\.aviso-flotante--datos \.boton \{ padding-inline: 10px; \}/);
@@ -264,9 +267,13 @@ describe('tarjetas y billetes alineados por filas', () => {
   const hijos = ($, sel) => $(sel).first().children().toArray().map((el) => $(el).attr('class').split(' ')[0]);
 
   it('en la rejilla, cada parte va en una fila compartida con las de su fila (subgrid)', () => {
-    const desde = CSS.indexOf('@supports (grid-template-rows: subgrid) {\n  @media (min-width: 600px)');
+    // Solo con «:has» (Firefox 71–120 tiene subgrid pero no «:has»: allí, la maquetación de siempre).
+    const desde = CSS.indexOf('@supports (grid-template-rows: subgrid) and selector(:has(*)) {\n  @media (min-width: 600px)');
     assert.ok(desde >= 0, 'falta el bloque de la subgrid');
+    // Después de las reglas base de su misma especificidad («:where» no suma): si no, ganan ellas.
+    assert.ok(desde > CSS.indexOf('.con-motivo { display: flex'), 'el bloque de la subgrid va antes que «.con-motivo»');
     const subgrid = CSS.slice(desde);
+    assert.match(subgrid, /\.tarjeta__cuerpo > :not\(\.tarjeta__pie\) \{ align-self: start; \}/);
     assert.match(subgrid, /:where\(\.rejilla:not\(\.modo-lista #resultados \.rejilla\):has\(\.tarjeta\)\) \.tarjeta \{ display: grid; grid-row: span 8; grid-template-rows: subgrid; row-gap: 0; \}/);
     assert.match(subgrid, /:where\(\.rejilla:not\(\.modo-lista #resultados \.rejilla\):has\(\.tarjeta\)\) \.tarjeta__cuerpo \{ display: grid; grid-row: span 7; grid-template-rows: subgrid; \}/);
     // El billete, sin «container-type»: un contenedor no puede compartir filas.
@@ -287,5 +294,14 @@ describe('tarjetas y billetes alineados por filas', () => {
     const $b = load(tarjetaVuelo(vuelo, ctx));
     assert.deepEqual(hijos($b, '.billete'), ['billete__cuerpo', 'billete__pie']);
     assert.deepEqual(hijos($b, '.billete__cuerpo'), ['billete__principal', 'billete__talon']);
+  });
+
+  it('la frase «Porque…» de «Recomendado para ti» no usa la clase de las filas con barra de la ficha', () => {
+    // Con «motivo», la regla de la ficha la partía en columnas: el texto, en 34 px y saliéndose.
+    const e = estadoPanel();
+    const escapada = e.datos.ofertas.find((o) => !o.vuelo);
+    const $t = load(tarjetaConMotivo({ oferta: escapada, motivos: ['te gustan los planes de spa'] }, { ...e, historial: {}, fuentes: new Map() }));
+    assert.deepEqual(hijos($t, '.con-motivo'), ['tarjeta', 'con-motivo__frase']);
+    assert.match(CSS, /\.con-motivo__frase \{ display: flex;/);
   });
 });
