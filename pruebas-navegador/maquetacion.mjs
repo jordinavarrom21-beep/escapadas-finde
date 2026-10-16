@@ -33,8 +33,15 @@ for (const tema of TEMAS) for (const ancho of ANCHOS) {
     // Con favoritos sale «Recomendado para ti» en la portada (tarjetas con su «Porque…»).
     await p.goto(BASE);
     await p.evaluate(async () => {
-      const { ofertas } = await (await fetch('data/ofertas.json')).json();
-      localStorage.setItem('escapadas:favoritos', JSON.stringify(ofertas.filter((o) => o.tipo !== 'vuelo').slice(0, 5).map((o) => o.id)));
+      // Solo de las que la web enseña: con datos de otro día, unas caducadas no darían recomendaciones.
+      const datos = await (await fetch('data/ofertas.json')).json();
+      const { repartir } = await import(new URL('js/vigencia.js', location.href));
+      const { vigentes } = repartir(datos.ofertas, {
+        ahora: new Date(),
+        revision: Number.isFinite(Date.parse(datos.generado)) ? new Date(datos.generado) : new Date(),
+        intervalos: new Map((datos.fuentes ?? []).map((f) => [f.id, f.intervaloMin])),
+      });
+      localStorage.setItem('escapadas:favoritos', JSON.stringify(vigentes.filter((o) => o.tipo !== 'vuelo').slice(0, 5).map((o) => o.id)));
     });
     // Los favoritos se leen al abrir la web: la primera ruta tiene que ser una carga nueva, no un cambio de #.
     await p.goto('about:blank');
@@ -59,20 +66,21 @@ for (const tema of TEMAS) for (const ancho of ANCHOS) {
       const out = [];
       const vw = document.documentElement.clientWidth;
       if (document.documentElement.scrollWidth > vw + 1) {
-        // ¿Quién se sale?
+        // ¿Quién se sale? Lo que va dentro de algo que se desliza (o recorta) no cuenta.
+        const deslizado = (el) => {
+          for (let a = el.parentElement; a && a !== document.body; a = a.parentElement) if (/(auto|scroll|hidden|clip)/.test(getComputedStyle(a).overflowX)) return true;
+          return false;
+        };
         const culpables = [...document.querySelectorAll('body *')].filter((el) => {
           const b = el.getBoundingClientRect();
-          if (!b.width) return false;
-          let a = el.parentElement; // dentro de algo que se desliza no cuenta
-          while (a && a !== document.body) { const s = getComputedStyle(a); if (/(auto|scroll|hidden)/.test(s.overflowX)) return false; a = a.parentElement; }
-          return b.right > vw + 1;
+          return b.width > 0 && b.right > vw + 1 && !deslizado(el);
         }).slice(0, 5).map((el) => `${el.tagName.toLowerCase()}.${[...el.classList].join('.')} (${Math.round(el.getBoundingClientRect().right)})`);
         // Si ninguna caja se sale, es texto que no cabe en la suya.
         if (!culpables.length) {
           const textos = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
           const rango = document.createRange();
           for (let t; (t = textos.nextNode()) && culpables.length < 5;) {
-            if (!t.textContent.trim() || t.parentElement.closest('.sr')) continue;
+            if (!t.textContent.trim() || deslizado(t)) continue;
             rango.selectNodeContents(t);
             const right = rango.getBoundingClientRect().right;
             if (right > vw + 1) culpables.push(`texto de ${t.parentElement.tagName.toLowerCase()}.${[...t.parentElement.classList].join('.')} «${t.textContent.trim().slice(0, 30)}» (${Math.round(right)})`);
