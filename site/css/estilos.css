@@ -1045,19 +1045,37 @@ html:not(.js) .cargando { display: none; }
   .billete__talon .precio { flex-direction: row; align-items: baseline; gap: 2px 7px; }
   .billete__talon .tendencia { flex: 1 1 10em; min-width: 0; }
 }
+.vacio {
+  display: grid; gap: 10px; justify-items: start; padding: 24px; margin-bottom: 8px;
+  border: 1.5px dashed var(--borde-fuerte); border-radius: var(--radio); background: var(--superficie);
+}
+.vacio__titulo { font-family: var(--fuente-titulos); font-weight: 800; font-size: 1.15rem; }
+.vacio p { max-width: 72ch; color: var(--texto-suave); }
+.vacio__lista { margin: 0; padding-left: 20px; font-size: 0.9rem; }
+
+.con-motivo { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.con-motivo > .tarjeta, .con-motivo > .billete { flex: 1; }
+/* «Porque te gustan…»: con su clase, no «.motivo» (las filas con barra de la ficha, en columnas). */
+.con-motivo__frase { display: flex; align-items: flex-start; gap: 6px; font-size: 0.86rem; color: var(--texto-suave); padding-inline: 6px; }
+.con-motivo__frase .ic { color: var(--acento); margin-top: 0.15em; }
+
 /*
  * En la rejilla, las tarjetas de una fila comparten las filas de sus partes (subgrid): la foto,
  * el título, las opiniones, los datos, las etiquetas, «Precio visto…» y el precio empiezan a la
  * misma altura en todas aunque a una le toque una línea más, y sin cortar el texto. Los billetes,
  * igual con la ruta, el talón (precio) y el pie; junto a tarjetas (Buscar), el billete ocupa sus
  * mismas filas y su pie va con el de ellas. En lista, cada fila va por su cuenta. Sin subgrid o
- * sin :has, el navegador se queda con lo de siempre.
+ * sin :has (Firefox hasta la 120), el navegador se queda con lo de siempre. Va después de las
+ * reglas de .tarjeta, .billete y .con-motivo: con :where() no pesa más que ellas y gana por ir detrás.
  */
-@supports (grid-template-rows: subgrid) {
+@supports (grid-template-rows: subgrid) and selector(:has(*)) {
   @media (min-width: 600px) {
     :where(.rejilla:not(.modo-lista #resultados .rejilla):has(.tarjeta)) > .con-motivo { display: grid; grid-row: span 9; grid-template-rows: subgrid; row-gap: 8px; }
     :where(.rejilla:not(.modo-lista #resultados .rejilla):has(.tarjeta)) .tarjeta { display: grid; grid-row: span 8; grid-template-rows: subgrid; row-gap: 0; }
     :where(.rejilla:not(.modo-lista #resultados .rejilla):has(.tarjeta)) .tarjeta__cuerpo { display: grid; grid-row: span 7; grid-template-rows: subgrid; }
+    /* Cada parte, arriba de su fila y con su alto: estiradas, una etiqueta de una línea crecía hasta
+       el alto de las dos líneas de la tarjeta de al lado. */
+    :where(.rejilla:not(.modo-lista #resultados .rejilla):has(.tarjeta)) .tarjeta__cuerpo > :not(.tarjeta__pie) { align-self: start; }
     /* El pie, arriba de su fila (la raya y «Precio en …» alineados) y el botón, abajo del todo. */
     :where(.rejilla:not(.modo-lista #resultados .rejilla):has(.tarjeta)) .tarjeta__pie { margin-top: 0; }
     :where(.rejilla:not(.modo-lista #resultados .rejilla):has(.tarjeta)) .tarjeta__pie > .acciones { margin-top: auto; }
@@ -1086,19 +1104,6 @@ html:not(.js) .cargando { display: none; }
     :where(.rejilla:not(.modo-lista #resultados .rejilla)) .billete__pie { align-content: flex-start; }
   }
 }
-
-.vacio {
-  display: grid; gap: 10px; justify-items: start; padding: 24px; margin-bottom: 8px;
-  border: 1.5px dashed var(--borde-fuerte); border-radius: var(--radio); background: var(--superficie);
-}
-.vacio__titulo { font-family: var(--fuente-titulos); font-weight: 800; font-size: 1.15rem; }
-.vacio p { max-width: 72ch; color: var(--texto-suave); }
-.vacio__lista { margin: 0; padding-left: 20px; font-size: 0.9rem; }
-
-.con-motivo { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-.con-motivo > .tarjeta, .con-motivo > .billete { flex: 1; }
-.motivo { display: flex; align-items: flex-start; gap: 6px; font-size: 0.86rem; color: var(--texto-suave); padding-inline: 6px; }
-.motivo .ic { color: var(--acento); margin-top: 0.15em; }
 
 /* Ilustraciones cuando la oferta no trae foto: toman el color de su temática. */
 .escena { --e: var(--color-tema, var(--acento)); display: block; width: 100%; height: 100%; }

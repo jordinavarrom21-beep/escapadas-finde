@@ -909,7 +909,7 @@ export const tarjeta = (o, ctx) => (tieneVuelo(o) ? tarjetaVuelo(o, ctx) : tarje
 /** Tarjeta con la frase que explica por qué se recomienda («porque te gustan los planes de spa…»). */
 export function tarjetaConMotivo({ oferta, motivos }, ctx) {
   const frase = enumerar(motivos);
-  return `<div class="con-motivo">${tarjeta(oferta, ctx)}${frase ? `<p class="motivo">${icono('nuevo')}<span>Porque ${esc(frase)}.</span></p>` : ''}</div>`;
+  return `<div class="con-motivo">${tarjeta(oferta, ctx)}${frase ? `<p class="con-motivo__frase">${icono('nuevo')}<span>Porque ${esc(frase)}.</span></p>` : ''}</div>`;
 }
 
 /** Rejilla de tarjetas con botón «Ver más» (`clave` identifica la lista para paginar). */

@@ -516,9 +516,9 @@ function explicacionOrden(e, f, costes) {
  * Con un presupuesto puesto, cuántas ofertas no salen por no poder comprobarlo: a la vista (no es
  * una explicación, sino por qué faltan ofertas). Qué suma el viaje completo, en la «ⓘ» de «¿Cuánto?».
  */
-function avisoPresupuesto(f, sinTotal) {
+export function avisoPresupuesto(f, sinTotal) {
   if (!f.presupuesto || !sinTotal) return '';
-  return `<p class="aviso-memoria aviso-presupuesto">${icono('alerta')}${esc(contar(sinTotal, 'oferta no sale', 'ofertas no salen'))} con el presupuesto: les faltan datos para calcular el viaje completo.</p>`;
+  return `<p class="aviso-memoria aviso-presupuesto">${icono('alerta')}${esc(contar(sinTotal, 'oferta no sale', 'ofertas no salen'))} con el presupuesto: ${sinTotal === 1 ? 'le' : 'les'} faltan datos para calcular el viaje completo.</p>`;
 }
 
 /**

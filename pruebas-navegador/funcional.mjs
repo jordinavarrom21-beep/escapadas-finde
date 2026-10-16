@@ -657,6 +657,26 @@ await d.waitForTimeout(1500);
 ok(!(await avisoDatos.isVisible()), 'aviso de ofertas nuevas: cerrado con ✕, no vuelve en esta visita');
 await cd.close();
 
+// «Nueva versión» (sale si llega una versión nueva mientras escribes): en una línea en 320 px.
+// Se simula el cambio de service worker: ya había uno («controller») y avisa del nuevo.
+const cv = await contexto({ viewport: { width: 320, height: 640 }, isMobile: true, hasTouch: true });
+await cv.addInitScript(() => { Object.defineProperty(ServiceWorkerContainer.prototype, 'controller', { get: () => ({}), configurable: true }); });
+const v = await pagina(cv);
+await ir(v, 'escapadas');
+await v.evaluate(() => {
+  document.querySelectorAll('[data-plegable-movil]').forEach((x) => { x.open = true; });
+  document.querySelector('#principal input[type="search"], #principal input[type="text"]').focus();
+  navigator.serviceWorker.dispatchEvent(new Event('controllerchange'));
+});
+await v.waitForSelector('#datos-nuevos [data-actualizar]', { timeout: 5000 });
+const version = await v.$eval('#datos-nuevos', (a) => {
+  const t = a.querySelector('.aviso-flotante__texto');
+  const b = a.getBoundingClientRect();
+  return { texto: t.textContent.trim(), lineas: Math.round(t.getBoundingClientRect().height / parseFloat(getComputedStyle(t).lineHeight)), dentro: b.left >= 0 && b.right <= innerWidth };
+});
+ok(version.texto === 'Nueva versión' && version.lineas === 1 && version.dentro, `aviso de versión nueva: «${version.texto}» cabe en una línea en 320 px (${version.lineas} línea(s))`);
+await cv.close();
+
 // ── Carga en un móvil lento: la portada de index.html mientras llegan las ofertas ──
 // La que pone el despliegue (scripts/preparar-web.js): scripts/servir.js sirve site/ tal cual, sin ella.
 // Con la fecha de ahora: tema.js no enseña una de hace más de 3 h (la del service worker de otra visita).

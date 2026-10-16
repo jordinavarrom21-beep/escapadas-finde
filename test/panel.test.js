@@ -746,7 +746,7 @@ describe('vistas nuevas', () => {
     assert.match(html, /Sorpréndeme<\/span><\/h2>/);
     assert.match(html, /data-sorpresa/);
     assert.match(html, /Recomendado para ti/);
-    assert.match(html, /class="motivo">[^]*?Porque te gustan los planes de/);
+    assert.match(html, /class="con-motivo__frase">[^]*?Porque te gustan los planes de/);
     assert.equal((contenidoSorpresa(e, {}).match(/class="tarjeta"/g) ?? []).length, 3);
   });
 
