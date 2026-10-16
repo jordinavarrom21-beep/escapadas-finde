@@ -635,7 +635,9 @@ const nuevoEscaneo = async (horas) => {
 await nuevoEscaneo(12);
 await d.waitForSelector('#datos-nuevos [data-cerrar-datos-nuevos]', { timeout: 10000 });
 const caja = await avisoDatos.boundingBox();
-ok(caja.x >= 0 && caja.x + caja.width <= 390 && caja.height < 70, `aviso de ofertas nuevas: cabe en una línea en el móvil (${Math.round(caja.width)}×${Math.round(caja.height)})`);
+// El alto del aviso lo marca la ✕ (44 px): una segunda línea de texto aún cabe en él. Se mide el texto.
+const lineasAviso = await d.$eval('#datos-nuevos .aviso-flotante__texto', (t) => Math.round(t.getBoundingClientRect().height / parseFloat(getComputedStyle(t).lineHeight)));
+ok(caja.x >= 0 && caja.x + caja.width <= 390 && lineasAviso === 1, `aviso de ofertas nuevas: cabe en una línea en el móvil (${Math.round(caja.width)}×${Math.round(caja.height)}, ${lineasAviso} línea(s) de texto)`);
 // Con el foco del teclado en «Ver» no se va (si no, el foco se perdía con él); sin él, sí.
 await d.focus('#datos-nuevos [data-ver-datos-nuevos]');
 await d.waitForTimeout(10_500);
