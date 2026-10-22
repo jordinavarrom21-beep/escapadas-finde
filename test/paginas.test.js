@@ -296,4 +296,12 @@ describe('guías que se cruzan con las temáticas: otro orden para no quedarse s
     assert.deepEqual(minutos, [...minutos].sort((a, b) => a - b));
     assert.match(guia.panel, /orden=distancia/, 'el panel abre con el mismo orden');
   });
+
+  it('a menos de 2 horas: primero las de entre 1 y 2 h, una por destino', () => {
+    const guia = definiciones(datos).find((d) => d.ruta === 'escapadas/a-menos-de-2-horas');
+    const conTiempo = (cocheMin, i) => ({ ...datos.ofertas[0], id: `t${i}`, cocheMin });
+    const lejos = [30, 90, 45, 110, 20].map(conTiempo).sort(guia.orden).map((o) => o.cocheMin > 60);
+    assert.deepEqual(lejos, [true, true, false, false, false]);
+    assert.equal(guia.unaPorDestino, true);
+  });
 });

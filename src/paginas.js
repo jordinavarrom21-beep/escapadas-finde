@@ -231,10 +231,13 @@ export function definiciones({ origen, findes = [], puentes = [], ofertas = [], 
     ...[[1, 'a-menos-de-1-hora'], [2, 'a-menos-de-2-horas']].map(([horas, carpeta]) => ({
       ruta: `escapadas/${carpeta}`, grupo: 'general', enlace: `A menos de ${horas} ${horas === 1 ? 'hora' : 'horas'} en coche`,
       titulo: `Escapadas a menos de ${horas} ${horas === 1 ? 'hora' : 'horas'} de ${desde} en coche`,
-      // A 1 hora, lo más cerca primero (lo que se busca y distinto de la guía de la provincia).
-      intro: `Planes a menos de ${horas} ${horas === 1 ? 'hora' : 'horas'} en coche desde ${desde} (tiempo real por carretera), ${horas === 1 ? `del más cercano al más lejano, con ${coste}` : `ordenados por ${coste}`}.`,
+      // A 1 hora, lo más cerca primero (lo que se busca y distinto de la guía de la provincia). A 2 horas,
+      // primero lo de entre 1 y 2 h y un plan por destino: por precio a secas eran las mismas ofertas de la
+      // costa que «a la playa» y se quedaba sin indexar, y es la que Google ya enseñaba («destinos a 2 horas…»).
+      intro: `Planes a menos de ${horas} ${horas === 1 ? 'hora' : 'horas'} en coche desde ${desde} (tiempo real por carretera), ${horas === 1 ? `del más cercano al más lejano, con ${coste}` : `primero los de entre 1 y 2 horas (lo que está a menos de 1 hora tiene su propia guía), uno por destino, ordenados por ${coste}`}.`,
       elegir: (o) => esEscapada(o) && !SIN_COCHE.includes(o.transporte) && o.cocheMin != null && o.cocheMin <= horas * 60 && conTotal(o),
-      orden: horas === 1 ? porCercania : porTotal, panel: `#/escapadas?h=${horas}&orden=${horas === 1 ? 'distancia' : 'total'}`, prioridad: 5,
+      orden: horas === 1 ? porCercania : antes((o) => o.cocheMin > 60, porTotal), unaPorDestino: horas === 2,
+      panel: `#/escapadas?h=${horas}&orden=${horas === 1 ? 'distancia' : 'total'}`, prioridad: 5,
     })),
     {
       ruta: 'escapadas/sin-coche', grupo: 'general', enlace: 'Sin coche', titulo: `Escapadas sin coche desde ${desde}`,
@@ -606,7 +609,7 @@ function sinRepetidas(lista) {
   });
 }
 
-/** De cada destino, el vuelo más barato (la lista ya viene ordenada): si no, 24 fechas del mismo Palermo. */
+/** De cada destino, la primera de la lista ya ordenada: si no, 24 fechas del mismo Palermo (o 24 hoteles de Salou). */
 function unaPorDestino(lista) {
   const vistos = new Set();
   return lista.filter((o) => {

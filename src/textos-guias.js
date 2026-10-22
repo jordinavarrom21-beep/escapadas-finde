@@ -73,7 +73,7 @@ export const TEXTOS_GUIAS = {
     parrafos: [
       'Con menos de dos horas de coche, desde {desde} llegas a casi toda la Costa Brava sur (Tossa de Mar, Lloret, Sant Feliu de Guíxols), al Montseny, a la Garrotxa, a Girona, a la Costa Daurada (Salou, Cambrils) y a pueblos de interior como Cardona, Vic o Rupit. Es la distancia ideal para aprovechar el fin de semana sin pasar medio día en la carretera.',
       'El tiempo de cada oferta es el real por carretera desde {desde}, no la distancia en línea recta. Ten en cuenta que los viernes por la tarde y los domingos por la tarde puede haber atascos en las salidas de la ciudad.',
-      'Las ofertas se ordenan por el viaje completo para dos (oferta más gasolina), así que se ve enseguida si compensa ir más lejos.',
+      'Primero van los destinos de entre 1 y 2 horas, uno por pueblo o ciudad (lo que está a menos de 1 hora tiene su propia guía), ordenados por el viaje completo para dos (oferta más gasolina), así que se ve enseguida si compensa ir más lejos.',
     ],
     consejos: [
       'Sal temprano o a mediodía para evitar las horas punta de salida y entrada en {desde}.',
