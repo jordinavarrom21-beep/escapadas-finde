@@ -296,4 +296,18 @@ describe('guías que se cruzan con las temáticas: otro orden para no quedarse s
     assert.deepEqual(minutos, [...minutos].sort((a, b) => a - b));
     assert.match(guia.panel, /orden=distancia/, 'el panel abre con el mismo orden');
   });
+
+  it('a menos de 2 horas: primero las de entre 1 y 2 h, una por destino', () => {
+    const guia = definiciones(datos).find((d) => d.ruta === 'escapadas/a-menos-de-2-horas');
+    const base = datos.ofertas.find(guia.elegir);
+    // Las de más de 60 min primero (las de 60 ya están en la de 1 hora), cada parte por el viaje completo.
+    const orden = [[30, 50], [90, 80], [60, 10], [61, 90], [110, 20]]
+      .map(([cocheMin, precio], i) => ({ ...base, id: `t${i}`, cocheMin, precio })).sort(guia.orden).map((o) => o.id);
+    assert.deepEqual(orden, ['t4', 't1', 't3', 't2', 't0']);
+    // Dos ofertas en cada uno de 5 pueblos: 5 filas, y el recuento sigue siendo el de las 10 que cumplen.
+    const copias = Array.from({ length: 10 }, (_, i) => ({ ...base, id: `d${i}`, cocheMin: 90, precio: base.precio + i, lugar: { ...base.lugar, nombre: `Pueblo ${i % 5}` } }));
+    const html = generarPaginas({ ...datos, ofertas: copias }, { base: BASE }).archivos.find((a) => a.ruta === 'escapadas/a-menos-de-2-horas/index.html').contenido;
+    assert.equal((html.match(/<li class="fila-guia">/g) ?? []).length, 5);
+    assert.match(html, /<meta name="description" content="[^"]+: 10 ofertas comparadas/);
+  });
 });

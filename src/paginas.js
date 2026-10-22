@@ -102,12 +102,16 @@ const saleDe = (o) => o.etiquetas.filter((e) => e.startsWith('sale-de:')).map((e
 /** «Islas Baleares» → «islas-baleares», «Cataluña» → «cataluna». */
 export const slug = (texto) => normalizar(texto).replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 
-/** Temáticas con guía propia: [carpeta, tema, nombre, qué es]. Las cuatro primeras ya tenían URL y no cambian. */
+/**
+ * Temáticas con guía propia: [carpeta, tema, nombre, qué es, título]. Las cuatro primeras ya tenían URL y no cambian.
+ * El título, si no es «nombre desde origen», como Google ya las enseña: «balnearios spa», «románticas cerca de».
+ * Spa sigue «desde»: entre sus primeras salen Andorra y balnearios de Aragón, que no están cerca.
+ */
 const TEMAS = [
-  ['spa', 'spa', 'Escapadas con spa', 'Hoteles, balnearios y escapadas con spa o circuito de aguas'],
+  ['spa', 'spa', 'Escapadas con spa', 'Hoteles, balnearios y escapadas con spa o circuito de aguas', 'Escapadas con spa y balnearios desde'],
   ['con-ninos', 'familia', 'Escapadas con niños', 'Planes para ir en familia'],
   ['rurales', 'rural', 'Escapadas rurales', 'Casas rurales y planes de naturaleza'],
-  ['romanticas', 'romantico', 'Escapadas románticas', 'Planes para dos'],
+  ['romanticas', 'romantico', 'Escapadas románticas', 'Planes para dos', 'Escapadas románticas cerca de'],
   ['playa', 'playa', 'Escapadas a la playa', 'Hoteles y apartamentos junto al mar'],
   ['gastronomicas', 'gastronomia', 'Escapadas gastronómicas y de vino', 'Enoturismo, catas y escapadas con la cena incluida'],
   ['con-perro', 'mascotas', 'Escapadas con perro', 'Alojamientos que admiten mascotas'],
@@ -231,10 +235,14 @@ export function definiciones({ origen, findes = [], puentes = [], ofertas = [], 
     ...[[1, 'a-menos-de-1-hora'], [2, 'a-menos-de-2-horas']].map(([horas, carpeta]) => ({
       ruta: `escapadas/${carpeta}`, grupo: 'general', enlace: `A menos de ${horas} ${horas === 1 ? 'hora' : 'horas'} en coche`,
       titulo: `Escapadas a menos de ${horas} ${horas === 1 ? 'hora' : 'horas'} de ${desde} en coche`,
-      // A 1 hora, lo más cerca primero (lo que se busca y distinto de la guía de la provincia).
-      intro: `Planes a menos de ${horas} ${horas === 1 ? 'hora' : 'horas'} en coche desde ${desde} (tiempo real por carretera), ${horas === 1 ? `del más cercano al más lejano, con ${coste}` : `ordenados por ${coste}`}.`,
+      // A 1 hora, lo más cerca primero (lo que se busca y distinto de la guía de la provincia). A 2 horas,
+      // primero lo de entre 1 y 2 h y un plan por destino: por precio a secas eran las mismas ofertas de la
+      // costa que «a la playa» y se quedaba sin indexar, y es la que Google ya enseñaba («destinos a 2 horas…»).
+      // El panel no tiene ese orden: abre con el más parecido (por el viaje completo).
+      intro: `Planes a menos de ${horas} ${horas === 1 ? 'hora' : 'horas'} en coche desde ${desde} (tiempo real por carretera), ${horas === 1 ? `del más cercano al más lejano, con ${coste}` : `primero los de entre 1 y 2 horas (lo que está a menos de 1 hora tiene su propia guía), uno por destino, ordenados por ${coste}`}.`,
       elegir: (o) => esEscapada(o) && !SIN_COCHE.includes(o.transporte) && o.cocheMin != null && o.cocheMin <= horas * 60 && conTotal(o),
-      orden: horas === 1 ? porCercania : porTotal, panel: `#/escapadas?h=${horas}&orden=${horas === 1 ? 'distancia' : 'total'}`, prioridad: 5,
+      orden: horas === 1 ? porCercania : antes((o) => o.cocheMin > 60, porTotal), unaPorDestino: horas === 2,
+      panel: `#/escapadas?h=${horas}&orden=${horas === 1 ? 'distancia' : 'total'}`, prioridad: 5,
     })),
     {
       ruta: 'escapadas/sin-coche', grupo: 'general', enlace: 'Sin coche', titulo: `Escapadas sin coche desde ${desde}`,
@@ -243,8 +251,8 @@ export function definiciones({ origen, findes = [], puentes = [], ofertas = [], 
       elegir: (o) => esEscapada(o) && SIN_COCHE.includes(o.transporte) && o.precio != null, orden: porTotalYPrecio, prioridad: 5,
       panel: '#/escapadas?sincoche=1',
     },
-    ...TEMAS.map(([carpeta, tema, nombre, que]) => ({
-      ruta: `escapadas/${carpeta}`, grupo: 'tema', enlace: nombre, titulo: `${nombre} desde ${desde}`,
+    ...TEMAS.map(([carpeta, tema, nombre, que, titulo = `${nombre} desde`]) => ({
+      ruta: `escapadas/${carpeta}`, grupo: 'tema', enlace: nombre, titulo: `${titulo} ${desde}`,
       intro: `${que}, ordenados por ${coste}.`,
       elegir: (o) => esEscapada(o) && o.temas.includes(tema) && conTotal(o), orden: porTotal,
       panel: `#/escapadas?temas=${tema}&orden=total`,
@@ -554,18 +562,19 @@ export function generarPaginas(todasLasOfertas, { base = null } = {}) {
   const datos = { ...todasLasOfertas, ofertas: vigentes };
   const candidatas = elegirGuias(definiciones(datos).map((d) => {
     const lista = sinRepetidas(datos.ofertas.filter(d.elegir).sort(d.orden));
-    return { d, lista: d.unaPorDestino ? unaPorDestino(lista) : lista };
+    // El recuento, el de las que cumplen: con una por destino, la lista es más corta (304 cumplen, 189 destinos).
+    return { d, lista: d.unaPorDestino ? unaPorDestino(lista) : lista, total: lista.length };
   }));
   // Las que se indexan: las que se enlazan entre sí y van al sitemap.
   const indexables = candidatas.filter((c) => c.indexable);
   const todas = indexables.map((c) => c.d);
   const nombres = new Map((datos.fuentes ?? []).map((f) => [f.id, f.nombre]));
-  const archivos = candidatas.map(({ d, lista, indexable }) => {
+  const archivos = candidatas.map(({ d, lista, indexable, total }) => {
     const raiz = '../'.repeat(d.ruta.split('/').length);
     return {
       ruta: `${d.ruta}/index.html`,
       contenido: htmlPagina(d, lista.slice(0, MAXIMO_POR_PAGINA), {
-        raiz, base, generado: datos.generado, total: lista.length, todas, nombres, texto: textoGuia(d.ruta, datos.origen.nombre), contacto: datos.legal?.email, indexable, webs: numeroWebs(datos),
+        raiz, base, generado: datos.generado, total, todas, nombres, texto: textoGuia(d.ruta, datos.origen.nombre), contacto: datos.legal?.email, indexable, webs: numeroWebs(datos),
       }),
     };
   });
@@ -606,7 +615,7 @@ function sinRepetidas(lista) {
   });
 }
 
-/** De cada destino, el vuelo más barato (la lista ya viene ordenada): si no, 24 fechas del mismo Palermo. */
+/** De cada destino, la primera de la lista ya ordenada: si no, 24 fechas del mismo Palermo (o 24 hoteles de Salou). */
 function unaPorDestino(lista) {
   const vistos = new Set();
   return lista.filter((o) => {

@@ -235,6 +235,37 @@ describe('geo', () => {
     assert.equal(vieja.lugar.lat, 37.26);
   });
 
+  test('«Vall d\'Aran» es «Val d\'Aran» en el mapa: se sitúa allí y no en Lleida capital', async () => {
+    const aran = { lat: '42.7256', lon: '0.8504', category: 'boundary', name: "Val d'Aran", address: { province: 'Lleida', country_code: 'es' } };
+    const lleida = { lat: '41.6147605', lon: '0.6267842', category: 'boundary', name: 'Lleida', address: { province: 'Lleida', country_code: 'es' } };
+    const { ctx, peticiones } = crearCtx({ respuestas: (url) => (url.includes("Vall%20d'Aran&countrycodes=es") ? [aran] : [lleida]) });
+    const o = oferta({ lugar: { nombre: "Vall d'Aran" } });
+    await geolocalizar([o], ctx);
+    assert.deepEqual([o.lugar.lat, o.lugar.lon, o.lugar.provincia], [42.7256, 0.8504, 'Lleida']);
+    assert.equal(peticiones.length, 1, 'sin ir a la provincia');
+  });
+
+  test('lo situado en la capital de la provincia que nombra, de antes de marcarlo como aproximado, se busca otra vez (una)', async () => {
+    const aran = { lat: '42.7256', lon: '0.8504', category: 'boundary', name: "Val d'Aran", address: { province: 'Lleida', country_code: 'es' } };
+    const { ctx, peticiones } = crearCtx({ respuestas: (url) => (url.includes("Vall%20d'Aran&countrycodes=es") ? [aran] : []) });
+    const enLleida = { lat: 41.6147605, lon: 0.6267842, codigoPais: 'ES', regionGeo: 'Lleida' };
+    ctx.cache.guardar("geo2:vall d'aran", enLleida, AHORA.getTime());
+    ctx.cache.guardar('geo2:lleida', enLleida, AHORA.getTime());
+    ctx.cache.guardar('geo2:costa de huelva', { lat: 37.26, lon: -6.95, codigoPais: 'ES', regionGeo: 'Huelva', aproximado: true }, AHORA.getTime());
+    const nueva = oferta({ lugar: { nombre: "Vall d'Aran" } });
+    // La guardada de otro escaneo, después de la que ya ha renovado la caché.
+    const guardada = oferta({ lugar: { nombre: "Vall d'Aran", lat: 41.6147605, lon: 0.6267842, codigoPais: 'ES' } });
+    const capital = oferta({ lugar: { nombre: 'Lleida' } });
+    const huelva = oferta({ lugar: { nombre: 'Costa de Huelva' } });
+    await geolocalizar([nueva, guardada, capital, huelva], ctx);
+    assert.deepEqual([nueva.lugar.lat, nueva.lugar.lon, guardada.lugar.lat, guardada.lugar.lon, guardada.lugar.codigoPais], [42.7256, 0.8504, 42.7256, 0.8504, 'ES']);
+    assert.deepEqual([capital.lugar.lat, huelva.lugar.lat], [41.6147605, 37.26], '«Lleida» es la provincia y «Costa de Huelva» ya va marcada');
+    assert.equal(peticiones.length, 1);
+    // Ya marcado, no se repite.
+    await geolocalizar([oferta({ lugar: { nombre: "Vall d'Aran" } })], ctx);
+    assert.equal(peticiones.length, 1);
+  });
+
   test('las coordenadas de la búsqueda antigua (en todo el mundo) se repiten', async () => {
     const espana = { lat: '40.63', lon: '-3.16', category: 'boundary', name: 'Guadalajara', address: { province: 'Guadalajara', country_code: 'es' } };
     const { ctx } = crearCtx({ respuestas: () => [espana] });
