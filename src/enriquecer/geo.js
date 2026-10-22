@@ -8,6 +8,7 @@ import { enIsla } from '../../site/js/geo.js';
 import { provinciaEnTexto, zonaDe } from './zona.js';
 
 const URL_NOMINATIM = 'https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&addressdetails=1&accept-language=es&q=';
+const URL_NOMINATIM_INVERSA = 'https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=8&addressdetails=1&accept-language=es';
 const URL_OSRM = 'https://router.project-osrm.org/table/v1/driving/';
 const URL_CARBURANTES = 'https://sedeaplicaciones.minetur.gob.es/ServiciosRESTCarburantes/PreciosCarburantes/';
 const DIA_MS = 24 * 60 * 60 * 1000;
@@ -216,6 +217,38 @@ export async function geolocalizar(ofertas, ctx, { maxNuevas = 40 } = {}) {
     }
   }
   if (aplazadas) ctx.log(`${aplazadas} lugares se geolocalizarán en la próxima ejecución`);
+  await completarProvincias(ofertas, ctx, { nuevas, maxNuevas, ahora });
+}
+
+/**
+ * La provincia de las ofertas de España que llegan con coordenadas pero sin ella (Weekendesk
+ * dice «Coma-Ruga, Cataluña»): sin provincia no salían en la guía de su provincia ni en el
+ * filtro por zona. Se pregunta a Nominatim qué hay en ese punto (con caché sin caducidad: los
+ * pueblos no se mueven), con las consultas que le queden a esta ejecución, y solo se usa si
+ * cuadra con la comunidad que dice la web.
+ */
+async function completarProvincias(ofertas, ctx, { nuevas, maxNuevas, ahora }) {
+  for (const { lugar } of ofertas) {
+    if (!lugar || lugar.provincia || !tieneCoordenadas(lugar) || codigoPais(lugar) !== 'es') continue;
+    const clave = `provincia:${clavePunto(lugar)}`;
+    let region = ctx.cache.obtener(clave);
+    if (region === undefined) {
+      if (nuevas >= maxNuevas) continue;
+      if (nuevas > 0) await ctx.http.esperar(PAUSA_NOMINATIM_MS);
+      nuevas++;
+      try {
+        const direccion = (await ctx.http.json(`${URL_NOMINATIM_INVERSA}&lat=${lugar.lat}&lon=${lugar.lon}`))?.address ?? {};
+        region = direccion.country_code === 'es' ? direccion.province || direccion.state || null : null;
+        ctx.cache.guardar(clave, region, ahora);
+      } catch (error) {
+        ctx.log(`No se ha podido saber la provincia de «${lugar.nombre ?? clave}»: ${error.message}`);
+        continue;
+      }
+    }
+    if (!region) continue;
+    const zona = zonaDe({ region, pais: 'España' });
+    if (zona.provincia && (!lugar.comunidad || zona.comunidad === lugar.comunidad)) Object.assign(lugar, zona);
+  }
 }
 
 async function pedirRutas(origen, puntos, ctx) {

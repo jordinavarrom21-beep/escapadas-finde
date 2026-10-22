@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { calcularCosteCoche } from '../src/enriquecer/geo.js';
+import { calcularCosteCoche, geolocalizar } from '../src/enriquecer/geo.js';
 import { AJUSTES, crearCtx, oferta } from './ayudas.js';
 
 const PROVINCIAS = [
@@ -99,5 +99,40 @@ describe('geo: precio del litro para el panel', () => {
     const { ctx } = crearCtx({ respuestas: ministerio });
     assert.equal(await calcularCosteCoche([oferta({ cocheKm: 100 })], ctx), 1.899);
     assert.equal(await calcularCosteCoche([oferta({ tipo: 'vuelo' })], ctx), null);
+  });
+});
+
+describe('geo: provincia de las ofertas que traen coordenadas y no la dicen', () => {
+  const comaRuga = () => oferta({ lugar: { nombre: 'Coma-Ruga', region: 'Cataluña', pais: 'España', codigoPais: 'ES', comunidad: 'Cataluña', provincia: null, lat: 41.1816, lon: 1.523 } });
+
+  it('se pregunta a Nominatim por el punto, una vez, y entra en la guía de su provincia', async () => {
+    const { ctx, peticiones } = crearCtx({ respuestas: () => ({ address: { country_code: 'es', province: 'Tarragona', state: 'Cataluña' } }) });
+    const [a, b] = [comaRuga(), comaRuga()];
+    await geolocalizar([a, b], ctx);
+    assert.equal(a.lugar.provincia, 'Tarragona');
+    assert.equal(b.lugar.provincia, 'Tarragona');
+    assert.equal(peticiones.length, 1, 'el mismo punto, una sola consulta');
+    assert.match(peticiones[0], /\/reverse\?.*&lat=41\.1816&lon=1\.523$/);
+    // La siguiente ejecución sale de la caché.
+    const otra = crearCtx({ cache: ctx.cache, respuestas: () => { throw new Error('sin red'); } });
+    const c = comaRuga();
+    await geolocalizar([c], otra.ctx);
+    assert.equal(c.lugar.provincia, 'Tarragona');
+  });
+
+  it('si la provincia no cuadra con la comunidad que dice la web, no se toca', async () => {
+    const { ctx } = crearCtx({ respuestas: () => ({ address: { country_code: 'es', province: 'Huesca', state: 'Aragón' } }) });
+    const o = comaRuga();
+    await geolocalizar([o], ctx);
+    assert.equal(o.lugar.provincia, null);
+  });
+
+  it('un fallo de la red no rompe el escaneo ni se guarda', async () => {
+    const { ctx, logs } = crearCtx({ respuestas: () => { throw new Error('HTTP 429'); } });
+    const o = comaRuga();
+    await geolocalizar([o], ctx);
+    assert.equal(o.lugar.provincia, null);
+    assert.equal(ctx.cache.obtener('provincia:41.182,1.523'), undefined);
+    assert.ok(logs.some((l) => l.includes('Coma-Ruga')));
   });
 });
