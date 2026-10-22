@@ -234,6 +234,7 @@ export function definiciones({ origen, findes = [], puentes = [], ofertas = [], 
       // A 1 hora, lo más cerca primero (lo que se busca y distinto de la guía de la provincia). A 2 horas,
       // primero lo de entre 1 y 2 h y un plan por destino: por precio a secas eran las mismas ofertas de la
       // costa que «a la playa» y se quedaba sin indexar, y es la que Google ya enseñaba («destinos a 2 horas…»).
+      // El panel no tiene ese orden: abre con el más parecido (por el viaje completo).
       intro: `Planes a menos de ${horas} ${horas === 1 ? 'hora' : 'horas'} en coche desde ${desde} (tiempo real por carretera), ${horas === 1 ? `del más cercano al más lejano, con ${coste}` : `primero los de entre 1 y 2 horas (lo que está a menos de 1 hora tiene su propia guía), uno por destino, ordenados por ${coste}`}.`,
       elegir: (o) => esEscapada(o) && !SIN_COCHE.includes(o.transporte) && o.cocheMin != null && o.cocheMin <= horas * 60 && conTotal(o),
       orden: horas === 1 ? porCercania : antes((o) => o.cocheMin > 60, porTotal), unaPorDestino: horas === 2,
@@ -557,18 +558,19 @@ export function generarPaginas(todasLasOfertas, { base = null } = {}) {
   const datos = { ...todasLasOfertas, ofertas: vigentes };
   const candidatas = elegirGuias(definiciones(datos).map((d) => {
     const lista = sinRepetidas(datos.ofertas.filter(d.elegir).sort(d.orden));
-    return { d, lista: d.unaPorDestino ? unaPorDestino(lista) : lista };
+    // El recuento, el de las que cumplen: con una por destino, la lista es más corta (304 cumplen, 189 destinos).
+    return { d, lista: d.unaPorDestino ? unaPorDestino(lista) : lista, total: lista.length };
   }));
   // Las que se indexan: las que se enlazan entre sí y van al sitemap.
   const indexables = candidatas.filter((c) => c.indexable);
   const todas = indexables.map((c) => c.d);
   const nombres = new Map((datos.fuentes ?? []).map((f) => [f.id, f.nombre]));
-  const archivos = candidatas.map(({ d, lista, indexable }) => {
+  const archivos = candidatas.map(({ d, lista, indexable, total }) => {
     const raiz = '../'.repeat(d.ruta.split('/').length);
     return {
       ruta: `${d.ruta}/index.html`,
       contenido: htmlPagina(d, lista.slice(0, MAXIMO_POR_PAGINA), {
-        raiz, base, generado: datos.generado, total: lista.length, todas, nombres, texto: textoGuia(d.ruta, datos.origen.nombre), contacto: datos.legal?.email, indexable, webs: numeroWebs(datos),
+        raiz, base, generado: datos.generado, total, todas, nombres, texto: textoGuia(d.ruta, datos.origen.nombre), contacto: datos.legal?.email, indexable, webs: numeroWebs(datos),
       }),
     };
   });
