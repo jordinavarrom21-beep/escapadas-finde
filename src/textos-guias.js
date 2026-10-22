@@ -152,7 +152,7 @@ export const TEXTOS_GUIAS = {
     titulo: 'Casas rurales cerca de {desde}: qué tener en cuenta',
     parrafos: [
       'Una casa rural es una de las mejores opciones para escapadas en familia o con amigos: tenéis espacio, cocina y, muchas veces, jardín, barbacoa o piscina. Las zonas con más oferta cerca de {desde} son el Montseny, Osona, la Garrotxa, el Berguedà, el Empordà y el Priorat.',
-      'Hay dos formas de alquilarlas: la casa entera (alquiler íntegro) o por habitaciones (alquiler compartido, más parecido a un pequeño hotel). En esta guía comparamos ambas por el coste total del viaje, para que veas cuánto os costará de verdad; las que no permiten calcularlo van al final, por precio.',
+      'Hay dos formas de alquilarlas: la casa entera (alquiler íntegro) o por habitaciones (alquiler compartido, más parecido a un pequeño hotel). En esta guía van primero las de mejor Valor (precio frente a lo normal, fechas, comodidad y opiniones), cada una con el coste total del viaje para que veas cuánto os costará de verdad; las que no permiten calcularlo van al final, por precio.',
     ],
     consejos: [
       'Comprueba la capacidad real: algunas camas son supletorias o sofás cama.',
