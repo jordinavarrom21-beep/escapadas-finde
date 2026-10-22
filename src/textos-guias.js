@@ -94,22 +94,24 @@ export const TEXTOS_GUIAS = {
     ],
   },
   'escapadas/spa': {
-    titulo: 'Escapadas con spa y balnearios cerca de {desde}',
+    titulo: 'Balnearios y hoteles con spa cerca de {desde}',
     parrafos: [
-      'Cataluña tiene una larga tradición termal. A menos de una hora de {desde} están Caldes de Montbui y La Garriga, dos pueblos de aguas termales con balnearios históricos. En Girona, Caldes de Malavella es otro clásico, y en Tarragona hay grandes centros termales con piscinas y circuitos de aguas.',
-      'Además de los balnearios, muchos hoteles de la costa y de montaña tienen spa propio con piscina climatizada, jacuzzi, sauna y baño turco. Las escapadas con spa son de las más demandadas en otoño e invierno, y un plan perfecto para desconectar un fin de semana.',
-      'Fíjate en si la oferta incluye el acceso al spa o solo el alojamiento, cuánto tiempo dura el circuito y si hay que reservar turno: en algunos hoteles el spa tiene horarios limitados o se paga aparte, y los masajes casi siempre van aparte.',
+      'A menos de una hora de {desde} hay balnearios de aguas termales, en Caldes de Montbui y La Garriga, y hoteles con spa en Sitges, el Maresme y el Vallès: una escapada de una noche con spa no obliga a pasar el día en el coche. Un poco más lejos, la Costa Brava (Lloret de Mar, Tossa de Mar, Sant Feliu de Guíxols, S\'Agaró o Platja d\'Aro) tiene muchos hoteles con spa junto al mar, y el resto de Cataluña, otros balnearios con tradición: Caldes de Malavella en Girona, Rocallaura en Lleida y el centro termal de Montbrió del Camp, cerca de Reus.',
+      'Para un fin de semana largo o un puente compensa ir más lejos: Andorra, a unas tres horas, tiene el centro termal de Caldea y muchos hoteles de montaña con spa, y en Aragón están el balneario de Panticosa, en el Pirineo, y los de Alhama de Aragón. También hay hoteles con spa en Cantabria, en la costa valenciana y en otras zonas de España.',
+      'Lo más habitual es una noche para dos con desayuno y acceso al spa o al circuito termal; algunas ofertas añaden la cena (media pensión), la pensión completa o una segunda noche. Fíjate en si incluye el acceso al spa o solo el alojamiento, cuánto dura el circuito y si hay que reservar turno: en algunos hoteles el spa tiene horarios limitados o se paga aparte, y los masajes casi siempre van aparte.',
     ],
     consejos: [
       'Comprueba si el circuito de spa está incluido en el precio y cuántas veces puedes usarlo durante la estancia.',
       'Lleva chanclas y gorro de baño: en muchos spas son obligatorios y si no los llevas te los cobran.',
-      'Los domingos por la noche y entre semana suele haber menos gente y mejores precios.',
+      'Los domingos por la noche y entre semana suele haber menos gente y mejores precios. En otoño e invierno, los fines de semana se llenan antes.',
       'Si buscas tranquilidad, elige hoteles solo para adultos o spas con turnos reservados.',
+      'Si vais con niños, confirma la edad mínima: muchos spas no admiten menores o solo en algunas horas.',
     ],
     preguntas: [
-      ['¿Dónde hay balnearios cerca de {desde}?', 'Los más cercanos están en Caldes de Montbui y La Garriga, a menos de una hora. También hay balnearios y centros termales en Caldes de Malavella (Girona), en Tarragona y en Andorra.'],
+      ['¿Dónde hay balnearios cerca de {desde}?', 'Los más cercanos están en Caldes de Montbui y La Garriga, a unos 40 minutos en coche. A menos de dos horas hay también balnearios en Caldes de Malavella (Girona) y Rocallaura (Lleida) y el centro termal de Montbrió del Camp (Tarragona); a unas tres horas, Caldea, en Andorra.'],
       ['¿Qué diferencia hay entre balneario y spa?', 'Un balneario usa aguas mineromedicinales de manantial; un spa usa agua corriente con circuitos de piscinas, chorros, sauna y baño turco. Las dos opciones están en esta guía.'],
       ['¿El acceso al spa está incluido?', 'Depende de la oferta: algunas incluyen acceso ilimitado, otras un circuito con horario. Compruébalo en la web de cada oferta antes de reservar.'],
+      ['¿Compensa una escapada de una noche con spa?', 'Sí, si el destino está cerca: a menos de una hora, como Caldes de Montbui, La Garriga, Sitges o el Maresme, da tiempo de llegar a media tarde, hacer el circuito y repetir por la mañana antes de irte. Pregunta a qué hora abre el spa y si se puede usar el día de salida.'],
     ],
   },
   'escapadas/con-ninos': {
@@ -168,18 +170,23 @@ export const TEXTOS_GUIAS = {
   'escapadas/romanticas': {
     titulo: 'Ideas para una escapada romántica cerca de {desde}',
     parrafos: [
-      'Para una escapada en pareja cerca de {desde}, los clásicos son los pueblos de la Costa Brava, como Begur, Calella de Palafrugell, Tossa de Mar o Cadaqués, con calas, paseos al atardecer y buenos restaurantes. A unas dos horas, los pueblos medievales del Empordà, como Peratallada o Pals, y Besalú en la Garrotxa son perfectos para perderse sin prisa.',
-      'Si preferís la montaña, el Priorat combina paisajes de viñedos, bodegas y pueblos como Siurana encima de un risco. Y para algo más especial, los alojamientos singulares (cabañas en los árboles, burbujas para ver las estrellas o masías restauradas) son de las opciones más buscadas para aniversarios y sorpresas.',
-      'Muchas ofertas románticas incluyen extras como cena, cava en la habitación, salida tardía o acceso al spa. Compara siempre qué incluye cada una: a veces una oferta algo más cara sale mejor que reservar esos extras por separado.',
+      'Para una escapada romántica cerca de {desde} no hace falta ir lejos: a menos de una hora están Sitges, el Maresme y los pueblos termales de Caldes de Montbui y La Garriga, y en menos de hora y media, la Costa Brava sur, de Lloret de Mar y Tossa de Mar a Sant Feliu de Guíxols y Platja d\'Aro. A unas dos horas quedan las calas de Begur y Calella de Palafrugell, los pueblos medievales del Empordà (Castelló d\'Empúries, Pals o Peratallada) y el Pirineo de Camprodon y la Cerdanya.',
+      'Si preferís el interior, Cardona y su castillo, el monasterio de Poblet entre viñedos o el Priorat, con pueblos como Siurana encima de un risco, son planes tranquilos a dos horas como mucho. Y si no queréis coger el coche, a Sitges, al Maresme y a Girona se llega en tren desde {desde}.',
+      'Lo más habitual es una noche para dos con desayuno, y muchas ofertas románticas añaden cava en la habitación, salida tardía, jacuzzi o acceso al spa; algunas, la cena (media pensión), y unas pocas, la pensión completa. Compara siempre qué incluye cada una: a veces una oferta algo más cara sale mejor que reservar esos extras por separado.',
+      'Para un puente o una ocasión especial también hay escapadas más lejos, como hoteles burbuja para ver las estrellas, glamping u hoteles con encanto en el resto de España. Con más de tres horas de coche, compensa ir dos noches.',
     ],
     consejos: [
       'Para sorprender a tu pareja, busca ofertas con cena incluida o con spa privado: suelen salir más baratas que pagarlos aparte.',
       'Los hoteles solo para adultos (adults only) garantizan un ambiente tranquilo.',
+      'Con una sola noche, busca ofertas con salida tardía: el domingo da para mucho más.',
       'En la Costa Brava, fuera de julio y agosto encontrarás mejores precios y menos gente.',
       'Pide una habitación con vistas al reservar: muchas veces cuesta poco más o nada.',
     ],
     preguntas: [
-      ['¿Dónde hacer una escapada romántica cerca de {desde}?', 'La Costa Brava (Begur, Calella de Palafrugell, Cadaqués), los pueblos medievales del Empordà (Peratallada, Pals), Besalú y la Garrotxa, el Priorat y Sitges son algunas de las opciones más populares, todas a menos de dos horas y media en coche.'],
+      ['¿Dónde hacer una escapada romántica cerca de {desde}?', 'La Costa Brava (de Lloret de Mar y Tossa a Begur y Calella de Palafrugell), Sitges y la Costa Daurada, los pueblos medievales del Empordà y los balnearios de Caldes de Montbui y La Garriga son las opciones más habituales, todas a menos de dos horas en coche.'],
+      ['¿Hay escapadas románticas de una sola noche?', 'Sí, son las más habituales: una noche para dos con desayuno y, a menudo, cava, salida tardía o acceso al spa. Para aprovecharla, elige un destino a menos de una hora, como Sitges, el Maresme o Caldes de Montbui.'],
+      ['¿Hay fines de semana románticos con pensión completa?', 'Algunos, sobre todo en hoteles de la costa, como en Lloret de Mar o Tossa de Mar; lo más habitual es el desayuno o la media pensión (desayuno y cena). En el panel puedes filtrar por régimen mínimo para ver solo las ofertas con pensión completa.'],
+      ['¿Sirve esta guía para un viaje de novios?', 'Para la noche de bodas o una luna de miel corta cerca de {desde}, sí. Para un viaje de novios más largo, mira la guía de vuelos baratos y la de escapadas sin coche, con ofertas de vuelo y hotel.'],
       ['¿Qué regalar en una escapada en pareja?', 'Las ofertas con cena romántica, circuito de spa o masaje para dos incluidos son un buen regalo. Los alojamientos singulares, como cabañas o burbujas, también son un plan diferente para una ocasión especial.'],
     ],
   },

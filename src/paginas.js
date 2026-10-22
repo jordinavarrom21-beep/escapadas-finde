@@ -102,12 +102,16 @@ const saleDe = (o) => o.etiquetas.filter((e) => e.startsWith('sale-de:')).map((e
 /** «Islas Baleares» → «islas-baleares», «Cataluña» → «cataluna». */
 export const slug = (texto) => normalizar(texto).replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 
-/** Temáticas con guía propia: [carpeta, tema, nombre, qué es]. Las cuatro primeras ya tenían URL y no cambian. */
+/**
+ * Temáticas con guía propia: [carpeta, tema, nombre, qué es, título]. Las cuatro primeras ya tenían URL y no cambian.
+ * El título, si no es «nombre desde origen», como Google ya las enseña: «balnearios spa», «románticas cerca de».
+ * Spa sigue «desde»: entre sus primeras salen Andorra y balnearios de Aragón, que no están cerca.
+ */
 const TEMAS = [
-  ['spa', 'spa', 'Escapadas con spa', 'Hoteles, balnearios y escapadas con spa o circuito de aguas'],
+  ['spa', 'spa', 'Escapadas con spa', 'Hoteles, balnearios y escapadas con spa o circuito de aguas', 'Escapadas con spa y balnearios desde'],
   ['con-ninos', 'familia', 'Escapadas con niños', 'Planes para ir en familia'],
   ['rurales', 'rural', 'Escapadas rurales', 'Casas rurales y planes de naturaleza'],
-  ['romanticas', 'romantico', 'Escapadas románticas', 'Planes para dos'],
+  ['romanticas', 'romantico', 'Escapadas románticas', 'Planes para dos', 'Escapadas románticas cerca de'],
   ['playa', 'playa', 'Escapadas a la playa', 'Hoteles y apartamentos junto al mar'],
   ['gastronomicas', 'gastronomia', 'Escapadas gastronómicas y de vino', 'Enoturismo, catas y escapadas con la cena incluida'],
   ['con-perro', 'mascotas', 'Escapadas con perro', 'Alojamientos que admiten mascotas'],
@@ -247,8 +251,8 @@ export function definiciones({ origen, findes = [], puentes = [], ofertas = [], 
       elegir: (o) => esEscapada(o) && SIN_COCHE.includes(o.transporte) && o.precio != null, orden: porTotalYPrecio, prioridad: 5,
       panel: '#/escapadas?sincoche=1',
     },
-    ...TEMAS.map(([carpeta, tema, nombre, que]) => ({
-      ruta: `escapadas/${carpeta}`, grupo: 'tema', enlace: nombre, titulo: `${nombre} desde ${desde}`,
+    ...TEMAS.map(([carpeta, tema, nombre, que, titulo = `${nombre} desde`]) => ({
+      ruta: `escapadas/${carpeta}`, grupo: 'tema', enlace: nombre, titulo: `${titulo} ${desde}`,
       intro: `${que}, ordenados por ${coste}.`,
       elegir: (o) => esEscapada(o) && o.temas.includes(tema) && conTotal(o), orden: porTotal,
       panel: `#/escapadas?temas=${tema}&orden=total`,
