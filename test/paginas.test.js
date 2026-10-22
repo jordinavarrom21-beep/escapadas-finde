@@ -2,7 +2,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-import { MINIMO_OFERTAS, elegirGuias, estructuradosPortada, generarPaginas, nombrePuente } from '../src/paginas.js';
+import { MINIMO_OFERTAS, definiciones, elegirGuias, estructuradosPortada, generarPaginas, nombrePuente } from '../src/paginas.js';
 
 const datos = JSON.parse(readFileSync(new URL('./fixtures/panel-real/ofertas.json', import.meta.url), 'utf8'));
 const BASE = 'https://usuario.github.io/escapadas-finde/';
@@ -284,5 +284,16 @@ describe('guías: lo que se ve en el resultado de Google', () => {
     const { archivos } = generarPaginas({ ...datos, ofertas: copias }, { base: BASE });
     const html = archivos.find((a) => a.ruta === 'escapadas/index.html')?.contenido ?? '';
     assert.equal((html.match(/<li class="fila-guia">/g) ?? []).length, MINIMO_OFERTAS + 1);
+  });
+});
+
+describe('guías que se cruzan con las temáticas: otro orden para no quedarse sin indexar', () => {
+  it('a menos de 1 hora va de la más cercana a la más lejana', () => {
+    const guia = definiciones(datos).find((d) => d.ruta === 'escapadas/a-menos-de-1-hora');
+    const elegidas = datos.ofertas.filter((o) => o.cocheMin != null).slice(0, 10);
+    const minutos = [...elegidas].sort(guia.orden).map((o) => o.cocheMin);
+    assert.ok(minutos.length >= MINIMO_OFERTAS);
+    assert.deepEqual(minutos, [...minutos].sort((a, b) => a - b));
+    assert.match(guia.panel, /orden=distancia/, 'el panel abre con el mismo orden');
   });
 });

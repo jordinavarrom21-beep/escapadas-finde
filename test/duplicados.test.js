@@ -194,6 +194,13 @@ describe('duplicados: la misma oferta publicada dos veces en la misma web', () =
     assert.ok(!conNombre.etiquetas.includes('duplicada'), 'la que dice el nombre del hotel se queda');
   });
 
+  it('«Venta flash» también es un reclamo: las dos fichas del mismo hotel salen una vez', () => {
+    const conFlash = weekendesk('21973860', { etiquetas: ['Venta flash', 'Hotel 4*', 'Pensión completa', 'Escapada barata'] });
+    const sinFlash = weekendesk('21973862', { etiquetas: ['Escapada barata', 'Hotel 4*', 'Pensión completa'] });
+    marcarEquivalentes([conFlash, sinFlash]);
+    assert.equal([conFlash, sinFlash].filter((o) => o.etiquetas.includes('duplicada')).length, 1);
+  });
+
   it('una etiqueta, el precio o la descripción distintos son productos distintos', () => {
     const base = weekendesk('1');
     const otras = [

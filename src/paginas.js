@@ -74,6 +74,20 @@ const porTotal = (a, b) => costeDesdeOrigen(a, VIAJEROS).total - costeDesdeOrige
 const porPrecio = (a, b) => (a.precio ?? Infinity) - (b.precio ?? Infinity);
 /** Por la nota (Valor) de la oferta, como «Recomendadas» en el panel; a igual nota, la más barata. */
 const porValor = (a, b) => (b.puntuacion ?? 0) - (a.puntuacion ?? 0) || porTotal(a, b);
+/** Como porValor, y las que no permiten calcular el viaje completo al final, por precio. */
+const porValorYPrecio = (a, b) => (b.puntuacion ?? 0) - (a.puntuacion ?? 0) || porTotalYPrecio(a, b);
+/** La mejor nota de los clientes (Google, la propia web) primero; sin nota, al final; a igual nota, la más barata. */
+const porOpiniones = (a, b) => (b.valoracion?.nota ?? -1) - (a.valoracion?.nota ?? -1) || porTotal(a, b);
+const OPINIONES = 'la nota de quienes se han alojado (de Google o de la propia web)';
+/** La más cerca en coche primero; a igual tiempo, la más barata. */
+const porCercania = (a, b) => a.cocheMin - b.cocheMin || porTotal(a, b);
+/**
+ * Las guías que se cruzan con las temáticas (que van por precio) se ordenan de otra forma: todas
+ * por precio enseñaban las mismas 24 ofertas baratas de la costa que «a la playa», y se quedaban
+ * sin indexar (SOLAPE_MAXIMO) justo las que más se buscan: casas rurales, a menos de 1 hora…
+ */
+const VALOR = 'su Valor (precio frente a lo normal, fechas, comodidad y opiniones)';
+
 /** Primero las que cumplen `primero` (con fecha en ese periodo); dentro de cada parte, `orden`. */
 const antes = (primero, orden) => (a, b) => Number(primero(b)) - Number(primero(a)) || orden(a, b);
 /** Las que tienen coste del viaje completo primero (de menos a más) y después el resto por precio. */
@@ -189,11 +203,11 @@ export function definiciones({ origen, findes = [], puentes = [], ofertas = [], 
     {
       ruta: 'escapadas/menos-de-100-euros', grupo: 'general', enlace: 'Por menos de 100 € por persona',
       titulo: `Escapadas desde ${desde} por menos de 100 € por persona`,
-      intro: `Viajes completos que salen por menos de 100 € por persona según ${coste}.`,
+      intro: `Viajes completos que salen por menos de 100 € por persona según ${coste}, de la mejor valorada por ${OPINIONES} a la peor.`,
       // porPersona null (sin datos para el viaje completo) no cumple: antes «null <= 100» era true.
       elegir: (o) => { const pp = costeDesdeOrigen(o, VIAJEROS).porPersona; return esEscapada(o) && pp != null && pp <= 100; },
-      orden: porTotal, umbralPorPersona: 100, prioridad: 4,
-      panel: '#/escapadas?orden=total&pres=100&prespor=persona',
+      orden: porOpiniones, umbralPorPersona: 100, prioridad: 4,
+      panel: '#/escapadas?orden=valoracion&pres=100&prespor=persona',
     },
     {
       ruta: 'escapadas/este-finde', grupo: 'general', enlace: 'Para este finde',
@@ -217,9 +231,10 @@ export function definiciones({ origen, findes = [], puentes = [], ofertas = [], 
     ...[[1, 'a-menos-de-1-hora'], [2, 'a-menos-de-2-horas']].map(([horas, carpeta]) => ({
       ruta: `escapadas/${carpeta}`, grupo: 'general', enlace: `A menos de ${horas} ${horas === 1 ? 'hora' : 'horas'} en coche`,
       titulo: `Escapadas a menos de ${horas} ${horas === 1 ? 'hora' : 'horas'} de ${desde} en coche`,
-      intro: `Planes a menos de ${horas} ${horas === 1 ? 'hora' : 'horas'} en coche desde ${desde} (tiempo real por carretera), ordenados por ${coste}.`,
+      // A 1 hora, lo más cerca primero (lo que se busca y distinto de la guía de la provincia).
+      intro: `Planes a menos de ${horas} ${horas === 1 ? 'hora' : 'horas'} en coche desde ${desde} (tiempo real por carretera), ${horas === 1 ? `del más cercano al más lejano, con ${coste}` : `ordenados por ${coste}`}.`,
       elegir: (o) => esEscapada(o) && !SIN_COCHE.includes(o.transporte) && o.cocheMin != null && o.cocheMin <= horas * 60 && conTotal(o),
-      orden: porTotal, panel: `#/escapadas?h=${horas}&orden=total`, prioridad: 5,
+      orden: horas === 1 ? porCercania : porTotal, panel: `#/escapadas?h=${horas}&orden=${horas === 1 ? 'distancia' : 'total'}`, prioridad: 5,
     })),
     {
       ruta: 'escapadas/sin-coche', grupo: 'general', enlace: 'Sin coche', titulo: `Escapadas sin coche desde ${desde}`,
@@ -236,9 +251,9 @@ export function definiciones({ origen, findes = [], puentes = [], ofertas = [], 
     })),
     ...ALOJAMIENTOS.map(([carpeta, alojamiento, nombre, que]) => ({
       ruta: `escapadas/${carpeta}`, grupo: 'tema', enlace: nombre, titulo: `${nombre} cerca de ${desde}`,
-      intro: `${que}, ordenados por ${coste}. Las que no permiten calcularlo van al final, por precio.`,
-      elegir: (o) => esEscapada(o) && o.alojamiento === alojamiento && o.precio != null, orden: porTotalYPrecio, prioridad: 2,
-      panel: `#/escapadas?aloj=${alojamiento}&orden=total`,
+      intro: `${que}, ordenados por ${VALOR}, con ${coste}. Las que no permiten calcularlo van al final, por precio.`,
+      elegir: (o) => esEscapada(o) && o.alojamiento === alojamiento && o.precio != null, orden: antes(conTotal, porValorYPrecio), prioridad: 2,
+      panel: `#/escapadas?aloj=${alojamiento}&orden=puntuacion`,
     })),
     {
       ruta: 'vuelos', grupo: 'mas', enlace: 'Vuelos baratos', titulo: `Vuelos baratos desde ${desde}`,

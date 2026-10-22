@@ -165,9 +165,9 @@ function agrupar(ofertas) {
  */
 /**
  * Reclamos que la web pone o quita sin que cambie el producto («Noche adicional con
- * descuento», «Escapada barata», «Nuevo»): no distinguen dos ofertas.
+ * descuento», «Escapada barata», «Nuevo», «Venta flash»): no distinguen dos ofertas.
  */
-const RECLAMO = /\b(?:descuento|barat[ao]s?|ofertas?|promo(?:cion)?|nuev[ao]s?|novedad(?:es)?|popular|exclusiv[ao]|ultim[ao]s?\s+plazas|mas vendid[ao]|top)\b/;
+const RECLAMO = /\b(?:descuento|barat[ao]s?|ofertas?|promo(?:cion)?|nuev[ao]s?|novedad(?:es)?|popular|exclusiv[ao]|ultim[ao]s?\s+plazas|mas vendid[ao]|top|flash)\b/;
 
 function huella(oferta) {
   return JSON.stringify([
