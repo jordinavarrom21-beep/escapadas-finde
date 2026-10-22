@@ -2,7 +2,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-import { MINIMO_OFERTAS, elegirGuias, estructuradosPortada, generarPaginas } from '../src/paginas.js';
+import { MINIMO_OFERTAS, elegirGuias, estructuradosPortada, generarPaginas, nombrePuente } from '../src/paginas.js';
 
 const datos = JSON.parse(readFileSync(new URL('./fixtures/panel-real/ofertas.json', import.meta.url), 'utf8'));
 const BASE = 'https://usuario.github.io/escapadas-finde/';
@@ -99,7 +99,7 @@ describe('páginas para buscadores', () => {
     assert.doesNotMatch(pagina('escapadas'), /<title>Escapadas de fin de semana desde/);
     for (const ruta of rutas) {
       const titulo = pagina(ruta).match(/<title>([^<]+)<\/title>/)[1];
-      assert.ok(titulo.length <= 65 || !titulo.includes('Escapadas Finde'), `título corto para los resultados de búsqueda: ${titulo}`);
+      assert.ok(titulo.length <= 60 || !titulo.includes('Escapadas Finde'), `título corto para los resultados de búsqueda: ${titulo}`);
     }
   });
 
@@ -260,5 +260,29 @@ describe('guías sin repetirse (plan 3.7–3.11)', () => {
     assert.match(arriba, /<h1>[^<]+<\/h1>\n<p>[^<]+\.<\/p>/);
     assert.match(abajo, /<section class="guia-texto"/);
     assert.match(abajo, /Cómo se ha hecho esta lista/);
+  });
+});
+
+describe('guías: lo que se ve en el resultado de Google', () => {
+  it('el puente se llama como se busca, con las fechas en la descripción', () => {
+    const diciembre = { desde: '2026-12-05', nombre: 'Día de la Constitución e Inmaculada Concepción', festivos: [{ nombre: 'Día de la Constitución' }, { nombre: 'Inmaculada Concepción' }] };
+    assert.equal(nombrePuente(diciembre), 'el puente de diciembre');
+    assert.equal(nombrePuente({ desde: '2027-03-25', festivos: [{ nombre: 'Viernes Santo' }] }), 'Semana Santa');
+    assert.equal(nombrePuente({ desde: '2026-11-01', festivos: [{ nombre: 'Todos los Santos' }] }), 'el puente de Todos los Santos');
+    assert.equal(nombrePuente({ desde: '2027-06-24', festivos: [{ nombre: 'Fiesta local' }] }), 'el puente de junio');
+  });
+
+  it('la descripción dice desde cuánto sale el viaje completo', () => {
+    const { archivos } = generarPaginas(datos, { base: BASE });
+    const html = archivos.find((a) => a.ruta === 'escapadas/index.html').contenido;
+    assert.match(html, /<meta name="description" content="[^"]+ ofertas comparadas por el coste del viaje completo, desde \d+\s€ por persona\. Actualizado/);
+  });
+
+  it('la misma oferta dos veces en la misma web sale una vez; en dos webs, las dos', () => {
+    const base = datos.ofertas.find((o) => o.tipo !== 'vuelo' && o.alojamiento && o.precio != null);
+    const copias = Array.from({ length: MINIMO_OFERTAS + 2 }, (_, i) => ({ ...base, id: `${base.id}-${i}`, fuente: i < 2 ? base.fuente : `${base.fuente}-${i}` }));
+    const { archivos } = generarPaginas({ ...datos, ofertas: copias }, { base: BASE });
+    const html = archivos.find((a) => a.ruta === 'escapadas/index.html')?.contenido ?? '';
+    assert.equal((html.match(/<li class="fila-guia">/g) ?? []).length, MINIMO_OFERTAS + 1);
   });
 });
