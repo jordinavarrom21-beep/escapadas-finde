@@ -46,6 +46,8 @@ const MINIMO_CON_FECHA = 5;
  */
 const PRIORIDAD = (d) => d.prioridad ?? { general: 5, tema: 1, zona: 3, mas: 7 }[d.grupo] ?? 5;
 const VIAJEROS = 2;
+/** Lo que Google enseña de un título (unos 600 px): más largo, sale cortado con «…». */
+export const LARGO_TITULO = 60;
 const NOMBRE_WEB = 'Escapadas Finde';
 /** Cómo se agrupan las guías en los enlaces de la portada y del pie de cada guía. */
 export const GRUPOS = [['general', 'Escapadas'], ['tema', 'Por temática y alojamiento'], ['zona', 'Por zona'], ['mas', 'Vuelos y planes']];
@@ -105,6 +107,25 @@ const ALOJAMIENTOS = [
   ['casas-rurales', 'casa-rural', 'Casas rurales', 'Casas rurales enteras o por habitaciones'],
   ['campings', 'camping', 'Campings y glamping', 'Campings, bungalós y glamping'],
 ];
+
+const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+/**
+ * Cómo se busca un puente: «puente de diciembre», «puente de mayo», «Semana Santa»…, y no
+ * «puente del vie 4 – mar 8 dic» (nadie lo escribe así). Por sus festivos; si no se conoce
+ * ninguno, por el mes en que empieza.
+ */
+const NOMBRES_PUENTE = [
+  [/constitucion|inmaculada/, 'el puente de diciembre'], [/santos/, 'el puente de Todos los Santos'],
+  [/pilar|hispanidad|fiesta nacional/, 'el puente del Pilar'], [/trabajo/, 'el puente de mayo'],
+  [/santo|pascua/, 'Semana Santa'], [/asuncion/, 'el puente de agosto'], [/sant joan|san juan/, 'el puente de San Juan'],
+  [/diada/, 'el puente de la Diada'], [/merce/, 'el puente de la Mercè'], [/navidad|sant esteve/, 'el puente de Navidad'],
+  [/ano nuevo/, 'el puente de Año Nuevo'], [/reyes/, 'el puente de Reyes'],
+];
+export function nombrePuente(puente) {
+  const festivos = normalizar((puente.festivos ?? []).map((f) => f.nombre).join(' ') || puente.nombre || '');
+  const conocido = NOMBRES_PUENTE.find(([patron]) => patron.test(festivos));
+  return conocido ? conocido[1] : `el puente de ${MESES[Number(puente.desde.slice(5, 7)) - 1]}`;
+}
 
 /** El primer puente que aún no ha terminado el día de los datos. */
 function proximoPuente(puentes = [], generado) {
@@ -184,8 +205,10 @@ export function definiciones({ origen, findes = [], puentes = [], ofertas = [], 
       panel: '#/escapadas?cuando=finde&orden=total',
     },
     {
-      ruta: 'escapadas/puente', grupo: 'general', enlace: puente ? `Para el puente del ${puente.etiqueta}` : '',
-      titulo: puente ? `Escapadas para el puente del ${puente.etiqueta} desde ${desde}` : '',
+      ruta: 'escapadas/puente', grupo: 'general', enlace: puente ? `Para ${nombrePuente(puente)}` : '',
+      titulo: puente ? `Escapadas para ${nombrePuente(puente)} desde ${desde}` : '',
+      // Las fechas, en la descripción: en el título lo alargaban más de lo que Google enseña.
+      descripcion: puente ? (total, desdeTexto) => `Escapadas para ${nombrePuente(puente)} (${puente.etiqueta}) desde ${desde}: ${total} ofertas por el coste del viaje completo${desdeTexto}.` : null,
       intro: puente ? `Para el puente de ${puente.nombre} (${puente.etiqueta}): primero las ofertas con fecha en el puente y después las de fechas flexibles que siguen vigentes, cada parte ordenada por ${coste}.` : '',
       elegir: (o) => Boolean(puente) && esEscapada(o) && conTotal(o) && (o.fechas.salida ? o.fechas.puenteId === puente.id : !o.caduca || o.caduca.slice(0, 10) >= puente.desde),
       conFecha: (o) => Boolean(o.fechas.salida), orden: antes((o) => Boolean(o.fechas.salida), porTotal), prioridad: 6,
@@ -251,7 +274,10 @@ function filaOferta(o, nombres, d = {}) {
     ? `${etiquetaDia(o.fechas.salida)}${o.fechas.vuelta ? ` – ${etiquetaDia(o.fechas.vuelta)}` : ''}`
     : o.tipo === 'vuelo' ? 'Sin fecha concreta' : 'Fechas flexibles';
   const ruta = o.vuelo ? `${o.vuelo.origen} → ${o.vuelo.destino}${o.vuelo.directo ? ' · directo' : ''}` : '';
-  const lugar = [o.lugar?.nombre, o.lugar?.provincia ?? o.lugar?.region].filter(Boolean).join(', ');
+  // «Canillo, Canillo» no dice nada: si la zona se llama como el sitio, el país (fuera de España).
+  const zona = o.lugar?.provincia ?? o.lugar?.region;
+  const otraZona = zona && normalizar(zona) !== normalizar(o.lugar?.nombre ?? '') ? zona : o.lugar?.pais !== 'España' && o.lugar?.pais;
+  const lugar = [o.lugar?.nombre, otraZona].filter(Boolean).join(', ');
   const llegar = SIN_COCHE.includes(o.transporte)
     ? `En ${{ tren: 'tren', bus: 'autobús', ferry: 'ferry', avion: 'avión' }[o.transporte]}`
     : o.cocheMin != null ? `${Math.floor(o.cocheMin / 60) ? `${Math.floor(o.cocheMin / 60)} h ` : ''}${o.cocheMin % 60} min en coche` : '';
@@ -348,7 +374,10 @@ export function enlacesPortada(indexadas) {
  */
 export function htmlPagina(d, ofertas, { raiz, base = null, generado, total, todas = [d], nombres = new Map(), texto = null, contacto = null, indexable = true, webs = 0 }) {
   const canonical = base ? `${base}${d.ruta}/` : null;
-  const descripcion = `${d.descripcion ? d.descripcion(total) : `${d.titulo}: ${total} ofertas comparadas por el coste del viaje completo.`} Actualizado el ${etiquetaDia(fechaLocal(generado))}.`;
+  // El precio más bajo de los que se ven en la página: lo que más hace pulsar en un resultado.
+  const minimo = Math.min(...ofertas.map((o) => costeDesdeOrigen(o, VIAJEROS).porPersona).filter((v) => v != null));
+  const desdeTexto = Number.isFinite(minimo) && minimo > 0 ? `, desde ${euros(Math.round(minimo))} por persona` : '';
+  const descripcion = `${d.descripcion ? d.descripcion(total, desdeTexto) : `${d.titulo}: ${total} ofertas comparadas por el coste del viaje completo${desdeTexto}.`} Actualizado el ${etiquetaDia(fechaLocal(generado))}.`;
   const lasMigas = migas(d, todas);
   const estructurados = base && jsonLd({
     '@context': 'https://schema.org',
@@ -373,8 +402,8 @@ export function htmlPagina(d, ofertas, { raiz, base = null, generado, total, tod
     ],
   });
   const cabeza = [
-    // Con el nombre de la web solo si cabe (unos 65 caracteres): si no, Google corta el título.
-    `<title>${esc(d.titulo)}${d.titulo.length + NOMBRE_WEB.length + 3 <= 65 ? ` · ${NOMBRE_WEB}` : ''}</title>`,
+    // Con el nombre de la web solo si cabe (unos 60 caracteres): si no, Google corta el título.
+    `<title>${esc(d.titulo)}${d.titulo.length + NOMBRE_WEB.length + 3 <= LARGO_TITULO ? ` · ${NOMBRE_WEB}` : ''}</title>`,
     `<meta name="description" content="${esc(descripcion)}">`,
     // Casi igual que otra guía o una zona lejana (elegirGuias): se ve, pero no se indexa.
     `<meta name="robots" content="${indexable ? 'max-image-preview:large' : 'noindex, follow'}">`,
@@ -509,7 +538,7 @@ export function generarPaginas(todasLasOfertas, { base = null } = {}) {
   });
   const datos = { ...todasLasOfertas, ofertas: vigentes };
   const candidatas = elegirGuias(definiciones(datos).map((d) => {
-    const lista = datos.ofertas.filter(d.elegir).sort(d.orden);
+    const lista = sinRepetidas(datos.ofertas.filter(d.elegir).sort(d.orden));
     return { d, lista: d.unaPorDestino ? unaPorDestino(lista) : lista };
   }));
   // Las que se indexan: las que se enlazan entre sí y van al sitemap.
@@ -545,6 +574,21 @@ export function generarPaginas(todasLasOfertas, { base = null } = {}) {
   return {
     archivos, rutas, indexadas: todas.map((d) => d.ruta), portada: bloquePortada(datos, todas), destacadas: destacadasPortada(datos), enlacesPortada: enlacesPortada(todas),
   };
+}
+
+/**
+ * La misma oferta publicada dos veces por la misma web (Weekendesk tiene dos fichas, con número
+ * distinto, del mismo hotel al mismo precio): en una guía, una sola vez. Las de webs distintas
+ * no se tocan (son la comparación de precios).
+ */
+function sinRepetidas(lista) {
+  const vistas = new Set();
+  return lista.filter((o) => {
+    const clave = [o.fuente, normalizar(o.titulo), normalizar(o.lugar?.nombre ?? ''), o.precio, o.unidad, o.fechas?.salida ?? ''].join('|');
+    if (vistas.has(clave)) return false;
+    vistas.add(clave);
+    return true;
+  });
 }
 
 /** De cada destino, el vuelo más barato (la lista ya viene ordenada): si no, 24 fechas del mismo Palermo. */
