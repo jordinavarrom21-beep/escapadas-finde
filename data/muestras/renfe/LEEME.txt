@@ -1,0 +1,5 @@
+Fuente: renfe
+Cuándo: 2026-10-31T08:25:52.843Z
+Motivo: La página de ofertas y promociones de Renfe no trae ninguna tarjeta (¿ha cambiado la web?)
+
+pagina-1.html: https://www.renfe.com/es/es/inspirate/experiencias/ofertas-y-promociones
