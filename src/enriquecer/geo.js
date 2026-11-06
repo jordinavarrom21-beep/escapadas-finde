@@ -106,10 +106,20 @@ export function puntoCreible(lugar, punto) {
 const CATEGORIAS_NO_LUGAR = new Set(['highway', 'building', 'shop', 'amenity', 'office', 'railway', 'craft', 'man_made']);
 const nombreClave = (texto) => normalizarTexto(texto ?? '').replace(/[^a-z0-9]+/g, ' ').trim();
 
+/**
+ * Nombres que en el mapa son primero otro sitio: la «La Pineda» de los hoteles es la playa de
+ * Vila-seca (Tarragona, junto a PortAventura), no la del Vallès, y salía «a 51 min» y en la guía
+ * de Barcelona. Se busca con esta consulta en su lugar.
+ */
+const CONSULTAS_TURISTICAS = { 'la pineda': 'Platja de la Pineda, Vila-seca, Tarragona, España' };
+
+/** Sin letras dobles: «Vall d'Aran» (catalán) es «Val d'Aran» (aranés) en el mapa. */
+const sinDobles = (clave) => clave.replace(/([a-z])\1+/g, '$1');
+
 /** ¿El resultado de Nominatim es ese lugar? Mismo nombre (o uno contiene al otro) y es un sitio. */
 function esElLugar(resultado, nombre) {
   if (!resultado || CATEGORIAS_NO_LUGAR.has(resultado.category)) return false;
-  const [a, b] = [nombreClave(resultado.name), nombreClave(nombre)];
+  const [a, b] = [nombreClave(resultado.name), nombreClave(nombre)].map(sinDobles);
   return Boolean(a && b) && (a.includes(b) || b.includes(a));
 }
 
@@ -131,18 +141,20 @@ function puntoDe(resultado) {
  */
 async function buscarSinPais(consulta, nombre, ctx) {
   const [enEspana] = await ctx.http.json(`${URL_NOMINATIM}${encodeURIComponent(consulta)}&countrycodes=es`);
-  if (esElLugar(enEspana, nombre)) return puntoDe(enEspana);
+  if (esElLugar(enEspana, nombre)) return { ...puntoDe(enEspana), aproximado: false };
   // «Costa de Huelva» no es un sitio en el mapa, pero dice la provincia: se sitúa en ella
   // (aproximado, pero a 0 km y no en México).
   const provincia = provinciaEnTexto(nombre);
   if (provincia) {
     await ctx.http.esperar(PAUSA_NOMINATIM_MS);
     const [enProvincia] = await ctx.http.json(`${URL_NOMINATIM}${encodeURIComponent(`${provincia}, España`)}&countrycodes=es`);
-    if (enProvincia) return { ...puntoDe(enProvincia), regionGeo: provincia, codigoPais: 'ES' };
+    if (enProvincia) return { ...puntoDe(enProvincia), regionGeo: provincia, codigoPais: 'ES', aproximado: true };
   }
   await ctx.http.esperar(PAUSA_NOMINATIM_MS);
   const [enElMundo] = await ctx.http.json(URL_NOMINATIM + encodeURIComponent(consulta));
-  return puntoDe(enElMundo);
+  // Marcado también: sin la marca, uno en su provincia se volvería a pedir en cada ejecución.
+  const punto = puntoDe(enElMundo);
+  return punto && { ...punto, aproximado: false };
 }
 
 /** Las coordenadas son las que dio la búsqueda antigua (sin país, en todo el mundo): hay que repetirla. */
@@ -152,6 +164,17 @@ const deBusquedaAntigua = (lugar, cache, consulta) => {
 };
 
 /**
+ * Punto de la provincia que nombra el lugar, guardado antes de marcarlos (`aproximado`): así
+ * acabó «Vall d'Aran» en Lleida capital, y la caché lo daba por bueno 90 días. Se busca otra
+ * vez, una sola (lo nuevo ya va marcado); «Lleida», que es la provincia, se queda con su punto.
+ */
+function provinciaSinMarcar(punto, nombre) {
+  if (!punto || 'aproximado' in punto) return false;
+  const provincia = provinciaEnTexto(nombre);
+  return Boolean(provincia) && punto.codigoPais === 'ES' && punto.regionGeo === provincia && nombreClave(provincia) !== nombreClave(nombre);
+}
+
+/**
  * Completa `lugar.lat/lon` de las ofertas que tienen nombre de lugar pero no
  * coordenadas. Hace como mucho `maxNuevas` consultas nuevas por ejecución.
  */
@@ -159,7 +182,11 @@ export async function geolocalizar(ofertas, ctx, { maxNuevas = 40 } = {}) {
   const ahora = ctx.ahora.getTime();
   let nuevas = 0;
   let aplazadas = 0;
-  for (const { lugar } of ofertas) {
+  // Los puntos de provincia sin marcar que ya se han renovado: las ofertas guardadas en ellos
+  // que vienen después también se vuelven a situar.
+  const renovados = new Map();
+  for (const oferta of ofertas) {
+    const { lugar } = oferta;
     if (!lugar?.nombre) continue;
     // Un sitio de Andorra que se situó en España se vuelve a buscar, ya en Andorra.
     if (esDeAndorra(lugar) && lugar.codigoPais !== 'AD') {
@@ -171,17 +198,31 @@ export async function geolocalizar(ofertas, ctx, { maxNuevas = 40 } = {}) {
       Object.assign(lugar, { codigoPais: extranjero, lat: null, lon: null, provincia: null, comunidad: null });
       if (normalizarTexto(lugar.pais ?? '') === 'espana') lugar.pais = null;
     }
+    const consulta = CONSULTAS_TURISTICAS[nombreClave(lugar.nombre)] ?? [lugar.nombre, lugar.region, lugar.pais].filter(Boolean).join(', ');
+    // Lo guardado en un punto de provincia sin marcar se vuelve a buscar sin país, como entonces
+    // (el «ES» también lo puso esa búsqueda).
+    const sinPais = `geo2:${normalizarTexto(consulta)}`;
+    const deProvincia = renovados.get(sinPais) ?? ctx.cache.obtener(sinPais);
+    if (provinciaSinMarcar(deProvincia, lugar.nombre) && deProvincia.lat === lugar.lat && deProvincia.lon === lugar.lon) {
+      Object.assign(lugar, { lat: null, lon: null, codigoPais: null });
+    }
     const pais = codigoPais(lugar);
-    const consulta = [lugar.nombre, lugar.region, lugar.pais].filter(Boolean).join(', ');
     if (tieneCoordenadas(lugar) && puntoCreible(lugar, lugar) && (pais || !deBusquedaAntigua(lugar, ctx.cache, consulta))) continue;
     // Una coordenada imposible que viniera de antes se descarta (y se vuelve a buscar).
     if (tieneCoordenadas(lugar)) Object.assign(lugar, { lat: null, lon: null });
     // Sin país se busca primero en España (`buscarSinPais`): otra clave que la de antes, que
     // buscaba en todo el mundo, para no reutilizar sus resultados.
-    const clave = `${pais ? 'geo' : 'geo2'}:${normalizarTexto(consulta)}`;
+    // El destino de un vuelo sin país se busca en todo el mundo: buscado primero en España,
+    // Palermo acababa en Cáceres, Praga en Pontevedra y Ginebra en Huesca (23 vuelos, nov. 2026).
+    const mundo = !pais && oferta.tipo === 'vuelo';
+    const clave = `${pais ? 'geo' : mundo ? 'geo3' : 'geo2'}:${normalizarTexto(consulta)}`;
     // Lo guardado que no puede ser de ese país se vuelve a pedir (ya acotado al país).
     const increible = (p) => (p === undefined || puntoCreible(lugar, p) ? p : undefined);
     let punto = increible(ctx.cache.obtener(clave, CADUCIDAD_GEO_MS, ahora));
+    if (!pais && provinciaSinMarcar(punto, lugar.nombre)) {
+      renovados.set(clave, punto);
+      punto = undefined;
+    }
     if (punto === undefined) {
       // Una coordenada caducada sigue valiendo si no se puede renovar: los pueblos no se mueven.
       const caducada = increible(ctx.cache.obtener(clave));
@@ -195,6 +236,9 @@ export async function geolocalizar(ofertas, ctx, { maxNuevas = 40 } = {}) {
           if (pais) {
             const [resultado] = await ctx.http.json(URL_NOMINATIM + encodeURIComponent(consulta) + `&countrycodes=${pais}`);
             punto = puntoDe(resultado);
+          } else if (mundo) {
+            const [resultado] = await ctx.http.json(URL_NOMINATIM + encodeURIComponent(consulta));
+            punto = esElLugar(resultado, lugar.nombre) ? puntoDe(resultado) : null;
           } else {
             punto = await buscarSinPais(consulta, lugar.nombre, ctx);
           }
@@ -208,7 +252,7 @@ export async function geolocalizar(ofertas, ctx, { maxNuevas = 40 } = {}) {
       }
     }
     if (punto) {
-      const { regionGeo, codigoPais: codigo, ...coordenadas } = punto;
+      const { regionGeo, codigoPais: codigo, aproximado, ...coordenadas } = punto;
       Object.assign(lugar, coordenadas);
       if (codigo && !lugar.codigoPais) lugar.codigoPais = codigo;
       // La provincia que no se dedujo del texto de la web, de la geolocalización: así el

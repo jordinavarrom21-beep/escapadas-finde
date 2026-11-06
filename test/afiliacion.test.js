@@ -18,7 +18,8 @@ describe('afiliación', () => {
     assert.equal(o.urlReserva, 'https://www.civitatis.com/es/barcelona/visita/');
     assert.equal(o.afiliado, null);
     const html = tarjeta(o, ctx);
-    assert.ok(!html.includes('sponsored') && !html.includes('Enlace de afiliado'));
+    // rel="sponsored" va siempre (Travelpayouts Drive puede convertirlos); la marca de afiliado, solo si lo es.
+    assert.ok(!html.includes('Enlace de afiliado'));
   });
 
   it('activo pero sin aprobar o sin identificador no marca nada, y lo avisa', () => {

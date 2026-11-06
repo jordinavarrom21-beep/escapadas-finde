@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { costeViaje, resumenCoste } from '../site/js/coste.js';
+import { costeViaje, precioNocheTuyo, resumenCoste } from '../site/js/coste.js';
 import { aeropuertosCercanos, salidaEfectiva, validarSalida, validarViaje } from '../site/js/viaje.js';
 
 const COCHE = { consumoL100km: 6.5, precioLitro: 1.8 };
@@ -83,5 +83,20 @@ describe('tu viaje: salida, viajeros y noches', () => {
     const origen = { nombre: 'Barcelona', lat: 41.3874, lon: 2.1686 };
     assert.equal(salidaEfectiva({ nombre: 'Barcelona', lat: 41.39, lon: 2.17 }, origen), null);
     assert.deepEqual(salidaEfectiva({ nombre: 'Girona', lat: 41.98, lon: 2.82 }, origen), { nombre: 'Girona', lat: 41.98, lon: 2.82 });
+  });
+});
+
+describe('precio por persona y noche con tus viajeros', () => {
+  it('una casa entera se reparte entre los que vais; por persona y noche no cambia', () => {
+    const casa = { precio: 300, unidad: 'noche', precioNoche: 150 };
+    assert.equal(precioNocheTuyo(casa, 2), 150);
+    assert.equal(precioNocheTuyo(casa, 4), 75);
+    assert.equal(precioNocheTuyo({ precio: 240, unidad: 'total', noches: 2, precioNoche: 60 }, 3), 40);
+    assert.equal(precioNocheTuyo({ precio: 45, unidad: 'pp/noche', precioNoche: 45 }, 5), 45);
+  });
+
+  it('si el escaneo no lo dio (o lo descartó), tampoco se inventa; sin viajeros, el del escaneo', () => {
+    assert.equal(precioNocheTuyo({ precio: 300, unidad: 'noche', precioNoche: null }, 4), null);
+    assert.equal(precioNocheTuyo({ precio: 300, unidad: 'noche', precioNoche: 150 }, null), 150);
   });
 });

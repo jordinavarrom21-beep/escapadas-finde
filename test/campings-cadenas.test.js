@@ -30,6 +30,7 @@ describe('sandaya: página de ofertas', () => {
   it('lee el precio o el descuento del titular', () => {
     assert.deepEqual(ventaja('Alojamiento a partir de 45€ la noche'), { precio: 45, unidad: 'noche', noches: null, descuento: null });
     assert.deepEqual(ventaja('Su fin de semana a partir de 119 € para 4 personas'), { precio: 119, unidad: 'total', noches: 2, descuento: null });
+    assert.deepEqual(ventaja('3 noches desde 150 €'), { precio: 150, unidad: 'total', noches: 3, descuento: null }, '«noches» no es «por noche»');
     assert.deepEqual(ventaja('Oferta 7 noches hasta un -20%'), { precio: null, unidad: null, noches: null, descuento: 20 });
     assert.equal(ventaja('Opción Libertad'), null);
     assert.equal(ventaja('Modificación y anulación de estancia 100% flexibles'), null);

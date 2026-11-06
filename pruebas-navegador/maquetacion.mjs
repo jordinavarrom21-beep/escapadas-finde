@@ -185,6 +185,7 @@ for (const tema of TEMAS) for (const ancho of ANCHOS) {
   }
   await c.close();
 }
-await cerrar();
 console.log(problemas.length ? problemas.join('\n') : 'Sin problemas');
-if (problemas.length) process.exitCode = 1;
+// El resultado ya está escrito: cerrar el navegador y el servidor no puede dejar la prueba colgada.
+await Promise.race([cerrar(), new Promise((listo) => { setTimeout(listo, 15_000).unref(); })]);
+process.exit(problemas.length ? 1 : 0);

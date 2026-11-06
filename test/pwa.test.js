@@ -63,6 +63,10 @@ describe('app instalable: service worker', () => {
     }
   });
 
+  it('no precarga fotos: una que falle (o que se bloquee) impediría instalarlo; se guardan al verlas', () => {
+    assert.deepEqual(interfaz().filter((ruta) => /\.(jpe?g|png|webp)$/.test(ruta) && ruta.startsWith('img/')), []);
+  });
+
   it('precarga todos los módulos del panel, para que funcione sin conexión', () => {
     const lista = new Set(interfaz());
     for (const archivo of readdirSync(new URL('js/', SITE)).filter((a) => a.endsWith('.js'))) {

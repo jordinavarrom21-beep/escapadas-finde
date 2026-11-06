@@ -164,7 +164,8 @@
       "intervaloMin": 360
     },
     "clubrural": {
-      "activa": true,
+      "activa": false,
+      "motivo": "No se puede leer desde el 7/10/2026 (0 ofertas según el estado de las webs del 4/11/2026): revisar la web antes de reactivarla",
       "intervaloMin": 360
     },
     "campings": {
@@ -216,7 +217,8 @@
       "intervaloMin": 720
     },
     "holidu": {
-      "activa": true,
+      "activa": false,
+      "motivo": "No se puede leer desde el 7/10/2026 (0 ofertas según el estado de las webs del 4/11/2026): revisar la web antes de reactivarla",
       "intervaloMin": 360
     },
     "renfe": {
@@ -239,7 +241,8 @@
       "maxPorDia": 3,
       "vueloMax": 30,
       "escapadaNocheMax": 25,
-      "puntuacionMin": 85
+      "puntuacionMin": 85,
+      "notaMin": 7
     },
     "vigilados": {
       "activo": true

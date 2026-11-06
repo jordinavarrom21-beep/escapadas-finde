@@ -82,17 +82,21 @@ export const MAX_CUERPO = 20_000_000;
 export function esDireccionInterna(url) {
   let host;
   try {
-    host = new URL(url).hostname.toLowerCase().replace(/^\[|\]$/g, '');
+    // «localhost.» (con punto final) es el mismo sitio que «localhost».
+    host = new URL(url).hostname.toLowerCase().replace(/^\[|\]$/g, '').replace(/\.$/, '');
   } catch {
     return true;
   }
   if (host === 'localhost' || /\.(?:localhost|local|internal)$/.test(host)) return true;
   if (isIP(host) === 4) {
     const [a, b] = host.split('.').map(Number);
+    // 198.18.0.0/15: redes de pruebas; 168.63.129.16: el servicio interno de Azure, que alcanzan los runners de GitHub.
     return a === 0 || a === 10 || a === 127 || a >= 224 || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31)
-      || (a === 192 && b === 168) || (a === 100 && b >= 64 && b <= 127);
+      || (a === 192 && b === 168) || (a === 100 && b >= 64 && b <= 127) || (a === 198 && (b === 18 || b === 19)) || host === '168.63.129.16';
   }
-  return isIP(host) === 6 && (host === '::' || host === '::1' || /^(?:f[cd]|fe[89ab])/.test(host) || host.startsWith('::ffff:'));
+  // IPv4 dentro de IPv6 («::ffff:», «::127.0.0.1», NAT64 «64:ff9b::»): también puede ser la red local.
+  return isIP(host) === 6 && (host === '::' || host === '::1' || /^(?:f[cd]|fe[89ab])/.test(host) || host.startsWith('::ffff:')
+    || /^::[\d.]+$/.test(host) || /^::[0-9a-f]{1,4}:[0-9a-f]{1,4}$/.test(host) || host.startsWith('64:ff9b:'));
 }
 
 /** Una petición que no se hace o una respuesta que no se lee: no se reintenta. */
@@ -245,14 +249,15 @@ export function reiniciarMetricas() {
 
 export const esperar = (ms) => new Promise((resolver) => setTimeout(resolver, ms));
 
-// «Retry-After» en segundos o como fecha HTTP, recortado al tope. Ilegible → null.
+// «Retry-After» en segundos o como fecha HTTP, tal cual lo pide la web. Ilegible → null.
+// Si pide más que el tope no se recorta: no se reintenta (antes se volvía a los 30 s aunque pidiera 10 min).
 function esperaPedida(cabecera, ahoraMs) {
   const texto = String(cabecera ?? '').trim();
   if (!texto) return null;
   const segundos = Number(texto);
   const ms = Number.isFinite(segundos) ? segundos * 1000 : Date.parse(texto) - ahoraMs;
   if (!Number.isFinite(ms)) return null;
-  return Math.min(Math.max(Math.round(ms), 0), ESPERA_MAXIMA_MS);
+  return Math.max(Math.round(ms), 0);
 }
 
 // 1 s, 3 s, 9 s… con ±20 % para no sincronizar todas las fuentes entre sí.
@@ -371,8 +376,9 @@ export async function obtenerTexto(url, opciones = {}) {
     } catch (causa) {
       const error = comoErrorPropio(causa, url, { intento, duracionMs: Date.now() - inicio });
       anotarIntento(dominio, error.duracionMs, false);
-      if (!esReintentable(error) || intento >= reintentos) throw error;
-      const esperaMs = error.esperaSugeridaMs ?? esperaCreciente(intento);
+      // Un 429 sin «Retry-After» ya dice «para»; y si pide esperar más del tope, no se insiste.
+      const esperaMs = error.esperaSugeridaMs ?? (error.estado === 429 ? null : esperaCreciente(intento));
+      if (!esReintentable(error) || intento >= reintentos || esperaMs == null || esperaMs > ESPERA_MAXIMA_MS) throw error;
       avisarReintento(log, { etiqueta, error, intento, reintentos, esperaMs });
       acumulador(dominio).reintentos += 1;
       await dormir(esperaMs);
@@ -424,14 +430,24 @@ export async function obtenerRedireccion(url, { timeoutMs = 3_000, cabeceras = {
   }
 }
 
-/** Cliente con opciones fijas (p. ej. la `etiqueta` y el `log` de una fuente). */
+/**
+ * Cliente con opciones fijas (p. ej. la `etiqueta` y el `log` de una fuente). Si un dominio
+ * bloquea o limita (403, 405, 429), no se le pide nada más en esa ejecución, aunque el lector
+ * siga con otras páginas suyas (Chollómetro pedía sus 7 feeds tras un 429; Huttopia, 6 páginas más).
+ */
 export function crearClienteHttp(defectos = {}) {
-  return {
-    texto: (url, opciones = {}) => obtenerTexto(url, { ...defectos, ...opciones }),
-    json: (url, opciones = {}) => obtenerJson(url, { ...defectos, ...opciones }),
-    redireccion: obtenerRedireccion,
-    esperar,
+  const bloqueados = new Map();
+  const conFreno = (pedirUrl) => async (url, opciones = {}) => {
+    const previo = bloqueados.get(dominioDe(url));
+    if (previo) throw previo;
+    try {
+      return await pedirUrl(url, { ...defectos, ...opciones });
+    } catch (error) {
+      if (error.bloqueo) bloqueados.set(dominioDe(url), error);
+      throw error;
+    }
   };
+  return { texto: conFreno(obtenerTexto), json: conFreno(obtenerJson), redireccion: obtenerRedireccion, esperar };
 }
 
 /** Cliente que reciben las fuentes en `ctx.http` (en los tests se sustituye por uno falso). */

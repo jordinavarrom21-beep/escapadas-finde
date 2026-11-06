@@ -196,6 +196,10 @@ export function importarGuardados(copia) {
   if (copia?.formato !== FORMATO_COPIA || !copia.datos || typeof copia.datos !== 'object') {
     throw new Error('El archivo no es una copia de «Guardados» de Escapadas Finde');
   }
+  // Una copia vacía borraría lo que tienes guardado sin poner nada en su sitio.
+  if (!CLAVES_COPIA.some((clave) => typeof copia.datos[clave] === 'string')) {
+    throw new Error('La copia está vacía: no se ha cambiado nada');
+  }
   let cargadas = 0;
   for (const clave of CLAVES_COPIA) {
     const valor = copia.datos[clave];

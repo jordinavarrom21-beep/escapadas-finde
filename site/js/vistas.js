@@ -191,7 +191,7 @@ ${apartadoTransporte(e, f, ctx, contexto, false, base)}`;
 </section>` : ''}`;
   const resumen = `${contar(dentro.length, 'vuelo')} con fecha${alrededor.length ? ` (y ${alrededor.length} alrededor)` : ''}`;
   return `${filaActivos(e, 'vuelos', params)}${resumenResultados(resumen)}${parecido}
-<h2 class="subtitulo">Vuelos con fecha y hora</h2>${conFecha}
+<h2 class="subtitulo">Vuelos con fecha</h2>${conFecha}
 ${apartadoPlegado('Billetes sin fecha concreta', chollos.length,
     'De blogs y comunidades. El precio es el mínimo para unas fechas que no dicen: revisa en cada oferta qué días hay plazas y desde qué aeropuerto sale. Aquí no se aplican el finde ni el horario.',
     chollos.length ? rejilla(chollos, ctx, { mostradas: mostradas(e, 'chollos'), clave: 'chollos' }) : estadoVacio('No hay billetes sin fecha con estos filtros.', f.mios ? `Prueba a quitar «Solo desde ${esc(listaAeropuertos(e))}».` : ''))}
@@ -340,10 +340,11 @@ function filaActivos(e, vista, params) {
   }).filter((c) => !conFranja || !CLAVES_PERIODO.includes(c.clave));
   if (!chips.length) return '';
   // Si al quitarlo no queda ninguno, también se olvida la memoria (si no, volvería al entrar).
-  const olvidar = (c) => (c.hash === `#/${vista}` ? ' data-olvidar-filtros' : '');
+  // crearHash: la vista «actividades» vive en #/planes.
+  const olvidar = (c) => (c.hash === crearHash(vista, {}) ? ' data-olvidar-filtros' : '');
   const lista = chips.map((c) => `<a class="chip chip--activo" href="${esc(c.hash)}"${olvidar(c)} aria-label="Quitar el filtro ${esc(c.texto)}">${iconoFiltro(c)}${esc(c.texto)} <span aria-hidden="true">${icono('cerrar')}</span></a>`).join('');
   return `<div class="activos" aria-label="Filtros puestos"><div class="chips__lista">${lista}
-  <a class="boton boton--suave boton--mini" href="#/${vista}" data-olvidar-filtros>Quitar todos</a></div></div>`;
+  <a class="boton boton--suave boton--mini" href="${esc(crearHash(vista, {}))}" data-olvidar-filtros>Quitar todos</a></div></div>`;
 }
 
 /**

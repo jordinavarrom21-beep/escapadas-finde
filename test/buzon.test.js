@@ -195,6 +195,13 @@ describe('buzon: limpieza de enlaces', () => {
     assert.equal(urlDirecta(`https://www.booking.com/u/${encodeURIComponent(DESTINATARIO)}`, booking), null);
   });
 
+  it('urlDirecta no publica la zona del cliente ni un localizador de reserva', () => {
+    for (const ruta of ['/mi-cuenta/reservas', '/myaccount', '/manage-booking/', '/es/confirmación/', '/unsubscribe', '/reserva/XK7P2Q']) {
+      assert.equal(urlDirecta(`https://www.booking.com${ruta}`, booking), null, ruta);
+    }
+    assert.equal(urlDirecta('https://www.booking.com/hotel/es/peralada.es.html', booking), 'https://www.booking.com/hotel/es/peralada.es.html');
+  });
+
   function http(saltos) {
     const pedidas = [];
     return {

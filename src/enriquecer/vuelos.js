@@ -41,7 +41,8 @@ export function salidasDe(titulo = '') {
 }
 
 /** Lo que no es una ciudad aunque vaya con mayúscula detrás de «desde» («SOLO», el nombre de la web…). */
-const NO_SON_CIUDADES = new Set(['solo', 'viajerospiratas', 'chollometro', 'skyscanner', 'buscounchollo', 'tripcom', 'trip', 'alojamiento', 'hotel', 'vuelos', 'vuelo']);
+const NO_SON_CIUDADES = new Set(['solo', 'viajerospiratas', 'chollometro', 'skyscanner', 'buscounchollo', 'tripcom', 'trip', 'alojamiento', 'hotel', 'vuelos', 'vuelo', 'desde',
+  'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'setiembre', 'octubre', 'noviembre', 'diciembre']);
 /** Salidas que no dicen la ciudad: pueden incluir la tuya. */
 const SALIDAS_GENERICAS = new Set(['espana', 'varias ciudades europeas', 'europa', 'varias ciudades']);
 /** Aeropuertos habituales y su ciudad (para «sale-de:MAD»). */

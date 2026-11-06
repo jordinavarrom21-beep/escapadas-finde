@@ -193,6 +193,15 @@ describe('calidad: cada etiqueta de chollo se explica con datos', async () => {
     assert.equal(motivoChollazo(oferta({ tipo: 'hotel', precio: 400, unidad: 'noche' }), AJUSTES), null);
   });
 
+  it('barata pero mal valorada (con 5 opiniones o más) no es chollazo; con pocas opiniones, sí', () => {
+    const casa = (nota, n) => oferta({ tipo: 'hotel', precio: 40, unidad: 'noche', valoracion: { nota, n } });
+    assert.equal(motivoChollazo(casa(5.8, 120), AJUSTES), null);
+    assert.match(motivoChollazo(casa(5.8, 2), AJUSTES), /por persona y noche/);
+    assert.match(motivoChollazo(casa(8.6, 120), AJUSTES), /por persona y noche/);
+    // Los errores de tarifa y los vuelos no tienen opiniones del alojamiento: no cambian.
+    assert.match(motivoChollazo(oferta({ etiquetas: ['error-tarifa'], valoracion: { nota: 3, n: 50 } }), AJUSTES), /error de tarifa/);
+  });
+
   it('puntuar guarda el motivo y el panel lo enseña', () => {
     const casa = oferta({ tipo: 'hotel', precio: 40, unidad: 'noche' });
     puntuar([casa], AJUSTES);

@@ -17,6 +17,7 @@ import * as cheerio from 'cheerio';
 import { crearOferta } from '../modelo.js';
 import { extraerPrecio } from '../util/precio.js';
 import { normalizarTexto, recortar, textoPlano } from '../util/xml.js';
+import { nombreOficial } from '../util/lugares.js';
 
 const ID = 'civitatis';
 const WEB = 'https://www.civitatis.com';
@@ -149,6 +150,11 @@ function ofertaDe(actividad, destino, ruta, extra = {}) {
   // con el id del hub, y sus coordenadas, que no son las del destino, las completa después geo.js.
   const propio = DESTINOS.find((d) => d.slug === partes[1]);
   const deEste = propio ?? destino;
+  const localidad = textoPlano(actividad.location?.address?.addressLocality ?? '');
+  // El punto y la provincia del destino solo si la actividad es allí: PortAventura sale en la página
+  // de Barcelona pero está en Vila-seca (Tarragona), y caía en el centro de Barcelona. Sin ellos,
+  // geo.js la sitúa por su localidad.
+  const otroSitio = Boolean(localidad) && normalizarTexto(nombreOficial(localidad)) !== normalizarTexto(deEste.nombre);
   return crearOferta({
     id: `${ID}:${deEste.slug}:${slug}`,
     fuente: ID,
@@ -166,12 +172,12 @@ function ofertaDe(actividad, destino, ruta, extra = {}) {
     valoracion: valoracionDe(actividad.aggregateRating),
     lugar: {
       // Los exónimos («Gerona») los unifica crearOferta con util/lugares.js.
-      nombre: textoPlano(actividad.location?.address?.addressLocality ?? '') || deEste.nombre,
-      region: deEste.region,
+      nombre: localidad || deEste.nombre,
+      region: otroSitio ? null : deEste.region,
       pais: PAIS,
       codigoPais: CODIGO_PAIS,
-      lat: propio?.lat ?? null,
-      lon: propio?.lon ?? null,
+      lat: otroSitio ? null : propio?.lat ?? null,
+      lon: otroSitio ? null : propio?.lon ?? null,
       iata: null,
     },
     etiquetas: [extra.duracion ? `Duración: ${extra.duracion}` : null, precio === 0 ? 'gratis' : null].filter(Boolean),

@@ -3,7 +3,7 @@
  * y resúmenes. Sin DOM, para poder probarla desde Node.
  */
 
-import { costeViaje } from './coste.js';
+import { costeViaje, precioNocheTuyo } from './coste.js';
 import { diaSemana, diasEntre, etiquetaDia, fechaLocal, nombreFinde, quedanNoches, sumarDias } from './fechas.js';
 import { FACTOR_CARRETERA, distanciaKm, esMismoPunto, minutosEnCoche, radioKmParaMinutos, tieneCoordenadas } from './geo.js';
 import { clavePunto } from './rutas.js';
@@ -336,11 +336,12 @@ export function rangoDe(cuando, ctx = {}) {
   if (!cuando) return null;
   const id = cuando === 'finde' ? ctx.finde?.id : cuando === 'puente' ? ctx.puente?.id : cuando;
   if (!id) return null;
-  const finde = [ctx.finde, ...(ctx.findes ?? [])].find((x) => x?.id === id);
-  if (finde) return { id, tipo: 'finde', inicio: finde.viernes, fin: finde.domingo };
-  const puente = [ctx.puente, ...(ctx.puentes ?? [])].find((x) => x?.id === id);
+  // Un puente que empieza en viernes tiene el mismo id que ese finde: manda el puente (lo incluye).
+  const puente = cuando !== 'finde' && [ctx.puente, ...(ctx.puentes ?? [])].find((x) => x?.id === id);
   // Al puente se sale el último día laborable (el viernes por la tarde): también cuenta.
-  return puente ? { id, tipo: 'puente', inicio: salidaPuente(puente), fin: puente.hasta } : null;
+  if (puente) return { id, tipo: 'puente', inicio: salidaPuente(puente), fin: puente.hasta };
+  const finde = [ctx.finde, ...(ctx.findes ?? [])].find((x) => x?.id === id);
+  return finde ? { id, tipo: 'finde', inicio: finde.viernes, fin: finde.domingo } : null;
 }
 
 const dias = (n) => (n === 1 ? 'un día' : `${n} días`);
@@ -558,7 +559,7 @@ function cumpleComunes(o, f, ctx) {
     && !(f.noTemas ?? []).some((t) => o.temas.includes(t))
     && !destinoExcluido(o, f.noDestinos)
     && enRango(o.precio, null, f.max)
-    && enRango(o.precioNoche, f.nocheMin, f.nocheMax)
+    && enRango(precioNocheTuyo(o, ctx.viajeros), f.nocheMin, f.nocheMax)
     && (!f.dto || (o.descuento ?? 0) >= f.dto)
     && (!f.bajada || o.bajada > 0)
     && (!f.historico || o.minimoHistorico === true)
@@ -592,6 +593,8 @@ export function filtrarVuelos(ofertas, f, ctx = {}) {
     .filter((o) => tieneVuelo(o)
       && (!f.finde || o.fechas?.findeId === finde || o.fechas?.puenteId === finde)
       && (!f.aero || o.vuelo.origen === f.aero)
+      // «Solo desde mis aeropuertos» también en los vuelos con fecha (antes solo en los chollos).
+      && (!f.mios || !ctx.aeropuertos?.length || ctx.aeropuertos.includes(o.vuelo.origen))
       && (!f.ideal || o.vuelo.horarioIdeal)
       && cumpleComunes(o, f, ctx))
     .sort(COMPARADORES_VUELOS[f.orden] ?? porPrecio);
@@ -791,14 +794,16 @@ export function encajaNoches(o, noches, { oMas = false } = {}) {
   return oMas ? o.noches >= noches : o.noches === noches;
 }
 
-const comparadoresEscapadas = (distancias, costes, desdeSalida = distancias, f = {}) => ({
+const comparadoresEscapadas = (distancias, costes, desdeSalida = distancias, f = {}, viajeros = null) => ({
   // «Viaje más barato»: por persona y noche, para comparar estancias de distinta duración. Si has
   // fijado las noches, primero las que encajan. Sin total (falta precio, unidad o cómo llegar) o sin
   // saber las noches, al final: no se comparan con lo que sí lo tiene.
   total: (a, b) => {
     const noches = nochesFijadas(f);
     const encaja = (o) => (encajaNoches(o, noches, { oMas: f.noches === 3 }) ? 0 : 1);
-    return encaja(a) - encaja(b)
+    // Más de una semana sale barata por noche pero no es una escapada: después del resto.
+    const larga = (o) => (o.noches > 7 ? 1 : 0);
+    return encaja(a) - encaja(b) || larga(a) - larga(b)
       || ascendente(costes.get(a.id)?.porPersonaNoche, costes.get(b.id)?.porPersonaNoche)
       || ascendente(costes.get(a.id)?.total, costes.get(b.id)?.total) || porPuntuacion(a, b);
   },
@@ -808,7 +813,7 @@ const comparadoresEscapadas = (distancias, costes, desdeSalida = distancias, f =
   calidad: (a, b) => descendente(calidadPrecio(a, costes), calidadPrecio(b, costes)) || porPuntuacion(a, b),
   puntuacion: (a, b) => porPuntuacion(a, b) || ascendente(a.precio, b.precio),
   precio: porPrecio,
-  noche: (a, b) => ascendente(a.precioNoche, b.precioNoche) || porPuntuacion(a, b),
+  noche: (a, b) => ascendente(precioNocheTuyo(a, viajeros), precioNocheTuyo(b, viajeros)) || porPuntuacion(a, b),
   // Solo las que se comparan con ofertas de verdad parecidas (la misma regla que su insignia).
   ahorro: (a, b) => descendente(referenciaPrecisa(a)?.ahorroPct, referenciaPrecisa(b)?.ahorroPct) || porPuntuacion(a, b),
   valoracion: (a, b) => descendente(a.valoracion?.nota, b.valoracion?.nota) || porPuntuacion(a, b),
@@ -840,7 +845,7 @@ export function buscarEscapadas(ofertas, f, ctx) {
   const sinTotal = f.presupuesto ? lista.filter((o) => costes.get(o.id).total == null).length : 0;
   if (f.presupuesto) lista = lista.filter((o) => cabeEnPresupuesto(costes.get(o.id), f));
   if (f.sinUbicacion) lista = lista.filter((o) => !distancias.has(o.id));
-  const comparador = comparadoresEscapadas(distancias, costes, desdeSalida, f)[f.orden] ?? porPuntuacion;
+  const comparador = comparadoresEscapadas(distancias, costes, desdeSalida, f, ctx.viajeros)[f.orden] ?? porPuntuacion;
   return { ofertas: alFinalSinComprobar(lista.sort(comparador), ctx), distancias, desdeSalida, costes, sinTotal };
 }
 
@@ -1386,7 +1391,7 @@ function textoFiltro(clave, valor, ctx) {
   const periodo = (id) => {
     if (id === 'finde') return nombreFinde(ctx.hoy);
     if (id === 'puente') return 'Próximo puente';
-    return ctx.findes?.find((f) => f.id === id)?.etiqueta ?? ctx.puentes?.find((p) => p.id === id)?.nombre ?? TEXTO_PERIODO_PASADO;
+    return ctx.puentes?.find((p) => p.id === id)?.nombre ?? ctx.findes?.find((f) => f.id === id)?.etiqueta ?? TEXTO_PERIODO_PASADO;
   };
   const numeroEuros = (v) => euros(Number(v));
   const textos = {

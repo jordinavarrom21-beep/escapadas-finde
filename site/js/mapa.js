@@ -3,8 +3,9 @@
  * escapadas por color de tema, destinos de vuelo con su precio y el radio de búsqueda.
  */
 
-import { LEAFLET, cargarEstilo, cargarScript } from './cdn.js';
+import { GRUPOS_MAPA, LEAFLET, cargarEstilo, cargarScript } from './cdn.js';
 import { escaparHtml, euros } from './formato.js';
+import { distanciaKm } from './geo.js';
 import { tarjeta } from './plantillas.js';
 import { icono } from './iconos.js';
 
@@ -26,7 +27,16 @@ function crearMapa(L, contenedor) {
   mapa = L.map(contenedor, { preferCanvas: true, zoomControl: false });
   L.control.zoom({ zoomInTitle: 'Acercar', zoomOutTitle: 'Alejar' }).addTo(mapa);
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18, attribution: ATRIBUCION }).addTo(mapa);
-  capas = { escapadas: L.layerGroup(), vuelos: L.layerGroup(), busqueda: L.layerGroup() };
+  // Las escapadas cercanas, en un círculo con cuántas son (se separan al acercarse). Si el
+  // complemento no carga, como antes: cada una en su punto.
+  const escapadas = L.markerClusterGroup
+    ? L.markerClusterGroup({ showCoverageOnHover: false, maxClusterRadius: 45, iconCreateFunction: (grupo) => {
+      // El lector de pantalla oía solo «12»: dice qué es y qué hace al pulsarlo.
+      const n = grupo.getChildCount();
+      return L.divIcon({ className: 'marcador-grupo', html: `<span role="img" aria-label="${n} sitios con escapadas: pulsa para acercar">${n}</span>`, iconSize: null });
+    } })
+    : L.layerGroup();
+  capas = { escapadas, vuelos: L.layerGroup(), busqueda: L.layerGroup() };
   Object.values(capas).forEach((capa) => capa.addTo(mapa));
   const selector = L.control.layers(null, { [`${icono('escapadas')} Escapadas`]: capas.escapadas, [`${icono('vuelos')} Vuelos`]: capas.vuelos }).addTo(mapa);
   const boton = selector.getContainer()?.querySelector('.leaflet-control-layers-toggle');
@@ -73,6 +83,18 @@ function marcador(L, latlng, icon, etiqueta) {
   return m;
 }
 
+/**
+ * Lo que se encuadra al abrir: las escapadas a menos de CERCA_KM de la salida, si hay bastantes.
+ * Con las lejanas (Málaga, Malta, Bali) el mapa se abría con el mundo entero a la vista.
+ */
+// 250 km: Cataluña, Andorra y lo de alrededor caben con zoom de comarcas; con 400 se abría con media Europa.
+const CERCA_KM = 250;
+export function cercanas(escapadas, centro, { km = CERCA_KM, minimo = 10 } = {}) {
+  const puntos = escapadas.map((o) => o.lugar);
+  const cerca = puntos.filter((p) => distanciaKm(p, centro) <= km);
+  return (cerca.length >= minimo ? cerca : puntos).map((p) => [p.lat, p.lon]);
+}
+
 function encuadrar(L, d) {
   const clave = `${d.punto?.lat},${d.punto?.lon},${d.radioKm}`;
   if (clave === encuadre && !encuadrePendiente) return;
@@ -82,7 +104,7 @@ function encuadrar(L, d) {
     mapa.fitBounds(L.latLng(d.punto.lat, d.punto.lon).toBounds(d.radioKm * 2000), { padding: [16, 16] });
     return;
   }
-  const puntos = (d.escapadas.length ? d.escapadas : d.destinos.map((x) => x.oferta)).map((o) => [o.lugar.lat, o.lugar.lon]);
+  const puntos = d.escapadas.length ? cercanas(d.escapadas, d.punto) : d.destinos.map((x) => [x.oferta.lugar.lat, x.oferta.lugar.lon]);
   if (puntos.length) mapa.fitBounds(L.latLngBounds([...puntos, [d.punto.lat, d.punto.lon]]), { padding: [24, 24], maxZoom: 10 });
   else mapa.setView([d.punto.lat, d.punto.lon], 7);
 }
@@ -93,6 +115,8 @@ function encuadrar(L, d) {
 export async function pintarMapa(contenedor, d, ctx) {
   try {
     await Promise.all([cargarEstilo(LEAFLET.css), cargarScript(LEAFLET.js)]);
+    // El complemento necesita Leaflet ya cargado; si falla, el mapa sale igual, sin agrupar.
+    await Promise.all([cargarEstilo(GRUPOS_MAPA.css), cargarScript(GRUPOS_MAPA.js)]).catch((error) => console.warn('Mapa sin agrupar:', error.message));
   } catch (error) {
     console.error('No se ha podido cargar Leaflet:', error);
     contenedor.innerHTML = '<p class="mapa__cargando">No se ha podido cargar el mapa. Comprueba la conexión y vuelve a intentarlo.</p>';

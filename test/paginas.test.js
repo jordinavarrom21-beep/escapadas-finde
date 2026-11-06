@@ -49,7 +49,8 @@ describe('páginas para buscadores', () => {
   it('sitemap con la portada y las guías; sin URL pública, sin sitemap ni canonical', () => {
     const sitemap = archivos.find((a) => a.ruta === 'sitemap.xml').contenido;
     // Solo las indexables: las casi repetidas y las zonas lejanas se publican con noindex y fuera.
-    assert.equal((sitemap.match(/<url>/g) ?? []).length, indexadas.length + 1);
+    // Más las legales que se indexan: sin titular, solo cookies, quiénes somos y créditos de las fotos.
+    assert.equal((sitemap.match(/<url>/g) ?? []).length, indexadas.length + 1 + 3);
     for (const ruta of rutas.filter((r) => !indexadas.includes(r))) {
       assert.ok(!sitemap.includes(`${BASE}${ruta}/<`), ruta);
       assert.match(pagina(ruta), /<meta name="robots" content="noindex, follow">/);
@@ -59,6 +60,21 @@ describe('páginas para buscadores', () => {
     assert.ok(!local.archivos.some((a) => a.ruta === 'sitemap.xml'));
     assert.ok(!local.archivos[0].contenido.includes('rel="canonical"'));
     assert.ok(!local.archivos[0].contenido.includes('application/ld+json'), 'sin URL pública, sin datos estructurados (necesitan direcciones absolutas)');
+  });
+
+  it('páginas legales con URL propia; sin titular lo dicen y no se indexan; con él, sí', () => {
+    for (const r of ['aviso-legal', 'privacidad', 'cookies', 'contacto', 'sobre-nosotros', 'creditos-fotos']) assert.match(pagina(r), /<h1>/, r);
+    assert.match(pagina('aviso-legal'), /pendiente de completar por el titular/);
+    assert.match(pagina('aviso-legal'), /<meta name="robots" content="noindex, follow">/);
+    assert.match(pagina('creditos-fotos'), /Calella de Palafrugell \(foto de ejemplo\)<\/td><td>Jorge Franganillo<\/td>/);
+    const conTitular = generarPaginas({ ...datos, legal: { titular: 'Ana Pérez', nif: '12345678Z', domicilio: 'Barcelona', email: 'hola@ejemplo.es' } }, { base: BASE, terceros: { analytics: true, drive: false, ads: false } });
+    const aviso = conTitular.archivos.find((a) => a.ruta === 'aviso-legal/index.html').contenido;
+    assert.match(aviso, /<strong>Titular:<\/strong> Ana Pérez/);
+    assert.match(aviso, /max-image-preview:large/);
+    const privacidad = conTitular.archivos.find((a) => a.ruta === 'privacidad/index.html').contenido;
+    assert.match(privacidad, /Google Analytics/);
+    assert.doesNotMatch(privacidad, /Travelpayouts/, 'solo los terceros activos');
+    assert.match(conTitular.archivos.find((a) => a.ruta === 'sitemap.xml').contenido, /aviso-legal\/<\/loc>/);
   });
 
   it('las guías con texto propio lo publican (consejos y preguntas) y escapado', () => {
@@ -198,12 +214,24 @@ describe('guías sin repetirse (plan 3.7–3.11)', () => {
   it('elegirGuias: la casi repetida de menos prioridad se publica sin indexar', () => {
     const lista = Array.from({ length: 30 }, () => oferta());
     const guias = elegirGuias([
-      { d: { ruta: 'escapadas/a-menos-de-2-horas', grupo: 'general', prioridad: 5 }, lista },
+      { d: { ruta: 'escapadas/a-menos-de-3-horas', grupo: 'general', prioridad: 5 }, lista },
       { d: { ruta: 'escapadas', grupo: 'general', prioridad: 0 }, lista },
       { d: { ruta: 'escapadas/spa', grupo: 'tema' }, lista: lista.slice(20) },
     ]);
     const indexable = Object.fromEntries(guias.map((g) => [g.d.ruta, g.indexable]));
-    assert.deepEqual(indexable, { 'escapadas/a-menos-de-2-horas': false, escapadas: true, 'escapadas/spa': true });
+    assert.deepEqual(indexable, { 'escapadas/a-menos-de-3-horas': false, escapadas: true, 'escapadas/spa': true });
+  });
+
+  it('elegirGuias: las guías que Google ya enseña (puente, a menos de 2 h…) se indexan aunque se parezcan a otra', () => {
+    const lista = Array.from({ length: 30 }, () => oferta());
+    const guias = elegirGuias([
+      { d: { ruta: 'escapadas', grupo: 'general', prioridad: 0 }, lista },
+      { d: { ruta: 'escapadas/puente', grupo: 'general', prioridad: 6 }, lista },
+      { d: { ruta: 'escapadas/a-menos-de-2-horas', grupo: 'general', prioridad: 5 }, lista },
+      { d: { ruta: 'escapadas/playa', grupo: 'tema', prioridad: 8 }, lista },
+    ]);
+    const indexable = Object.fromEntries(guias.map((g) => [g.d.ruta, g.indexable]));
+    assert.deepEqual(indexable, { escapadas: true, 'escapadas/puente': true, 'escapadas/a-menos-de-2-horas': true, 'escapadas/playa': false });
   });
 
   it('una zona que es casi toda la que la contiene no se publica; una lejana, sin indexar', () => {
@@ -295,5 +323,19 @@ describe('guías que se cruzan con las temáticas: otro orden para no quedarse s
     assert.ok(minutos.length >= MINIMO_OFERTAS);
     assert.deepEqual(minutos, [...minutos].sort((a, b) => a - b));
     assert.match(guia.panel, /orden=distancia/, 'el panel abre con el mismo orden');
+  });
+
+  it('a menos de 2 horas: primero las de entre 1 y 2 h, una por destino', () => {
+    const guia = definiciones(datos).find((d) => d.ruta === 'escapadas/a-menos-de-2-horas');
+    const base = datos.ofertas.find(guia.elegir);
+    // Las de más de 60 min primero (las de 60 ya están en la de 1 hora), cada parte por el viaje completo.
+    const orden = [[30, 50], [90, 80], [60, 10], [61, 90], [110, 20]]
+      .map(([cocheMin, precio], i) => ({ ...base, id: `t${i}`, cocheMin, precio })).sort(guia.orden).map((o) => o.id);
+    assert.deepEqual(orden, ['t4', 't1', 't3', 't2', 't0']);
+    // Dos ofertas en cada uno de 5 pueblos: 5 filas, y el recuento sigue siendo el de las 10 que cumplen.
+    const copias = Array.from({ length: 10 }, (_, i) => ({ ...base, id: `d${i}`, cocheMin: 90, precio: base.precio + i, lugar: { ...base.lugar, nombre: `Pueblo ${i % 5}` } }));
+    const html = generarPaginas({ ...datos, ofertas: copias }, { base: BASE }).archivos.find((a) => a.ruta === 'escapadas/a-menos-de-2-horas/index.html').contenido;
+    assert.equal((html.match(/<li class="fila-guia">/g) ?? []).length, 5);
+    assert.match(html, /<meta name="description" content="[^"]+: 10 ofertas comparadas/);
   });
 });

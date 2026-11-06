@@ -207,9 +207,10 @@ function originalDe(oferta, porFuente, webs) {
   const nombradas = new Set((oferta.etiquetas ?? []).map((e) => webs.get(normalizarTexto(e).trim())).filter((f) => f && f !== oferta.fuente));
   if (!nombradas.size || oferta.tipo === 'actividad' || oferta.tipo === 'vuelo' || !(oferta.precio > 0)) return null;
   const localidad = localidadDe(oferta);
-  const cerca = (o) => (tieneCoordenadas(oferta.lugar) && tieneCoordenadas(o.lugar)
-    ? distanciaKm(oferta.lugar, o.lugar) <= REENVIO_KM
-    : Boolean(localidad) && localidadDe(o) === localidad);
+  // La misma localidad basta aunque las coordenadas difieran: Chollometro sitúa en el centro de
+  // Tarragona el resort de Tamarit que BuscoUnChollo sitúa en su sitio (8,9 km) y salía dos veces.
+  const cerca = (o) => (Boolean(localidad) && localidadDe(o) === localidad)
+    || (tieneCoordenadas(oferta.lugar) && tieneCoordenadas(o.lugar) && distanciaKm(oferta.lugar, o.lugar) <= REENVIO_KM);
   const iguales = (a, b) => a == null || b == null || a === b;
   const diferencia = (o) => Math.abs(o.precio - oferta.precio) / Math.min(o.precio, oferta.precio);
   const candidatas = [...nombradas].flatMap((fuente) => porFuente.get(fuente) ?? [])

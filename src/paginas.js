@@ -16,14 +16,17 @@ import { repartir } from '../site/js/vigencia.js';
 import { resumenFuentes } from '../site/js/filtros.js';
 import { etiquetaDia, fechaLocal } from './util/fechas.js';
 import { textoGuia } from './textos-guias.js';
+import { CARPETAS_LEGALES, paginasLegales } from './paginas-legales.js';
+import { fotoOferta } from '../site/js/fotos-tema.js';
 
 /** Cuántas webs se consultan (las del registro que no están en pausa): la misma cifra en toda la web. */
-export const numeroWebs = (datos) => resumenFuentes(datos.fuentes ?? []).activas;
+// Las que funcionan hoy: contar las que llevan días caídas (Clubrural, Holidu: 0 ofertas) inflaba la cifra.
+export const numeroWebs = (datos) => resumenFuentes(datos.fuentes ?? []).ok;
 
 /** Menos de esto es una página casi vacía: no se publica (ni entra en el sitemap). */
 export const MINIMO_OFERTAS = 5;
 /** Carpetas de site/ que escribe este módulo (se vacían antes de cada escaneo). */
-export const CARPETAS = ['escapadas', 'vuelos', 'actividades'];
+export const CARPETAS = ['escapadas', 'vuelos', 'actividades', ...CARPETAS_LEGALES];
 const MAXIMO_POR_PAGINA = 24;
 /** Guías por zona como mucho, las de más ofertas: más serían páginas casi vacías o repetidas. */
 const MAXIMO_ZONAS = 16;
@@ -45,6 +48,12 @@ const MINIMO_CON_FECHA = 5;
  * temáticas, los tipos de alojamiento, las zonas y, al final, los cortes por precio, tiempo y fechas.
  */
 const PRIORIDAD = (d) => d.prioridad ?? { general: 5, tema: 1, zona: 3, mas: 7 }[d.grupo] ?? 5;
+/**
+ * Guías que Google ya enseña (clics en Search Console, oct. 2026): se indexan siempre que se
+ * publiquen, aunque se parezcan a otra. Si entraran y salieran según las ofertas de cada
+ * escaneo, perderían la posición (el puente y «a menos de 2 horas» llegaron a quedarse en noindex).
+ */
+const FIJAS = new Set(['escapadas/puente', 'escapadas/a-menos-de-1-hora', 'escapadas/a-menos-de-2-horas', 'escapadas/sin-coche', 'escapadas/menos-de-100-euros']);
 const VIAJEROS = 2;
 /** Lo que Google enseña de un título (unos 600 px): más largo, sale cortado con «…». */
 export const LARGO_TITULO = 60;
@@ -102,12 +111,16 @@ const saleDe = (o) => o.etiquetas.filter((e) => e.startsWith('sale-de:')).map((e
 /** «Islas Baleares» → «islas-baleares», «Cataluña» → «cataluna». */
 export const slug = (texto) => normalizar(texto).replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 
-/** Temáticas con guía propia: [carpeta, tema, nombre, qué es]. Las cuatro primeras ya tenían URL y no cambian. */
+/**
+ * Temáticas con guía propia: [carpeta, tema, nombre, qué es, título]. Las cuatro primeras ya tenían URL y no cambian.
+ * El título, si no es «nombre desde origen», como Google ya las enseña: «balnearios spa», «románticas cerca de».
+ * Spa sigue «desde»: entre sus primeras salen Andorra y balnearios de Aragón, que no están cerca.
+ */
 const TEMAS = [
-  ['spa', 'spa', 'Escapadas con spa', 'Hoteles, balnearios y escapadas con spa o circuito de aguas'],
+  ['spa', 'spa', 'Escapadas con spa', 'Hoteles, balnearios y escapadas con spa o circuito de aguas', 'Escapadas con spa y balnearios desde'],
   ['con-ninos', 'familia', 'Escapadas con niños', 'Planes para ir en familia'],
   ['rurales', 'rural', 'Escapadas rurales', 'Casas rurales y planes de naturaleza'],
-  ['romanticas', 'romantico', 'Escapadas románticas', 'Planes para dos'],
+  ['romanticas', 'romantico', 'Escapadas románticas', 'Planes para dos', 'Escapadas románticas cerca de'],
   ['playa', 'playa', 'Escapadas a la playa', 'Hoteles y apartamentos junto al mar'],
   ['gastronomicas', 'gastronomia', 'Escapadas gastronómicas y de vino', 'Enoturismo, catas y escapadas con la cena incluida'],
   ['con-perro', 'mascotas', 'Escapadas con perro', 'Alojamientos que admiten mascotas'],
@@ -223,7 +236,7 @@ export function definiciones({ origen, findes = [], puentes = [], ofertas = [], 
       titulo: puente ? `Escapadas para ${nombrePuente(puente)} desde ${desde}` : '',
       // Las fechas, en la descripción: en el título lo alargaban más de lo que Google enseña.
       descripcion: puente ? (total, desdeTexto) => `Escapadas para ${nombrePuente(puente)} (${puente.etiqueta}) desde ${desde}: ${total} ofertas por el coste del viaje completo${desdeTexto}.` : null,
-      intro: puente ? `Para el puente de ${puente.nombre} (${puente.etiqueta}): primero las ofertas con fecha en el puente y después las de fechas flexibles que siguen vigentes, cada parte ordenada por ${coste}.` : '',
+      intro: puente ? `Para ${nombrePuente(puente)} (${puente.etiqueta}): primero las ofertas con fecha en el puente y después las de fechas flexibles que siguen vigentes, cada parte ordenada por ${coste}.` : '',
       elegir: (o) => Boolean(puente) && esEscapada(o) && conTotal(o) && (o.fechas.salida ? o.fechas.puenteId === puente.id : !o.caduca || o.caduca.slice(0, 10) >= puente.desde),
       conFecha: (o) => Boolean(o.fechas.salida), orden: antes((o) => Boolean(o.fechas.salida), porTotal), prioridad: 6,
       panel: '#/escapadas?cuando=puente&orden=total',
@@ -231,10 +244,14 @@ export function definiciones({ origen, findes = [], puentes = [], ofertas = [], 
     ...[[1, 'a-menos-de-1-hora'], [2, 'a-menos-de-2-horas']].map(([horas, carpeta]) => ({
       ruta: `escapadas/${carpeta}`, grupo: 'general', enlace: `A menos de ${horas} ${horas === 1 ? 'hora' : 'horas'} en coche`,
       titulo: `Escapadas a menos de ${horas} ${horas === 1 ? 'hora' : 'horas'} de ${desde} en coche`,
-      // A 1 hora, lo más cerca primero (lo que se busca y distinto de la guía de la provincia).
-      intro: `Planes a menos de ${horas} ${horas === 1 ? 'hora' : 'horas'} en coche desde ${desde} (tiempo real por carretera), ${horas === 1 ? `del más cercano al más lejano, con ${coste}` : `ordenados por ${coste}`}.`,
+      // A 1 hora, lo más cerca primero (lo que se busca y distinto de la guía de la provincia). A 2 horas,
+      // primero lo de entre 1 y 2 h y un plan por destino: por precio a secas eran las mismas ofertas de la
+      // costa que «a la playa» y se quedaba sin indexar, y es la que Google ya enseñaba («destinos a 2 horas…»).
+      // El panel no tiene ese orden: abre con el más parecido (por el viaje completo).
+      intro: `Planes a menos de ${horas} ${horas === 1 ? 'hora' : 'horas'} en coche desde ${desde} (tiempo real por carretera), ${horas === 1 ? `del más cercano al más lejano, con ${coste}` : `primero los de entre 1 y 2 horas (lo que está a menos de 1 hora tiene su propia guía), uno por destino, ordenados por ${coste}`}.`,
       elegir: (o) => esEscapada(o) && !SIN_COCHE.includes(o.transporte) && o.cocheMin != null && o.cocheMin <= horas * 60 && conTotal(o),
-      orden: horas === 1 ? porCercania : porTotal, panel: `#/escapadas?h=${horas}&orden=${horas === 1 ? 'distancia' : 'total'}`, prioridad: 5,
+      orden: horas === 1 ? porCercania : antes((o) => o.cocheMin > 60, porTotal), unaPorDestino: horas === 2,
+      panel: `#/escapadas?h=${horas}&orden=${horas === 1 ? 'distancia' : 'total'}`, prioridad: 5,
     })),
     {
       ruta: 'escapadas/sin-coche', grupo: 'general', enlace: 'Sin coche', titulo: `Escapadas sin coche desde ${desde}`,
@@ -243,8 +260,8 @@ export function definiciones({ origen, findes = [], puentes = [], ofertas = [], 
       elegir: (o) => esEscapada(o) && SIN_COCHE.includes(o.transporte) && o.precio != null, orden: porTotalYPrecio, prioridad: 5,
       panel: '#/escapadas?sincoche=1',
     },
-    ...TEMAS.map(([carpeta, tema, nombre, que]) => ({
-      ruta: `escapadas/${carpeta}`, grupo: 'tema', enlace: nombre, titulo: `${nombre} desde ${desde}`,
+    ...TEMAS.map(([carpeta, tema, nombre, que, titulo = `${nombre} desde`]) => ({
+      ruta: `escapadas/${carpeta}`, grupo: 'tema', enlace: nombre, titulo: `${titulo} ${desde}`,
       intro: `${que}, ordenados por ${coste}.`,
       elegir: (o) => esEscapada(o) && o.temas.includes(tema) && conTotal(o), orden: porTotal,
       panel: `#/escapadas?temas=${tema}&orden=total`,
@@ -283,8 +300,9 @@ export function definiciones({ origen, findes = [], puentes = [], ofertas = [], 
  * publica su web, y debajo la cuenta que lleva de uno a otro. Si el precio publicado parece
  * pasarse del límite de la guía, se dice por qué cumple.
  */
-function filaOferta(o, nombres, d = {}) {
+function filaOferta(o, nombres, d = {}, raiz = '') {
   const c = costeDesdeOrigen(o, VIAJEROS);
+  const foto = fotoOferta(o, raiz);
   const fechas = o.fechas.salida
     ? `${etiquetaDia(o.fechas.salida)}${o.fechas.vuelta ? ` – ${etiquetaDia(o.fechas.vuelta)}` : ''}`
     : o.tipo === 'vuelo' ? 'Sin fecha concreta' : 'Fechas flexibles';
@@ -301,7 +319,8 @@ function filaOferta(o, nombres, d = {}) {
   const publicado = o.precio === 0 ? 'Gratis' : `${o.fechas.salida ? '' : 'desde '}${euros(o.precio)} ${UNIDADES[o.unidad] ?? '(sin unidad)'}`.trim();
   // Solo http(s): un «javascript:» de una web de ofertas no llega nunca a un enlace (como en el panel).
   const url = urlSegura(o.urlReserva) ?? urlSegura(o.url);
-  const rel = o.afiliado || o.patrocinada ? 'sponsored nofollow noopener' : 'nofollow noopener';
+  // Patrocinados todos: con las cookies aceptadas, Travelpayouts Drive convierte en afiliados los de su red.
+  const rel = 'sponsored nofollow noopener';
   const noches = c.noches ? `, ${c.noches} ${c.noches === 1 ? 'noche' : 'noches'}` : '';
   // La cuenta parte a parte va solo en la ficha del panel: aquí, 24 veces, era ruido.
   const cumple = d.umbralPorPersona && o.precio > d.umbralPorPersona && c.porPersona <= d.umbralPorPersona
@@ -312,9 +331,16 @@ function filaOferta(o, nombres, d = {}) {
     : c.total != null
       ? `<p class="fila-guia__precio"><strong>Viaje completo: ${c.estimado ? '≈ ' : ''}${esc(euros(Math.round(c.porPersona)))} por persona</strong> (${esc(euros(Math.round(c.total)))} para ${VIAJEROS} personas${esc(noches)}) · <span class="suave">Precio en ${esc(web)}: ${esc(publicado)}</span></p>${cumple}`
       : `<p class="fila-guia__precio"><strong>${esc(publicado)}</strong> <span class="suave">(precio en ${esc(web)}; sin datos para calcular el viaje completo)</span></p>`;
+  // La foto del destino (o la de ejemplo de su temática) con su crédito a la vista: sin JavaScript
+  // no hay texto al pasar por encima, y la licencia pide autor y licencia.
+  const enlaceCredito = urlSegura(foto.credito?.url);
+  const credito = !foto.credito ? '' : enlaceCredito
+    ? `<a class="fila-guia__credito" href="${esc(enlaceCredito)}" rel="noopener" target="_blank">${esc(foto.credito.texto)}</a>`
+    : `<span class="fila-guia__credito">${esc(foto.credito.texto)}</span>`;
   return `<li class="fila-guia">
+  <figure class="fila-guia__media"><img src="${esc(foto.url)}" alt="" width="240" height="150" loading="lazy" decoding="async" referrerpolicy="no-referrer">${credito ? `<figcaption>${credito}</figcaption>` : ''}</figure>
   <h3>${esc(o.titulo)}</h3>
-  <p>${[lugar && `📍 ${esc(lugar)}`, ruta && esc(ruta), esc(fechas), llegar && esc(llegar), salidas.length && `Sale de ${esc(salidas.join(', '))}`, o.valoracion?.nota >= 0 && `⭐ ${esc(String(o.valoracion.nota).replace('.', ','))}`].filter(Boolean).join(' · ')}</p>
+  <p>${[lugar && `<span aria-hidden="true">📍</span> ${esc(lugar)}`, ruta && esc(ruta), esc(fechas), llegar && esc(llegar), salidas.length && `Sale de ${esc(salidas.join(', '))}`, o.valoracion?.nota >= 0 && `<span aria-hidden="true">⭐</span><span class="sr">Nota</span> ${esc(String(o.valoracion.nota).replace('.', ','))}`].filter(Boolean).join(' · ')}</p>
   ${precio}
   <p class="suave">Publicada en ${esc(web)}${o.vistaUltima ? ` · precio visto allí el ${esc(etiquetaDia(fechaLocal(o.vistaUltima)))}` : ''}${o.patrocinada ? ' · Patrocinado' : ''}${url ? ` · <a href="${esc(url)}" rel="${rel}" target="_blank">Ver la oferta<span class="sr"> en ${esc(web)} (se abre en otra pestaña)</span></a>` : ''}</p>
 </li>`;
@@ -387,7 +413,7 @@ export function enlacesPortada(indexadas) {
  * `base`, la dirección pública (sin ella no hay canónica, imagen para compartir ni JSON-LD,
  * que necesitan direcciones absolutas); `todas`, las guías que se publican.
  */
-export function htmlPagina(d, ofertas, { raiz, base = null, generado, total, todas = [d], nombres = new Map(), texto = null, contacto = null, indexable = true, webs = 0 }) {
+export function htmlPagina(d, ofertas, { raiz, base = null, generado, total, todas = [d], nombres = new Map(), texto = null, indexable = true, webs = 0 }) {
   const canonical = base ? `${base}${d.ruta}/` : null;
   // El precio más bajo de los que se ven en la página: lo que más hace pulsar en un resultado.
   const minimo = Math.min(...ofertas.map((o) => costeDesdeOrigen(o, VIAJEROS).porPersona).filter((v) => v != null));
@@ -460,15 +486,16 @@ ${cabeza}
 <p>${esc(d.intro)}${texto?.parrafos[0] ? ` ${esc(primeraFrase(texto.parrafos[0]))}` : ''}</p>
 <p><a class="boton boton--primario" href="${esc(raiz + d.panel)}">Abrir en el panel (con mapa, filtros y comparación)</a></p>
 <h2>${esc(cuantas)}</h2>
-<ol class="lista-guia">${ofertas.map((o) => filaOferta(o, nombres, d)).join('')}</ol>
+<ol class="lista-guia">${ofertas.map((o) => filaOferta(o, nombres, d, raiz)).join('')}</ol>
 ${bloqueTexto(d, texto)}<section class="guia-criterios" aria-label="Cómo se ha hecho esta lista">
 <h2>Cómo se ha hecho esta lista</h2>
 <p class="suave">${esc(total)} ofertas vigentes cumplen; aquí van las ${esc(ofertas.length)} primeras. Datos del ${esc(etiquetaDia(fechaLocal(generado)))}; los precios son los que publica cada web y pueden haber cambiado. Confirma siempre en la web del proveedor.</p>
-${d.ruta === 'vuelos' ? '' : `<p class="suave">Cómo se compara: el <strong>viaje completo por persona</strong> para ${VIAJEROS} personas, con 2 noches cuando la oferta se cobra por noche, y la gasolina de ida y vuelta si se va en coche (estimada, sin peajes ni aparcamiento). No incluye comidas ni actividades que la oferta no incluya. Junto a cada uno, el precio tal como lo publica su web. Solo ofertas con alojamiento que su web ha mostrado recientemente: las caducadas y las que su web ha dejado de mostrar no salen.</p>\n`}</section>
+${d.ruta === 'vuelos' || d.ruta.startsWith('actividades') ? '' : `<p class="suave">Cómo se compara: el <strong>viaje completo por persona</strong> para ${VIAJEROS} personas, con 2 noches cuando la oferta se cobra por noche, y la gasolina de ida y vuelta si se va en coche (estimada, sin peajes ni aparcamiento). No incluye comidas ni actividades que la oferta no incluya. Junto a cada uno, el precio tal como lo publica su web. Solo ofertas con alojamiento que su web ha mostrado recientemente: las caducadas y las que su web ha dejado de mostrar no salen.</p>\n`}</section>
 </main>
 <footer class="pie contenedor">
 <nav class="guias" aria-label="Más guías">${enlacesGuias(todas, raiz, d.ruta)}</nav>
-<p><a href="${raiz}">${NOMBRE_WEB}</a> reúne ofertas de ${webs ? `${webs} webs` : 'varias webs'} de viajes y las revisa cada 15 minutos. No vendemos nada: el precio y las condiciones los confirma la web de cada oferta. · <a href="${raiz}#/ayuda">Cómo funciona</a>${contacto ? ` · <a href="mailto:${esc(contacto)}">Contacto</a>` : ''}</p>
+<p><a href="${raiz}">${NOMBRE_WEB}</a> reúne ofertas de ${webs ? `${webs} webs` : 'varias webs'} de viajes y las revisa varias veces al día. No vendemos nada: el precio y las condiciones los confirma la web de cada oferta. · <a href="${raiz}#/ayuda">Cómo funciona</a></p>
+<p><a href="${raiz}sobre-nosotros/">Quiénes somos</a> · <a href="${raiz}contacto/">Contacto</a> · <a href="${raiz}aviso-legal/">Aviso legal</a> · <a href="${raiz}privacidad/">Privacidad</a> · <a href="${raiz}cookies/">Política de cookies</a> · <a href="${raiz}creditos-fotos/">Créditos de las fotos</a> · <span data-sin-cookies>Sin cookies ni seguimiento</span></p>
 </footer>
 </body>
 </html>
@@ -515,7 +542,7 @@ export function bloquePortada(datos, guias) {
   const nombres = new Map((datos.fuentes ?? []).map((f) => [f.id, f.nombre]));
   return `<div class="portada-estatica" data-generado="${esc(datos.generado)}">
 <h1 class="titulo-vista">Escapadas de fin de semana desde <em>${esc(desde)}</em></h1>
-<p>Escapadas, casas rurales, hoteles con spa, planes y chollos de vuelos de ${numeroWebs(datos) || 'varias'} webs de viajes, juntos y revisados cada 15 minutos. Cada oferta con el coste del viaje completo para ${VIAJEROS} personas desde ${esc(desde)} (la oferta y la gasolina), el tiempo en coche y cuándo se comprobó. Datos del ${esc(etiquetaDia(fechaLocal(datos.generado)))}.</p>
+<p>Escapadas, casas rurales, hoteles con spa, planes y chollos de vuelos de ${numeroWebs(datos) || 'varias'} webs de viajes, juntos y revisados varias veces al día. Cada oferta con el coste del viaje completo para ${VIAJEROS} personas desde ${esc(desde)} (la oferta y la gasolina), el tiempo en coche y cuándo se comprobó. Datos del ${esc(etiquetaDia(fechaLocal(datos.generado)))}.</p>
 ${destacadas.length ? `<h2>Lo mejor de ahora</h2>\n<ol class="lista-guia">${destacadas.map((o) => filaOferta(o, nombres)).join('')}</ol>` : ''}
 ${guias.length ? `<nav class="guias" aria-label="Guías">${enlacesGuias(guias, '')}</nav>` : ''}
 </div>`;
@@ -544,7 +571,7 @@ export const estructuradosPortada = (base, destacadas = []) => jsonLd({
  * @param {{base?: string|null}} opciones URL pública del panel (para canonical y sitemap)
  * @returns {{archivos: {ruta: string, contenido: string}[], rutas: string[], portada: string}}
  */
-export function generarPaginas(todasLasOfertas, { base = null } = {}) {
+export function generarPaginas(todasLasOfertas, { base = null, terceros } = {}) {
   // Solo las vigentes (site/js/vigencia.js), a la hora del escaneo: ni caducadas ni «sin
   // confirmar» en las guías, en la portada sin JavaScript ni en sus recuentos.
   const revision = Number.isFinite(Date.parse(todasLasOfertas.generado)) ? new Date(todasLasOfertas.generado) : new Date();
@@ -554,22 +581,25 @@ export function generarPaginas(todasLasOfertas, { base = null } = {}) {
   const datos = { ...todasLasOfertas, ofertas: vigentes };
   const candidatas = elegirGuias(definiciones(datos).map((d) => {
     const lista = sinRepetidas(datos.ofertas.filter(d.elegir).sort(d.orden));
-    return { d, lista: d.unaPorDestino ? unaPorDestino(lista) : lista };
+    // El recuento, el de las que cumplen: con una por destino, la lista es más corta (304 cumplen, 189 destinos).
+    return { d, lista: d.unaPorDestino ? unaPorDestino(lista) : lista, total: lista.length };
   }));
   // Las que se indexan: las que se enlazan entre sí y van al sitemap.
   const indexables = candidatas.filter((c) => c.indexable);
   const todas = indexables.map((c) => c.d);
   const nombres = new Map((datos.fuentes ?? []).map((f) => [f.id, f.nombre]));
-  const archivos = candidatas.map(({ d, lista, indexable }) => {
+  const archivos = candidatas.map(({ d, lista, indexable, total }) => {
     const raiz = '../'.repeat(d.ruta.split('/').length);
     return {
       ruta: `${d.ruta}/index.html`,
       contenido: htmlPagina(d, lista.slice(0, MAXIMO_POR_PAGINA), {
-        raiz, base, generado: datos.generado, total: lista.length, todas, nombres, texto: textoGuia(d.ruta, datos.origen.nombre), contacto: datos.legal?.email, indexable, webs: numeroWebs(datos),
+        raiz, base, generado: datos.generado, total, todas, nombres, texto: textoGuia(d.ruta, datos.origen.nombre), indexable, webs: numeroWebs(datos),
       }),
     };
   });
   const rutas = candidatas.map(({ d }) => d.ruta);
+  const legales = paginasLegales(datos, { base, terceros });
+  archivos.push(...legales.map(({ ruta, contenido }) => ({ ruta, contenido })));
   if (base) {
     // lastmod: el día en que entró la oferta más reciente de la guía (cuando su contenido
     // cambió de verdad), no el del escaneo, que es siempre hoy y Google acaba ignorando.
@@ -578,6 +608,8 @@ export function generarPaginas(todasLasOfertas, { base = null } = {}) {
     const dias = new Map(indexables.map(({ d, lista }) => [`${d.ruta}/`, diaDe(lista.slice(0, MAXIMO_POR_PAGINA))]));
     dias.set('', [...dias.values()].sort().pop() ?? hoy);
     const urls = ['', ...todas.map((d) => `${d.ruta}/`)].map((r) => `  <url><loc>${esc(base + r)}</loc><lastmod>${dias.get(r)}</lastmod></url>`);
+    // Las legales no cambian con las ofertas: sin lastmod (es opcional) en lugar de uno inventado.
+    for (const p of legales.filter((l) => l.indexable)) urls.push(`  <url><loc>${esc(base + p.url)}</loc></url>`);
     archivos.push({ ruta: 'sitemap.xml', contenido: `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>\n` });
   }
   // Los buscadores pueden leerlo todo, también data/: el panel la necesita para pintarse y un
@@ -606,7 +638,7 @@ function sinRepetidas(lista) {
   });
 }
 
-/** De cada destino, el vuelo más barato (la lista ya viene ordenada): si no, 24 fechas del mismo Palermo. */
+/** De cada destino, la primera de la lista ya ordenada: si no, 24 fechas del mismo Palermo (o 24 hoteles de Salou). */
 function unaPorDestino(lista) {
   const vistos = new Set();
   return lista.filter((o) => {
@@ -628,7 +660,7 @@ const mediana = (valores) => { const v = [...valores].sort((x, y) => x - y); ret
  *  - una zona que repite más del 70 % de la zona que la contiene (Las Palmas en Canarias), tampoco;
  *  - una zona lejana (más de 4 h en coche y sin el transporte incluido en la mayoría) se publica
  *    sin indexar, como la guía que comparte más de la mitad de sus primeras ofertas con otra de
- *    más prioridad (PRIORIDAD). Sin indexar: noindex, fuera del sitemap y sin enlaces de las demás.
+ *    más prioridad (PRIORIDAD), salvo las FIJAS. Sin indexar: noindex, fuera del sitemap y sin enlaces de las demás.
  */
 export function elegirGuias(candidatas) {
   let lista = candidatas.filter(({ d, lista: ofertas }) => ofertas.length >= MINIMO_OFERTAS
@@ -645,7 +677,7 @@ export function elegirGuias(candidatas) {
   const indexadas = [];
   for (const c of [...lista].sort((a, b) => PRIORIDAD(a.d) - PRIORIDAD(b.d))) {
     const lejana = c.d.zona && !cercaOConTransporte(c.lista);
-    const repetida = indexadas.some((otra) => parteComun(primeras(c.lista), primeras(otra.lista)) > SOLAPE_MAXIMO);
+    const repetida = !FIJAS.has(c.d.ruta) && indexadas.some((otra) => parteComun(primeras(c.lista), primeras(otra.lista)) > SOLAPE_MAXIMO);
     c.indexable = !lejana && !repetida;
     if (c.indexable) indexadas.push(c);
   }

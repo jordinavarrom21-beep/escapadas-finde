@@ -260,6 +260,8 @@ function conAvisoCookies(html, raiz) {
   return html
     .replace(/(<meta http-equiv="Content-Security-Policy" content="[^"]*?)script-src 'none'/, "$1script-src 'self'")
     .replace('</head>', `<script src="${raiz}js/consentimiento.js" defer></script>\n</head>`)
+    // «Sin cookies ni seguimiento» deja de ser verdad, y el «Cookies» de abajo lo sustituye (uno solo).
+    .replace(/ · <(span|a)\b[^>]*\bdata-sin-cookies\b[^>]*>[^<]*<\/\1>/g, '')
     .replace(PIE_GUIA, (todo, antes, cierre) => `${antes} · <a href="#" data-abrir-cookies>Cookies</a>.${cierre}`);
 }
 
@@ -421,6 +423,12 @@ ${unDominio}  # Las copias de seguridad de datos y la carpeta .git (despliegue d
   RewriteRule ^(escapadas|vuelos|actividades)(/.*)?$ / [R=302,L]
   # Iconos que el iPhone pide por su cuenta aunque la página diga otro: el mismo de siempre.
   RewriteRule ^apple-touch-icon-(precomposed|[0-9]+x[0-9]+(-precomposed)?)\\.png$ apple-touch-icon.png [L]
+</IfModule>
+
+# Segunda barrera por si el hosting no tiene mod_rewrite: .git y las copias de datos, nunca.
+<IfModule mod_alias.c>
+  RedirectMatch 404 (^|/)\\.git(/|$)
+  RedirectMatch 404 \\.(bak|tmp)$
 </IfModule>
 
 <IfModule mod_headers.c>

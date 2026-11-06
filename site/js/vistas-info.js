@@ -191,8 +191,8 @@ ${criterios.join('') || (e.vigiladosPrivados
  */
 export function vistaAyuda(e) {
   const legal = e.datos.legal;
-  // Una sola cifra en toda la web: las webs del registro que se consultan (Estado, portada, guías y metas).
-  const webs = resumenFuentes(e.datos.fuentes ?? []).activas;
+  // Una sola cifra en toda la web: las que funcionan hoy (como numeroWebs en src/paginas.js).
+  const webs = resumenFuentes(e.datos.fuentes ?? []).ok;
   const nombresWebs = (e.datos.fuentes ?? []).filter((f) => !['desactivada', 'bloqueada'].includes(f.estado)).map((f) => f.nombre);
   // Con APIFY_TOKEN, parte de los datos de Google llegan a través de Apify (src/util/apify.js): se dice.
   const conApify = (e.datos.fuentes ?? []).some((f) => f.id === 'googleflights' && (f.estado === 'ok' || f.ultimoOk));
@@ -204,7 +204,7 @@ export function vistaAyuda(e) {
   return `<h1 class="titulo-vista" tabindex="-1">Cómo funciona</h1>
 <div class="ayuda-pagina">
 <section class="seccion">
-  <p class="ayuda-intro">Escapadas Finde busca por ti <strong>escapadas de fin de semana, hoteles, casas rurales, planes y chollos de vuelos</strong> en ${contar(webs, 'web', 'webs')} de viajes y te los enseña juntos, con lo que cuesta el viaje completo desde tu casa. Se revisa cada 15 minutos.</p>
+  <p class="ayuda-intro">Escapadas Finde busca por ti <strong>escapadas de fin de semana, hoteles, casas rurales, planes y chollos de vuelos</strong> en ${contar(webs, 'web', 'webs')} de viajes y te los enseña juntos, con lo que cuesta el viaje completo desde tu casa. Se revisa varias veces al día.</p>
   <ol class="ayuda-pasos">
     <li><strong>Elige cuándo</strong>: este finde, un puente o tus fechas.</li>
     <li><strong>Filtra lo que te apetece</strong>: spa, playa, con niños, sin coche, cerca de casa…</li>
@@ -251,7 +251,8 @@ export function reglaChollazo(u) {
     <li>un <strong>vuelo de ida y vuelta</strong> por ${esc(importe(u.vueloMax))} o menos por persona;</li>
     <li>una <strong>escapada</strong> por ${esc(importe(u.escapadaNocheMax))} o menos <strong>por persona y noche</strong> (si el precio es por habitación o total, repartido entre 2 personas);</li>
     <li>un <strong>Valor de ${esc(String(u.puntuacionMin))}</strong> o más sobre 100.</li>
-  </ul>`;
+  </ul>${u.notaMin ? `
+  <p>Y si tiene opiniones (5 o más), con una nota de <strong>${esc(String(u.notaMin).replace('.', ','))} o más sobre 10</strong>: barata pero mal valorada no es un chollo.</p>` : ''}`;
 }
 
 /**
@@ -290,7 +291,7 @@ function seccionAvisoLegal(e) {
   <h2 class="subtitulo">Aviso legal</h2>
   ${datos}
   <p>Escapadas Finde es un buscador de ofertas de viaje publicadas por otras webs. No vende viajes ni hace reservas: el precio, la disponibilidad y las condiciones los fija y los confirma siempre la web de cada oferta. Algunos enlaces son de afiliado y, si reservas por ellos, esa web puede pagarnos una comisión; no cambia tu precio ni el orden de las ofertas.</p>
-  <p>Las ofertas y marcas son de sus webs y dueños. Las fotos son de Wikimedia Commons (con su autor y licencia en la ficha) o de webs que permiten usarlas; si no hay ninguna, se ve una ilustración. Las ofertas se revisan cada 15 minutos, pero pueden cambiar o terminar antes: comprueba siempre la oferta antes de reservar.</p>
+  <p>Las ofertas y marcas son de sus webs y dueños. Las fotos son de Wikimedia Commons (con su autor y licencia en la ficha) o de webs que permiten usarlas; si no hay ninguna, se ve una ilustración. Las ofertas se revisan varias veces al día, pero pueden cambiar o terminar antes: comprueba siempre la oferta antes de reservar.</p>
 </section>`;
 }
 

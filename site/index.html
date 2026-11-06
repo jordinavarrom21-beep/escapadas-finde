@@ -5,7 +5,7 @@
   <!-- Defensa en profundidad: aunque se colara HTML en una oferta, no podría ejecutar
        scripts en línea ni cargar código de otros sitios. Imágenes de cualquier web https
        (las de las ofertas); conexiones solo al propio sitio y al buscador de lugares. -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' https: data:; connect-src 'self' https://photon.komoot.io https://router.project-osrm.org; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/ https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/ https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.1/; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/ https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/ https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.1/; img-src 'self' https: data:; connect-src 'self' https://photon.komoot.io https://router.project-osrm.org; object-src 'none'; base-uri 'self'; form-action 'self'">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <!-- La portada conserva este título al pintarse (app.js): es el que enseñan los buscadores. -->
   <title>Escapadas de fin de semana desde Barcelona · Escapadas Finde</title>
@@ -16,7 +16,7 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Escapadas Finde">
   <meta property="og:title" content="Escapadas Finde: chollos de escapadas para este finde">
-  <meta property="og:description" content="Escapadas, casas rurales, planes y chollos de vuelos de más de 20 webs de viajes, juntos y revisados cada 15 minutos.">
+  <meta property="og:description" content="Escapadas, casas rurales, planes y chollos de vuelos de más de 20 webs de viajes, juntos y revisados varias veces al día.">
   <meta property="og:image" content="og.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
@@ -31,6 +31,8 @@
   <script src="js/tema.js"></script>
   <link rel="preload" href="fonts/figtree.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="fonts/bricolage-grotesque.woff2" as="font" type="font/woff2" crossorigin>
+  <!-- La foto de la cabecera de la portada (vistas-portada.js) se pinta con JavaScript: así llega antes. -->
+  <link rel="preload" as="image" href="img/portada.jpg" imagesrcset="img/portada.jpg 500w, img/portada-960.jpg 960w" imagesizes="(min-width: 1240px) 1180px, 100vw" fetchpriority="high">
   <link rel="stylesheet" href="css/estilos.css">
   <!-- Todos los módulos del panel a la vez: si no, el navegador los descubre uno tras otro al
        leer cada import (en un móvil, cerca de un segundo más). test/arranque.test.js comprueba
@@ -59,6 +61,7 @@
   <link rel="modulepreload" href="js/ubicacion.js">
   <link rel="modulepreload" href="js/vigencia.js">
   <link rel="modulepreload" href="js/selector-fechas.js">
+  <link rel="modulepreload" href="js/fotos-tema.js">
   <script type="module" src="js/app.js"></script>
   <!-- Aviso de cookies, Google Analytics, Google Ads y Travelpayouts Drive: solo si el despliegue
        pone la etiqueta «escapadas-google-analytics», «escapadas-google-ads» o «escapadas-drive» (consentimiento.js). -->
@@ -77,7 +80,7 @@
       </a>
       <nav class="navegacion" aria-label="Secciones">
         <ul>
-          <li><a href="#/finde" data-vista="finde"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 8h16v12H4zM9 8V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V8M4 13h16M10.5 13v2h3v-2"/></svg><span>Inicio</span></a></li>
+          <li><a href="#/finde" data-vista="finde"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3.5 11L12 4l8.5 7M5.5 9.5V20h13V9.5M10 20v-5h4v5"/></svg><span>Inicio</span></a></li>
           <li><a href="#/escapadas" data-vista="escapadas"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 11a7 7 0 1 0 14 0a7 7 0 1 0 -14 0M20 20l-4-4"/></svg><span>Explorar</span></a></li>
           <li><a href="#/calendario" data-vista="calendario"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 6.5h16V20H4zM4 10.5h16M8.5 4v4M15.5 4v4"/></svg><span>Fechas</span></a></li>
           <li><a href="#/mis" data-vista="mis"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 20s-7.5-4.6-7.5-10.2A4.2 4.2 0 0 1 12 7.2a4.2 4.2 0 0 1 7.5 2.6C19.5 15.4 12 20 12 20z"/></svg><span>Guardados</span><span id="aviso-mis" class="navegacion__aviso" hidden></span></a></li>
@@ -126,9 +129,9 @@
 
   <footer class="pie contenedor">
     <p class="pie__marca"><img src="icono.svg" alt="" width="28" height="28"> Escapadas Finde</p>
-    <p>Reunimos ofertas publicadas por webs de viajes y las revisamos cada 15 minutos. No vendemos nada: el precio y
+    <p>Reunimos ofertas publicadas por webs de viajes y las revisamos varias veces al día. No vendemos nada: el precio y
       las condiciones los confirma siempre la web de la oferta al reservar.</p>
-    <p><a href="#/ayuda">Cómo funciona</a> · <a href="#/ayuda?seccion=privacidad">Privacidad</a> · <a href="#/ayuda?seccion=aviso-legal">Aviso legal</a><span id="contacto-pie" hidden> · <a href="#/ayuda?seccion=aviso-legal">Contacto</a></span> · <span data-sin-cookies>Sin cookies ni seguimiento</span> ·
+    <p><a href="#/ayuda">Cómo funciona</a> · <a href="sobre-nosotros/">Quiénes somos</a> · <a href="contacto/">Contacto</a> · <a href="aviso-legal/">Aviso legal</a> · <a href="privacidad/">Privacidad</a> · <a href="cookies/">Política de cookies</a> · <a href="creditos-fotos/">Créditos de las fotos</a> · <span data-sin-cookies>Sin cookies ni seguimiento</span> ·
       Mapa © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> ·
       Lugares con <a href="https://photon.komoot.io" target="_blank" rel="noopener noreferrer">Photon</a></p>
     <p><a id="estado-fuentes" class="estado-fuentes" href="#/fuentes" hidden><span class="punto" aria-hidden="true"></span><span class="estado-fuentes__texto">Estado de las webs</span></a></p>

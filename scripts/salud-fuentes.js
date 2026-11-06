@@ -33,7 +33,10 @@ export function fuentesConProblemas(estado, { ahora = new Date(), horas = 24 } =
 }
 
 export function informe(problemas, horas) {
-  const filas = problemas.map((p) => `| \`${p.id}\` | ${p.tipo === 'error' ? '🔴 Falla' : '🟠 Lee menos de lo normal'} | ${p.detalle.replace(/\|/g, '\\|').slice(0, 160)} | ${fecha(p.desde)} | ${p.ultimoOk ? fecha(p.ultimoOk) : '—'} |`);
+  // El detalle viene de webs ajenas: en código, sin saltos ni comillas invertidas, no puede
+  // mencionar a nadie (@usuario), enlazar ni romper la tabla del issue.
+  const detalle = (p) => `\`${p.detalle.replace(/[`\r\n]+/g, ' ').replace(/\|/g, '\\|').slice(0, 160)}\``;
+  const filas = problemas.map((p) => `| \`${p.id}\` | ${p.tipo === 'error' ? '🔴 Falla' : '🟠 Lee menos de lo normal'} | ${detalle(p)} | ${fecha(p.desde)} | ${p.ultimoOk ? fecha(p.ultimoOk) : '—'} |`);
   return `Estas fuentes llevan más de ${horas} h con problemas:
 
 | Fuente | Estado | Detalle | Desde | Último escaneo bueno |

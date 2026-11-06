@@ -102,6 +102,27 @@ describe('geo: precio del litro para el panel', () => {
   });
 });
 
+describe('geo: destinos de vuelo sin país', () => {
+  it('se buscan en todo el mundo, no primero en España (Palermo no es una aldea de Cáceres)', async () => {
+    const { ctx, peticiones } = crearCtx({ respuestas: () => [{ name: 'Palermo', category: 'place', lat: '38.11', lon: '13.36', address: { country_code: 'it' } }] });
+    const vuelo = oferta({ tipo: 'vuelo', lugar: { nombre: 'Palermo', lat: null, lon: null } });
+    await geolocalizar([vuelo], ctx);
+    assert.equal(peticiones.length, 1);
+    assert.doesNotMatch(peticiones[0], /countrycodes=es/);
+    assert.deepEqual([vuelo.lugar.lat, vuelo.lugar.lon, vuelo.lugar.codigoPais], [38.11, 13.36, 'IT']);
+  });
+});
+
+describe('geo: nombres que en el mapa son otro sitio', () => {
+  it('«La Pineda» de los hoteles se busca como la playa de Vila-seca (Tarragona)', async () => {
+    const { ctx, peticiones } = crearCtx({ respuestas: () => [{ name: 'Platja de la Pineda', category: 'place', lat: '41.077', lon: '1.180', address: { country_code: 'es', province: 'Tarragona' } }] });
+    const o = oferta({ lugar: { nombre: 'La Pineda', region: 'Cataluña', pais: 'España', codigoPais: 'ES', lat: null, lon: null } });
+    await geolocalizar([o], ctx);
+    assert.match(decodeURIComponent(peticiones[0]), /q=Platja de la Pineda, Vila-seca, Tarragona, España/);
+    assert.deepEqual([o.lugar.lat, o.lugar.lon], [41.077, 1.18]);
+  });
+});
+
 describe('geo: provincia de las ofertas que traen coordenadas y no la dicen', () => {
   const comaRuga = () => oferta({ lugar: { nombre: 'Coma-Ruga', region: 'Cataluña', pais: 'España', codigoPais: 'ES', comunidad: 'Cataluña', provincia: null, lat: 41.1816, lon: 1.523 } });
 

@@ -40,7 +40,7 @@ const VIAJE = palabras([...FUERTES, ...DEBILES]);
 const AVE = /\bAVE\b/;
 
 // Productos que mencionan viajes sin serlo («Maleta de cabina Ryanair», «Dron con 30 min de vuelo»).
-const PRODUCTO = /\b(?:maletas?|mochilas?|trolley|neceser(?:es)?|bolsas?(?: de)? viaje|samsonite|american tourister|cabin ?(?:max|zero)|(?:kit|set|tamano) de viaje|almohadas?|cojin(?:es)?|adaptador(?:es)?|candados?|basculas?|organizador(?:es)?|dron(?:es)?|lego|playmobil|juguetes?|cuadernos?)\b/i;
+const PRODUCTO = /\b(?:maletas?|mochilas?|trolley|neceser(?:es)?|bolsas?(?: de)? viaje|samsonite|american tourister|cabin ?(?:max|zero)|(?:kit|set|tamano) de viaje|almohadas?|cojin(?:es)?|adaptador(?:es)?|candados?|basculas?|organizador(?:es)?|dron(?:es)?|lego|playmobil|barbie|juguetes?|juegos? de mesa|cuadernos?|smartbox|wonderbox|cajas? (?:regalo|experiencia)|nintendo|switch|cargador(?:es)?|oral-?b)\b/i;
 
 const TIPOS = [
   ['paquete', /\b(?:vuelos?|avion)\s*(?:\+|y|con)\s*hotel|\bhotel\s*(?:\+|y|con)\s*vuelos?\b|\bpaquetes?\b|\bcruceros?\b|\bviajes? organizados?\b/i],
@@ -58,6 +58,9 @@ const UNIDADES = [
   ['noche', /(?:\bpor|\bla|\/)\s*noche\b/i],
   ['pp', /\bpor persona\b|\bp\.\s?p\.|\bpor pers\b/i],
   ['pp', TRAS_EUROS_PP],
+  // «para 2 personas», «precio total»: el total del viaje. Después de «por persona»: «para 2
+  // personas desde 45 €/persona» es por persona.
+  ['total', /\bpara (?:2|dos) (?:personas|adultos)\b|\bprecio total\b/i],
 ];
 
 const TEMPERATURA = /^(-?\d+)\s*[°º]\s*-\s*/;

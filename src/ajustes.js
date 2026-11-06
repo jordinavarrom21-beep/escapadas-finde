@@ -143,6 +143,7 @@ function problemasEmails(emails) {
       exigir(esPositivo(chollazos[campo]), `emails.chollazos.${campo} debe ser un número de euros mayor que 0`);
     }
     exigir(enRango(chollazos.puntuacionMin, 0, 100), 'emails.chollazos.puntuacionMin debe ser un número entre 0 y 100');
+    exigir(chollazos.notaMin === undefined || enRango(chollazos.notaMin, 0, 10), 'emails.chollazos.notaMin debe ser una nota entre 0 y 10');
   }
   exigir(esObjeto(vigilados) && typeof vigilados.activo === 'boolean', 'emails.vigilados debe ser un objeto {activo}');
   exigir(esPositivo(emails.fuenteCaidaHoras), 'emails.fuenteCaidaHoras debe ser un número de horas mayor que 0');

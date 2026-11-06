@@ -176,7 +176,8 @@ export function completarOferta(datos) {
     lugar: datos.lugar ? { ...datos.lugar, nombre: nombreOficial(arreglarApostrofes(datos.lugar.nombre)) } : null,
     imagen: imagenHttps(datos.imagen),
   };
-  for (const campo of LISTAS) oferta[campo] ??= [];
+  // Copia: dos ofertas hechas con los mismos datos no comparten las listas.
+  for (const campo of LISTAS) oferta[campo] = [...(oferta[campo] ?? [])];
   return oferta;
 }
 

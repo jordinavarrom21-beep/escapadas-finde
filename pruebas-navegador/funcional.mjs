@@ -23,7 +23,21 @@ const { vigentes } = repartir(datos.ofertas, {
 const fallos = [];
 const hechos = [];
 const errores = [];
-const ok = (cond, texto) => { if (cond) hechos.push(texto); else fallos.push(texto); };
+// Cada comprobación se escribe al momento y, si en 3 minutos no llega ninguna, la prueba para y
+// dice tras cuál se quedó: antes, un paso atascado agotaba los 25 minutos del workflow sin decir nada.
+let ultima = 'el arranque';
+let ultimaVez = Date.now();
+const ok = (cond, texto) => {
+  if (cond) hechos.push(texto); else fallos.push(texto);
+  console.log(`${cond ? '✓' : '✗'} ${texto}`);
+  [ultima, ultimaVez] = [texto, Date.now()];
+};
+setInterval(() => {
+  if (Date.now() - ultimaVez < 180_000) return;
+  console.log(`ATASCADA: 3 minutos sin avanzar después de «${ultima}»`);
+  if (errores.length) console.log(`ERRORES:\n- ${[...new Set(errores)].join('\n- ')}`);
+  process.exit(1);
+}, 10_000).unref();
 
 const contexto = (opciones) => nuevoContexto(b, opciones);
 async function pagina(c) {
@@ -506,7 +520,10 @@ const cs = await contexto({ serviceWorkers: 'allow' });
 const s = await pagina(cs);
 await s.goto(`${BASE}#/finde`);
 await s.waitForSelector('.titulo-vista');
-await s.evaluate(() => navigator.serviceWorker.ready);
+// «ready» no se cumple nunca si la instalación falla (un archivo de INTERFAZ que no llega):
+// como mucho 20 s, y se dice.
+const swListo = await s.evaluate(() => Promise.race([navigator.serviceWorker.ready.then(() => true), new Promise((listo) => { setTimeout(() => listo(false), 20_000); })]));
+ok(swListo, 'service worker: se instala (todos los archivos de INTERFAZ llegan)');
 await s.waitForTimeout(1500);
 const cacheados = await s.evaluate(async () => {
   const claves = await caches.keys();
@@ -525,8 +542,12 @@ await cs.close();
 const cp = await contexto();
 const pp = await pagina(cp);
 await ir(pp, 'escapadas');
-const altFotos = await pp.locator('#resultados img.tarjeta__imagen').evaluateAll((imgs) => imgs.map((i) => i.alt));
-ok(!altFotos.length || altFotos.every((alt) => alt.trim().length > 3), `fotos: cada una dice de qué es («${altFotos[0] ?? 'sin fotos'}»)`);
+// La foto del destino dice de qué es; la de ejemplo de su temática (lleva «Foto de ejemplo»)
+// es decorativa: alt vacío, para no describir un sitio que no es el de la oferta.
+const altFotos = await pp.locator('#resultados .tarjeta:not(:has(.pastilla-foto--ejemplo)) img.tarjeta__imagen').evaluateAll((imgs) => imgs.map((i) => i.alt));
+ok(!altFotos.length || altFotos.every((alt) => alt.trim().length > 3), `fotos del destino: cada una dice de qué es («${altFotos[0] ?? 'sin fotos'}»)`);
+const altEjemplo = await pp.locator('#resultados .tarjeta:has(.pastilla-foto--ejemplo) img.tarjeta__imagen').evaluateAll((imgs) => imgs.map((i) => i.alt));
+ok(altEjemplo.every((alt) => alt === ''), 'fotos de ejemplo: alt vacío (decorativas)');
 ok((await pp.locator('.marca img').getAttribute('alt')) === '', 'logo: alt vacío (el nombre ya va escrito al lado)');
 const apartamento = await pp.evaluate(async () => (await (await fetch('data/ofertas.json')).json()).ofertas.find((o) => o.alojamiento === 'apartamento')?.id ?? null);
 if (apartamento) {
@@ -859,8 +880,9 @@ for (const deslizar of [false, true]) {
 
 ok(!errores.some((e) => /Content Security Policy|Refused to (load|apply|execute|connect)/.test(e)), 'CSP: ningún error en la consola en todo el recorrido');
 
-await cerrar();
 console.log(`${hechos.length} comprobaciones bien, ${fallos.length} mal`);
 if (fallos.length) console.log(`FALLOS:\n- ${fallos.join('\n- ')}`);
 if (errores.length) console.log(`ERRORES:\n- ${[...new Set(errores)].join('\n- ')}`);
-if (fallos.length || errores.length) process.exitCode = 1;
+// El resultado ya está escrito: cerrar el navegador y el servidor no puede dejar la prueba colgada.
+await Promise.race([cerrar(), new Promise((listo) => { setTimeout(listo, 15_000).unref(); })]);
+process.exit(fallos.length || errores.length ? 1 : 0);

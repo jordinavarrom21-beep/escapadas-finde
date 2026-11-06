@@ -21,6 +21,21 @@ describe('periodo elegido', () => {
     assert.equal(rangoDe('', ctx), null);
   });
 
+  it('un puente que empieza en viernes comparte id con ese finde: «puente» da el puente, «finde» el finde', () => {
+    const viernes = { id: '2026-12-25', viernes: '2026-12-25', domingo: '2026-12-27' };
+    const navidad = { id: '2026-12-25', nombre: 'Navidad', desde: '2026-12-25', hasta: '2026-12-28' };
+    const c = { finde: viernes, findes: [viernes], puente: navidad, puentes: [navidad] };
+    assert.equal(rangoDe('puente', c).tipo, 'puente');
+    assert.equal(rangoDe('puente', c).fin, '2026-12-28');
+    assert.equal(rangoDe('finde', c).tipo, 'finde');
+  });
+
+  it('«Solo desde mis aeropuertos» filtra también los vuelos con fecha', () => {
+    const vuelo = (origen) => ({ id: origen, tipo: 'vuelo', precio: 50, vuelo: { origen }, fechas: {}, etiquetas: [] });
+    const lista = filtrarVuelos([vuelo('BCN'), vuelo('MAD')], leerFiltrosVuelos({ mios: '1' }), { aeropuertos: ['MAD'] });
+    assert.deepEqual(lista.map((o) => o.id), ['MAD']);
+  });
+
   it('cada vuelo dice si cabe en el periodo o en qué se sale', () => {
     const puente = rangoDe('2026-10-10', ctx);
     const finde = rangoDe('2026-10-09', ctx);
@@ -132,11 +147,17 @@ describe('barra de fechas («¿Cuándo?») y Lista / Mapa', async () => {
 });
 
 describe('mapa', async () => {
-  const { agruparPorLugar } = await import('../site/js/mapa.js');
+  const { agruparPorLugar, cercanas } = await import('../site/js/mapa.js');
+  const o = (id, lat, lon) => ({ id, lugar: { lat, lon } });
   it('las ofertas del mismo sitio van en un solo marcador (antes se tapaban unas a otras)', () => {
-    const o = (id, lat, lon) => ({ id, lugar: { lat, lon } });
     const grupos = agruparPorLugar([o('a', 41.2371, 1.8059), o('b', 41.23712, 1.80588), o('c', 41.98, 2.82)]);
     assert.deepEqual(grupos.map((g) => g.map((x) => x.id)), [['a', 'b'], ['c']]);
+  });
+  it('al abrir, encuadra las escapadas cercanas: Málaga y Bali no alejan el mapa hasta el mundo entero', () => {
+    const barcelona = { lat: 41.39, lon: 2.17 };
+    const cerca = Array.from({ length: 10 }, (_, i) => o(`c${i}`, 41.9 + i / 100, 2.8));
+    assert.equal(cercanas([...cerca, o('malaga', 36.72, -4.42), o('bali', -8.4, 115.2)], barcelona).length, 10);
+    assert.equal(cercanas([o('malaga', 36.72, -4.42), o('olot', 42.18, 2.49)], barcelona).length, 2, 'con pocas cerca, todas');
   });
 });
 

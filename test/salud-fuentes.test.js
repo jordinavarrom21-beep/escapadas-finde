@@ -21,7 +21,9 @@ describe('salud semanal de las fuentes', () => {
 
   it('el informe es una tabla con qué hacer', () => {
     const texto = informe(fuentesConProblemas(estado, { ahora: AHORA }), 24);
-    assert.match(texto, /\| `vieja` \| 🔴 Falla \| HTTP 403 en web\.es \|/);
+    assert.match(texto, /\| `vieja` \| 🔴 Falla \| `HTTP 403 en web\.es` \|/);
+    const raro = informe([{ id: 'x', tipo: 'error', detalle: 'hola @alguien\n`rompe`|tabla', desde: AHORA, ultimoOk: null }], 24);
+    assert.match(raro, /\| `hola @alguien rompe \\\|tabla` \|/, 'en código: sin mención, salto ni tabla rota');
     assert.match(texto, /Qué hacer/);
   });
 });

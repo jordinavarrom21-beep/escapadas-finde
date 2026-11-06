@@ -30,11 +30,12 @@ export function fechasDeBusqueda(params = {}, ctx = {}) {
 function fechasSinRecortar(params, ctx) {
   const cuando = params.cuando;
   if (cuando) {
-    const finde = cuando === 'finde' ? ctx.finde : (ctx.findes ?? []).find((f) => f.id === cuando);
-    if (finde) return rango(finde.viernes, finde.domingo);
-    const puente = cuando === 'puente' ? ctx.puente : (ctx.puentes ?? []).find((p) => p.id === cuando);
+    // El puente primero, como en filtros.js (rangoDe): uno que empieza en viernes comparte id con ese finde.
+    const puente = cuando === 'puente' ? ctx.puente : cuando === 'finde' ? null : (ctx.puentes ?? []).find((p) => p.id === cuando);
     // Con entrada el viernes y salida el último día libre: lo mismo que dicen la franja y el encaje.
     if (puente) return rango(entradaPuente(puente), puente.hasta);
+    const finde = cuando === 'finde' ? ctx.finde : (ctx.findes ?? []).find((f) => f.id === cuando);
+    if (finde) return rango(finde.viernes, finde.domingo);
   }
   const { desde, hasta } = params;
   if (!DIA.test(desde ?? '')) return null;

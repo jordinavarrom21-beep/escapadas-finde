@@ -244,7 +244,8 @@
 
   /** Qué se pregunta: lo que de verdad hay configurado. */
   function textoAviso() {
-    const mas = `<a href="${raiz}#/ayuda?seccion=privacidad">Más información</a>`;
+    // La política de cookies (src/paginas-legales.js): qué es cada una, de quién y cuánto dura.
+    const mas = `<a href="${raiz}cookies/">Más información</a>`;
     return `<p><strong>¿Aceptas cookies de ${enumerar(FINALIDADES.map((f) => f.corto))}?</strong>
       Sirven para ${enumerar(FINALIDADES.map((f) => f.para))}. Sin ellas la web funciona igual. ${mas}</p>`;
   }

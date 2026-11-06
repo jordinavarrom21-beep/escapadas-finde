@@ -10,6 +10,9 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 5
+    # Una versión recién salida espera 7 días: si viene comprometida, suele descubrirse antes.
+    cooldown:
+      default-days: 7
     groups:
       # Las de desarrollo (ESLint, Playwright…) en una sola PR: no llegan a la web publicada.
       desarrollo:
@@ -19,6 +22,8 @@ updates:
     schedule:
       interval: weekly
       day: monday
+    cooldown:
+      default-days: 7
     groups:
       acciones:
         patterns: ['*']

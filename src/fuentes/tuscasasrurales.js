@@ -83,7 +83,7 @@ function datosDeTarjeta(tarjeta, $) {
 
 function ofertaDe(datos) {
   if (!datos.id || !datos.url) throw new Error('sin identificador o sin enlace');
-  const { precio, precioTexto, unidad } = precioDe(datos);
+  const { precio, precioTexto, unidad } = casaEntera(precioDe(datos), datos);
   return crearOferta({
     id: `${ID}:${datos.id}`,
     fuente: ID,
@@ -121,6 +121,29 @@ export function precioDe(datos) {
   const forma = UNIDAD_POR_TEXTO.find(({ patron }) => patron.test(datos.unidad));
   if (!(importe > 0) || !forma) return { precio: null, precioTexto: '', unidad: null };
   return { precio: importe, precioTexto: `desde ${EUROS.format(importe)} € ${forma.texto}`, unidad: forma.unidad };
+}
+
+/** Plazas de la casa: «17 personas» o «12 - 16 personas» (la cifra mayor), o null. */
+export function plazasDe(caracteristicas = []) {
+  const numeros = caracteristicas.find((c) => /\d\s*personas/i.test(c))?.match(/\d+/g)?.map(Number) ?? [];
+  return numeros.length ? Math.max(...numeros) : null;
+}
+
+/**
+ * El «desde 21 € por persona y noche» es con la casa llena: en las que solo se alquilan enteras,
+ * dos personas pagan la casa, no dos plazas (Cal Gorguixé, 17 plazas, salía a 55 € por persona el
+ * viaje). Como en Escapada Rural, el precio pasa a ser el de la casa por noche (por persona ×
+ * plazas) y el viaje lo reparte coste.js entre tus viajeros. Con varias unidades («4 uds. de
+ * alquiler») las plazas son las de todas juntas: se deja el precio por persona.
+ */
+export function casaEntera(precio, { alquiler = '', caracteristicas = [] } = {}) {
+  const plazas = plazasDe(caracteristicas);
+  if (precio.unidad !== 'pp/noche' || !esAlquilerIntegro(alquiler) || /uds\./i.test(alquiler) || !(plazas > 1)) return precio;
+  const casa = Math.round(precio.precio * plazas * 100) / 100;
+  return {
+    precio: casa, unidad: 'noche',
+    precioTexto: `≈ ${EUROS.format(casa)} € por noche la casa entera (${EUROS.format(precio.precio)} € por persona y noche con las ${plazas} plazas llenas)`,
+  };
 }
 
 /** Casa entera y sin servicios: como en el resto de fuentes rurales, «solo alojamiento». */
