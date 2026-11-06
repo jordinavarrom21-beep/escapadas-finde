@@ -3,7 +3,7 @@
  * Todo el texto externo pasa por escaparHtml y los enlaces por urlSegura.
  */
 
-import { costeViaje, resumenCoste } from './coste.js';
+import { costeViaje, precioNocheTuyo, resumenCoste } from './coste.js';
 import { diasEntre, etiquetaDia, etiquetaRango, fechaLocal, horaDe } from './fechas.js';
 import {
   ETIQUETAS_ALOJAMIENTO, ETIQUETAS_REGIMEN, ETIQUETAS_TIPO, ETIQUETAS_TRANSPORTE, ETIQUETAS_UNIDAD, SIN_UNIDAD, TIPOS_EVENTO,
@@ -18,6 +18,7 @@ import { escena, icono, iconoTema, iconoTiempo, tipoEscena } from './iconos.js';
 import { conFechas, ofertaConFechas } from './fechas-enlaces.js';
 import { motivoPrincipal } from './nota.js';
 import { repartoPorNoche } from './plantillas-ficha.js';
+import { fotoOferta } from './fotos-tema.js';
 
 // La ficha va en plantillas-ficha.js; se sigue pudiendo importar desde aquí.
 export { contenidoFicha, textoPrecioLitro } from './plantillas-ficha.js';
@@ -34,7 +35,8 @@ export const ESTADOS_FUENTE = {
   reintentando: { texto: 'Reintentando', clase: 'pendiente' },
 };
 
-export const colorTema = (o) => (o.temas?.[0] ? `var(--tema-${o.temas[0]})` : 'var(--acento)');
+// Va dentro de style="…": solo ids de temática (letras), nunca texto que pueda cerrar el atributo.
+export const colorTema = (o) => (/^[a-z]+$/.test(o.temas?.[0] ?? '') ? `var(--tema-${o.temas[0]})` : 'var(--acento)');
 /** Un dato con su icono delante; el texto va en un <span> para que no se parta en trozos. */
 export const conIcono = (nombre, contenido) => `${icono(nombre)}<span>${contenido}</span>`;
 const envolverDato = (contenido) => (contenido ? `<p class="dato-extra">${contenido}</p>` : '');
@@ -156,7 +158,10 @@ export function comparativa(o, ctx = {}) {
   });
   if (!otras.length) return null;
   const filas = [{ fuente: o.fuente, precio: o.precio, unidad: o.unidad, precioNoche: o.precioNoche, url: o.urlReserva ?? o.url, afiliado: o.afiliado, actual: true }, ...otras];
-  const comparable = filas.every((f) => porNoche(f) != null);
+  // Más del triple de diferencia es otro producto, no un precio mejor: una casa entera frente a
+  // una plaza «con la casa llena» daba «245 € más» en Cal Gorguixé (oct. 2026).
+  const precios = filas.map(porNoche);
+  const comparable = precios.every((p) => p != null) && Math.max(...precios) <= 3 * Math.min(...precios);
   // Orden estable: a igual precio, esta oferta va primero.
   if (comparable) filas.sort((a, b) => Math.round(porNoche(a)) - Math.round(porNoche(b)));
   return { filas, comparable, minimo: comparable ? Math.round(porNoche(filas[0])) : null };
@@ -172,7 +177,7 @@ function equivalentes(o, ctx) {
   let texto;
   const web = webEnlazada(otra, ctx, o.tipo);
   if (!c.comparable) {
-    texto = `También en ${web}${typeof otra.precio === 'number' ? ` por ${euros(otra.precio)}` : ''}${resto}`;
+    texto = `También en ${web}${typeof otra.precio === 'number' ? ` por ${euros(otra.precio)} ${ETIQUETAS_UNIDAD[otra.unidad] ?? ''}`.trimEnd() : ''}${resto}`;
   } else {
     const diferencia = Math.round(porNoche(o)) - Math.round(porNoche(otra));
     const suPrecio = euros(Math.round(porNoche(otra)));
@@ -312,14 +317,18 @@ export function adjetivoNota(valor) {
 /** Qué mide la nota del chollo (sale al pasar por encima y en la ficha). */
 export const QUE_MIDE_LA_NOTA = 'Lo bueno que es como chollo: sobre todo el precio frente a ofertas parecidas; también las opiniones de otros clientes, las bajadas, el descuento, si es nueva, si cae en finde o puente y lo cómodo que es llegar.';
 
-/** «Chollazo», «Muy buena», «Buena» o «Normal» según la nota (0–100). */
-export const nivelNota = (o) => (o.chollazo ? 'Chollazo' : o.puntuacion >= 60 ? 'Muy buena' : o.puntuacion >= 40 ? 'Buena' : 'Normal');
+/**
+ * «Excelente», «Muy buena», «Buena» o «Normal» según la nota (0–100). «Chollazo» va aparte, en su
+ * insignia: es un precio bajo, no una nota, y «Chollazo · 49» se contradecía con la ficha.
+ */
+export const nivelNota = (o) => (o.puntuacion >= 80 ? 'Excelente' : o.puntuacion >= 60 ? 'Muy buena' : o.puntuacion >= 40 ? 'Buena' : 'Normal');
 
 function puntuacion(o, ctx = {}) {
-  const nivel = o.chollazo ? 'alta' : o.puntuacion >= 60 ? 'media' : 'baja';
+  const nota = Number(o.puntuacion) || 0;
+  const nivel = nota >= 80 ? 'alta' : nota >= 60 ? 'media' : 'baja';
   const motivo = motivoPrincipal(o, ctx.ahora);
-  const texto = `Valor de la oferta: ${o.puntuacion} de 100 (${nivelNota(o).toLowerCase()}). ${motivo ? `${motivo}.` : QUE_MIDE_LA_NOTA}`;
-  return `<span class="puntuacion puntuacion--${nivel}" title="${esc(texto)}"><span aria-hidden="true"><span class="puntuacion__etiqueta">Valor</span> ${o.puntuacion}</span><span class="sr">${esc(texto)}</span></span>`;
+  const texto = `Valor de la oferta: ${nota} de 100 (${nivelNota(o).toLowerCase()}). ${motivo ? `${motivo}.` : QUE_MIDE_LA_NOTA}`;
+  return `<span class="puntuacion puntuacion--${nivel}" title="${esc(texto)}"><span aria-hidden="true"><span class="puntuacion__etiqueta">Valor</span> ${nota}</span><span class="sr">${esc(texto)}</span></span>`;
 }
 
 export function botonFavorito(o, ctx) {
@@ -358,7 +367,10 @@ export function botonDescartar(o) {
  * Referrer-Policy), lo que cuenta al pedir sus programas de afiliación. «noopener» se queda.
  * Con Travelpayouts Drive aceptado, consentimiento.js añade «sponsored» a todos (Drive los convierte).
  */
-export const relEnlace = (pagado) => (pagado ? 'sponsored noopener' : 'noopener');
+// Todos los enlaces a ofertas y webs de reserva, patrocinados: con las cookies aceptadas,
+// Travelpayouts Drive convierte en afiliados los de su red (Booking, Trip.com…) sin que la web lo
+// sepa al pintarlos, y Google pide marcar así los enlaces de afiliado.
+export const relEnlace = () => 'sponsored noopener';
 
 /** Atributos para contar el clic (proveedor, tipo de enlace y tipo de oferta), sin datos personales. */
 const atributosClic = (o, afiliado) => ` data-clic="${esc(o.fuente)}" data-clic-tipo="${afiliado ? 'afiliado' : o.patrocinada ? 'patrocinado' : 'normal'}" data-clic-oferta="${esc(o.tipo)}"`;
@@ -414,11 +426,13 @@ function calculoPorNoche(o) {
  * El precio que publica la web. Con `etiqueta` («Precio en Atrápalo») va rotulado: en grande
  * con `principal` (tarjetas) o en pequeño si al lado hay otra cifra mayor.
  */
-export function precio(o, { etiqueta = null, principal = false } = {}) {
+export function precio(o, { etiqueta = null, principal = false, viajeros = null } = {}) {
   const rotulo = etiqueta ? `<span class="precio__etiqueta">${esc(etiqueta)}</span>` : '';
   // `principal`: rotulado pero en grande, que es lo primero que se mira.
   const clase = etiqueta ? `precio ${principal ? 'precio--oferta' : 'precio--publicado'}` : 'precio';
-  return rotulo ? precioBase(o).replace('<p class="precio">', `<p class="${clase}">${rotulo}`) : precioBase(o);
+  // Con tus viajeros, el «≈ por persona y noche» es el tuyo (y su cálculo lo dice).
+  const x = viajeros ? { ...o, precioNoche: precioNocheTuyo(o, viajeros) } : o;
+  return rotulo ? precioBase(x).replace('<p class="precio">', `<p class="${clase}">${rotulo}`) : precioBase(x);
 }
 
 function precioBase(o) {
@@ -539,7 +553,8 @@ function textoCoche(distancia, desde, o) {
 export function textoLugar(o) {
   const l = o.lugar;
   if (!l?.nombre) return '';
-  const zona = [l.region, l.pais !== 'España' ? l.pais : null].filter((parte) => parte && parte !== l.nombre).join(', ');
+  // La provincia, igual en todas («La Pineda, Cataluña» junto a «Malgrat de Mar, Barcelona»).
+  const zona = [l.provincia ?? l.region, l.pais !== 'España' ? l.pais : null].filter((parte) => parte && parte !== l.nombre).join(', ');
   return `${esc(l.nombre)}${zona ? `<span class="suave">, ${esc(zona)}</span>` : ''}`;
 }
 
@@ -551,17 +566,22 @@ export function altFoto(o) {
   return [tituloLegible(o.titulo ?? ''), o.lugar?.nombre].filter(Boolean).join(', ');
 }
 
-/** La foto de la oferta, con la ilustración debajo por si no hay foto o no carga. */
+/**
+ * La foto del destino o, si no hay, la de ejemplo de su temática, con la ilustración debajo por si
+ * no carga. La de ejemplo es decorativa (alt vacío): no enseña la oferta.
+ */
 function mediaOferta(o) {
-  const url = urlSegura(o.imagen);
-  const credito = o.imagenCredito?.texto ? ` title="${esc(o.imagenCredito.texto)}"` : '';
-  return `${escena(tipoEscena(o))}${url ? `<img class="tarjeta__imagen" src="${esc(url)}" alt="${esc(altFoto(o))}"${credito} loading="lazy" decoding="async" referrerpolicy="no-referrer" width="480" height="300">` : ''}`;
+  const foto = fotoOferta(o);
+  const credito = foto.credito?.texto ? ` title="${esc(foto.credito.texto)}"` : '';
+  return `${escena(tipoEscena(o))}<img class="tarjeta__imagen" src="${esc(foto.url)}" alt="${foto.ejemplo ? '' : esc(altFoto(o))}"${credito} loading="lazy" decoding="async" referrerpolicy="no-referrer" width="480" height="300">`;
 }
 
 /** Lo que va sobre la foto: sello, favorito, tiempo en coche y el tiempo que hará. */
 function cabeceraFoto(o, ctx) {
   const coche = textoCoche(ctx.distancias?.get(o.id), ctx.desde, o);
-  const pastillas = [coche && `<span class="pastilla-foto">${coche}</span>`, tiempoFoto(o, ctx)].filter(Boolean).join('');
+  // La foto de ejemplo lo dice: si no, parece el sitio de la oferta.
+  const ejemplo = fotoOferta(o).ejemplo && '<span class="pastilla-foto pastilla-foto--ejemplo">Foto de ejemplo</span>';
+  const pastillas = [coche && `<span class="pastilla-foto">${coche}</span>`, tiempoFoto(o, ctx), ejemplo].filter(Boolean).join('');
   const sello = selloFoto(o);
   return `<div class="tarjeta__media">${mediaOferta(o)}
     ${sello ? `<div class="tarjeta__sellos">${sello}</div>` : ''}
@@ -810,7 +830,7 @@ function lineaCoste(o, ctx) {
 export function bloquePrecio(o, ctx) {
   const web = ctx.fuentes?.get(o.fuente) ?? o.fuente;
   const etiqueta = typeof o.precio === 'number' && o.precio > 0 ? (web ? `Precio en ${web}` : 'Precio publicado') : null;
-  return `${precio(o, { etiqueta, principal: true })}${lineaCoste(o, ctx)}`;
+  return `${precio(o, { etiqueta, principal: true, viajeros: ctx.viajeros })}${lineaCoste(o, ctx)}`;
 }
 
 /** Color de cada parte: la oferta (lo que publica la web) y lo estimado (gasolina, la vuelta). */

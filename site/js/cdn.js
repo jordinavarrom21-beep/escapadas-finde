@@ -15,6 +15,18 @@ export const LEAFLET = {
   },
 };
 
+/** Agrupar los puntos cercanos del mapa (más de 800 escapadas se tapaban unas a otras). */
+export const GRUPOS_MAPA = {
+  css: {
+    url: `${CDNJS}/leaflet.markercluster/1.5.3/MarkerCluster.min.css`,
+    integridad: 'sha512-ENrTWqddXrLJsQS2A86QmvA17PkJ0GVm1bqj5aTgpeMAfDKN2+SIOLpKG8R/6KkimnhTb+VW5qqUHB/r1zaRgg==',
+  },
+  js: {
+    url: `${CDNJS}/leaflet.markercluster/1.5.3/leaflet.markercluster.js`,
+    integridad: 'sha512-OFs3W4DIZ5ZkrDhBFtsCP6JXtMEDGmhl0QPlmWYBJay40TT1n3gt2Xuw8Pf/iezgW9CdabjkNChRqozl/YADmg==',
+  },
+};
+
 export const CHART = {
   url: `${CDNJS}/Chart.js/4.5.1/chart.umd.min.js`,
   integridad: 'sha512-WoViKhKD4qI2WruSZqv9+kvM4WfFhUMQCLN4QlDTt5aU56fLQy2gYoxWIqlEnXqJy/+Ac5q/hk1oWfqnMDhwMA==',

@@ -80,8 +80,10 @@ export function ventaja(titulo) {
   const descuento = Number(texto.match(/-\s?(\d{1,2})\s?%/)?.[1]);
   if (euros > 0) {
     const finde = /fin de semana/i.test(texto);
-    const porNoche = /noche/i.test(texto) && !finde;
-    return { precio: euros, unidad: porNoche ? 'noche' : 'total', noches: finde ? 2 : null, descuento: null };
+    // «49 € la noche» es por noche; «3 noches por 150 €» es el total de esas 3 noches.
+    const porNoche = /\bla noche\b|\/\s*noche\b|\bpor noche\b/i.test(texto) && !finde;
+    const noches = finde ? 2 : Number(texto.match(/\b(\d{1,2})\s*noches\b/i)?.[1]) || null;
+    return { precio: euros, unidad: porNoche ? 'noche' : 'total', noches, descuento: null };
   }
   if (descuento > 0) return { precio: null, unidad: null, noches: null, descuento };
   return null;

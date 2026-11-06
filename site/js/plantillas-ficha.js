@@ -1,5 +1,6 @@
 /** La ficha de una oferta (el diálogo que se abre al pulsar su título). */
 
+import { precioNocheTuyo } from './coste.js';
 import { etiquetaDia, fechaLocal } from './fechas.js';
 import {
   ETIQUETAS_REGIMEN, ETIQUETAS_TIPO, ETIQUETAS_TRANSPORTE, ETIQUETAS_UNIDAD, SIN_UNIDAD, contar, duracion, enumerar,
@@ -8,6 +9,7 @@ import {
 import { duracionActividad, sufijoSerie } from './filtros.js';
 import { escena, icono, tipoEscena } from './iconos.js';
 import { motivosNota } from './nota.js';
+import { fotoOferta } from './fotos-tema.js';
 import {
   QUE_MIDE_LA_NOTA, TEXTO_AFILIADO, adjetivoNota, altFoto, avisoEquipaje, barraCoste, botonComparar, botonDescartar, botonFavorito,
   botonesMiEstado, busquedaPara, certeza, claseParte, colorTema, comparativa, conFechasDeViaje, conIcono,
@@ -17,10 +19,15 @@ import {
   textoFechas, textoLugar, textoMinimo, textoNinos, tiempo, tramo, urlPropia,
 } from './plantillas.js';
 
-/** «Foto: Wikimedia Commons» con el enlace a su página (autor y licencia), si la foto es de allí. */
-function creditoFoto(o) {
-  const url = urlSegura(o.imagenCredito?.url);
-  return url && o.imagen ? `<a class="ficha__credito" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(o.imagenCredito.texto ?? 'Foto')}</a>` : '';
+/**
+ * El crédito de la foto, a la vista: de dónde es, que no es el alojamiento, autor y licencia, con
+ * el enlace a su página en Wikimedia Commons (la licencia CC BY-SA lo pide).
+ */
+function creditoFoto(foto) {
+  const url = urlSegura(foto.credito?.url);
+  if (!url) return '';
+  const aviso = foto.ejemplo ? '' : ' <span class="ficha__credito-aviso">· el destino, no el alojamiento</span>';
+  return `<a class="ficha__credito" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(foto.credito.texto ?? 'Foto')}${aviso}<span class="sr"> (se abre en otra pestaña)</span></a>`;
 }
 
 /** «Coste del viaje» en la ficha: cada parte, qué es estimado, lo supuesto y lo que falta. */
@@ -131,6 +138,7 @@ const esSoloAdultos = (o) => (o.etiquetas ?? []).includes('solo-adultos');
  * seguido. Solo las filas con dato.
  */
 function datosFicha(o, ctx) {
+  const tuya = { ...o, precioNoche: precioNocheTuyo(o, ctx.viajeros) };
   const minutos = duracionActividad(o);
   const alojamiento = [textoAlojamiento(o), esSoloAdultos(o) && 'solo adultos'].filter(Boolean).join(' · ');
   const bloques = [
@@ -149,7 +157,7 @@ function datosFicha(o, ctx) {
     ['El precio', [
       ['Precio en la web', o.precioTexto],
       ['Qué precio es', certeza(o)],
-      ['Por persona y noche', o.precioNoche != null && `${euros(Math.round(o.precioNoche))}${repartoPorNoche(o)}`],
+      ['Por persona y noche', tuya.precioNoche != null && `${euros(Math.round(tuya.precioNoche))}${repartoPorNoche(tuya)}`],
       // Solo con ofertas de verdad parecidas (mismo tema y zona, o la misma ruta): ver referenciaPrecisa.
       ['Media de las parecidas', /^(?:escapada|vuelo):/.test(o.referencia?.grupo ?? '') && `${euros(o.referencia.mediana)} en ${o.referencia.descripcion ?? 'ofertas parecidas'}${o.referencia.n ? ` (con ${o.referencia.n} ofertas)` : ''}`],
       ['Por qué es chollazo', o.chollazo && o.chollazoMotivo],
@@ -194,14 +202,18 @@ function resumenFicha(o) {
  * La descripción de la web sin repetir el título ni el lugar. Si es una lista de lo que
  * incluye («1 noche · desayuno · acceso al spa»), como lista.
  */
+/**
+ * «Qué incluye», solo si la web lo da como lista de puntos cortos («Desayuno · Spa · Cena»). El
+ * texto de presentación de la web no se copia: salía a trozos («…que la hace muy acogedora…») y
+ * es contenido suyo; la ficha ya dice alojamiento, régimen, fechas y precio.
+ */
 function descripcionFicha(o) {
   if (!o.descripcion) return '';
   const igual = (a, b) => normalizar(a).trim() === normalizar(b).trim();
   const partes = o.descripcion.split(/\s+·\s+/).map((p) => p.trim())
     .filter((p) => p && !igual(p, o.titulo) && !(o.lugar?.nombre && normalizar(p).startsWith(normalizar(o.lugar.nombre))));
-  if (!partes.length) return '';
-  if (partes.length >= 3) return `<section class="ficha__incluye"><h3>Qué incluye</h3><ul>${partes.map((p) => `<li>${esc(p)}</li>`).join('')}</ul></section>`;
-  return `<p class="ficha__descripcion">${esc(partes.join(' · '))}</p>`;
+  if (partes.length < 3 || partes.some((p) => p.length > 80)) return '';
+  return `<section class="ficha__incluye"><h3>Qué incluye</h3><ul>${partes.map((p) => `<li>${esc(p)}</li>`).join('')}</ul></section>`;
 }
 
 function cocheFicha(o, ctx) {
@@ -338,7 +350,7 @@ function avisoPagoFicha(o, ctx) {
  * después en #ficha-grafica).
  */
 export function contenidoFicha(o, ctx) {
-  const imagen = urlSegura(o.imagen);
+  const foto = fotoOferta(o);
   const enlaces = enlacesFicha(o, ctx);
   const serie = ctx.historial?.[o.id] ?? [];
   return `<div class="ficha__cuerpo" style="--color-tema:${colorTema(o)}">
@@ -349,7 +361,7 @@ export function contenidoFicha(o, ctx) {
     <p class="tarjeta__lugar">${textoLugar(o)}</p>
     ${resumenFicha(o)}
   </header>
-  <div class="ficha__media">${escena(tipoEscena(o))}${imagen ? `<img class="ficha__imagen" src="${esc(imagen)}" alt="${esc(altFoto(o))}" referrerpolicy="no-referrer">` : ''}${creditoFoto(o)}</div>
+  <figure class="ficha__figura"><div class="ficha__media">${escena(tipoEscena(o))}<img class="ficha__imagen" src="${esc(foto.url)}" alt="${foto.ejemplo ? '' : esc(altFoto(o))}" referrerpolicy="no-referrer"></div>${creditoFoto(foto)}</figure>
   <div class="insignias">${insignias(o, ctx)}</div>
   ${vueloFicha(o)}
   ${o.resumen ? `<p class="ficha__resumen-ia"><strong>En una frase:</strong> ${esc(o.resumen)} <span class="suave">(resumen automático del texto de la web)</span></p>` : ''}
@@ -363,7 +375,7 @@ export function contenidoFicha(o, ctx) {
   ${datosFicha(o, ctx)}
 </div>
 <aside class="ficha__lateral" aria-label="Precio y reserva">
-  <div class="ficha__precio">${precio(o, { etiqueta: typeof o.precio === 'number' && o.precio > 0 ? `Precio en ${ctx.fuentes?.get(o.fuente) ?? o.fuente}` : null })}<span class="acciones">${botonDescartar(o)}${botonComparar(o, ctx)}${botonFavorito(o, ctx)}</span></div>
+  <div class="ficha__precio">${precio(o, { etiqueta: typeof o.precio === 'number' && o.precio > 0 ? `Precio en ${ctx.fuentes?.get(o.fuente) ?? o.fuente}` : null, viajeros: ctx.viajeros })}<span class="acciones">${botonDescartar(o)}${botonComparar(o, ctx)}${botonFavorito(o, ctx)}</span></div>
   ${textoComprobada(o, ctx)}
   <h3 class="sr">Reservar</h3>
   <ul class="ficha__enlaces">${enlaces[0] ?? ''}</ul>
@@ -396,15 +408,17 @@ ${barraReserva(o, ctx)}
 function barraReserva(o, ctx) {
   const boton = enlaceOferta(o, undefined, ctx);
   if (!boton) return '';
-  // Como en las tarjetas: primero el precio de la oferta; el viaje completo, debajo y en pequeño.
+  // Lo que cuesta de verdad, arriba: el viaje completo por persona (alojamiento y gasolina desde
+  // tu salida). El precio que publica la web, debajo y en pequeño. Sin viaje completo, el precio.
   const c = costeDe(o, ctx);
-  const oferta = typeof o.precio !== 'number' ? ''
-    : o.precio === 0 ? '<strong>Gratis</strong>'
-      : `${esPrecioDesde(o) ? '<span class="suave">desde</span> ' : ''}<strong>${euros(o.precio)}</strong>${ETIQUETAS_UNIDAD[o.unidad] ? ` <span class="suave">${ETIQUETAS_UNIDAD[o.unidad]}</span>` : ''}`;
-  const viaje = c.total != null && o.precio > 0
-    ? `<span class="ficha__reserva-viaje suave">Viaje completo ${c.estimado ? '≈ ' : ''}${euros(Math.round(c.total))} (${contar(c.viajeros, 'persona')})</span>`
-    : '';
-  const cifra = `${oferta}${viaje}`;
+  const publicado = typeof o.precio !== 'number' ? ''
+    : o.precio === 0 ? 'Gratis'
+      : `${esPrecioDesde(o) ? 'desde ' : ''}${euros(o.precio)}${ETIQUETAS_UNIDAD[o.unidad] ? ` ${ETIQUETAS_UNIDAD[o.unidad]}` : ''}`;
+  const cifra = c.total != null && o.precio > 0
+    ? `<strong>${c.estimado ? '≈ ' : ''}${euros(Math.round(c.porPersona))}</strong> <span class="suave">por persona, viaje completo</span><span class="ficha__reserva-viaje suave">En la web: ${esc(publicado)}</span>`
+    : typeof o.precio !== 'number' ? ''
+      : o.precio === 0 ? '<strong>Gratis</strong>'
+        : `${esPrecioDesde(o) ? '<span class="suave">desde</span> ' : ''}<strong>${euros(o.precio)}</strong>${ETIQUETAS_UNIDAD[o.unidad] ? ` <span class="suave">${ETIQUETAS_UNIDAD[o.unidad]}</span>` : ''}`;
   return `<div class="ficha__reserva"><p class="ficha__reserva-precio">${cifra}</p>${boton}</div>`;
 }
 

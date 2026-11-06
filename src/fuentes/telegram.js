@@ -85,13 +85,20 @@ export function esEstancia({ salida, vuelta }, noches) {
 /** El último momento de ese día en Madrid (hora de invierno: como mucho una hora tarde en verano). */
 const finDelDia = (dia) => new Date(`${dia}T23:59:59+01:00`).toISOString();
 
-/** La URL sin las marcas de campaña (utm_*), que no cambian la oferta. */
+/** La URL sin las marcas de campaña (utm_*) ni el identificador de afiliado del canal (aid=…), que no cambian la oferta. */
 function sinCampana(href) {
   const url = new URL(href);
-  for (const clave of [...url.searchParams.keys()]) if (/^utm_/i.test(clave)) url.searchParams.delete(clave);
+  for (const clave of [...url.searchParams.keys()]) if (/^(utm_|aid$|affid$|affiliate|partner_?id$|clickref$|awc$)/i.test(clave)) url.searchParams.delete(clave);
   url.hash = '';
   return url.href;
 }
+
+/**
+ * Acortadores y redes de afiliación: no son la web de la oferta, y con ellos cada clic cobraba
+ * comisión para el canal (todas las de Escapada Barata iban a t.eeny.it, nov. 2026). Se enlaza
+ * entonces el mensaje público del canal, que cita la fuente y lleva su enlace.
+ */
+export const REDIRECTOR = /(^|\.)(eeny\.it|ebarata\.com|tidd\.ly|bit\.ly|tinyurl\.com|awin1\.com|prf\.hn|tp\.media|tradedoubler\.com|linksynergy\.com|skimresources\.com)$/i;
 
 /**
  * El enlace de la oferta: el del botón o el que sigue a «Enlace:»; si no, el primero a la
@@ -139,7 +146,8 @@ export function parsearCanal(html, canal, ctx) {
     $texto.find('br').replaceWith('\n');
     const texto = $texto.text().replace(/[ \t]+/g, ' ').trim();
     if (!texto || !PRECIO.test(texto) || DESCARTE.test(normalizarTexto(texto))) return [];
-    const url = enlaceDe($, $m, canal.hosts);
+    const enlace = enlaceDe($, $m, canal.hosts);
+    const url = enlace && REDIRECTOR.test(new URL(enlace).hostname) ? `https://t.me/${nodo.attribs['data-post']}` : enlace;
     const titulo = titularDe(texto);
     if (!url || !titulo) return [];
     const plano = limpiarTitulo(texto.replace(/#[\p{L}\d_]+,?/gu, '').replace(/\n+/g, '. '));
@@ -151,6 +159,9 @@ export function parsearCanal(html, canal, ctx) {
     const fechas = leidas && esEstancia(leidas, noches) ? leidas : null;
     // «3 noches del 10/12 al 13/12 por 158 €»: con fechas, es el precio de toda la estancia.
     const precio = interpretarPrecio(plano);
+    // «Precio oferta vuelo + hotel por noche y por persona desde: 57 €» (5 noches por 285 €): el de
+    // la estancia es por persona, no el total (salían a la mitad por noche y como falsos chollos).
+    const porPersona = /precio oferta[^\n]*\bpor persona\b/i.test(texto);
     const lugar = extraerLugar(titulo) ?? extraerLugar(plano.match(/situad[oa] en ([^.,]+)/i)?.[0] ?? '');
     try {
       return [crearOferta({
@@ -161,7 +172,7 @@ export function parsearCanal(html, canal, ctx) {
         descripcion: recortar(plano),
         url,
         ...precio,
-        unidad: fechas && precio.unidad == null ? 'total' : precio.unidad,
+        unidad: precio.unidad ?? (porPersona ? 'pp' : fechas ? 'total' : null),
         noches,
         regimen: extraerRegimen(plano),
         transporte: tipo === 'vuelo' || tipo === 'paquete' ? 'avion' : null,

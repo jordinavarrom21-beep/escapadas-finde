@@ -106,6 +106,13 @@ export function puntoCreible(lugar, punto) {
 const CATEGORIAS_NO_LUGAR = new Set(['highway', 'building', 'shop', 'amenity', 'office', 'railway', 'craft', 'man_made']);
 const nombreClave = (texto) => normalizarTexto(texto ?? '').replace(/[^a-z0-9]+/g, ' ').trim();
 
+/**
+ * Nombres que en el mapa son primero otro sitio: la «La Pineda» de los hoteles es la playa de
+ * Vila-seca (Tarragona, junto a PortAventura), no la del Vallès, y salía «a 51 min» y en la guía
+ * de Barcelona. Se busca con esta consulta en su lugar.
+ */
+const CONSULTAS_TURISTICAS = { 'la pineda': 'Platja de la Pineda, Vila-seca, Tarragona, España' };
+
 /** Sin letras dobles: «Vall d'Aran» (catalán) es «Val d'Aran» (aranés) en el mapa. */
 const sinDobles = (clave) => clave.replace(/([a-z])\1+/g, '$1');
 
@@ -178,7 +185,8 @@ export async function geolocalizar(ofertas, ctx, { maxNuevas = 40 } = {}) {
   // Los puntos de provincia sin marcar que ya se han renovado: las ofertas guardadas en ellos
   // que vienen después también se vuelven a situar.
   const renovados = new Map();
-  for (const { lugar } of ofertas) {
+  for (const oferta of ofertas) {
+    const { lugar } = oferta;
     if (!lugar?.nombre) continue;
     // Un sitio de Andorra que se situó en España se vuelve a buscar, ya en Andorra.
     if (esDeAndorra(lugar) && lugar.codigoPais !== 'AD') {
@@ -190,7 +198,7 @@ export async function geolocalizar(ofertas, ctx, { maxNuevas = 40 } = {}) {
       Object.assign(lugar, { codigoPais: extranjero, lat: null, lon: null, provincia: null, comunidad: null });
       if (normalizarTexto(lugar.pais ?? '') === 'espana') lugar.pais = null;
     }
-    const consulta = [lugar.nombre, lugar.region, lugar.pais].filter(Boolean).join(', ');
+    const consulta = CONSULTAS_TURISTICAS[nombreClave(lugar.nombre)] ?? [lugar.nombre, lugar.region, lugar.pais].filter(Boolean).join(', ');
     // Lo guardado en un punto de provincia sin marcar se vuelve a buscar sin país, como entonces
     // (el «ES» también lo puso esa búsqueda).
     const sinPais = `geo2:${normalizarTexto(consulta)}`;
@@ -204,7 +212,10 @@ export async function geolocalizar(ofertas, ctx, { maxNuevas = 40 } = {}) {
     if (tieneCoordenadas(lugar)) Object.assign(lugar, { lat: null, lon: null });
     // Sin país se busca primero en España (`buscarSinPais`): otra clave que la de antes, que
     // buscaba en todo el mundo, para no reutilizar sus resultados.
-    const clave = `${pais ? 'geo' : 'geo2'}:${normalizarTexto(consulta)}`;
+    // El destino de un vuelo sin país se busca en todo el mundo: buscado primero en España,
+    // Palermo acababa en Cáceres, Praga en Pontevedra y Ginebra en Huesca (23 vuelos, nov. 2026).
+    const mundo = !pais && oferta.tipo === 'vuelo';
+    const clave = `${pais ? 'geo' : mundo ? 'geo3' : 'geo2'}:${normalizarTexto(consulta)}`;
     // Lo guardado que no puede ser de ese país se vuelve a pedir (ya acotado al país).
     const increible = (p) => (p === undefined || puntoCreible(lugar, p) ? p : undefined);
     let punto = increible(ctx.cache.obtener(clave, CADUCIDAD_GEO_MS, ahora));
@@ -225,6 +236,9 @@ export async function geolocalizar(ofertas, ctx, { maxNuevas = 40 } = {}) {
           if (pais) {
             const [resultado] = await ctx.http.json(URL_NOMINATIM + encodeURIComponent(consulta) + `&countrycodes=${pais}`);
             punto = puntoDe(resultado);
+          } else if (mundo) {
+            const [resultado] = await ctx.http.json(URL_NOMINATIM + encodeURIComponent(consulta));
+            punto = esElLugar(resultado, lugar.nombre) ? puntoDe(resultado) : null;
           } else {
             punto = await buscarSinPais(consulta, lugar.nombre, ctx);
           }

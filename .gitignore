@@ -7,6 +7,12 @@ site/data/
 site/escapadas/
 site/vuelos/
 site/actividades/
+site/aviso-legal/
+site/privacidad/
+site/cookies/
+site/contacto/
+site/sobre-nosotros/
+site/creditos-fotos/
 site/sitemap.xml
 site/robots.txt
 *.log

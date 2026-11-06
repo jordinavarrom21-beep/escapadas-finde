@@ -234,6 +234,9 @@ export function puntuar(ofertas, ajustes, { ahora = new Date(), findeActual = nu
 }
 
 const importe = (valor) => valor.toLocaleString('es-ES', { maximumFractionDigits: 2 });
+/** Nota mínima (sobre 10) de un chollazo con opiniones, si los ajustes no dicen otra, y cuántas opiniones cuentan. */
+export const NOTA_MIN_CHOLLAZO = 7;
+const MIN_OPINIONES = 5;
 
 /**
  * Por qué es un chollazo, en una frase que cualquiera puede comprobar con los datos de
@@ -241,10 +244,16 @@ const importe = (valor) => valor.toLocaleString('es-ES', { maximumFractionDigits
  */
 export function motivoChollazo(oferta, ajustes) {
   const umbrales = ajustes.emails.chollazos;
+  // Un vuelo que sale de otra ciudad o una copia de otra web no es un chollo para ti.
+  if (oferta.otraSalida || oferta.etiquetas.includes('duplicada')) return null;
   if (oferta.etiquetas.includes('error-tarifa')) return 'La web lo publica como error de tarifa';
   if (oferta.precio != null && oferta.unidad === 'i/v' && oferta.precio <= umbrales.vueloMax) {
     return `Vuelo de ida y vuelta por ${importe(oferta.precio)} €: el límite es ${importe(umbrales.vueloMax)} €`;
   }
+  // Barata pero mal valorada no es un chollo: con opiniones suficientes, hace falta una nota
+  // mínima (sobre 10). Sin opiniones no se sabe, y no se castiga.
+  const { nota, n } = oferta.valoracion ?? {};
+  if (nota != null && (n == null || n >= MIN_OPINIONES) && nota < (umbrales.notaMin ?? NOTA_MIN_CHOLLAZO)) return null;
   const porNoche = oferta.precio == null ? null : porNocheDe(oferta);
   if (porNoche != null && porNoche <= umbrales.escapadaNocheMax) {
     // «noche» y «total» son por alojamiento: el reparto entre viajeros es una suposición.

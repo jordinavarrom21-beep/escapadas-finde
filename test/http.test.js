@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 
 import {
   ErrorHttp, ErrorParseo, ErrorPeticion, ErrorRed, MAX_CUERPO, USER_AGENT,
-  esDireccionInterna, metricasHttp, obtenerJson, obtenerRedireccion, obtenerTexto, reiniciarMetricas,
+  crearClienteHttp, esDireccionInterna, metricasHttp, obtenerJson, obtenerRedireccion, obtenerTexto, reiniciarMetricas,
 } from '../src/util/http.js';
 
 const URL_FEED = 'https://www.viajerospiratas.es/feed/';
@@ -81,17 +81,33 @@ describe('obtenerTexto', () => {
     assert.deepEqual(contadores('www.viajerospiratas.es'), { peticiones: 3, errores: 2, reintentos: 2 });
   });
 
-  test('un 429 con Retry-After como fecha HTTP, con tope de 30 s', async () => {
+  test('un 429 con Retry-After como fecha HTTP; si pide más de 30 s, no se reintenta antes de tiempo', async () => {
     const dentroDe = (ms) => new Date(Date.now() + ms).toUTCString();
     simularRed([respuesta(429, '', { 'Retry-After': dentroDe(5000) }), respuesta(200, 'ok')]);
     const cerca = cronometro();
     await obtenerTexto(URL_FEED, { dormir: cerca.dormir });
     assert.ok(cerca.esperas[0] > 3500 && cerca.esperas[0] <= 5000, `esperó ${cerca.esperas[0]} ms`);
 
+    // Pide 10 minutos: antes se volvía a los 30 s (ignorando el límite de la web); ahora se para.
     simularRed([respuesta(503, '', { 'Retry-After': dentroDe(10 * 60_000) }), respuesta(200, 'ok')]);
     const lejos = cronometro();
-    await obtenerTexto(URL_FEED, { dormir: lejos.dormir });
-    assert.deepEqual(lejos.esperas, [30_000]);
+    await assert.rejects(obtenerTexto(URL_FEED, { dormir: lejos.dormir }), (e) => e.estado === 503);
+    assert.deepEqual(lejos.esperas, []);
+  });
+
+  test('tras un bloqueo, el cliente de una fuente no pide nada más a ese dominio en la ejecución', async () => {
+    const peticiones = simularRed([respuesta(403)]);
+    const cliente = crearClienteHttp({ reintentos: 0 });
+    await assert.rejects(cliente.texto(URL_FEED), (e) => e.estado === 403);
+    await assert.rejects(cliente.texto('https://www.viajerospiratas.es/otra/'), (e) => e.estado === 403);
+    assert.equal(peticiones.length, 1, 'la segunda no llega a pedirse');
+  });
+
+  test('un 429 sin Retry-After no se reintenta: es un «para» de la web', async () => {
+    simularRed([respuesta(429), respuesta(200, 'ok')]);
+    const { esperas, dormir } = cronometro();
+    await assert.rejects(obtenerTexto(URL_FEED, { dormir }), (e) => e.estado === 429 && e.bloqueo);
+    assert.deepEqual(esperas, []);
   });
 
   test('un 503 sin Retry-After reintenta con espera creciente y aleatoria', async () => {

@@ -16,6 +16,7 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 import { CARPETAS, generarPaginas } from '../src/paginas.js';
+import { tercerosDeAjustes } from '../src/paginas-legales.js';
 import { driveDeAjustes, googleAdsDeAjustes, googleAnalyticsDeAjustes, leerArgumentos, normalizarBase, ponerDireccion, prepararWeb, quitarDireccion } from './preparar-web.js';
 import { basePages } from './datos-publicados.js';
 
@@ -81,7 +82,7 @@ export function empaquetar({ dominio = null, salida = path.join(RAIZ, 'dist'), d
   for (const carpeta of CARPETAS) rmSync(path.join(destino, carpeta), { recursive: true, force: true });
   for (const archivo of ['sitemap.xml', 'robots.txt']) rmSync(path.join(destino, archivo), { force: true });
   const datosPanel = leerDatos(sitio);
-  const { archivos } = generarPaginas(datosPanel, { base });
+  const { archivos } = generarPaginas(datosPanel, { base, terceros: tercerosDeAjustes() });
   for (const { ruta, contenido } of archivos) {
     const archivo = path.join(destino, ruta);
     mkdirSync(path.dirname(archivo), { recursive: true });

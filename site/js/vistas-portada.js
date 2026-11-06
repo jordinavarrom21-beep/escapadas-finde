@@ -11,8 +11,9 @@ import {
   leerFiltrosActividades, leerFiltrosEscapadas, leerFiltrosVuelos, perfilFavoritos, periodoFinde, planesSorpresa,
   rangoDe, recomendadas, salidaPuente, sinComprobar, tieneVuelo,
 } from './filtros.js';
-import { colorTema, esFreeTour, estadoVacio, tarjeta, tarjetaConMotivo, textoFechas, textoLugar } from './plantillas.js';
+import { colorTema, costeDe, esFreeTour, estadoVacio, tarjeta, tarjetaConMotivo, textoFechas, textoLugar } from './plantillas.js';
 import { escena, icono, tipoEscena } from './iconos.js';
+import { FOTO_PORTADA, fotoOferta } from './fotos-tema.js';
 import { camposFechas } from './selector-fechas.js';
 import {
   HORAS_SORPRESA, conIcono, contextoBusqueda, ctxTarjetas, diasExplicitos, estadoWebs, etiquetaFinde, marcado, nombreSalida,
@@ -273,10 +274,10 @@ const UNIDAD_CORTA = { pp: '/pers.', 'pp/noche': '/pers. y noche', total: 'en to
 
 const precioCorto = (o) => (o.precio === 0 ? `Gratis${esFreeTour(o) ? ' <small>(propina voluntaria)</small>' : ''}` : `${euros(o.precio)}${UNIDAD_CORTA[o.unidad] ? ` <small>${UNIDAD_CORTA[o.unidad]}</small>` : ''}`);
 
-/** La miniatura de una escapada: su foto o, sin ella, la ilustración de su tipo con su color. */
+/** La miniatura de una escapada: la foto de su destino o la de ejemplo de su temática (fotos-tema.js). */
 function miniatura(o) {
-  const imagen = urlSegura(o.imagen);
-  return `<span class="idea__foto" aria-hidden="true">${escena(tipoEscena(o))}${imagen ? `<img src="${esc(imagen)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">` : ''}</span>`;
+  const foto = fotoOferta(o);
+  return `<span class="idea__foto" aria-hidden="true">${escena(tipoEscena(o))}<img src="${esc(foto.url)}" alt="" title="${esc(foto.credito?.texto ?? '')}" loading="lazy" decoding="async" referrerpolicy="no-referrer"></span>`;
 }
 
 /** Vuelos: la ruta («BCN → LTN») en vez de una foto, sobre el cielo de su escena. */
@@ -289,10 +290,10 @@ function miniaturaVuelo(o) {
  * Una mini tarjeta: miniatura, título (abre la ficha; toda la tarjeta es pulsable), un dato
  * que ayuda a decidir y el precio. Toma el color de la temática, como las tarjetas grandes.
  */
-function filaIdea(o, detalle, foto = miniatura(o)) {
+function filaIdea(o, detalle, foto = miniatura(o), precio = precioCorto(o)) {
   return `<li class="idea" style="--color-tema:${colorTema(o)}">${foto}
   <span class="idea__cuerpo"><button type="button" class="enlace-ficha" data-ficha="${esc(o.id)}">${esc(o.titulo)}</button>${detalle ? `<span class="idea__detalle">${detalle}</span>` : ''}</span>
-  <span class="idea__precio">${precioCorto(o)}</span></li>`;
+  <span class="idea__precio">${precio}</span></li>`;
 }
 
 /** Una columna: cabecera con su icono de color y «Ver…» arriba, y sus mini tarjetas. */
@@ -341,8 +342,20 @@ function columnaEscapadas(e, vistos, pi) {
   const params = conPeriodoIdeas(e, 'escapadas', { h: String(HORAS_IDEAS), orden: 'total' }, pi);
   const { ofertas, distancias } = buscarEscapadas(e.datos.ofertas, leerFiltrosEscapadas(params), busqueda);
   const lista = sinVistas(ofertas.filter((o) => !sinComprobar(o, busqueda)), vistos, FILAS_IDEAS);
+  // La cifra es la del viaje completo por persona (alojamiento y gasolina desde tu salida), que es
+  // por lo que se ordena la columna; si no se puede calcular, el precio de la web.
+  const ctx = ctxTarjetas(e);
+  const fila = (o) => {
+    const c = costeDe(o, ctx);
+    const conViaje = c.porPersona != null && o.precio > 0;
+    const precio = conViaje ? `${c.estimado ? '≈ ' : ''}${euros(Math.round(c.porPersona))} <small>/pers. viaje completo</small>` : precioCorto(o);
+    const noches = conViaje && c.noches ? ` · ${contar(c.noches, 'noche')}` : '';
+    return filaIdea(o, `${textoDistancia(distancias.get(o.id))}${noches}${o.fechas?.salida ? '' : ' · fechas flexibles'}`, miniatura(o), precio);
+  };
+  // Las de fechas flexibles valen para este finde si quedan plazas: se dice en cada una, para no
+  // dar a entender que están confirmadas para esas fechas.
   return columnaIdeas('escapadas', `Escapadas a menos de ${HORAS_IDEAS} h`,
-    lista.map((o) => filaIdea(o, textoDistancia(distancias.get(o.id)))),
+    lista.map(fila),
     `Nada a menos de ${HORAS_IDEAS} h de ${esc(nombreSalida(e))} para estas fechas.`,
     { href: crearHash('escapadas', params), texto: ofertas.length ? `Ver las ${ofertas.length}` : 'Ver escapadas' }, 'escapadas');
 }
@@ -552,10 +565,19 @@ export function vistaFinde(e, params = {}) {
   // cuarto bloque de ideas y a menudo la misma oferta que la primera de la lista, desde otra web.
   // «Lo mejor para tus fechas» justo debajo del buscador: las ofertas, antes que los atajos.
   const vistos = new Set();
+  const foto = FOTO_PORTADA;
+  // La cabecera con una foto de la costa (Wikimedia Commons, con su crédito a la vista): antes,
+  // la portada no enseñaba ni una imagen hasta la segunda pantalla.
   return `<section class="portada">
+  <div class="portada__hero">
+    <img class="portada__hero-foto" src="${esc(foto.archivo)}" srcset="${esc(foto.archivo)} 500w, ${esc(foto.grande)} 960w" sizes="(min-width: 1240px) 1180px, 100vw" alt="" width="960" height="540" fetchpriority="high">
+    <div class="portada__hero-texto">
+      <h1 class="titulo-vista" tabindex="-1">Escapadas de fin de semana desde <em>${esc(nombreSalida(e))}</em></h1>
+      <p class="portada__intro">¿Qué quieres organizar?</p>
+    </div>
+    <a class="portada__hero-credito" href="${esc(foto.pagina)}" target="_blank" rel="noopener noreferrer">Foto: ${esc(foto.lugar)} · ${esc(foto.autor)} · ${esc(foto.licencia)} (${esc(foto.cambios)})<span class="sr"> (se abre en otra pestaña)</span></a>
+  </div>
   ${resumenViaje(e)}
-  <h1 class="titulo-vista" tabindex="-1">Escapadas de fin de semana desde <em>${esc(nombreSalida(e))}</em></h1>
-  <p class="portada__intro">¿Qué quieres organizar?</p>
   ${buscadorPlegable(e)}
   ${lineaConfianza(e)}
 </section>

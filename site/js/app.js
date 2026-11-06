@@ -169,7 +169,8 @@ function crearEstado(bajados, historial, vigilados) {
     findes: findes.length ? findes : findesConNoches(10, ahora),
     puente: proximoPuente(datos.puentes ?? [], hoy),
     favoritos: cargarFavoritos(),
-    comparar: cargarComparar(),
+    // Las que ya no están en los datos no cuentan: la barra decía «Comparar (3)» y salía una.
+    comparar: new Set([...cargarComparar()].filter((id) => todas.some((o) => o.id === id))),
     misEstados: cargarMisEstados(),
     descartadas: cargarDescartadas(),
     busquedas: cargarBusquedas(),
@@ -234,24 +235,14 @@ function contarClic(enlace) {
   navigator.sendBeacon(destino, JSON.stringify({ proveedor: clic, enlace: clicTipo, oferta: clicOferta, vista: vistaActual }));
 }
 
-/** «Contacto» en el pie, con el email del aviso legal (config/ajustes.json → legal), si lo hay. */
-function pintarContacto() {
-  const pie = $('#contacto-pie');
-  const email = estado.datos.legal?.email;
-  if (!pie) return;
-  pie.hidden = !email;
-  if (email) pie.querySelector('a').href = `mailto:${email}`;
-}
-
 function pintarCabecera() {
   pintarReloj();
   pintarAvisoComercial();
-  pintarContacto();
   pintarBotonViaje();
-  // El estado de las webs va en el pie, con la misma frase (estado.webs) que la portada y
-  // «Estado de las webs».
+  // El estado de las webs, en el pie y solo para quien administra la web: a un visitante,
+  // «3 de 30 webs con problemas» no le ayuda a elegir y resta confianza.
   const enlace = $('#estado-fuentes');
-  enlace.hidden = false;
+  enlace.hidden = !estado.propietario;
   enlace.classList.toggle('estado-fuentes--error', estado.webs.error);
   enlace.querySelector('.estado-fuentes__texto').textContent = `${estado.webs.texto} · ver el estado`;
 }
@@ -320,8 +311,17 @@ function cambiarTema() {
 function anunciar(texto) {
   if (!texto) return;
   const aviso = $('#aviso');
-  aviso.textContent = texto;
   clearTimeout(temporizadorAviso);
+  // Con una ficha abierta (modal) lo de fuera queda inerte: ni se ve ni lo lee el lector de
+  // pantalla. El aviso va dentro, y el texto un instante después de moverlo, para que se anuncie.
+  const sitio = document.querySelector('dialog[open]') ?? document.body;
+  if (aviso.parentElement !== sitio) {
+    aviso.textContent = '';
+    sitio.append(aviso);
+    requestAnimationFrame(() => { aviso.textContent = texto; });
+  } else {
+    aviso.textContent = texto;
+  }
   temporizadorAviso = setTimeout(() => { aviso.textContent = ''; }, AVISO_MS);
 }
 
@@ -403,6 +403,9 @@ function quitarDireccionFicha() {
 
 /** Un cambio de dirección: abrir la ficha de #/oferta/<id>, cerrarla con «atrás» o cambiar de vista. */
 function alCambiarDireccion() {
+  // El aviso de la vista anterior («Guardada en favoritos») se quedaba encima de la siguiente.
+  clearTimeout(temporizadorAviso);
+  $('#aviso').textContent = '';
   const id = idDeHash(location.hash);
   if (id) {
     if (!dialogo.open || fichaAbierta !== id) mostrarFicha(id);
@@ -645,6 +648,8 @@ function paramsDeFormulario(formulario) {
 function aplicarFiltros(formulario, { repintar = null } = {}) {
   const vista = formulario.dataset.filtros;
   const params = paramsDeFormulario(formulario);
+  // Otra país, otras provincias: la de antes ya no está en la lista y lo dejaba todo vacío.
+  if (repintar === 'pais') delete params.region;
   history.replaceState(null, '', crearHash(vista, params));
   if (VISTAS_CON_MEMORIA.includes(vista)) guardarFiltros(vista, params);
   enlacesConMemoria();
@@ -703,7 +708,7 @@ function otraSorpresa() {
     contenedor.innerHTML = html;
     estado.sorpresaIds = [...vistos].filter((id) => !previas.has(id));
   }
-  if (primera) bloque.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  if (primera) bloque.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
   anunciar(primera ? 'Tres planes para ti' : 'Tres planes nuevos');
 }
 
@@ -1229,7 +1234,8 @@ function conectarEventos() {
     evento.preventDefault();
     const q = $('#q').value.trim();
     // Qué destinos interesan (solo el texto buscado, recortado).
-    if (q) medir('search', { search_term: q.slice(0, 80) });
+    // Un email o un teléfono pegado en el buscador no se envía a Analytics.
+    if (q && !/@|\d{6}/.test(q.replace(/[\s.-]/g, ''))) medir('search', { search_term: q.slice(0, 80) });
     location.hash = crearHash('buscar', { q });
   });
   $('#cambiar-tema').addEventListener('click', cambiarTema);

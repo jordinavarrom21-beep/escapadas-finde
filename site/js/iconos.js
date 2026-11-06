@@ -21,11 +21,12 @@ const PERSONAS = `${C(9, 8, 3)}M3.5 20c0-3.2 2.4-5.5 5.5-5.5s5.5 2.3 5.5 5.5M16 
 
 export const ICONOS = {
   // Navegación y cabecera
-  finde: 'M4 8h16v12H4zM9 8V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V8M4 13h16M10.5 13v2h3v-2',
+  // «Inicio» es la casa; «Escapadas», la maleta (antes al revés: la casa parecía la portada).
+  finde: CASA,
   calendario: CALENDARIO,
   vuelos: AVION,
   avion: AVION,
-  escapadas: CASA,
+  escapadas: 'M4 8h16v12H4zM9 8V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V8M4 13h16M10.5 13v2h3v-2',
   actividades: 'M3 8.5V6h18v2.5a2.5 2.5 0 0 0 0 5V18H3v-2.5a2.5 2.5 0 0 0 0-5zM14 6v2M14 11v2M14 16v2',
   mapa: 'M9 4L3 6v14l6-2 6 2 6-2V4l-6 2zM9 4v14M15 6v14',
   puentes: DESTELLO,

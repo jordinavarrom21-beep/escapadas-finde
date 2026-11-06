@@ -176,9 +176,10 @@ describe('local.js: copia de seguridad', () => {
     for (const malo of [null, {}, { formato: 'otro', datos: {} }, { formato: 'escapadas-finde/guardados' }, { formato: 'escapadas-finde/guardados', datos: 'x' }]) {
       assert.throws(() => local.importarGuardados(malo), /no es una copia/);
     }
-    const n = local.importarGuardados({ formato: 'escapadas-finde/guardados', datos: { 'escapadas:propietario': '1', 'otra:clave': 'x', 'escapadas:favoritos': ['no', 'texto'] } });
-    assert.equal(n, 0);
-    assert.equal(d.size, 0);
+    // Sin ninguna clave válida es una copia vacía: se rechaza y no se borra lo que hubiera.
+    d.set('escapadas:favoritos', '["a"]');
+    assert.throws(() => local.importarGuardados({ formato: 'escapadas-finde/guardados', datos: { 'escapadas:propietario': '1', 'otra:clave': 'x', 'escapadas:favoritos': ['no', 'texto'] } }), /vacía/);
+    assert.deepEqual([...d.keys()], ['escapadas:favoritos']);
   });
 });
 

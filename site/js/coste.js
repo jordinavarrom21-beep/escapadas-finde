@@ -13,6 +13,21 @@ const OTRO_TRANSPORTE = ['avion', 'tren', 'bus', 'ferry'];
 const NOMBRE_TRANSPORTE = { avion: 'avión', tren: 'tren', bus: 'autobús', ferry: 'ferry' };
 
 const redondear = (n) => Math.round(n * 100) / 100;
+
+/**
+ * Precio por persona y noche para los que vais. El del escaneo es para 2: una casa entera (o un
+ * total) entre 4 sale a la mitad por cabeza, y entre 2 en una casa de 10 plazas, mucho más que
+ * «con la casa llena». La misma cuenta que costeViaje y que el escáner (precioPorPersonaNoche).
+ * Si el escaneo no lo dio (o lo descartó por increíble), null.
+ */
+export function precioNocheTuyo(o, viajeros) {
+  if (o?.precioNoche == null || !(viajeros > 0) || typeof o.precio !== 'number' || o.precio <= 0) return o?.precioNoche ?? null;
+  if (o.unidad === 'pp/noche') return o.precio;
+  if (o.unidad === 'noche') return redondear(o.precio / viajeros);
+  if (o.unidad === 'total' && o.noches > 0) return redondear(o.precio / viajeros / o.noches);
+  if (o.unidad === 'pp' && o.noches > 0) return redondear(o.precio / o.noches);
+  return o.precioNoche;
+}
 const litros = unDecimal;
 
 /** Los billetes (vuelo, tren, bus, ferry) son el propio viaje: su precio es el transporte. */

@@ -115,7 +115,7 @@ describe('plan: los casos reales, por el escaneo entero', async () => {
 
   it('el «Chollazo» se explica con los umbrales de verdad', () => {
     const { vueloMax, escapadaNocheMax, puntuacionMin } = AJUSTES.emails.chollazos;
-    assert.deepEqual(salida.ofertas.chollazos, { vueloMax, escapadaNocheMax, puntuacionMin });
+    assert.deepEqual(salida.ofertas.chollazos, { vueloMax, escapadaNocheMax, puntuacionMin, notaMin: AJUSTES.emails.chollazos.notaMin ?? 7 });
     const texto = reglaChollazo(salida.ofertas.chollazos);
     for (const valor of [vueloMax, escapadaNocheMax, puntuacionMin]) assert.ok(texto.includes(String(valor)), `${valor} en ${texto}`);
     assert.match(reglaChollazo(null), /por debajo de lo normal/);
@@ -218,7 +218,9 @@ describe('plan: legal y contenido de terceros', () => {
     const de = (fuenteId, credito = null) => quitarFotoSinPermiso(oferta({ fuente: fuenteId, imagen: 'https://x.es/foto.jpg', imagenCredito: credito }), permiso);
     assert.equal(de('civitatis').imagen, 'https://x.es/foto.jpg');
     assert.equal(de('weekendesk').imagen, null);
-    assert.equal(de('weekendesk', { texto: 'Foto: Wikimedia Commons', url: 'https://commons.wikimedia.org/wiki/File:X.jpg' }).imagen, 'https://x.es/foto.jpg');
+    assert.equal(de('weekendesk', { texto: 'Foto de X: Autor · CC0', url: 'https://commons.wikimedia.org/wiki/File:X.jpg', licencia: 'CC0' }).imagen, 'https://x.es/foto.jpg');
+    // Las de antes, sin licencia (a veces una bandera), se quitan para buscarlas otra vez (fotos.js).
+    assert.equal(de('weekendesk', { texto: 'Foto: Wikimedia Commons', url: 'https://commons.wikimedia.org/wiki/File:X.jpg' }).imagen, null);
     assert.equal(de('weekendesk', { texto: 'Foto', url: 'https://weekendesk.es/foto' }).imagen, null);
   });
 
@@ -232,11 +234,11 @@ describe('plan: legal y contenido de terceros', () => {
     assert.ok(!WEBS_DE_CHOLLOS.has('atrapalo'));
   });
 
-  it('«Contacto» en el pie de las guías solo si hay email', () => {
+  it('el pie de las guías enlaza a contacto, aviso legal, privacidad y cookies (páginas con URL propia)', () => {
     const d = { ruta: 'escapadas', titulo: 'Escapadas', intro: 'Intro', panel: '#/escapadas' };
-    const opciones = { raiz: '../', generado: AHORA.toISOString(), total: 0 };
-    assert.match(htmlPagina(d, [], { ...opciones, contacto: 'hola@escapadasfinde.com' }), /<a href="mailto:hola@escapadasfinde\.com">Contacto<\/a>/);
-    assert.ok(!htmlPagina(d, [], opciones).includes('mailto:'));
+    const html = htmlPagina(d, [], { raiz: '../', generado: AHORA.toISOString(), total: 0 });
+    for (const ruta of ['contacto', 'aviso-legal', 'privacidad', 'cookies']) assert.match(html, new RegExp(`<a href="\\.\\./${ruta}/">`), ruta);
+    assert.match(html, /<span data-sin-cookies>/, 'consentimiento.js lo cambia por «Cookies»');
   });
 });
 

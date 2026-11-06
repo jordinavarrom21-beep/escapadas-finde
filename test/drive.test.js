@@ -79,7 +79,7 @@ describe('Travelpayouts Drive en la portada (index.html)', () => {
     // Sin esto, la consola decía «Unable to preload CSS for https://emrldco.com/assets/tooltip-….css».
     assert.ok(directivas['style-src'].includes('https://emrldco.com'), 'sus estilos');
     for (const origen of ['https://emrldco.com', 'https://mn-tz.com', 'https://emrld.cc', 'https://www.travelpayouts.com']) assert.ok(directivas['connect-src'].includes(origen), origen);
-    assert.ok(directivas['script-src'].includes('https://cdnjs.cloudflare.com'));
+    assert.ok(directivas['script-src'].includes('https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/'));
     assert.ok(directivas['connect-src'].includes('https://photon.komoot.io'));
     assert.ok(!directivas['script-src'].includes("'unsafe-inline'"), 'sigue sin scripts en línea');
     assert.deepEqual(directivas['object-src'], ["'none'"]);
@@ -175,7 +175,7 @@ describe('aviso de cookies con Drive (consentimiento.js)', () => {
     assert.match(CONSENTIMIENTO, /¿Aceptas cookies de \$\{enumerar\(FINALIDADES\.map\(\(f\) => f\.corto\)\)\}\?/);
     for (const corto of ['medición', 'Google Ads', 'afiliación']) assert.ok(CONSENTIMIENTO.includes(`corto: '${corto}'`), corto);
     // «Más información» lleva a la privacidad también desde las guías.
-    assert.match(CONSENTIMIENTO, /href="\$\{raiz\}#\/ayuda\?seccion=privacidad"/);
+    assert.match(CONSENTIMIENTO, /href="\$\{raiz\}cookies\/">Más información/);
   });
 
   it('la privacidad lo explica y deja cambiar de opinión', () => {

@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import fuente, { parsear, precioDe } from '../src/fuentes/tuscasasrurales.js';
+import fuente, { casaEntera, parsear, plazasDe, precioDe } from '../src/fuentes/tuscasasrurales.js';
 import { estadoInicial, fusionar } from '../src/almacen.js';
 import { arreglarApostrofes, validarOferta } from '../src/modelo.js';
 import { ErrorHttp } from '../src/util/http.js';
@@ -79,7 +79,8 @@ describe('tuscasasrurales: parsear (páginas reales)', () => {
       assert.deepEqual(ofertas.map((o) => o.titulo), pagina.titulos);
       assert.deepEqual(ofertas.map((o) => o.lugar.region), pagina.provincias);
       assert.equal(pagina.precios.length, 20, 'las 20 tarjetas anuncian «Desde N€ persona/noche»');
-      assert.deepEqual(ofertas.map((o) => o.precio), pagina.precios);
+      // La que solo se alquila entera cuesta la casa (por persona × plazas): se deshace para comparar.
+      assert.deepEqual(ofertas.map((o) => (o.unidad === 'noche' ? Math.round((o.precio / plazasDe(o.etiquetas)) * 100) / 100 : o.precio)), pagina.precios);
 
       for (const o of ofertas) {
         assert.deepEqual(validarOferta(o), [], o.id);
@@ -89,8 +90,8 @@ describe('tuscasasrurales: parsear (páginas reales)', () => {
         assert.equal(o.alojamiento, 'casa-rural');
         assert.deepEqual(o.temas, ['rural']);
         assert.equal(o.regimen, 'solo-alojamiento', 'todas son «Alquiler íntegro»');
-        assert.equal(o.unidad, 'pp/noche', 'la tarjeta dice «persona/noche»');
-        assert.equal(o.precioTexto, `desde ${o.precio} € por persona y noche`);
+        if (o.unidad === 'noche') assert.match(o.precioTexto, /^≈ [\d.,]+ € por noche la casa entera \([\d,]+ € por persona y noche con las \d+ plazas llenas\)$/, o.id);
+        else assert.equal(o.precioTexto, `desde ${String(o.precio).replace('.', ',')} € por persona y noche`, o.id);
         // La ficha de la casa, sin parámetros: el número es el mismo que el data-id.
         assert.match(o.url, new RegExp(`^${WEB}/[a-z0-9-]+-f${num}\\.htm$`));
         assert.equal(new URL(o.url).search, '');
@@ -116,9 +117,10 @@ describe('tuscasasrurales: parsear (páginas reales)', () => {
     assert.equal(casa.establecimiento, 'El Pla de Besora');
     assert.equal(casa.url, `${WEB}/el-pla-de-besora-f15573.htm`);
     assert.equal(casa.imagen, `${WEB}/imagenes/galeria/15573_g63/ico_15573.jpg`, 'la ruta relativa se hace absoluta');
-    assert.equal(casa.precio, 30);
-    assert.equal(casa.unidad, 'pp/noche');
-    assert.equal(casa.precioTexto, 'desde 30 € por persona y noche');
+    // «Alquiler íntegro» para 12-16 personas a 30 € por persona: la casa entera, 480 € la noche.
+    assert.equal(casa.precio, 480);
+    assert.equal(casa.unidad, 'noche');
+    assert.equal(casa.precioTexto, '≈ 480 € por noche la casa entera (30 € por persona y noche con las 16 plazas llenas)');
     assert.equal(casa.descripcion, 'El Pla de Besora es un acogedor alojamiento rural situado en Santa María de Besora, un bonito pueblo de montaña del valle del Bisaura, Barcelona. Esta antigua masía está totalmente equipada y cuenta con una sala de juegos, jardín y barbacoa');
     assert.deepEqual(casa.lugar, { nombre: 'Santa Maria de Besora', region: 'Barcelona', pais: 'España', codigoPais: 'ES', lat: null, lon: null });
     assert.deepEqual(casa.valoracion, { nota: 10, n: 1 });
@@ -199,6 +201,16 @@ describe('tuscasasrurales: casos límite', () => {
   it('sin la unidad junto al precio no se inventa si es por persona o por casa', () => {
     const casa = unica(pagina(conPrecio(tarjeta(BARCELONA, '15573'), 'Desde 30€', null)));
     assert.deepEqual([casa.precio, casa.unidad, casa.precioTexto], [null, null, '']);
+  });
+
+  it('casaEntera: solo la que se alquila entera y con plazas conocidas pasa a precio de la casa', () => {
+    const pp = { precio: 21, precioTexto: 'desde 21 € por persona y noche', unidad: 'pp/noche' };
+    assert.deepEqual(casaEntera(pp, { alquiler: 'Alquiler íntegro', caracteristicas: ['17 personas', '8 dormitorios'] }),
+      { precio: 357, unidad: 'noche', precioTexto: '≈ 357 € por noche la casa entera (21 € por persona y noche con las 17 plazas llenas)' });
+    assert.equal(casaEntera(pp, { alquiler: 'Alquiler íntegro (4 uds. de alquiler)', caracteristicas: ['30 personas'] }), pp, 'varias unidades: sin tocar');
+    assert.equal(casaEntera(pp, { alquiler: 'Alquiler por habitaciones', caracteristicas: ['10 personas'] }), pp);
+    assert.equal(casaEntera(pp, { alquiler: 'Alquiler íntegro', caracteristicas: ['3 baños'] }), pp, 'sin plazas: sin tocar');
+    assert.equal(plazasDe(['6 dormitorios', '12 - 16 personas']), 16);
   });
 
   it('precioDe: decimales, miles y precio por alojamiento', () => {

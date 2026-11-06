@@ -277,8 +277,13 @@ export function urlDirecta(enlace, comercio) {
     return null;
   }
   if (ruta.includes('@') || ruta.split('/').some(pareceToken)) return null;
+  // La zona del cliente (su cuenta, sus reservas, darse de baja) o un localizador («XK7P2Q»)
+  // son de quien recibió el email: nunca se publican, aunque no lleven token.
+  if (ZONA_PERSONAL.test(ruta) || ruta.split('/').some((s) => LOCALIZADOR.test(s))) return null;
   return `${url.origin}${url.pathname}`;
 }
+const ZONA_PERSONAL = /(?:^|\/)(?:mi-?cuenta|mis-?(?:reservas|pedidos|viajes)|my-?(?:account|bookings?|trips?)|account|cuenta|manage-?booking|gestionar-?reserva|login|signin|unsubscribe|baja|preferencias|checkout|confirmaci[oó]n|confirmation|pedidos?|orders?)(?:\/|$)/i;
+const LOCALIZADOR = /^(?=.*\d)(?=.*[A-Z])[A-Z\d]{5,10}$/;
 
 /**
  * Sigue las redirecciones de un enlace de newsletter (como mucho `maxSaltos`

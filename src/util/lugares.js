@@ -44,6 +44,8 @@ const OFICIALES = {
   viella: 'Vielha',
   salardu: 'Salardú',
   vich: 'Vic',
+  // Medio castellanizado en Tus Casas Rurales.
+  'san pere de vilamajor': 'Sant Pere de Vilamajor',
 };
 
 /** El nombre oficial si es un exónimo conocido; si no, el mismo nombre. */

@@ -34,7 +34,7 @@ import { anadirFotos, quitarFotoSinPermiso } from '../enriquecer/fotos.js';
 import { anadirResumenes } from '../enriquecer/resumenes.js';
 import { anadirNotasGoogle } from '../enriquecer/google-maps.js';
 import { anadirPreciosGoogle } from '../enriquecer/google-hoteles.js';
-import { anotarConocidaDesde, precioPorPersonaNoche, puntuar } from '../enriquecer/puntuacion.js';
+import { NOTA_MIN_CHOLLAZO, anotarConocidaDesde, precioPorPersonaNoche, puntuar } from '../enriquecer/puntuacion.js';
 import { claveSerie, compactar, registrarPrecios, seriesPara } from '../historial.js';
 import { coincide, contextoVigilados } from '../vigilados.js';
 import { procesarEmails } from '../emails/decidir.js';
@@ -446,6 +446,11 @@ export async function escanear({
       // lo daban por hotel y ya no se leía «apartamento» en el título.
       m.aplicarAlojamiento(oferta);
       aplicarCategoria(oferta);
+      // El buzón pone el tipo del comercio a todo el correo: lo de una newsletter de ocio de
+      // Atrápalo sin alojamiento, noches ni régimen («Cluedo en vivo», «Taller de ramen») es un plan.
+      if (oferta.fuente === 'buzon' && oferta.tipo === 'escapada' && !oferta.alojamiento && !(oferta.noches > 0) && !oferta.regimen) {
+        oferta.tipo = /\bcruceros?\b/i.test(oferta.titulo ?? '') ? 'crucero' : 'actividad';
+      }
     }
     if (sinTexto.has(oferta.fuente)) oferta.textoRetirado = true;
     // «LA MASSANA», «Vall D'aran» → «La Massana», «Vall d'Aran».
@@ -514,7 +519,7 @@ export async function escanear({
       // Las reglas del «Chollazo» (motivoChollazo), para que «Cómo funciona» explique las de verdad.
       chollazos: {
         vueloMax: ajustes.emails.chollazos.vueloMax, escapadaNocheMax: ajustes.emails.chollazos.escapadaNocheMax,
-        puntuacionMin: ajustes.emails.chollazos.puntuacionMin,
+        puntuacionMin: ajustes.emails.chollazos.puntuacionMin, notaMin: ajustes.emails.chollazos.notaMin ?? NOTA_MIN_CHOLLAZO,
       },
       temas: TEMAS, findes, puentes, fuentes: estadoFuentes, ofertas,
     },

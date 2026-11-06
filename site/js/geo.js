@@ -55,7 +55,8 @@ export function minutosEnCoche(oferta, punto, origen) {
   // Entre la península y una isla (o entre archipiélagos) no se va en coche: no se estima cruzando el mar.
   if (tieneCoordenadas(desde) && islaDe(desde) !== islaDe(lugar)) return null;
   const km = distanciaKm(desde, lugar);
-  return km == null ? null : estimarMinutos(km);
+  // A más de 3000 km no es un viaje en coche (y la estimación sería de días).
+  return km == null || km > 3000 ? null : estimarMinutos(km);
 }
 
 /** URL de autocompletado de Photon, sesgada hacia `cerca` si se indica. */

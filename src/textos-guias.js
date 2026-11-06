@@ -29,7 +29,7 @@ export const TEXTOS_GUIAS = {
     ],
     preguntas: [
       ['¿Qué incluye el «viaje completo»?', 'El precio que publica la web de la oferta para dos personas más la gasolina estimada de ida y vuelta desde {desde} si el plan es en coche. No incluye peajes, aparcamiento ni gastos en destino.'],
-      ['¿Cada cuánto se actualizan las ofertas?', 'Las webs se revisan cada 15 minutos. En cada oferta pone cuándo se comprobó por última vez; aun así, el precio y la disponibilidad los confirma siempre la web que la publica.'],
+      ['¿Cada cuánto se actualizan las ofertas?', 'Las webs se revisan varias veces al día. En cada oferta pone cuándo se comprobó por última vez; aun así, el precio y la disponibilidad los confirma siempre la web que la publica.'],
       ['¿Se reserva aquí?', 'No. Escapadas Finde no vende nada: cada oferta enlaza a la web que la publica, que es donde se reserva y se paga.'],
       ['¿Cuál es la mejor época para hacer una escapada?', 'Primavera y otoño: hay buen tiempo, menos gente y precios más bajos que en verano. En invierno, el Pirineo para la nieve y los hoteles con spa son los planes estrella.'],
     ],

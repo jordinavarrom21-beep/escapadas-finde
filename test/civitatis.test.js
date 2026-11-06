@@ -65,6 +65,13 @@ describe('civitatis: parsear (páginas reales)', () => {
     assert.deepEqual(o.lugar, { nombre: 'Barcelona', region: 'Barcelona', pais: 'España', codigoPais: 'ES', lat: 41.3851, lon: 2.1734, iata: null });
   });
 
+  it('una actividad de otra localidad (PortAventura en la página de Barcelona) no se queda con el punto del destino', () => {
+    const [portaventura] = parsear(pagina([actividad({ name: 'Entrada a PortAventura Park', url: 'https://www.civitatis.com/es/barcelona/entrada-portaventura/', location: { address: { addressLocality: 'Vila-seca' } } })]), ctx, BARCELONA);
+    assert.deepEqual([portaventura.lugar.nombre, portaventura.lugar.region, portaventura.lugar.lat, portaventura.lugar.lon], ['Vila-seca', null, null, null]);
+    const [gerona] = parsear(pagina([actividad({ url: 'https://www.civitatis.com/es/gerona/tour-judio/', location: { address: { addressLocality: 'Gerona' } } })]), ctx, { slug: 'gerona', nombre: 'Girona', region: 'Girona', lat: 41.9794, lon: 2.8214 });
+    assert.equal(gerona.lugar.region, 'Girona', 'el exónimo es el mismo sitio');
+  });
+
   it('los free tours valen 0 € y llevan la etiqueta «gratis»', () => {
     const o = barcelona.find((x) => x.id === 'civitatis:barcelona:free-tour-barcelona');
     assert.equal(o.precio, 0);

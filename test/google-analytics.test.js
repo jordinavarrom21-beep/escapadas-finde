@@ -82,7 +82,7 @@ describe('Google Analytics en la portada (index.html)', () => {
     assert.ok(directivas['script-src'].includes('https://*.googletagmanager.com'));
     for (const origen of ['https://*.google-analytics.com', 'https://*.analytics.google.com', 'https://*.googletagmanager.com']) assert.ok(directivas['connect-src'].includes(origen), origen);
     assert.ok(directivas['img-src'].includes('https:'), 'sus píxeles ya caben');
-    assert.ok(directivas['script-src'].includes('https://cdnjs.cloudflare.com'));
+    assert.ok(directivas['script-src'].includes('https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/'));
     assert.ok(!directivas['script-src'].includes("'unsafe-inline'"), 'sigue sin scripts en línea');
     assert.deepEqual(directivas['object-src'], ["'none'"]);
   });

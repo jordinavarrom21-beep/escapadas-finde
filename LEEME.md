@@ -103,7 +103,7 @@ Para activarlos, guarda estos tres **secretos** en el repo. Cada comando te pide
 que nunca queda escrito en ningún archivo:
 
 ```bash
-gh secret set GMAIL_USER           # el Gmail dedicado, p. ej. escapadasfinde.jordi@gmail.com
+gh secret set GMAIL_USER           # el Gmail dedicado, p. ej. mi-buzon-de-ofertas@gmail.com
 gh secret set GMAIL_APP_PASSWORD   # su contraseña de aplicación (myaccount.google.com/apppasswords)
 gh secret set EMAIL_TO             # dónde quieres recibir los avisos (tu email de siempre)
 ```
@@ -368,7 +368,8 @@ páginas para buscadores son las del zip.
 
 **Por FTP** (si prefieres que GitHub suba la web a tu hosting): secretos `FTP_SERVIDOR`,
 `FTP_USUARIO` y `FTP_CONTRASENA` y variable `FTP_ACTIVO` = `true` (opcionales `FTP_CARPETA`,
-por defecto `public_html`, y `FTP_VERIFICAR_TLS` = `yes`). Borra en el hosting lo que ya no esté,
+por defecto `public_html`, y `FTP_VERIFICAR_TLS`, que por defecto comprueba el certificado; ponla en `no`
+solo si tu hosting no tiene un certificado con su nombre). Borra en el hosting lo que ya no esté,
 salvo `.well-known`. No pegues nunca contraseñas en un chat: solo en GitHub.
 
 El `.htaccess` (lo genera `scripts/preparar-web.js`) sirve la página 404, comprime, pone

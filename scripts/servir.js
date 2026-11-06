@@ -23,6 +23,9 @@ const TIPOS = {
   '.webmanifest': 'application/manifest+json; charset=utf-8',
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.woff2': 'font/woff2',
+  '.xml': 'application/xml; charset=utf-8',
   '.ico': 'image/x-icon',
   '.txt': 'text/plain; charset=utf-8',
 };
@@ -67,7 +70,8 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   const args = process.argv.slice(2);
   const ejemplo = args.includes('--ejemplo');
   const puerto = Number(args.find((a) => a.startsWith('--puerto='))?.split('=')[1] ?? process.env.PORT ?? 8080);
-  crearServidor({ ejemplo }).listen(puerto, () => {
+  // Solo desde este ordenador: el panel local no se ve desde la wifi.
+  crearServidor({ ejemplo }).listen(puerto, '127.0.0.1', () => {
     console.log(`Panel en http://localhost:${puerto}/${ejemplo ? ' (datos de ejemplo de test/fixtures/panel/)' : ''}`);
     console.log('Pulsa Ctrl+C para pararlo.');
   });

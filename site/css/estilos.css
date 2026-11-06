@@ -69,6 +69,7 @@
   --superficie-3: #e6ded0;
   --borde: #e2dacb;
   --borde-fuerte: #cdc2ae;
+  --borde-campo: #8a8170;
   --texto: #17211f;
   --texto-suave: #5b6664;
   --acento: #0e6b63;
@@ -130,6 +131,7 @@
   --superficie-3: #283331;
   --borde: #2c3735;
   --borde-fuerte: #3e4b48;
+  --borde-campo: #6f7e7a;
   --texto: #eef2f0;
   --texto-suave: #a7b3b0;
   --acento: #5cc8b8;
@@ -160,13 +162,25 @@
   --foto: #202a28;
   --sombra: 0 1px 2px rgb(0 0 0 / 40%);
   --sombra-alta: 0 18px 40px rgb(0 0 0 / 45%);
+  --tema-spa: #3bc9db;
+  --tema-romantico: #f783ac;
+  --tema-rural: #69db7c;
+  --tema-playa: #74c0fc;
+  --tema-gastronomia: #faa2c1;
+  --tema-familia: #ffc078;
+  --tema-ciudad: #b197fc;
+  --tema-aventura: #a5d8ff;
+  --tema-parques: #ffa94d;
+  --tema-eventos: #ff8787;
+  --tema-mascotas: #d8b48f;
+  --tema-singular: #e599f7;
 }
 
 /* ── Base ─────────────────────────────────────────────────────────────────── */
 
 *, *::before, *::after { box-sizing: border-box; }
 
-html { -webkit-text-size-adjust: 100%; scroll-padding-top: 88px; }
+html { -webkit-text-size-adjust: 100%; scroll-padding-top: 88px; scroll-padding-bottom: calc(16px + var(--barra-movil)); }
 
 body {
   margin: 0;
@@ -174,6 +188,7 @@ body {
   background: var(--fondo);
   color: var(--texto);
   overflow-x: hidden;
+  overflow-x: clip;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -191,7 +206,7 @@ pre { background: var(--superficie-2); padding: 14px; border-radius: 12px; overf
 pre code { background: none; padding: 0; }
 
 :focus-visible { outline: 3px solid var(--acento); outline-offset: 2px; border-radius: 8px; }
-.titulo-vista:focus { outline: none; }
+.titulo-vista:focus, #principal:focus { outline: none; }
 
 .sr {
   position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px;
@@ -384,7 +399,7 @@ pre code { background: none; padding: 0; }
 .buscador .boton { padding-inline: 14px; }
 
 input[type="search"], input[type="text"], input[type="number"], input[type="date"], select {
-  min-height: 44px; padding: 9px 12px; border: 1.5px solid var(--borde); border-radius: 12px;
+  min-height: 44px; padding: 9px 12px; border: 1.5px solid var(--borde-campo); border-radius: 12px;
   background: var(--superficie); color: var(--texto); font: inherit; font-size: 1rem; max-width: 100%;
 }
 /*
@@ -394,8 +409,8 @@ input[type="search"], input[type="text"], input[type="number"], input[type="date
 input[type="date"] { -webkit-appearance: none; appearance: none; display: block; width: 100%; min-width: 0; text-align: left; }
 input[type="date"]::-webkit-date-and-time-value { text-align: left; margin: 0; min-height: 1.5em; }
 
-input:hover, select:hover { border-color: var(--borde-fuerte); }
-input:focus-visible, select:focus-visible { outline: 3px solid color-mix(in srgb, var(--acento) 45%, transparent); outline-offset: 0; border-color: var(--acento); }
+input:hover, select:hover { border-color: var(--texto-suave); }
+input:focus-visible, select:focus-visible { outline: 3px solid var(--acento); outline-offset: 1px; border-color: var(--acento); }
 
 .navegacion { flex: 1; min-width: 0; }
 .navegacion > ul { display: flex; align-items: center; gap: 2px; list-style: none; margin: 0; padding: 0; }
@@ -718,13 +733,16 @@ html:not(.js) .cargando { display: none; }
   box-shadow: 0 2px 8px rgb(23 33 31 / 18%);
 }
 .tarjeta__media .boton-fav[aria-pressed="true"] { color: #b9460f; }
-.tarjeta__pastillas { position: absolute; left: 12px; right: 12px; bottom: 12px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px; }
+.tarjeta__pastillas { position: absolute; left: 12px; right: 12px; bottom: 12px; display: flex; flex-wrap: wrap; gap: 6px; }
+/* La última a la derecha (con dos, como antes; con «Foto de ejemplo», esa). */
+.tarjeta__pastillas > :last-child:not(:first-child) { margin-left: auto; }
 .pastilla-foto {
   display: inline-flex; align-items: center; gap: 5px; max-width: 100%; padding: 5px 10px; border-radius: var(--radio-chico);
   background: rgb(255 255 255 / 94%); color: #17211f; font-size: 0.78rem; font-weight: 650; white-space: nowrap;
   overflow: hidden; text-overflow: ellipsis;
 }
 .pastilla-foto .ic { width: 14px; height: 14px; }
+.pastilla-foto--ejemplo { padding: 3px 8px; background: rgb(23 33 31 / 74%); color: #fff; font-size: 0.7rem; font-weight: 600; }
 
 .tarjeta__cuerpo { display: flex; flex-direction: column; gap: 8px; padding: 12px 16px 14px; flex: 1; }
 .tarjeta__cabeza { display: flex; align-items: center; gap: 8px; min-height: 28px; }
@@ -919,7 +937,8 @@ html:not(.js) .cargando { display: none; }
 }
 
 /* Precio único («Hasta … €» y qué cuenta). */
-.campo-precio { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 12px; }
+/* El importe solo necesita unas cifras: el resto, para «Viaje completo, por persona» (antes se cortaba). */
+.campo-precio { display: grid; grid-template-columns: minmax(88px, 7rem) minmax(0, 1fr); gap: 12px; }
 .campo-precio .campo { min-width: 0; }
 
 /* Explorar: en pantallas grandes, los filtros a la izquierda y los resultados siempre a la vista. */
@@ -1253,9 +1272,12 @@ html:not(.js) .cargando { display: none; }
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   background: var(--superficie); border-top: 1px solid var(--borde); box-shadow: 0 -8px 24px rgb(0 0 0 / 12%);
 }
-.ficha__reserva-precio { margin: 0; min-width: 0; line-height: 1.2; font-size: 0.85rem; }
+.ficha__reserva-precio { flex: 1; margin: 0; min-width: 0; line-height: 1.25; font-size: 0.85rem; }
 .ficha__reserva-precio strong { font-size: 1.35rem; margin-right: 2px; }
 .ficha__reserva .boton { flex: none; }
+/* «Ver oferta», sin la web (ya la dicen la cabecera y el precio): con ella, el precio se quedaba
+   en una columna de seis líneas. */
+.ficha__reserva .boton__web { display: none; }
 @media (min-width: 900px) { .ficha__reserva { display: none; } }
 .ficha__descripcion { white-space: pre-line; }
 .ficha__coche { display: flex; align-items: flex-start; gap: 8px; padding: 12px 14px; border-radius: var(--radio-medio); background: var(--superficie); border: 1px solid var(--borde); }
@@ -1357,7 +1379,7 @@ html:not(.js) .cargando { display: none; }
 
 .barra-comparar {
   position: fixed; left: 50%; transform: translateX(-50%); bottom: max(16px, env(safe-area-inset-bottom)); z-index: 30;
-  display: flex; gap: 8px; align-items: center; padding: 8px; border-radius: 999px;
+  display: flex; gap: 8px; align-items: center; justify-content: safe center; max-width: calc(100vw - 24px); padding: 8px; border-radius: 999px;
   background: var(--banda); color: var(--banda-texto); box-shadow: 0 10px 30px rgb(0 0 0 / 28%);
 }
 .barra-comparar[hidden] { display: none; }
@@ -1462,12 +1484,33 @@ html:not(.js) .cargando { display: none; }
 .guia { display: grid; gap: 14px; max-width: 900px; }
 .lista-guia { display: grid; gap: 12px; padding-left: 1.4em; }
 .fila-guia { padding: 14px 16px; border: 1px solid var(--borde); border-radius: var(--radio-medio); background: var(--superficie); }
-.fila-guia h3 { font-size: 1.05rem; margin-bottom: 4px; }
+.fila-guia h3 { font-size: 1.05rem; line-height: 1.3; margin-bottom: 4px; }
+/* Foto del destino (o de ejemplo) a la izquierda, con su crédito; en el móvil, arriba. */
+.fila-guia__media { margin: 0 0 10px; display: grid; gap: 4px; }
+.fila-guia__media img { width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; border-radius: var(--radio-medio); background: var(--foto); }
+.fila-guia__credito { font-size: 0.72rem; color: var(--texto-suave); text-decoration: none; overflow-wrap: anywhere; }
+.fila-guia__credito:hover { text-decoration: underline; }
+@media (min-width: 720px) {
+  .fila-guia { display: grid; grid-template-columns: 200px minmax(0, 1fr); column-gap: 18px; }
+  .fila-guia__media { grid-row: 1 / span 4; margin: 0; align-self: start; }
+  .fila-guia > :not(.fila-guia__media) { grid-column: 2; }
+}
 .guia-texto { display: grid; gap: 10px; margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--borde); line-height: 1.6; }
 .guia-texto h2 { font-size: 1.2rem; }
 .guia-texto h3 { font-size: 1rem; margin-top: 6px; }
 .guia-texto p { margin: 0; }
 .guia-texto ul { display: grid; gap: 6px; padding-left: 1.2em; margin: 0; }
+/* Aviso legal, privacidad, cookies, quiénes somos y créditos (src/paginas-legales.js). */
+.pagina-legal { line-height: 1.6; max-width: 760px; }
+.pagina-legal h2 { font-size: 1.2rem; margin-top: 10px; }
+.pagina-legal p, .pagina-legal ul { margin: 0; }
+.pagina-legal ul { display: grid; gap: 6px; padding-left: 1.2em; }
+.pendiente { color: var(--chollo); }
+.tabla-desliza { overflow-x: auto; border: 1px solid var(--borde); border-radius: var(--radio-medio); background: var(--superficie); }
+.tabla-legal { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+.tabla-legal th, .tabla-legal td { padding: 8px 12px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--borde); }
+.tabla-legal th { color: var(--texto-suave); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; background: var(--superficie-2); }
+.tabla-legal tr:last-child td { border-bottom: 0; }
 .migas ol { display: flex; flex-wrap: wrap; gap: 4px 0; list-style: none; margin: 0; padding: 0; font-size: 0.88rem; color: var(--texto-suave); }
 .migas li:not(:last-child)::after { content: "›"; margin: 0 8px; }
 .guias { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 18px 24px; margin-bottom: 18px; }
@@ -1560,8 +1603,6 @@ html:not(.js) .cargando { display: none; }
   .buscador-finde { padding: 16px; border-radius: 22px; }
   /* Portada en el móvil: menos alto antes del planificador. */
   :is(.portada, .portada-estatica) .titulo-vista { font-size: 2rem; }
-  .opciones--cuando { display: grid; grid-template-columns: 1fr 1fr; }
-  .opciones--cuando .opcion { flex: auto; }
   .seccion { margin-top: 36px; }
   .seccion--puente { margin-inline: calc(-1 * var(--espacio)); border-radius: 0; padding: 26px var(--espacio); }
   .tarjeta:hover, .billete:hover, .finde-celda:hover { transform: none; }
@@ -1681,10 +1722,11 @@ html:not(.js) .cargando { display: none; }
 .leyenda-calor__paso { display: inline-block; width: 22px; height: 12px; border-radius: 3px; border: 1px solid var(--borde); }
 .leyenda-calor .leyenda-calor__puente { margin-left: 12px; padding: 0 6px; border: 2px solid var(--chollo); border-radius: 4px; color: var(--texto); }
 
-/* Crédito de las fotos de Wikimedia Commons, sobre la foto de la ficha. */
+/* Crédito de las fotos de Wikimedia Commons, debajo de la foto de la ficha (encima tapaba la foto). */
+.ficha__figura { margin: 0; display: grid; gap: 4px; }
 .ficha__credito {
-  position: absolute; right: 8px; bottom: 8px; padding: 3px 8px; border-radius: 999px;
-  background: rgb(0 0 0 / 55%); color: #fff !important; font-size: 0.72rem; text-decoration: none;
+  justify-self: end; max-width: 100%; color: var(--texto-suave) !important; font-size: 0.74rem; line-height: 1.35;
+  text-decoration: none; text-align: right; overflow-wrap: anywhere;
 }
 .ficha__credito:hover, .ficha__credito:focus-visible { text-decoration: underline; }
 
@@ -1719,6 +1761,28 @@ body:has([data-plegable-movil][open]) .barra-comparar [data-abrir-filtros] { dis
 /* Al ancho de la página, como «Lo mejor para este finde» de debajo (antes se quedaba más estrecho). */
 .portada { display: grid; gap: 16px; }
 .portada__intro { margin: -6px 0 4px; color: var(--texto); font-size: 1.15rem; font-weight: 600; }
+/* Cabecera con foto: el título en blanco sobre un degradado oscuro (contraste en claro y oscuro). */
+.portada__hero { position: relative; display: grid; align-items: end; min-height: 210px; border-radius: 22px; overflow: hidden; background: var(--foto); isolation: isolate; }
+.portada__hero-foto { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: -2; }
+.portada__hero::before { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(to top, rgb(8 20 18 / 82%) 0%, rgb(8 20 18 / 45%) 55%, rgb(8 20 18 / 5%) 100%); }
+.portada__hero-texto { display: grid; gap: 4px; padding: 64px 20px 18px; }
+.portada__hero .titulo-vista { margin: 0; color: #fff; text-shadow: 0 1px 12px rgb(0 0 0 / 35%); }
+.portada__hero .titulo-vista em { color: #bdeee4; }
+.portada__hero .portada__intro { margin: 0; color: #f3f7f6; }
+.portada__hero-credito {
+  position: absolute; top: 10px; right: 10px; max-width: calc(100% - 20px); padding: 3px 9px; border-radius: 999px;
+  background: rgb(0 0 0 / 55%); color: #fff !important; font-size: 0.7rem; line-height: 1.3; text-decoration: none;
+}
+.portada__hero-credito:hover, .portada__hero-credito:focus-visible { text-decoration: underline; }
+/* En el móvil, más bajo: la primera oferta sube. */
+@media (max-width: 719px) {
+  .portada__hero { min-height: 170px; }
+  .portada__hero-texto { padding: 48px 16px 14px; }
+}
+@media (min-width: 720px) {
+  .portada__hero { min-height: 280px; }
+  .portada__hero-texto { padding: 96px 32px 28px; }
+}
 /* Tu viaje, una sola vez: «Barcelona · 2 personas · 2 noches» con «Cambiar». */
 .viaje-resumen {
   justify-self: start; display: inline-flex; align-items: center; gap: 10px; max-width: 100%; min-height: 48px;
@@ -1772,6 +1836,20 @@ body:has([data-plegable-movil][open]) .barra-comparar [data-abrir-filtros] { dis
 .organizar__opcion .organizar__texto { padding-bottom: 16px; }
 /* «Afinar la escapada» solo vale para escapadas. */
 .buscador-finde:has(input[name="que"]:not([value="escapadas"]):checked) .buscador-finde__mas { display: none; }
+/* En el móvil (después de las reglas de arriba, para que no las pisen): ¿Cuándo?, en una fila que
+   se desliza (antes, tres filas de tarjetas), y ¿Qué buscas?, en tres botones compactos. Dos filas
+   explícitas porque cada tarjeta reparte nombre y días con subgrid. */
+@media (max-width: 719px) {
+  .opciones--cuando { grid-template-columns: none; grid-template-rows: auto auto; grid-auto-flow: column; grid-auto-columns: minmax(138px, 1fr); overflow-x: auto; scroll-snap-type: x proximity; padding-bottom: 4px; }
+  .opciones--cuando > :last-child:nth-child(odd) { grid-column: auto; }
+  .opciones--cuando .opcion { flex: auto; scroll-snap-align: start; }
+  .organizar { gap: 6px; }
+  .organizar__opcion { flex-direction: column; align-items: center; gap: 4px; min-height: 0; padding: 10px 6px; text-align: center; }
+  .organizar__icono { width: 32px; height: 32px; }
+  .organizar__texto small, .organizar__estado { display: none; }
+  .organizar__opcion .organizar__texto { padding-bottom: 0; }
+  .organizar__texto strong { font-size: 0.9rem; }
+}
 /* Destino opcional y el botón, que dice qué vas a ver y para cuándo. */
 .buscador-finde__accion { display: grid; gap: 12px; align-items: end; }
 .buscador-finde__destino { display: grid; gap: 6px; min-width: 0; }
@@ -1801,20 +1879,8 @@ body:has([data-plegable-movil][open]) .barra-comparar [data-abrir-filtros] { dis
 @media (max-width: 719px) {
   .portada { gap: 12px; }
   .portada__intro { margin-top: -6px; font-size: 0.92rem; }
-  .organizar { gap: 8px; }
-  .organizar__opcion { flex-direction: column; align-items: center; gap: 6px; padding: 12px 6px 10px; text-align: center; }
-  .organizar__icono { width: 34px; height: 34px; }
-  .organizar__texto small { font-size: 0.72rem; }
-  .organizar__opcion .organizar__texto { padding-bottom: 0; }
-  .organizar__estado { position: static; margin-top: auto; font-size: 0.72rem; }
-  .organizar__estado::after { content: "Elegir"; }
   .buscador-finde__enviar { width: 100%; }
   .buscador-finde__mas > summary .suave { display: none; }
-}
-/* En 320 px «Escapadas» llegaba al borde de su tarjeta. */
-@media (max-width: 359px) {
-  .organizar__texto strong { font-size: 0.9rem; }
-  .organizar__texto small { font-size: 0.68rem; }
 }
 /* Apartados secundarios plegados (Vuelos: sin fecha, promociones, tren y bus). */
 .seccion-plegable > summary { display: flex; align-items: center; gap: 10px; cursor: pointer; list-style: none; min-height: 44px; padding: 6px 0; border-top: 1px solid var(--borde); }
@@ -2063,4 +2129,8 @@ p.aviso-suave .ic { flex: none; width: 16px; height: 16px; }
   html:has(.fechas--abierta) .barra-comparar { display: none; }
   .fechas__rapidas .chips__lista { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: -10px; padding-inline: 10px; }
   .atajos { margin-bottom: 10px; }
+  /* Explorar en el móvil: los atajos en una fila que se desliza y la cuenta junto a «Tarjetas/Lista»:
+     la primera oferta sube casi 90 px. */
+  .atajos .chips__lista { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: -10px; padding-inline: 10px; }
+  .resultados__cuenta { flex: 1 1 0; min-width: 0; }
 }

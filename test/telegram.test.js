@@ -53,11 +53,18 @@ describe('Telegram: Escapada Barata', () => {
     assert.deepEqual(navarra.fechas.salida, '2026-12-10');
     assert.deepEqual(navarra.fechas.vuelta, '2026-12-13');
     assert.deepEqual([navarra.tipo, navarra.precio, navarra.unidad, navarra.noches, navarra.lugar?.nombre], ['hotel', 158, 'total', 3, 'Longida']);
-    assert.match(navarra.url, /^https:\/\/t\.eeny\.it\//);
+    // El enlace tras «Enlace:» es un acortador de afiliado del canal: se enlaza su mensaje público.
+    assert.match(navarra.url, /^https:\/\/t\.me\/escapadabarata\/\d+$/);
     assert.match(navarra.titulo, /^¡Navarra en diciembre/);
     assert.doesNotMatch(navarra.titulo, /#/);
     const ferrol = ofertas.find((o) => /Ferrol/.test(o.titulo));
-    assert.match(ferrol.url, /t\.eeny\.it/, 'el de la oferta, no el de la visita de Civitatis que va antes');
+    assert.match(ferrol.url, /^https:\/\/t\.me\/escapadabarata\//, 'el de la oferta (su mensaje), no el de la visita de Civitatis que va antes');
+    assert.ok(ofertas.every((o) => !/eeny\.it|ebarata\.com|aid=/.test(o.url)), 'ningún acortador ni afiliado ajeno');
+  });
+  it('vuelo + hotel «por noche y por persona»: el precio de la estancia es por persona, no el total', () => {
+    const porPersona = ofertas.filter((o) => o.tipo === 'paquete' && o.unidad === 'pp');
+    assert.ok(porPersona.length >= 2, porPersona.map((o) => o.titulo).join(' | '));
+    assert.equal(ofertas.find((o) => /Navarra/.test(o.titulo)).unidad, 'total', 'solo hotel «para dos personas»: total');
   });
   it('con vuelo incluido es un paquete', () => {
     const lisboa = ofertas.find((o) => /Lisboa/.test(o.titulo));
@@ -88,5 +95,14 @@ describe('Telegram: fechas y fuente', () => {
       assert.match(fuente.web, /^https:\/\/t\.me\//);
       assert.equal(fuente.modo, 'feed');
     }
+  });
+});
+
+describe('Telegram: Escapada Barata con su configuración real', () => {
+  it('cada oferta enlaza a su mensaje del canal, no a otra web que salga en el texto (Civitatis…)', async () => {
+    const { ctx } = crearCtx({ respuestas: () => ESCAPADA });
+    const { ofertas } = await escapadabarata.obtener(ctx);
+    assert.equal(ofertas.length, 10);
+    for (const o of ofertas) assert.match(o.url, /^https:\/\/t\.me\/escapadabarata\/\d+$/, o.titulo);
   });
 });

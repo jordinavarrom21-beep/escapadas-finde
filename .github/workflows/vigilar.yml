@@ -27,10 +27,10 @@ on:
       - 'package*.json'
       - '.github/workflows/vigilar.yml'
 
+# Lo mínimo para el escaneo; publicar en Pages lo pide solo su trabajo (abajo).
 permissions:
   contents: write   # guardar la rama «datos»
-  pages: write      # publicar el panel
-  id-token: write   # requerido por deploy-pages
+  pages: read       # configure-pages consulta la dirección de GitHub Pages
   actions: write    # mantener activo el cron
 
 jobs:
@@ -54,6 +54,7 @@ jobs:
           persist-credentials: false   # que el token no quede guardado en .git para los pasos siguientes
 
       - name: Recuperar los datos guardados
+        id: recuperar
         run: |
           # ls-remote devuelve 2 si la rama no existe y otro código si falla la red: en ese
           # caso hay que parar, porque seguir escanearía desde cero y el push forzado del
@@ -65,6 +66,8 @@ jobs:
           if [ "$codigo" -eq 0 ]; then
             git fetch --depth=1 origin datos
             git checkout FETCH_HEAD -- data
+            # La versión de ahora, por si hay que guardarla como copia de seguridad al final.
+            echo "anterior=$(git rev-parse FETCH_HEAD)" >> "$GITHUB_OUTPUT"
           elif [ "$codigo" -eq 2 ]; then
             echo "Primera ejecución: todavía no existe la rama «datos»"
           else
@@ -124,9 +127,21 @@ jobs:
         if: ${{ !cancelled() && steps.escaneo.conclusion != 'skipped' }}
         env:
           GH_TOKEN: ${{ github.token }}
+          ANTERIOR: ${{ steps.recuperar.outputs.anterior }}
         run: |
           [ -d data ] || { echo 'No hay datos que guardar'; exit 0; }
           rm -rf data/emails-prueba
+          # Copia de seguridad: «datos» se sustituye entera en cada escaneo, sin historial. La versión
+          # de antes de este escaneo pasa a «datos-copia» cuando la copia tiene más de 20 horas: si un
+          # escaneo estropea los datos, queda una de como mucho un día antes. Si falla, solo avisa.
+          if [ -n "$ANTERIOR" ]; then
+            # Si la copia no existe o la API falla, gh escribe el error en la salida: se descarta.
+            fecha="$(gh api "repos/${GITHUB_REPOSITORY}/branches/datos-copia" --jq .commit.commit.committer.date 2>/dev/null)" || fecha=""
+            segundos="$(date -u -d "$fecha" +%s 2>/dev/null)" || segundos=0
+            if [ -z "$fecha" ] || [ "$segundos" -eq 0 ] || [ $(( $(date -u +%s) - segundos )) -gt 72000 ]; then
+              git push -q --force "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "${ANTERIOR}:refs/heads/datos-copia" || echo '::warning::No se ha podido guardar la copia de seguridad de «datos»'
+            fi
+          fi
           directorio="$(mktemp -d)"
           cp -r data "$directorio/"
           cd "$directorio"
@@ -192,9 +207,11 @@ jobs:
           FTP_USUARIO: ${{ secrets.FTP_USUARIO }}
           LFTP_PASSWORD: ${{ secrets.FTP_CONTRASENA }}
           FTP_CARPETA: ${{ vars.FTP_CARPETA || 'public_html' }}
-          # El certificado del FTP de muchos hostings es del servidor, no de tu dominio: por
-          # eso por defecto no se comprueba (la conexión va cifrada igual). Pon «yes» si el tuyo casa.
-          FTP_VERIFICAR_TLS: ${{ vars.FTP_VERIFICAR_TLS || 'no' }}
+          # Por defecto se comprueba el certificado (sin eso, alguien en medio podría hacerse pasar por
+          # tu hosting y llevarse la contraseña). Si el de tu hosting es del servidor y no de tu dominio
+          # y la subida falla por eso, usa como FTP_SERVIDOR el nombre que sale en el certificado o,
+          # como último recurso, pon la variable FTP_VERIFICAR_TLS = no.
+          FTP_VERIFICAR_TLS: ${{ vars.FTP_VERIFICAR_TLS || 'yes' }}
         run: |
           sudo apt-get install -y -qq lftp > /dev/null
           lftp --env-password -u "$FTP_USUARIO" "$FTP_SERVIDOR" -e "set ftp:ssl-force true; set ssl:verify-certificate $FTP_VERIFICAR_TLS; set net:max-retries 2; set net:timeout 30; mirror --reverse --delete --parallel=6 --exclude-glob .well-known/ --exclude-glob cgi-bin/ site/ $FTP_CARPETA/; bye"
@@ -214,6 +231,9 @@ jobs:
     if: ${{ !cancelled() && needs.vigilar.outputs.con_datos == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      pages: write      # publicar el panel
+      id-token: write   # requerido por deploy-pages
     concurrency:
       group: pages
       cancel-in-progress: true

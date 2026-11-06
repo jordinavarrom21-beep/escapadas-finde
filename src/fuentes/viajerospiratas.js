@@ -64,7 +64,8 @@ const NO_SON_LUGARES = new Set([
   'halloween', 'black friday', 'cyber monday', 'puente', 'verano', 'invierno', 'otono', 'primavera',
   'instagram', 'facebook', 'tiktok', 'youtube', 'amazon', 'aliexpress', 'mediamarkt', 'el corte ingles', 'pccomponentes',
   'booking', 'booking.com', 'airbnb', 'expedia', 'edreams', 'skyscanner', 'kayak', 'trivago', 'groupon',
-  'europa', 'asia', 'africa', 'america',
+  'europa', 'asia', 'africa', 'america', 'mediterraneo',
+  'disney', 'disneyland', 'smartbox', 'wonderbox',
   'renfe', 'iryo', 'ouigo', 'ryanair', 'vueling', 'iberia', 'volotea', 'easyjet', 'atrapalo', 'logitravel',
 ]);
 /**
@@ -75,6 +76,7 @@ const NO_SON_LUGARES = new Set([
 const GENERICAS = new Set([
   'hotel', 'hoteles', 'hostal', 'apartamento', 'apartamentos', 'aparthotel', 'spa', 'camping', 'bungalow',
   'vuelo', 'vuelos', 'viaje', 'viajes', 'viajazo', 'vacaciones', 'escapada', 'escapadas', 'finde', 'ferry', 'crucero', 'cruceros',
+  'resort', 'resorts', 'boutique', 'caja',
   'todo', 'incluido', 'media', 'pension', 'completa', 'desayuno', 'desayunos', 'all', 'inclusive',
   'oferta', 'ofertas', 'oferton', 'chollo', 'chollos', 'ultima', 'paquete', 'circuito', 'ruta', 'dias', 'noches', 'noche',
   'un', 'una', 'dsd', 'salidas', 'salida', 'recopilacion', 'visto', 'lujo', 'relax', 'chollazo', 'exclusivo', 'especial',

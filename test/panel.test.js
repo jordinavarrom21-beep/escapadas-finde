@@ -657,12 +657,16 @@ describe('comparar precios del mismo alojamiento', () => {
 
   it('la tarjeta dice si es la más barata, si hay otra web más barata o si cuesta lo mismo', () => {
     assert.match(tarjeta(casa({ equivalentes: [otra] }), ctx),
-      /La más barata de 2 webs<\/strong>: en <a href="https:\/\/www\.escapadarural\.com[^"]*" target="_blank" rel="noopener" data-clic="escapadarural"[^>]*>Escapada Rural<\/a>, 40\s€ \(13\s€ más\)/);
+      /La más barata de 2 webs<\/strong>: en <a href="https:\/\/www\.escapadarural\.com[^"]*" target="_blank" rel="sponsored noopener" data-clic="escapadarural"[^>]*>Escapada Rural<\/a>, 40\s€ \(13\s€ más\)/);
     const cara = casa({ fuente: 'escapadarural', id: 'escapadarural:2', precio: 40, precioNoche: 40, equivalentes: [{ ...otra, id: 'tuscasasrurales:1', fuente: 'tuscasasrurales', precio: 27, precioNoche: 27 }] });
     assert.match(tarjeta(cara, ctx), /Más barata en <a[^>]*>Tus Casas Rurales<\/a><\/strong>: 27\s€ por persona y noche \(13\s€ menos\)/);
     assert.match(tarjeta(casa({ equivalentes: [{ ...otra, precio: 27.4, precioNoche: 27.4 }] }), ctx), /Mismo precio en <a[^>]*>Escapada Rural<\/a>/);
     // Si una no tiene precio por persona y noche no se compara: solo «También en».
     assert.match(tarjeta(casa({ equivalentes: [{ ...otra, unidad: 'total', precioNoche: null }] }), ctx), /También en <a[^>]*>Escapada Rural<\/a> por 40\s€/);
+    // Una plaza «con la casa llena» frente a la casa entera no es un precio mejor (Cal Gorguixé: «245 € más»).
+    const entera = tarjeta(casa({ precio: 21, precioNoche: 21, equivalentes: [{ ...otra, precio: 532, unidad: 'noche', precioNoche: 266 }] }), ctx);
+    assert.match(entera, /También en <a[^>]*>Escapada Rural<\/a> por 532\s€ por alojamiento y noche/);
+    assert.doesNotMatch(entera, /más barata/i);
   });
 
   it('la ficha ordena las webs, marca la más barata y calcula el ahorro del viaje', () => {

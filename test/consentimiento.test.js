@@ -36,7 +36,7 @@ describe('Google Ads en la web publicada', () => {
     assert.ok(directivas['connect-src'].includes('https://googleads.g.doubleclick.net'));
     assert.deepEqual(directivas['frame-src'].slice(0, 2), ["'self'", 'https://td.doubleclick.net']);
     // Lo que ya había sigue igual.
-    assert.ok(directivas['script-src'].includes('https://cdnjs.cloudflare.com'));
+    assert.ok(directivas['script-src'].includes('https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/'));
     assert.ok(directivas['connect-src'].includes('https://router.project-osrm.org'));
     assert.deepEqual(directivas['object-src'], ["'none'"]);
   });
@@ -151,8 +151,10 @@ describe('aviso legal (LSSI) y responsable de la privacidad', () => {
     assert.doesNotMatch(sinDatos, /Titular:|Faltan tus datos/);
     assert.match(vistaAyuda({ ...estadoPanel(), propietario: true }), /Faltan tus datos/);
   });
-  it('el pie enlaza al aviso legal', () => {
-    assert.match(INDICE, /href="#\/ayuda\?seccion=aviso-legal">Aviso legal</);
+  it('el pie enlaza a las páginas legales con URL propia', () => {
+    for (const [ruta, texto] of [['aviso-legal', 'Aviso legal'], ['privacidad', 'Privacidad'], ['cookies', 'Política de cookies'], ['contacto', 'Contacto']]) {
+      assert.match(INDICE, new RegExp(`href="${ruta}/">${texto}<`), ruta);
+    }
   });
 });
 

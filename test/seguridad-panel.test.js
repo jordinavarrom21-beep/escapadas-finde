@@ -60,9 +60,10 @@ describe('panel: política de seguridad de contenidos (CSP)', () => {
 
   it('permite exactamente los hosts que usa el panel', () => {
     const directivas = csp();
-    const host = (url) => new URL(url).origin;
-    for (const url of [LEAFLET.js.url, CHART.url]) assert.ok(directivas['script-src'].includes(host(url)), url);
-    assert.ok(directivas['style-src'].includes(host(LEAFLET.css.url)));
+    // cdnjs, solo la carpeta de cada librería y versión (no todo cdnjs).
+    const cabe = (lista, url) => lista.some((fuente) => fuente.endsWith('/') && url.startsWith(fuente));
+    for (const url of [LEAFLET.js.url, CHART.url]) assert.ok(cabe(directivas['script-src'], url), url);
+    assert.ok(cabe(directivas['style-src'], LEAFLET.css.url));
     const conexiones = new Set(Object.values(JS).flatMap((codigo) => [...codigo.matchAll(/fetch\(\s*['"`](https:\/\/[^/'"`]+)/g)].map(([, origen]) => origen)));
     const photon = JS['geo.js'].match(/https:\/\/photon\.komoot\.io/)?.[0];
     assert.ok(photon, 'geo.js usa Photon para buscar lugares');
