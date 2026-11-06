@@ -23,7 +23,21 @@ const { vigentes } = repartir(datos.ofertas, {
 const fallos = [];
 const hechos = [];
 const errores = [];
-const ok = (cond, texto) => { if (cond) hechos.push(texto); else fallos.push(texto); };
+// Cada comprobación se escribe al momento y, si en 3 minutos no llega ninguna, la prueba para y
+// dice tras cuál se quedó: antes, un paso atascado agotaba los 25 minutos del workflow sin decir nada.
+let ultima = 'el arranque';
+let ultimaVez = Date.now();
+const ok = (cond, texto) => {
+  if (cond) hechos.push(texto); else fallos.push(texto);
+  console.log(`${cond ? '✓' : '✗'} ${texto}`);
+  [ultima, ultimaVez] = [texto, Date.now()];
+};
+setInterval(() => {
+  if (Date.now() - ultimaVez < 180_000) return;
+  console.log(`ATASCADA: 3 minutos sin avanzar después de «${ultima}»`);
+  if (errores.length) console.log(`ERRORES:\n- ${[...new Set(errores)].join('\n- ')}`);
+  process.exit(1);
+}, 10_000).unref();
 
 const contexto = (opciones) => nuevoContexto(b, opciones);
 async function pagina(c) {
@@ -859,8 +873,9 @@ for (const deslizar of [false, true]) {
 
 ok(!errores.some((e) => /Content Security Policy|Refused to (load|apply|execute|connect)/.test(e)), 'CSP: ningún error en la consola en todo el recorrido');
 
-await cerrar();
 console.log(`${hechos.length} comprobaciones bien, ${fallos.length} mal`);
 if (fallos.length) console.log(`FALLOS:\n- ${fallos.join('\n- ')}`);
 if (errores.length) console.log(`ERRORES:\n- ${[...new Set(errores)].join('\n- ')}`);
-if (fallos.length || errores.length) process.exitCode = 1;
+// El resultado ya está escrito: cerrar el navegador y el servidor no puede dejar la prueba colgada.
+await Promise.race([cerrar(), new Promise((listo) => { setTimeout(listo, 15_000).unref(); })]);
+process.exit(fallos.length || errores.length ? 1 : 0);
