@@ -38,6 +38,7 @@ import { NOTA_MIN_CHOLLAZO, anotarConocidaDesde, precioPorPersonaNoche, puntuar 
 import { claveSerie, compactar, registrarPrecios, seriesPara } from '../historial.js';
 import { coincide, contextoVigilados } from '../vigilados.js';
 import { procesarEmails } from '../emails/decidir.js';
+import { publicarEnTelegram } from '../emails/telegram.js';
 import { configuracionEnvio, crearTransporte, enviarEmail } from '../emails/enviar.js';
 import { clienteHttp, crearClienteHttp, metricasHttp, reiniciarMetricas } from '../util/http.js';
 import { ErrorRobots, comprobarRobots } from '../util/robots.js';
@@ -68,7 +69,7 @@ export const MODULOS = {
   geolocalizar, calcularCoche, calcularCosteCoche, calcularReferencia, marcarEquivalentes,
   revisarPrecios, anadirTiempo, anadirEventos, comprobarVigencia, anadirFotos, anadirResumenes, enlacesPara, registrarPrecios, compactar, seriesPara, puntuar,
   anadirNotasGoogle, anadirPreciosGoogle,
-  procesarEmails, crearTransporte, enviarEmail,
+  procesarEmails, crearTransporte, enviarEmail, publicarEnTelegram,
 };
 
 /** URL del panel: la de los ajustes o la de GitHub Pages del repo. */
@@ -535,6 +536,9 @@ export async function escanear({
       enviar: transporte ? (mensaje) => m.enviarEmail(transporte, mensaje, env) : null,
       log: conPrefijo('emails'),
     });
+    // Y en el canal de Telegram, si está configurado (src/emails/telegram.js).
+    emails.telegram = await m.publicarEnTelegram({ ofertas, estado, ajustes, env, panelUrl, ahora, log: conPrefijo('telegram') })
+      .catch((error) => { conPrefijo('telegram')(`Sin publicar en Telegram: ${error.message}`); return { publicados: 0 }; });
   }
   cache.podar(CADUCIDAD_CACHE_MS, ahora.getTime(), CADUCIDAD_POR_PREFIJO);
   return {

@@ -183,6 +183,14 @@ async function obtenerMapa(ctx, version) {
 // Un 403/429 o una respuesta que no es JSON (desafío anti-bot): no se insiste más.
 const esBloqueo = (error) => error.bloqueo || error.estado === 403 || error.estado === 429 || error instanceof SyntaxError;
 
+/**
+ * Tiempo para las consultas de rutas. Se mira antes de cada petición, y una petición lenta puede
+ * tardar algo más de un minuto (reintentos incluidos): con 5 minutos se queda por debajo de los 8
+ * de cada fuente (LIMITE_FUENTE_MIN).
+ */
+export const PRESUPUESTO_MS = 5 * 60_000;
+const SIN_TIEMPO = new Error('sin tiempo');
+
 async function obtener(ctx) {
   const consultas = generarConsultas(ctx).filter((consulta) => consulta.tipo !== 'ideal');
   if (!consultas.length) return { ofertas: [], reemplazar: false };
@@ -194,8 +202,10 @@ async function obtener(ctx) {
   let peticiones = 0;
   let ultimoError = null;
   let versionRenovada = false;
+  const inicio = Date.now();
 
   const calendario = async (origen, destino, tramo) => {
+    if (Date.now() - inicio > PRESUPUESTO_MS) throw SIN_TIEMPO;
     if (peticiones++) await ctx.http.esperar(ctx.ajustes.vuelos.pausaEntrePeticionesMs);
     const pedir = () => ctx.http.json(`${API}/${version}/Api/search/timetable`, { cuerpo: cuerpoCalendario(origen, destino, tramo), cabeceras: CABECERAS });
     try {
@@ -209,28 +219,37 @@ async function obtener(ctx) {
     }
   };
 
-  bucle: for (const origen of ctx.ajustes.vuelos.aeropuertos) {
-    const deEsteOrigen = consultas.filter((consulta) => consulta.origen === origen);
-    for (const destino of rutas[origen] ?? []) {
-      try {
-        const dias = { ida: {}, vuelta: {} };
-        for (const tramo of tramos) {
-          const parte = diasDeCalendario(await calendario(origen, destino.iata, tramo));
-          Object.assign(dias.ida, parte.ida);
-          Object.assign(dias.vuelta, parte.vuelta);
-        }
-        rutasOk.add(`${origen}-${destino.iata}`);
-        for (const consulta of deEsteOrigen) {
-          const oferta = ofertaDeRuta(consulta, destino, dias, ctx.ajustes);
-          if (oferta) ofertas.push(oferta);
-        }
-      } catch (error) {
-        ultimoError = error;
-        ctx.log(`Ruta ${origen}-${destino.iata} fallida: ${error.message}`);
-        if (esBloqueo(error)) {
-          ctx.log('Wizz Air ha bloqueado o limitado las peticiones: no se hacen más consultas en esta ejecución');
-          break bucle;
-        }
+  // Primero las rutas que hace más que no se leen, y como mucho PRESUPUESTO_MS: si Wizz va lento,
+  // se guarda lo leído (antes se pasaba de los 8 minutos de cada fuente y se perdía todo) y el
+  // siguiente escaneo sigue por las que faltan.
+  const visto = ({ origen, destino }) => ctx.cache.obtener(`wizzair:ruta:${origen}-${destino.iata}`) ?? 0;
+  const pendientes = ctx.ajustes.vuelos.aeropuertos
+    .flatMap((origen) => (rutas[origen] ?? []).map((destino) => ({ origen, destino })))
+    .sort((a, b) => visto(a) - visto(b));
+  for (const [i, { origen, destino }] of pendientes.entries()) {
+    try {
+      const dias = { ida: {}, vuelta: {} };
+      for (const tramo of tramos) {
+        const parte = diasDeCalendario(await calendario(origen, destino.iata, tramo));
+        Object.assign(dias.ida, parte.ida);
+        Object.assign(dias.vuelta, parte.vuelta);
+      }
+      rutasOk.add(`${origen}-${destino.iata}`);
+      ctx.cache.guardar(`wizzair:ruta:${origen}-${destino.iata}`, ctx.ahora.getTime(), ctx.ahora.getTime());
+      for (const consulta of consultas.filter((c) => c.origen === origen)) {
+        const oferta = ofertaDeRuta(consulta, destino, dias, ctx.ajustes);
+        if (oferta) ofertas.push(oferta);
+      }
+    } catch (error) {
+      if (error === SIN_TIEMPO) {
+        ctx.log(`Wizz Air va lento: ${pendientes.length - i} rutas quedan para el siguiente escaneo`);
+        break;
+      }
+      ultimoError = error;
+      ctx.log(`Ruta ${origen}-${destino.iata} fallida: ${error.message}`);
+      if (esBloqueo(error)) {
+        ctx.log('Wizz Air ha bloqueado o limitado las peticiones: no se hacen más consultas en esta ejecución');
+        break;
       }
     }
   }

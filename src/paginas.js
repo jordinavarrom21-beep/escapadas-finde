@@ -18,6 +18,7 @@ import { etiquetaDia, fechaLocal } from './util/fechas.js';
 import { textoGuia } from './textos-guias.js';
 import { CARPETAS_LEGALES, paginasLegales } from './paginas-legales.js';
 import { fotoOferta } from '../site/js/fotos-tema.js';
+import { tieneCoordenadas } from '../site/js/geo.js';
 
 /** Cuántas webs se consultan (las del registro que no están en pausa): la misma cifra en toda la web. */
 // Las que funcionan hoy: contar las que llevan días caídas (Clubrural, Holidu: 0 ofertas) inflaba la cifra.
@@ -53,7 +54,7 @@ const PRIORIDAD = (d) => d.prioridad ?? { general: 5, tema: 1, zona: 3, mas: 7 }
  * publiquen, aunque se parezcan a otra. Si entraran y salieran según las ofertas de cada
  * escaneo, perderían la posición (el puente y «a menos de 2 horas» llegaron a quedarse en noindex).
  */
-const FIJAS = new Set(['escapadas/puente', 'escapadas/a-menos-de-1-hora', 'escapadas/a-menos-de-2-horas', 'escapadas/sin-coche', 'escapadas/menos-de-100-euros']);
+const FIJAS = new Set(['escapadas/puente', 'escapadas/a-menos-de-1-hora', 'escapadas/a-menos-de-2-horas', 'escapadas/a-menos-de-3-horas', 'escapadas/una-noche', 'escapadas/sin-coche', 'escapadas/menos-de-100-euros']);
 const VIAJEROS = 2;
 /** Lo que Google enseña de un título (unos 600 px): más largo, sale cortado con «…». */
 export const LARGO_TITULO = 60;
@@ -154,6 +155,27 @@ export function nombrePuente(puente) {
   return conocido ? conocido[1] : `el puente de ${MESES[Number(puente.desde.slice(5, 7)) - 1]}`;
 }
 
+/**
+ * Zonas que no son una provincia, por coordenadas (aproximadas). Costa Brava: la franja de costa y
+ * el Empordà de Blanes a Portbou (Girona ciudad, a 35 km del mar, no). Pirineo: de Jaca al Ripollès,
+ * con Andorra y la Cerdanya francesa (Olot, la Garrotxa, no).
+ */
+export const enCostaBrava = (l) => l.lat >= 41.65 && l.lat <= 42.45 && l.lon <= 3.35 && (l.lon >= 2.95 || (l.lat < 41.76 && l.lon >= 2.76));
+export const enPirineo = (l) => l.lat >= 42.2 && l.lat <= 42.95 && l.lon >= -1 && l.lon <= 2.6 && !(l.lon > 2.4 && l.lat < 42.28);
+
+/**
+ * Navidad (del 19 de diciembre al 6 de enero) desde el 1 de octubre hasta el 6 de enero; fuera de
+ * esas fechas, null y la guía no se publica.
+ */
+export function temporadaNavidad(generado) {
+  const hoy = fechaLocal(new Date(generado));
+  const [anio, mes] = hoy.split('-').map(Number);
+  const de = mes >= 10 ? anio : mes === 1 ? anio - 1 : null;
+  if (de == null) return null;
+  const temporada = { desde: `${de}-12-19`, hasta: `${de + 1}-01-06` };
+  return hoy > temporada.hasta ? null : temporada;
+}
+
 /** El primer puente que aún no ha terminado el día de los datos. */
 function proximoPuente(puentes = [], generado) {
   const hoy = fechaLocal(new Date(generado));
@@ -202,6 +224,7 @@ export function definiciones({ origen, findes = [], puentes = [], ofertas = [], 
   const desde = origen.nombre;
   const finde = findes[0];
   const puente = proximoPuente(puentes, generado);
+  const navidad = temporadaNavidad(generado);
   const coste = `el coste del viaje completo para ${VIAJEROS} personas desde ${desde}: la oferta y, si se va en coche, la gasolina estimada (sin peajes)`;
   const fijas = [
     {
@@ -241,18 +264,44 @@ export function definiciones({ origen, findes = [], puentes = [], ofertas = [], 
       conFecha: (o) => Boolean(o.fechas.salida), orden: antes((o) => Boolean(o.fechas.salida), porTotal), prioridad: 6,
       panel: '#/escapadas?cuando=puente&orden=total',
     },
-    ...[[1, 'a-menos-de-1-hora'], [2, 'a-menos-de-2-horas']].map(([horas, carpeta]) => ({
+    ...[[1, 'a-menos-de-1-hora'], [2, 'a-menos-de-2-horas'], [3, 'a-menos-de-3-horas']].map(([horas, carpeta]) => ({
       ruta: `escapadas/${carpeta}`, grupo: 'general', enlace: `A menos de ${horas} ${horas === 1 ? 'hora' : 'horas'} en coche`,
       titulo: `Escapadas a menos de ${horas} ${horas === 1 ? 'hora' : 'horas'} de ${desde} en coche`,
-      // A 1 hora, lo más cerca primero (lo que se busca y distinto de la guía de la provincia). A 2 horas,
-      // primero lo de entre 1 y 2 h y un plan por destino: por precio a secas eran las mismas ofertas de la
-      // costa que «a la playa» y se quedaba sin indexar, y es la que Google ya enseñaba («destinos a 2 horas…»).
+      // A 1 hora, lo más cerca primero (lo que se busca y distinto de la guía de la provincia). A 2 y 3
+      // horas, primero lo de la última hora (entre 1 y 2 h, entre 2 y 3 h) y un plan por destino: por
+      // precio a secas eran las mismas ofertas de la costa que «a la playa» y se quedaba sin indexar
+      // («destinos a 2 horas…» y «a 3 horas…» son búsquedas por las que Google ya enseña la web).
       // El panel no tiene ese orden: abre con el más parecido (por el viaje completo).
-      intro: `Planes a menos de ${horas} ${horas === 1 ? 'hora' : 'horas'} en coche desde ${desde} (tiempo real por carretera), ${horas === 1 ? `del más cercano al más lejano, con ${coste}` : `primero los de entre 1 y 2 horas (lo que está a menos de 1 hora tiene su propia guía), uno por destino, ordenados por ${coste}`}.`,
+      intro: `Planes a menos de ${horas} ${horas === 1 ? 'hora' : 'horas'} en coche desde ${desde} (tiempo real por carretera), ${horas === 1 ? `del más cercano al más lejano, con ${coste}` : `primero los de entre ${horas - 1} y ${horas} horas (lo que está a menos de ${horas - 1} ${horas - 1 === 1 ? 'hora' : 'horas'} tiene su propia guía), uno por destino, ordenados por ${coste}`}.`,
       elegir: (o) => esEscapada(o) && !SIN_COCHE.includes(o.transporte) && o.cocheMin != null && o.cocheMin <= horas * 60 && conTotal(o),
-      orden: horas === 1 ? porCercania : antes((o) => o.cocheMin > 60, porTotal), unaPorDestino: horas === 2,
+      orden: horas === 1 ? porCercania : antes((o) => o.cocheMin > (horas - 1) * 60, porTotal), unaPorDestino: horas >= 2,
       panel: `#/escapadas?h=${horas}&orden=${horas === 1 ? 'distancia' : 'total'}`, prioridad: 5,
     })),
+    {
+      ruta: 'escapadas/una-noche', grupo: 'general', enlace: 'De una noche', titulo: `Escapadas de una noche desde ${desde}`,
+      intro: `Ofertas de una sola noche (hotel, casa o paquete de una noche), ordenadas por ${coste}.`,
+      elegir: (o) => esEscapada(o) && o.noches === 1 && conTotal(o), orden: porTotal, prioridad: 5,
+      panel: '#/escapadas?noches=1&orden=total',
+    },
+    ...[
+      ['costa-brava', 'la Costa Brava', enCostaBrava, 'La Costa Brava y el Empordà, de Blanes a Portbou', { lat: 42.05, lon: 3.0, km: 70 }],
+      ['pirineo', 'el Pirineo', enPirineo, 'El Pirineo catalán, Andorra, el aragonés y la Cerdanya francesa', { lat: 42.45, lon: 1.2, km: 110 }],
+    ].map(([carpeta, nombre, enZona, que, centro]) => ({
+      ruta: `escapadas/${carpeta}`, grupo: 'zona', enlace: `Escapadas en ${nombre}`,
+      titulo: `Escapadas en ${nombre} desde ${desde}`, intro: `${que}: ofertas ordenadas por ${coste}.`,
+      elegir: (o) => esEscapada(o) && tieneCoordenadas(o.lugar) && enZona(o.lugar) && conTotal(o), orden: porTotal, prioridad: 3,
+      panel: `#/escapadas?lugar=${encodeURIComponent(nombre.replace(/^(?:el|la) /, ''))}&lat=${centro.lat}&lon=${centro.lon}&km=${centro.km}&orden=total`,
+    })),
+    {
+      ruta: 'escapadas/navidad', grupo: 'general', enlace: 'En Navidad',
+      titulo: navidad ? `Escapadas de Navidad desde ${desde}` : '',
+      intro: navidad ? `Del ${etiquetaDia(navidad.desde)} al ${etiquetaDia(navidad.hasta)}: primero las ofertas con fecha en esos días y después las de fechas flexibles que siguen vigentes, cada parte ordenada por ${coste}.` : '',
+      elegir: (o) => Boolean(navidad) && esEscapada(o) && conTotal(o) && (o.fechas.salida
+        ? o.fechas.salida.slice(0, 10) >= navidad.desde && o.fechas.salida.slice(0, 10) <= navidad.hasta
+        : !o.caduca || o.caduca.slice(0, 10) >= navidad.desde),
+      conFecha: (o) => Boolean(o.fechas.salida), orden: antes((o) => Boolean(o.fechas.salida), porTotal), prioridad: 6,
+      panel: navidad ? `#/escapadas?desde=${navidad.desde}&hasta=${navidad.hasta}&orden=total` : '#/escapadas',
+    },
     {
       ruta: 'escapadas/sin-coche', grupo: 'general', enlace: 'Sin coche', titulo: `Escapadas sin coche desde ${desde}`,
       intro: 'Se llega sin coche. El transporte va aparte salvo que la oferta diga que está incluido. Primero las que lo incluyen (con el viaje completo calculado), de la más barata a la más cara; después, el resto por precio.',

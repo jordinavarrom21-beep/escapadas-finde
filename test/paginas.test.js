@@ -2,7 +2,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-import { MINIMO_OFERTAS, definiciones, elegirGuias, estructuradosPortada, generarPaginas, nombrePuente } from '../src/paginas.js';
+import { MINIMO_OFERTAS, definiciones, elegirGuias, enCostaBrava, enPirineo, estructuradosPortada, generarPaginas, nombrePuente, temporadaNavidad } from '../src/paginas.js';
 
 const datos = JSON.parse(readFileSync(new URL('./fixtures/panel-real/ofertas.json', import.meta.url), 'utf8'));
 const BASE = 'https://usuario.github.io/escapadas-finde/';
@@ -214,12 +214,12 @@ describe('guías sin repetirse (plan 3.7–3.11)', () => {
   it('elegirGuias: la casi repetida de menos prioridad se publica sin indexar', () => {
     const lista = Array.from({ length: 30 }, () => oferta());
     const guias = elegirGuias([
-      { d: { ruta: 'escapadas/a-menos-de-3-horas', grupo: 'general', prioridad: 5 }, lista },
+      { d: { ruta: 'escapadas/ciudades', grupo: 'general', prioridad: 5 }, lista },
       { d: { ruta: 'escapadas', grupo: 'general', prioridad: 0 }, lista },
       { d: { ruta: 'escapadas/spa', grupo: 'tema' }, lista: lista.slice(20) },
     ]);
     const indexable = Object.fromEntries(guias.map((g) => [g.d.ruta, g.indexable]));
-    assert.deepEqual(indexable, { 'escapadas/a-menos-de-3-horas': false, escapadas: true, 'escapadas/spa': true });
+    assert.deepEqual(indexable, { 'escapadas/ciudades': false, escapadas: true, 'escapadas/spa': true });
   });
 
   it('elegirGuias: las guías que Google ya enseña (puente, a menos de 2 h…) se indexan aunque se parezcan a otra', () => {
@@ -337,5 +337,22 @@ describe('guías que se cruzan con las temáticas: otro orden para no quedarse s
     const html = generarPaginas({ ...datos, ofertas: copias }, { base: BASE }).archivos.find((a) => a.ruta === 'escapadas/a-menos-de-2-horas/index.html').contenido;
     assert.equal((html.match(/<li class="fila-guia">/g) ?? []).length, 5);
     assert.match(html, /<meta name="description" content="[^"]+: 10 ofertas comparadas/);
+  });
+});
+
+describe('guías de zona y de temporada', () => {
+  it('Costa Brava: la costa y el Empordà de Blanes a Portbou; Girona ciudad y el Maresme, no', () => {
+    for (const [lugar, lat, lon] of [['Blanes', 41.674, 2.79], ['Tossa', 41.72, 2.93], ['Begur', 41.95, 3.21], ['Cadaqués', 42.29, 3.28], ['Portbou', 42.43, 3.16]]) assert.ok(enCostaBrava({ lat, lon }), lugar);
+    for (const [lugar, lat, lon] of [['Girona', 41.98, 2.82], ['Malgrat', 41.64, 2.74], ['Olot', 42.18, 2.49], ['Colliure', 42.53, 3.08]]) assert.ok(!enCostaBrava({ lat, lon }), lugar);
+  });
+  it('Pirineo: de Jaca al Ripollès, con Andorra; la Garrotxa y Berga, no', () => {
+    for (const [lugar, lat, lon] of [['Andorra', 42.507, 1.52], ['Puigcerdà', 42.43, 1.93], ['Vielha', 42.7, 0.8], ['Jaca', 42.57, -0.55]]) assert.ok(enPirineo({ lat, lon }), lugar);
+    for (const [lugar, lat, lon] of [['Olot', 42.18, 2.49], ['Berga', 42.1, 1.85], ['Lleida', 41.62, 0.62]]) assert.ok(!enPirineo({ lat, lon }), lugar);
+  });
+  it('Navidad: del 19 de diciembre al 6 de enero, y la guía solo existe de octubre a Reyes', () => {
+    assert.deepEqual(temporadaNavidad('2026-11-06T10:00:00Z'), { desde: '2026-12-19', hasta: '2027-01-06' });
+    assert.deepEqual(temporadaNavidad('2027-01-05T10:00:00Z'), { desde: '2026-12-19', hasta: '2027-01-06' });
+    assert.equal(temporadaNavidad('2027-01-07T10:00:00Z'), null);
+    assert.equal(temporadaNavidad('2026-07-01T10:00:00Z'), null);
   });
 });

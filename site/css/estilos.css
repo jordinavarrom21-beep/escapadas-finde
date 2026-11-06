@@ -206,6 +206,12 @@ pre { background: var(--superficie-2); padding: 14px; border-radius: 12px; overf
 pre code { background: none; padding: 0; }
 
 :focus-visible { outline: 3px solid var(--acento); outline-offset: 2px; border-radius: 8px; }
+/* Lo que pinta el navegador, con los colores de la web: selección, cursor, barras y controles nativos. */
+::selection { background: color-mix(in srgb, var(--acento) 26%, transparent); color: inherit; }
+html { caret-color: var(--acento); accent-color: var(--acento); scrollbar-color: var(--borde-fuerte) transparent; }
+a { text-decoration-thickness: from-font; }
+/* Precios y cifras que se comparan en columna: todas las cifras del mismo ancho. */
+.precio, .coste-total, .idea__precio, .ficha__reserva-precio, .billete__talon, table { font-variant-numeric: tabular-nums; }
 .titulo-vista:focus, #principal:focus { outline: none; }
 
 .sr {
@@ -758,7 +764,7 @@ html:not(.js) .cargando { display: none; }
 }
 .tarjeta__lugar .suave { font-weight: 800; }
 /* Dos líneas como mucho: el título entero está en la ficha (y en el title del botón). */
-.tarjeta__titulo { font-size: 1.06rem; line-height: 1.3; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
+.tarjeta__titulo { font-size: 1.1rem; line-height: 1.25; letter-spacing: -0.01em; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
 .enlace-ficha { all: unset; cursor: pointer; font-weight: 750; color: var(--texto); overflow-wrap: anywhere; }
 .enlace-ficha:hover { text-decoration: underline; text-underline-offset: 3px; }
 .enlace-ficha:focus-visible { outline: 3px solid var(--acento); outline-offset: 2px; border-radius: 4px; }
@@ -1612,8 +1618,18 @@ html:not(.js) .cargando { display: none; }
   .seccion--puente { margin-inline: calc(-1 * var(--espacio)); border-radius: 0; padding: 26px var(--espacio); }
   .tarjeta:hover, .billete:hover, .finde-celda:hover { transform: none; }
   .ficha__reserva { margin: 0 -14px -22px; padding-inline: 14px; }
-  /* Foto más baja: se ven el título y el precio sin tanto desplazamiento. */
-  .tarjeta .tarjeta__media { aspect-ratio: 2 / 1; }
+  /* Tarjeta compacta en el móvil (unos 520 px en vez de 650): foto más baja, el viaje completo en
+     una línea (el desglose sigue en la ficha y al pasar por encima) y menos aire entre partes. */
+  .tarjeta .tarjeta__media { aspect-ratio: 5 / 2; }
+  .tarjeta__cuerpo { gap: 6px; padding: 10px 14px 12px; }
+  .tarjeta__pie { gap: 6px; padding-top: 8px; }
+  .tarjeta .coste-total { padding: 6px 10px; }
+  .tarjeta .coste-total__grupo, .tarjeta .coste-total__supuestos { display: none; }
+  .tarjeta .precio strong { font-size: 1.5rem; }
+}
+/* Una tarjeta por fila: no hace falta reservar dos líneas de datos para alinearla con la de al lado. */
+@media (max-width: 599px) {
+  .tarjeta .tarjeta__datos { min-height: 0; }
 }
 
 /* Móviles estrechos (320 px). */
@@ -1795,6 +1811,10 @@ body:has([data-plegable-movil][open]) .barra-comparar [data-abrir-filtros] { dis
   background: var(--superficie); color: var(--texto); font: inherit; text-align: left; cursor: pointer;
 }
 .viaje-resumen:hover { border-color: var(--acento); }
+/* Primera visita: qué es el viaje completo (vistas-portada.js). */
+.primera-visita { display: flex; gap: 10px; align-items: flex-start; margin: 0; padding: 9px 14px; border-radius: var(--radio-medio); background: var(--acento-suave); color: var(--acento-suave-texto); font-size: 0.86rem; line-height: 1.4; }
+.primera-visita .ic { flex: none; width: 18px; height: 18px; margin-top: 2px; }
+.primera-visita strong { color: inherit; }
 .viaje-resumen__icono { display: grid; place-items: center; width: 32px; height: 32px; flex: none; border-radius: 50%; background: var(--acento-suave); color: var(--acento); }
 .viaje-resumen__texto { display: grid; min-width: 0; line-height: 1.2; }
 .viaje-resumen__texto small { font-size: 0.74rem; color: var(--texto-suave); }

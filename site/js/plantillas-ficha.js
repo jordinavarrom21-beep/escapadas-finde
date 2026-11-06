@@ -380,13 +380,13 @@ export function contenidoFicha(o, ctx) {
   <h3 class="sr">Reservar</h3>
   <ul class="ficha__enlaces">${enlaces[0] ?? ''}</ul>
   ${notaFechasOferta(o, ctx)}
+  ${costeFicha(o, ctx)}
   ${comparadorFicha(o, ctx)}
   ${enlaces.length > 1 ? `<details class="ficha__mas-enlaces">
     <summary><h3 id="ficha-enlaces-titulo">${icono('enlace')}Organiza el viaje <span class="suave">(hotel, actividades, cómo llegar${busquedaPara(o, ctx) ? ` · ${esc(busquedaPara(o, ctx).etiqueta)}` : ''})</span></h3></summary>
     <ul class="ficha__enlaces ficha__enlaces--resto">${enlaces.slice(1).join('')}</ul>
   </details>` : ''}
   ${avisoPagoFicha(o, ctx)}
-  ${costeFicha(o, ctx)}
   <section class="ficha__historial" aria-labelledby="ficha-historial-titulo">
     <h3 id="ficha-historial-titulo">${icono('bajada')}Historial de precios${o.historialPorNoche ? ' <span class="suave">(por noche)</span>' : ''}</h3>
     ${serie.length >= 2
