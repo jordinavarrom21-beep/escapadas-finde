@@ -18,7 +18,9 @@
   "googleAnalytics": "G-D275EQYWYV",
   "travelpayoutsDrive": "https://emrldco.com/NTgyMTQz.js?t=582143",
   "fotos": {
-    "fuentesConPermiso": []
+    "fuentesConPermiso": [],
+    "usarLasDeLasOfertas": true,
+    "nota": "Decisión del propietario (6/11/2026): de momento se enseñan las fotos que publica cada web en sus ofertas, cargadas desde esa web y con su nombre. Para volver a solo fotos con licencia, poner usarLasDeLasOfertas en false."
   },
   "retencionDias": 10,
   "maxFuentesEnParalelo": 4,

@@ -391,7 +391,8 @@ function filaOferta(o, nombres, d = {}, raiz = '') {
   <h3>${esc(o.titulo)}</h3>
   <p>${[lugar && `<span aria-hidden="true">📍</span> ${esc(lugar)}`, ruta && esc(ruta), esc(fechas), llegar && esc(llegar), salidas.length && `Sale de ${esc(salidas.join(', '))}`, o.valoracion?.nota >= 0 && `<span aria-hidden="true">⭐</span><span class="sr">Nota</span> ${esc(String(o.valoracion.nota).replace('.', ','))}`].filter(Boolean).join(' · ')}</p>
   ${precio}
-  <p class="suave">Publicada en ${esc(web)}${o.vistaUltima ? ` · precio visto allí el ${esc(etiquetaDia(fechaLocal(o.vistaUltima)))}` : ''}${o.patrocinada ? ' · Patrocinado' : ''}${url ? ` · <a href="${esc(url)}" rel="${rel}" target="_blank">Ver la oferta<span class="sr"> en ${esc(web)} (se abre en otra pestaña)</span></a>` : ''}</p>
+  ${url ? `<p class="fila-guia__accion"><a class="boton boton--primario" href="${esc(url)}" rel="${rel}" target="_blank">Ver oferta en ${esc(web)}<span class="sr"> (se abre en otra pestaña)</span></a></p>` : ''}
+  <p class="suave fila-guia__nota">${o.vistaUltima ? `Precio visto en ${esc(web)} el ${esc(etiquetaDia(fechaLocal(o.vistaUltima)))}` : `Publicada en ${esc(web)}`}${o.patrocinada ? ' · Patrocinado' : ''}. El precio final lo confirma su web.</p>
 </li>`;
 }
 

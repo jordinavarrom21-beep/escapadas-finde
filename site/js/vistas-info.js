@@ -291,7 +291,7 @@ function seccionAvisoLegal(e) {
   <h2 class="subtitulo">Aviso legal</h2>
   ${datos}
   <p>Escapadas Finde es un buscador de ofertas de viaje publicadas por otras webs. No vende viajes ni hace reservas: el precio, la disponibilidad y las condiciones los fija y los confirma siempre la web de cada oferta. Algunos enlaces son de afiliado y, si reservas por ellos, esa web puede pagarnos una comisión; no cambia tu precio ni el orden de las ofertas.</p>
-  <p>Las ofertas y marcas son de sus webs y dueños. Las fotos son de Wikimedia Commons (con su autor y licencia en la ficha) o de webs que permiten usarlas; si no hay ninguna, se ve una ilustración. Las ofertas se revisan varias veces al día, pero pueden cambiar o terminar antes: comprueba siempre la oferta antes de reservar.</p>
+  <p>Las ofertas y marcas son de sus webs y dueños. Las fotos pueden ser las que publica la web de cada oferta (con su nombre) o, si no hay, las del destino en Wikimedia Commons (con su autor y licencia en la ficha); si no hay ninguna, se ve una de ejemplo. Las ofertas se revisan varias veces al día, pero pueden cambiar o terminar antes: comprueba siempre la oferta antes de reservar.</p>
 </section>`;
 }
 

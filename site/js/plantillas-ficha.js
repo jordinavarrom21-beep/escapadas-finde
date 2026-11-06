@@ -26,7 +26,8 @@ import {
 function creditoFoto(foto) {
   const url = urlSegura(foto.credito?.url);
   if (!url) return '';
-  const aviso = foto.ejemplo ? '' : ' <span class="ficha__credito-aviso">· el destino, no el alojamiento</span>';
+  // Solo las de Wikimedia (con licencia) son del destino; la de la web de la oferta es de la oferta.
+  const aviso = foto.ejemplo || !foto.credito.licencia ? '' : ' <span class="ficha__credito-aviso">· el destino, no el alojamiento</span>';
   return `<a class="ficha__credito" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(foto.credito.texto ?? 'Foto')}${aviso}<span class="sr"> (se abre en otra pestaña)</span></a>`;
 }
 

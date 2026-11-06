@@ -150,10 +150,14 @@ function problemasEmails(emails) {
   return problemas;
 }
 
-/** «fotos»: {fuentesConPermiso: ['civitatis', …]}, las webs cuyas fotos se pueden enseñar. */
+/**
+ * «fotos»: {fuentesConPermiso: ['civitatis', …], usarLasDeLasOfertas}: las webs cuyas fotos se pueden
+ * enseñar o, con usarLasDeLasOfertas, las de todas (decisión del propietario).
+ */
 function problemasFotos(fotos) {
   if (fotos === undefined) return [];
   return esObjeto(fotos) && (fotos.fuentesConPermiso === undefined || esListaDeTextos(fotos.fuentesConPermiso))
+    && (fotos.usarLasDeLasOfertas === undefined || typeof fotos.usarLasDeLasOfertas === 'boolean')
     ? []
     : ['fotos debe ser un objeto {fuentesConPermiso: [ids de las webs]}'];
 }
