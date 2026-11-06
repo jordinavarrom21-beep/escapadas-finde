@@ -539,8 +539,12 @@ await cs.close();
 const cp = await contexto();
 const pp = await pagina(cp);
 await ir(pp, 'escapadas');
-const altFotos = await pp.locator('#resultados img.tarjeta__imagen').evaluateAll((imgs) => imgs.map((i) => i.alt));
-ok(!altFotos.length || altFotos.every((alt) => alt.trim().length > 3), `fotos: cada una dice de qué es («${altFotos[0] ?? 'sin fotos'}»)`);
+// La foto del destino dice de qué es; la de ejemplo de su temática (lleva «Foto de ejemplo»)
+// es decorativa: alt vacío, para no describir un sitio que no es el de la oferta.
+const altFotos = await pp.locator('#resultados .tarjeta:not(:has(.pastilla-foto--ejemplo)) img.tarjeta__imagen').evaluateAll((imgs) => imgs.map((i) => i.alt));
+ok(!altFotos.length || altFotos.every((alt) => alt.trim().length > 3), `fotos del destino: cada una dice de qué es («${altFotos[0] ?? 'sin fotos'}»)`);
+const altEjemplo = await pp.locator('#resultados .tarjeta:has(.pastilla-foto--ejemplo) img.tarjeta__imagen').evaluateAll((imgs) => imgs.map((i) => i.alt));
+ok(altEjemplo.every((alt) => alt === ''), 'fotos de ejemplo: alt vacío (decorativas)');
 ok((await pp.locator('.marca img').getAttribute('alt')) === '', 'logo: alt vacío (el nombre ya va escrito al lado)');
 const apartamento = await pp.evaluate(async () => (await (await fetch('data/ofertas.json')).json()).ofertas.find((o) => o.alojamiento === 'apartamento')?.id ?? null);
 if (apartamento) {
