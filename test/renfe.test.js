@@ -127,3 +127,19 @@ describe('renfe: robots.txt', () => {
     for (const url of fuente.urls) assert.ok(rutaPermitida(robots, new URL(url).pathname), url);
   });
 });
+
+describe('renfe: la web nueva (noviembre de 2026, `rv-content-card`)', () => {
+  const ofertas = parsear(leerFixture('renfe-ofertas-2026-11.html'));
+  it('lee las 15 promociones y se salta las tarjetas que solo llevan a cada apartado', () => {
+    assert.equal(ofertas.length, 15);
+    for (const o of ofertas) assert.deepEqual(validarOferta(o), [], o.titulo);
+    assert.ok(!ofertas.some((o) => /^Recién llegadas$|^Museos y exposiciones$/.test(o.titulo)), 'las de navegación no son ofertas');
+  });
+  it('cada una con su descuento, su apartado (temática) y su ciudad cuando la dice', () => {
+    const botin = ofertas.find((o) => o.titulo.startsWith('Centro Botín'));
+    assert.equal(botin.descuento, 50);
+    assert.deepEqual(botin.temas, ['ciudad']);
+    assert.equal(botin.lugar?.nombre, 'Santander');
+    assert.ok(ofertas.find((o) => o.titulo.startsWith('Terra Natura')).temas.includes('parques'));
+  });
+});

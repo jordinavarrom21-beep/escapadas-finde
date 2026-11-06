@@ -66,14 +66,28 @@ const slug = (texto) => normalizarTexto(texto).replace(/[^a-z0-9]+/g, '-').repla
  */
 export function promociones(html) {
   const $ = cheerio.load(html);
-  const nodos = $('h2, rf-slider[text-title], rf-card').get();
-  if (!nodos.some((nodo) => nodo.tagName === 'rf-card')) return null;
+  // Desde finales de octubre de 2026 la web usa `rv-content-card` (título, texto, imagen en JSON y
+  // el enlace en su botón) y los apartados son `rf-label-block`; antes, `rf-card` y `rf-slider`.
+  const esTarjeta = (nodo) => nodo.tagName === 'rf-card' || nodo.tagName === 'rv-content-card';
+  const nodos = $('h2, rf-slider[text-title], rf-label-block[text], rf-card, rv-content-card').get();
+  if (!nodos.some(esTarjeta)) return null;
   let seccion = '';
   const tarjetas = [];
   for (const nodo of nodos) {
     const $nodo = $(nodo);
-    if (nodo.tagName !== 'rf-card') {
-      seccion = limpiar(nodo.tagName === 'h2' ? $nodo.text() : $nodo.attr('text-title'));
+    if (!esTarjeta(nodo)) {
+      seccion = limpiar(nodo.tagName === 'h2' ? $nodo.text() : $nodo.attr('text-title') ?? $nodo.attr('text'));
+      continue;
+    }
+    if (nodo.tagName === 'rv-content-card') {
+      const url = absoluta($nodo.find('rv-button-link').attr('href'));
+      // Las del principio, sin botón, solo llevan a cada apartado: no son promociones.
+      if (!url) continue;
+      let imagen = null;
+      try {
+        imagen = absoluta(JSON.parse($nodo.attr('image') ?? '{}').srcDesktop) || null;
+      } catch { /* sin imagen */ }
+      tarjetas.push({ titulo: limpiar($nodo.attr('title-text')), texto: limpiar($nodo.attr('body-text')), seccion, url, imagen });
       continue;
     }
     tarjetas.push({
