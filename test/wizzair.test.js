@@ -70,6 +70,26 @@ describe('wizzair: vuelos con fecha, gratis y sin registro', () => {
     assert.equal(reemplazar({ vuelo: { origen: 'REU', destino: 'BUD' } }), false);
   });
 
+  it('obtener: primero la ruta que hace más que no se lee (si Wizz va lento, la siguiente vez sigue por las otras)', async () => {
+    const cuerpos = [];
+    const { ctx } = crearCtx({ respuestas: (url) => {
+      if (url === 'https://wizzair.com/es-es') return PORTADA;
+      if (url.includes('/Api/asset/map')) return MAPA;
+      return CALENDARIO;
+    } });
+    const json = ctx.http.json;
+    ctx.http.json = (url, o) => { if (o?.cuerpo) cuerpos.push(o.cuerpo.flightList[0].arrivalStation); return json(url, o); };
+    Object.assign(ctx, { ajustes: HASTA_200, findes, puentes: [], ahora: new Date('2026-10-01T10:00:00Z') });
+    await wizzair.obtener(ctx);
+    const [primera, segunda] = cuerpos;
+    // La primera ruta se acaba de leer: en la siguiente ejecución va la última.
+    ctx.cache.guardar(`wizzair:ruta:BCN-${segunda}`, 0, 0);
+    ctx.cache.guardar(`wizzair:ruta:BCN-${primera}`, Date.parse('2026-10-01T10:00:00Z'), Date.parse('2026-10-01T10:00:00Z'));
+    cuerpos.length = 0;
+    await wizzair.obtener(ctx);
+    assert.deepEqual(cuerpos, [segunda, primera]);
+  });
+
   it('un bloqueo (403) para enseguida; si ninguna ruta funciona, la fuente falla', async () => {
     const { ctx, peticiones, logs } = crearCtx({ respuestas: (url) => {
       if (url === 'https://wizzair.com/es-es') return PORTADA;
@@ -80,5 +100,31 @@ describe('wizzair: vuelos con fecha, gratis y sin registro', () => {
     await assert.rejects(wizzair.obtener(ctx), /Ninguna consulta a Wizz Air/);
     assert.equal(peticiones.filter((u) => u.includes('timetable')).length, 1);
     assert.match(logs.join('\n'), /bloqueado o limitado/);
+  });
+});
+
+describe('wizzair: tiempo máximo', () => {
+  it('si se acaba el tiempo a mitad, para antes de la siguiente petición y devuelve lo leído (no falla)', async () => {
+    const { ctx, logs, peticiones } = crearCtx({ respuestas: (url) => {
+      if (url === 'https://wizzair.com/es-es') return PORTADA;
+      if (url.includes('/Api/asset/map')) return MAPA;
+      return CALENDARIO;
+    } });
+    Object.assign(ctx, { ajustes: HASTA_200, findes, puentes: [], ahora: new Date('2026-10-01T10:00:00Z') });
+    const real = Date.now;
+    let reloj = real();
+    // La primera consulta al calendario tarda 10 minutos (más que todo el tiempo disponible).
+    const json = ctx.http.json;
+    ctx.http.json = async (url, o) => { const r = await json(url, o); if (url.endsWith('/Api/search/timetable')) reloj += 10 * 60_000; return r; };
+    Date.now = () => reloj;
+    try {
+      const { ofertas, reemplazar } = await wizzair.obtener(ctx);
+      assert.ok(Array.isArray(ofertas), 'devuelve lo leído en vez de fallar');
+      assert.equal(peticiones.filter((u) => u.endsWith('/Api/search/timetable')).length, 1, 'una ruta leída, la otra para el siguiente escaneo');
+      assert.ok(logs.some((l) => /1 rutas quedan para el siguiente escaneo/.test(l)));
+      assert.equal(typeof reemplazar, 'function');
+    } finally {
+      Date.now = real;
+    }
   });
 });

@@ -84,6 +84,80 @@ export const TEXTOS_GUIAS = {
       ['¿Qué hay a menos de 2 horas de {desde}?', 'La Costa Brava sur, el Montseny, la Garrotxa (Olot, Besalú), Girona, Vic, Cardona, Montserrat, la Costa Daurada y parte del Priorat, entre otros.'],
     ],
   },
+  'escapadas/a-menos-de-3-horas': {
+    titulo: 'Escapadas a menos de 3 horas de {desde}',
+    parrafos: [
+      'Con tres horas de coche, desde {desde} se llega al Pirineo (la Cerdanya, el Ripollès, el Pallars, el Alt Urgell), a toda la Costa Brava hasta Cadaqués y Portbou, al Delta de l\'Ebre, al Priorat y la Terra Alta, a Andorra y, cruzando la frontera, a Perpiñán y Colliure. Son destinos que piden dos noches para que el viaje compense.',
+      'Primero van los destinos de entre 2 y 3 horas, uno por pueblo o ciudad (lo que está más cerca tiene sus propias guías), ordenados por el viaje completo para dos: la oferta y la gasolina de ida y vuelta. A esta distancia la gasolina ya pesa, así que una oferta algo más cara pero más cerca puede salir igual.',
+    ],
+    consejos: [
+      'Para tres horas de viaje, mejor dos noches: con una sola, se pasa medio fin de semana en la carretera.',
+      'Al Pirineo en invierno, lleva cadenas o neumáticos de invierno y mira el estado de los puertos antes de salir.',
+      'Revisa los peajes de la ruta (Túnel del Cadí, autopistas): no están incluidos en el coste estimado.',
+    ],
+    preguntas: [
+      ['¿Qué destinos hay a 3 horas en coche de {desde}?', 'El Pirineo catalán y Andorra, toda la Costa Brava, el Delta de l\'Ebre, el Priorat, la Terra Alta y el sur de Francia (Perpiñán, Colliure), entre otros. En la lista están las ofertas de ahora a esa distancia.'],
+    ],
+  },
+  'escapadas/una-noche': {
+    titulo: 'Escapadas de una noche desde {desde}',
+    parrafos: [
+      'Una sola noche basta para cambiar de aires sin pedir días libres: salir el sábado por la mañana y volver el domingo por la tarde. Funciona mejor con destinos a menos de dos horas, para que el viaje no se coma el tiempo, y con planes que ya incluyen algo: spa, cena o desayuno.',
+      'Aquí están las ofertas de una noche, ordenadas por el viaje completo para dos (la oferta y la gasolina de ida y vuelta desde {desde} si se va en coche). Muchas webs también permiten reservar una sola noche en ofertas que se publican por noche: en el panel puedes elegir las noches de tu viaje.',
+    ],
+    consejos: [
+      'Elige algo cerca: con una noche, cada hora de carretera cuenta el doble.',
+      'Mira la hora de salida de la habitación: una salida tardía (late check-out) alarga la escapada sin pagar otra noche.',
+      'Un hotel con spa o con cena incluida aprovecha mejor una sola noche que uno sin nada.',
+    ],
+    preguntas: [
+      ['¿Merece la pena una escapada de una noche?', 'Sí, si el destino está cerca (menos de dos horas) y el plan incluye algo más que dormir: spa, cena, una ruta o una visita. En la lista están las ofertas de una noche de ahora.'],
+    ],
+  },
+  'escapadas/costa-brava': {
+    titulo: 'Escapadas a la Costa Brava desde {desde}',
+    parrafos: [
+      'La Costa Brava va de Blanes a Portbou: calas entre pinos, pueblos marineros como Tossa de Mar, Calella de Palafrugell, Begur o Cadaqués, y detrás el Empordà, con pueblos medievales como Pals o Peratallada y mucha masía convertida en alojamiento. Desde {desde}, la parte sur está a poco más de una hora y el Cap de Creus a unas dos horas y media.',
+      'Fuera de julio y agosto es otra: menos gente, calas tranquilas y apartamentos y hoteles mucho más baratos. Aquí están las ofertas de ahora en la Costa Brava y el Empordà, ordenadas por el viaje completo para dos.',
+    ],
+    consejos: [
+      'En primavera y otoño se puede hacer el Camí de Ronda, el sendero que une calas a pie, sin el calor del verano.',
+      'En verano, aparca pronto o elige alojamiento con parking: en los pueblos de costa es lo más difícil.',
+    ],
+    preguntas: [
+      ['¿Cuál es la mejor época para ir a la Costa Brava?', 'Mayo, junio y septiembre: buen tiempo, el mar ya templado y precios más bajos que en julio y agosto.'],
+    ],
+  },
+  'escapadas/pirineo': {
+    titulo: 'Escapadas al Pirineo desde {desde}',
+    parrafos: [
+      'Del Ripollès a la Val d\'Aran, con la Cerdanya, el Pallars, el Alt Urgell y Andorra, y al otro lado el Pirineo aragonés y la Cerdanya francesa: valles, lagos, pueblos de piedra y estaciones de esquí. Desde {desde}, la Cerdanya y el Ripollès están a unas dos horas; la Val d\'Aran y el Pirineo aragonés, a más de tres.',
+      'En invierno es nieve y esquí; el resto del año, rutas, lagos de montaña, aguas termales y gastronomía de montaña. Aquí están las ofertas de ahora en el Pirineo, ordenadas por el viaje completo para dos (la oferta y la gasolina).',
+    ],
+    consejos: [
+      'En invierno, consulta el estado de las carreteras y lleva cadenas o neumáticos de invierno.',
+      'La ruta más habitual a la Cerdanya pasa por el peaje del Túnel del Cadí, que no está incluido en el coste estimado.',
+      'En verano, reserva con antelación los refugios y los aparcamientos de los parques naturales con acceso limitado.',
+    ],
+    preguntas: [
+      ['¿Qué zona del Pirineo está más cerca de {desde}?', 'La Cerdanya y el Ripollès, a unas dos horas en coche. Andorra está a unas dos horas y media y la Val d\'Aran, a algo más de tres.'],
+    ],
+  },
+  'escapadas/navidad': {
+    titulo: 'Escapadas de Navidad desde {desde}',
+    parrafos: [
+      'Entre Nochebuena y Reyes hay varios días seguidos para escaparse: pueblos con mercados de Navidad, casas rurales para juntarse en familia, la nieve del Pirineo o un hotel con spa para desconectar después de las comidas. Son fechas de mucha demanda, así que lo bueno se llena antes.',
+      'Primero van las ofertas con fecha en esos días y después las de fechas flexibles que siguen vigentes, ordenadas por el viaje completo para dos (la oferta y la gasolina de ida y vuelta desde {desde}). Comprueba siempre en la web que haya plazas para tus fechas.',
+    ],
+    consejos: [
+      'Reserva cuanto antes: en Navidad y Fin de Año los precios suben a medida que se llena.',
+      'Mira la cena de Nochevieja: muchos hoteles la incluyen (y la cobran) en sus paquetes de esos días.',
+      'Entre Navidad y Año Nuevo suele haber días entre semana más baratos que el puente de Reyes.',
+    ],
+    preguntas: [
+      ['¿Cuándo conviene reservar una escapada en Navidad?', 'Con al menos un mes de antelación, sobre todo para Fin de Año y Reyes, que es cuando antes se llenan los alojamientos.'],
+    ],
+  },
   'escapadas/sin-coche': {
     parrafos: [
       'Escapadas a las que se llega sin coche desde {desde}: en tren (Rodalies, regionales y alta velocidad), en autobús, en ferry a Baleares o en avión. Muchas ciudades y pueblos de costa están bien conectados y se recorren a pie.',

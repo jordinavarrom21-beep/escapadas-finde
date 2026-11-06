@@ -199,6 +199,12 @@ export function resumenViaje(e) {
     <span class="viaje-resumen__icono" aria-hidden="true">${icono('pin')}</span><span class="viaje-resumen__texto"><small>Tu viaje</small><strong>${esc(viaje)}</strong></span><span class="viaje-resumen__cambiar" aria-hidden="true">Cambiar</span></button>`;
 }
 
+/**
+ * Solo en la primera visita: qué es el «viaje completo», que es lo que distingue la web, y dónde
+ * se cambia la salida. En la siguiente visita ya no sale (visitaAnterior).
+ */
+const primeraVisita = (e) => `<p class="primera-visita">${icono('cartera')}<span>Cada oferta dice <strong>el viaje completo por persona</strong>: alojamiento y gasolina desde ${esc(nombreSalida(e))}. ¿Sales de otro sitio? Cámbialo en «Tu viaje».</span></p>`;
+
 // ── Debajo del buscador ─────────────────────────────────────────────────────
 
 /**
@@ -578,6 +584,7 @@ export function vistaFinde(e, params = {}) {
     <a class="portada__hero-credito" href="${esc(foto.pagina)}" target="_blank" rel="noopener noreferrer">Foto: ${esc(foto.lugar)} · ${esc(foto.autor)} · ${esc(foto.licencia)} (${esc(foto.cambios)})<span class="sr"> (se abre en otra pestaña)</span></a>
   </div>
   ${resumenViaje(e)}
+  ${e.visitaAnterior ? '' : primeraVisita(e)}
   ${buscadorPlegable(e)}
   ${lineaConfianza(e)}
 </section>

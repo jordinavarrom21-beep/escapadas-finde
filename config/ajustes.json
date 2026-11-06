@@ -189,7 +189,8 @@
       "intervaloMin": 1440
     },
     "volotea": {
-      "activa": true,
+      "activa": false,
+      "motivo": "Responde con un desafío anti-bot desde el 5/11/2026 (no se salta): revisar la web antes de reactivarla",
       "intervaloMin": 360
     },
     "ouigo": {
