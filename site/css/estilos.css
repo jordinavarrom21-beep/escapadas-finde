@@ -845,6 +845,11 @@ html:not(.js) .cargando { display: none; }
 .tarjeta .acciones .boton--primario { container: boton-oferta / inline-size; }
 .tarjeta .acciones .boton__texto { white-space: normal; text-align: center; line-height: 1.15; }
 @container boton-oferta (max-width: 150px) { .boton__web { display: none; } }
+/* En un billete estrecho (Puentes a 320 px), «Ver oferta en Google Flights» va en dos líneas antes
+   que salirse de la tarjeta. */
+.billete__pie > .acciones { min-width: 0; max-width: 100%; }
+.billete .acciones .boton--primario { min-width: 0; max-width: 100%; }
+.billete .acciones .boton__texto { white-space: normal; text-align: center; line-height: 1.15; }
 .acciones { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 
 .precio { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 7px; }
@@ -2129,8 +2134,6 @@ p.aviso-suave .ic { flex: none; width: 16px; height: 16px; }
   html:has(.fechas--abierta) .barra-comparar { display: none; }
   .fechas__rapidas .chips__lista { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: -10px; padding-inline: 10px; }
   .atajos { margin-bottom: 10px; }
-  /* Explorar en el móvil: los atajos en una fila que se desliza y la cuenta junto a «Tarjetas/Lista»:
-     la primera oferta sube casi 90 px. */
+  /* Explorar en el móvil: los atajos en una fila que se desliza (la primera oferta sube ~45 px). */
   .atajos .chips__lista { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: -10px; padding-inline: 10px; }
-  .resultados__cuenta { flex: 1 1 0; min-width: 0; }
 }
