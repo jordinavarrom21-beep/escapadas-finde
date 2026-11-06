@@ -520,7 +520,10 @@ const cs = await contexto({ serviceWorkers: 'allow' });
 const s = await pagina(cs);
 await s.goto(`${BASE}#/finde`);
 await s.waitForSelector('.titulo-vista');
-await s.evaluate(() => navigator.serviceWorker.ready);
+// «ready» no se cumple nunca si la instalación falla (un archivo de INTERFAZ que no llega):
+// como mucho 20 s, y se dice.
+const swListo = await s.evaluate(() => Promise.race([navigator.serviceWorker.ready.then(() => true), new Promise((listo) => { setTimeout(() => listo(false), 20_000); })]));
+ok(swListo, 'service worker: se instala (todos los archivos de INTERFAZ llegan)');
 await s.waitForTimeout(1500);
 const cacheados = await s.evaluate(async () => {
   const claves = await caches.keys();

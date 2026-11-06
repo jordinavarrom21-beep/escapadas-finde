@@ -37,11 +37,8 @@ const INTERFAZ = [
   'js/filtros.js',
   'js/formato.js',
   'js/fotos-tema.js',
-  'img/portada.jpg',
-  'img/temas/mar.jpg',
-  'img/temas/montana.jpg',
-  'img/temas/ciudad.jpg',
-  'img/temas/cielo.jpg',
+  // Las fotos (img/) no van aquí: si una sola falla al instalar, el service worker entero no
+  // se instala. Se guardan al verlas (primeroCache).
   'js/geo.js',
   'js/iconos.js',
   'js/local.js',
