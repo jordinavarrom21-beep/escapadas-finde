@@ -20,7 +20,9 @@ const archivo = (nombre) => `https://commons.wikimedia.org/wiki/File:${encodeURI
 const CADUCIDAD_MS = 30 * 24 * 60 * 60 * 1000;
 // 40 lugares son 80 peticiones a api.wikimedia.org (búsqueda y artículo van a hosts distintos,
 // pero cuentan igual) cada 15 min: 320 a la hora, por debajo de las 500 que deja sin clave.
-const MAX_NUEVAS = 40;
+// Unos 3 s por lugar (tres peticiones y la pausa): 200 son unos 5 minutos de un escaneo que puede
+// durar 20. Con 40, tras cambiar la clave de la caché se tardaban 7 horas en recuperar las ~1.100.
+const MAX_NUEVAS = 200;
 const PAUSA_MS = 500;
 /** Ancho de la miniatura: uno de los tamaños estándar que sirve Wikimedia. */
 const ANCHO = 500;
