@@ -457,7 +457,7 @@ html:not(.js) .cargando { display: none; }
 
 .seccion { margin-top: 44px; }
 .seccion__cabeza { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
-.seccion__cabeza h2 { display: flex; align-items: center; gap: 12px; font-size: clamp(1.35rem, 2.4vw, 1.85rem); }
+.seccion__cabeza h2 { display: flex; align-items: center; gap: 12px; font-size: clamp(1.5rem, 2.4vw, 1.85rem); }
 .seccion__cabeza h2 .suave { font-family: var(--fuente); font-size: 0.95rem; font-weight: 500; letter-spacing: 0; }
 .portada__ideas .seccion__cabeza h2 { display: block; }
 .seccion__icono {
@@ -944,7 +944,8 @@ html:not(.js) .cargando { display: none; }
   .pestana .ic { display: none; }
   .resultados__cuenta { font-size: 1.12rem; }
   .selector-modo__boton { padding: 4px 12px; }
-  .seccion__cabeza h2 { font-size: 1.3rem; }
+  /* Más que el texto de las secciones (antes, igual que el título del buscador). */
+  .seccion__cabeza h2 { font-size: 1.5rem; }
 }
 
 /* Precio único («Hasta … €» y qué cuenta). */
@@ -1788,6 +1789,11 @@ body:has([data-plegable-movil][open]) .barra-comparar [data-abrir-filtros] { dis
 /* Inicio: «¿Qué buscas?» con tres opciones grandes, y lo demás plegado debajo. */
 /* Al ancho de la página, como «Lo mejor para este finde» de debajo (antes se quedaba más estrecho). */
 .portada { display: grid; gap: 16px; }
+/* «Tu viaje» y, en la primera visita, qué es el viaje completo: en una fila en pantalla ancha. */
+.portada__viaje { display: grid; gap: 12px; }
+@media (min-width: 720px) {
+  .portada__viaje { grid-template-columns: auto minmax(0, 1fr); align-items: center; }
+}
 .portada__intro { margin: -6px 0 4px; color: var(--texto); font-size: 1.15rem; font-weight: 600; }
 /* Cabecera con foto: el título en blanco sobre un degradado oscuro (contraste en claro y oscuro). */
 .portada__hero { position: relative; display: grid; align-items: end; min-height: 210px; border-radius: 22px; overflow: hidden; background: var(--foto); isolation: isolate; }

@@ -59,8 +59,8 @@ for (const tema of TEMAS) for (const ancho of ANCHOS) {
       await p.goto(`${BASE}#/comparar`);
       await p.waitForSelector('table.comparar');
     }
-    // En el móvil los filtros empiezan plegados: se despliegan para medirlos también.
-    if (movil) await p.evaluate(() => document.querySelectorAll('[data-plegable-movil]').forEach((d) => { d.open = true; }));
+    // En el móvil los filtros y el buscador de la portada empiezan plegados: se despliegan para medirlos también.
+    if (movil) await p.evaluate(() => document.querySelectorAll('[data-plegable-movil], .buscador-plegable').forEach((d) => { d.open = true; }));
     await p.waitForTimeout(ruta === 'mapa' ? 1500 : 400);
     const r = await p.evaluate(({ movil }) => {
       const out = [];

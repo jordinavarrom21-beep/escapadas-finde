@@ -560,7 +560,10 @@ function buscadorPlegable(e) {
   const { opciones, marcada } = opcionesCuando(e);
   const [, rotulo, dias] = opciones.find(([valor]) => valor === marcada) ?? opciones[0];
   const resumen = [marcada === 'rango' && dias ? dias : rotulo, 'Escapadas'].join(' · ');
-  return `<details class="buscador-plegable"${e.visitaAnterior ? '' : ' open'}>
+  // Abierto solo en la primera visita y con pantalla ancha: en el móvil, desplegado empujaba las
+  // ofertas a más de pantalla y media; plegado es una línea que se toca para elegir.
+  const ancho = typeof matchMedia !== 'function' || matchMedia('(min-width: 720px)').matches;
+  return `<details class="buscador-plegable"${!e.visitaAnterior && ancho ? ' open' : ''}>
   <summary class="buscador-plegable__resumen"><span class="buscador-plegable__texto">${icono('calendario')}${esc(resumen)}</span><span class="buscador-plegable__cambiar">Cambiar</span></summary>
   ${buscadorFinde(e)}
 </details>`;
@@ -583,8 +586,7 @@ export function vistaFinde(e, params = {}) {
     </div>
     <a class="portada__hero-credito" href="${esc(foto.pagina)}" target="_blank" rel="noopener noreferrer">Foto: ${esc(foto.lugar)} · ${esc(foto.autor)} · ${esc(foto.licencia)} (${esc(foto.cambios)})<span class="sr"> (se abre en otra pestaña)</span></a>
   </div>
-  ${resumenViaje(e)}
-  ${e.visitaAnterior ? '' : primeraVisita(e)}
+  <div class="portada__viaje">${resumenViaje(e)}${e.visitaAnterior ? '' : primeraVisita(e)}</div>
   ${buscadorPlegable(e)}
   ${lineaConfianza(e)}
 </section>

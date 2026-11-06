@@ -798,6 +798,9 @@ const inicioPedido = (pm, archivo) => pm.evaluate((a) => performance.getEntriesB
   // lo elegido en «Cambiar» sin buscar aún, ni el foco.
   const { cm, pm, listo } = await cargaMovil({ historialMs: 2500 });
   await listo();
+  // En el móvil el buscador empieza plegado (una línea): se abre con «Cambiar», como haría cualquiera.
+  ok(!(await pm.locator('.buscador-plegable').evaluate((d) => d.open)), 'móvil: el buscador de la portada empieza plegado');
+  await pm.locator('.buscador-plegable > summary').click();
   await pm.locator('.organizar__opcion:has(input[value="vuelos"])').click();
   await pm.locator('#buscador-finde-q').fill('Cadaqués');
   await pm.locator('.atajos-portada [data-sorpresa]').click();
