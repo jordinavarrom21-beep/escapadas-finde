@@ -119,3 +119,12 @@ describe('fotos: bloqueo', () => {
     assert.equal(logs.filter((l) => l.includes('Sin fotos')).length, 1);
   });
 });
+
+describe('fotos de las webs de las ofertas (fotos.usarLasDeLasOfertas)', () => {
+  it('con el ajuste (conPermiso null) se queda la de la web; las de Wikimedia sin licencia de antes siguen fuera', () => {
+    const deLaWeb = quitarFotoSinPermiso(oferta({ fuente: 'buscounchollo', imagen: 'https://www.buscounchollo.com/foto.jpg' }), null);
+    assert.equal(deLaWeb.imagen, 'https://www.buscounchollo.com/foto.jpg');
+    const vieja = oferta({ imagen: 'https://upload.wikimedia.org/x.jpg', imagenCredito: { texto: 'Foto', url: 'https://commons.wikimedia.org/wiki/File:X.jpg' } });
+    assert.equal(quitarFotoSinPermiso(vieja, null).imagen, null);
+  });
+});

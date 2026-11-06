@@ -426,7 +426,9 @@ export async function escanear({
   // Se completan por si vienen de un estado guardado antes de añadir campos nuevos.
   for (const [id, oferta] of Object.entries(estado.ofertas)) estado.ofertas[id] = completarOferta(oferta);
   const ofertas = Object.values(estado.ofertas);
-  const fotosConPermiso = new Set(ajustes.fotos?.fuentesConPermiso ?? []);
+  // Con «usarLasDeLasOfertas» (decisión del propietario), las de todas las webs: null.
+  const fotosConPermiso = ajustes.fotos?.usarLasDeLasOfertas ? null : new Set(ajustes.fotos?.fuentesConPermiso ?? []);
+  const nombreFuente = new Map(fuentes.map((f) => [f.id, f.nombre]));
   const sinTexto = fuentesSinTexto(fuentes);
   for (const oferta of ofertas) {
     // Una newsletter que ya no se relee (más de 3 días) está guardada sin su texto
@@ -436,6 +438,8 @@ export async function escanear({
     if (!deducida) restaurarDeLaFuente(oferta);
     // Solo las fotos de las webs que dan permiso; las demás, de Wikimedia (anadirFotos).
     quitarFotoSinPermiso(oferta, fotosConPermiso);
+    // La foto de la web de la oferta dice de qué web es y enlaza a la oferta.
+    if (oferta.imagen && !oferta.imagenCredito) oferta.imagenCredito = { texto: `Foto: ${nombreFuente.get(oferta.fuente) ?? oferta.fuente}`, url: oferta.urlReserva ?? oferta.url, deLaOferta: true };
     if (!deducida) m.clasificarVueloSinFecha(oferta);
     // Sale de otra ciudad (Madrid…): ni guías ni viaje completo desde tu origen.
     oferta.otraSalida = otraSalida(oferta, { origen: ajustes.origen, aeropuertos: ajustes.vuelos.aeropuertos });

@@ -101,10 +101,10 @@ const deWikimedia = (oferta) => /^https:\/\/commons\.wikimedia\.org\//.test(ofer
  * fotos.fuentesConPermiso): que la web la publique no da permiso para usarla. Sin permiso, la
  * oferta se queda sin foto y `anadirFotos` busca la del lugar en Wikimedia Commons; si tampoco
  * hay, el panel enseña la foto de su temática (site/js/fotos-tema.js).
- * @param {Set<string>} conPermiso ids de las webs
+ * @param {Set<string>|null} conPermiso ids de las webs; null: todas (fotos.usarLasDeLasOfertas)
  */
 export function quitarFotoSinPermiso(oferta, conPermiso) {
-  if ((oferta.imagen && !conPermiso.has(oferta.fuente) && !deWikimedia(oferta)) || deAntes(oferta)) {
+  if ((oferta.imagen && conPermiso && !conPermiso.has(oferta.fuente) && !deWikimedia(oferta)) || deAntes(oferta)) {
     oferta.imagen = null;
     oferta.imagenCredito = null;
   }

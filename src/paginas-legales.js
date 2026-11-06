@@ -20,7 +20,7 @@ const PENDIENTE = '<strong class="pendiente">[dato pendiente de completar por el
 export function tercerosDeAjustes(ruta = new URL('../config/ajustes.json', import.meta.url)) {
   try {
     const a = JSON.parse(readFileSync(ruta, 'utf8'));
-    return { analytics: Boolean(a.googleAnalytics), drive: Boolean(a.travelpayoutsDrive), ads: Boolean(a.googleAds?.id) };
+    return { analytics: Boolean(a.googleAnalytics), drive: Boolean(a.travelpayoutsDrive), ads: Boolean(a.googleAds?.id), fotosOfertas: a.fotos?.usarLasDeLasOfertas === true };
   } catch {
     return { analytics: false, drive: false, ads: false };
   }
@@ -88,7 +88,7 @@ ${fila('Domicilio', legal?.domicilio)}
 <h2>Enlaces de afiliado</h2>
 <p>${t.drive ? 'Si aceptas las cookies de afiliación, los enlaces a webs de la red de Travelpayouts (Booking.com, Trip.com, Omio…) pasan a ser de afiliado: si reservas, esa web nos puede pagar una comisión.' : 'Algunos enlaces pueden ser de afiliado: si reservas por ellos, esa web nos puede pagar una comisión.'} Tu precio no cambia y el orden de las ofertas tampoco: depende solo del precio, las fechas y la calidad. Los enlaces comerciales van marcados para los buscadores como patrocinados.</p>
 <h2>Contenidos, marcas y fotos</h2>
-<p>Las ofertas, sus nombres y sus marcas son de sus webs y dueños. Los textos de esta web, la selección y los cálculos son propios. Las fotos son de Wikimedia Commons, con licencia libre, y cada una lleva su autor y su licencia (ver <a href="../creditos-fotos/">créditos de las fotos</a>). No usamos fotos de las webs de las ofertas.</p>
+<p>Las ofertas, sus nombres y sus marcas son de sus webs y dueños. Los textos de esta web, la selección y los cálculos son propios. Las fotos son de Wikimedia Commons, con licencia libre, y cada una lleva su autor y su licencia (ver <a href="../creditos-fotos/">créditos de las fotos</a>).${t?.fotosOfertas ? ' Cuando la oferta trae foto, se enseña la que publica su web, cargada desde esa web y con su nombre: sus derechos son de esa web, y la retiramos si lo pide.' : ' No usamos fotos de las webs de las ofertas.'}</p>
 <h2>Responsabilidad</h2>
 <p>Las ofertas se revisan con frecuencia, pero pueden cambiar o terminar antes. Comprueba siempre la oferta en su web antes de reservar. Los tiempos en coche y el coste del viaje son estimaciones (ver <a href="../sobre-nosotros/">cómo se calcula</a>).</p>`;
 }
@@ -107,7 +107,7 @@ function privacidad(legal, t) {
 <li><strong>No hay cuentas ni formularios.</strong> No pedimos tu nombre, tu email ni tu teléfono.</li>
 <li><strong>Lo que guardas en la web</strong> (favoritos, búsquedas, ciudad de salida y preferencias) se queda <strong>solo en tu navegador</strong>. No nos llega.</li>
 ${terceros || '<li>No usamos cookies de medición, publicidad ni afiliación.</li>'}
-<li><strong>Servicios técnicos:</strong> al buscar un pueblo, lo escrito se consulta en Photon (komoot); el mapa carga imágenes de OpenStreetMap; las fotos de los destinos se cargan de los servidores de Wikimedia (upload.wikimedia.org); si cambias la ciudad de salida, las distancias se calculan con OSRM (solo se envían coordenadas); algunas librerías se cargan de cdnjs. El alojamiento de la web (Hostinger) puede registrar datos técnicos de la conexión, como la dirección IP, por seguridad.</li>
+<li><strong>Servicios técnicos:</strong> al buscar un pueblo, lo escrito se consulta en Photon (komoot); el mapa carga imágenes de OpenStreetMap; las fotos de los destinos se cargan de los servidores de Wikimedia (upload.wikimedia.org)${t?.fotosOfertas ? ' y las de las ofertas, de la web que las publica' : ''}; si cambias la ciudad de salida, las distancias se calculan con OSRM (solo se envían coordenadas); algunas librerías se cargan de cdnjs. El alojamiento de la web (Hostinger) puede registrar datos técnicos de la conexión, como la dirección IP, por seguridad.</li>
 <li>«Usar mi ubicación» solo funciona si lo pulsas, y la distancia se calcula en tu dispositivo.</li>
 </ul>
 <h2>Cuánto tiempo</h2>
@@ -137,7 +137,7 @@ function contacto(legal) {
 <p>No vendemos viajes: para una reserva hecha, escribe a la web donde reservaste.</p>`;
 }
 
-function sobreNosotros(datos) {
+function sobreNosotros(datos, t) {
   const desde = datos.origen?.nombre ?? 'Barcelona';
   return `<p>${NOMBRE_WEB} reúne en un sitio las escapadas de fin de semana que publican las webs de viajes, para salir desde ${esc(desde)} sin abrir veinte pestañas. Revisamos esas webs varias veces al día y enseñamos lo que cuesta de verdad el viaje.</p>
 <h2>De dónde salen las ofertas</h2>
@@ -152,10 +152,10 @@ function sobreNosotros(datos) {
 <h2>Cómo se ordenan</h2>
 <p>Por el coste del viaje, por persona, por cercanía o por el «Valor» (0-100), que mide lo buena que es la oferta frente a otras parecidas: precio, fechas, comodidad y opiniones. Ninguna web paga por salir antes. Las ofertas patrocinadas, si las hubiera, se marcarían y no subirían en el orden.</p>
 <h2>Las fotos</h2>
-<p>Son del destino, no del alojamiento: de Wikimedia Commons, con licencia libre, autor y licencia en cada una. Cuando no hay foto del destino se enseña una foto de ejemplo de la temática. Ver <a href="../creditos-fotos/">créditos de las fotos</a>.</p>`;
+<p>${t?.fotosOfertas ? 'Si la oferta trae foto, es la que publica su web (con su nombre). Si no, la ' : 'Son del destino, no del alojamiento: '}${t?.fotosOfertas ? 'del destino, de Wikimedia Commons' : 'de Wikimedia Commons'}, con licencia libre, autor y licencia en cada una. Cuando no hay ninguna se enseña una foto de ejemplo de la temática. Ver <a href="../creditos-fotos/">créditos de las fotos</a>.</p>`;
 }
 
-function creditosFotos(datos) {
+function creditosFotos(datos, t) {
   const temas = [
     { lugar: `${FOTO_PORTADA.lugar} (cabecera de la portada, ${FOTO_PORTADA.cambios})`, autor: FOTO_PORTADA.autor, licencia: FOTO_PORTADA.licencia, licenciaUrl: FOTO_PORTADA.licenciaUrl, url: FOTO_PORTADA.pagina },
     ...Object.values(FOTOS_TEMA).map((f) => ({ lugar: `${f.lugar} (foto de ejemplo)`, autor: f.autor, licencia: f.licencia, licenciaUrl: f.licenciaUrl, url: f.pagina })),
@@ -167,7 +167,7 @@ function creditosFotos(datos) {
   }
   const filas = [...temas, ...[...vistas.values()].sort((a, b) => a.lugar.localeCompare(b.lugar, 'es'))];
   const enlace = (url, texto) => (url ? `<a href="${esc(url)}" rel="noopener">${esc(texto)}</a>` : esc(texto));
-  return `<p>Las fotos de esta web son de <a href="https://commons.wikimedia.org" rel="noopener">Wikimedia Commons</a> y tienen licencia libre. Son del destino o de ejemplo, nunca del alojamiento. Estas son las que se ven hoy, con su autor y su licencia.</p>
+  return `<p>Las fotos de esta web son de <a href="https://commons.wikimedia.org" rel="noopener">Wikimedia Commons</a> y tienen licencia libre. Son del destino o de ejemplo, nunca del alojamiento. Estas son las que se ven hoy, con su autor y su licencia.${t?.fotosOfertas ? ' Además, cuando una oferta trae foto, se enseña la de su web, que lleva el nombre de esa web y no está en esta lista.' : ''}</p>
 <div class="tabla-desliza"><table class="tabla-legal">
 <thead><tr><th scope="col">Lugar</th><th scope="col">Autor</th><th scope="col">Licencia</th><th scope="col">Archivo</th></tr></thead>
 <tbody>${filas.map((f) => `<tr><td>${esc(f.lugar)}</td><td>${esc(f.autor ?? 'ver en Commons')}</td><td>${enlace(f.licenciaUrl, f.licencia)}</td><td>${enlace(f.url, 'Commons')}</td></tr>`).join('')}</tbody>
@@ -183,8 +183,8 @@ export function paginasLegales(datos, { base = null, terceros = { analytics: fal
     { ruta: 'privacidad', titulo: 'Política de privacidad', descripcion: `Qué datos trata ${NOMBRE_WEB}, para qué, con quién y cómo ejercer tus derechos.`, cuerpo: privacidad(legal, terceros), indexable: completo },
     { ruta: 'cookies', titulo: 'Política de cookies', descripcion: `Qué cookies usa ${NOMBRE_WEB} y cómo cambiar tu elección.`, cuerpo: cookies(terceros) },
     { ruta: 'contacto', titulo: 'Contacto', descripcion: `Cómo contactar con ${NOMBRE_WEB}.`, cuerpo: contacto(legal), indexable: completo },
-    { ruta: 'sobre-nosotros', titulo: 'Quiénes somos y cómo funciona', descripcion: `Qué es ${NOMBRE_WEB}, de dónde salen las ofertas y cómo se calcula el coste del viaje completo.`, cuerpo: sobreNosotros(datos) },
-    { ruta: 'creditos-fotos', titulo: 'Créditos de las fotos', descripcion: 'Autor y licencia de cada foto de la web (Wikimedia Commons).', cuerpo: creditosFotos(datos) },
+    { ruta: 'sobre-nosotros', titulo: 'Quiénes somos y cómo funciona', descripcion: `Qué es ${NOMBRE_WEB}, de dónde salen las ofertas y cómo se calcula el coste del viaje completo.`, cuerpo: sobreNosotros(datos, terceros) },
+    { ruta: 'creditos-fotos', titulo: 'Créditos de las fotos', descripcion: 'Autor y licencia de cada foto de la web (Wikimedia Commons).', cuerpo: creditosFotos(datos, terceros) },
   ];
   return defs.map((d) => ({ ruta: `${d.ruta}/index.html`, indexable: d.indexable ?? true, url: `${d.ruta}/`, contenido: pagina(d, { base, terceros }) }));
 }

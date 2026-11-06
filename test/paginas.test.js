@@ -39,7 +39,7 @@ describe('páginas para buscadores', () => {
     assert.match(html, /Precio en [^:]+: (desde )?\d+(,\d+)?\s€ (por|en|ida)/);
     // La cuenta parte a parte va en la ficha del panel, no 24 veces en la guía.
     assert.ok(!html.includes('Cuenta:'));
-    assert.match(html, /precio visto allí el /);
+    assert.match(html, /Precio visto en [^<]+ el /);
     for (const o of datos.ofertas.filter((x) => x.descripcion?.length > 60).slice(0, 20)) {
       assert.ok(!html.includes(o.descripcion.slice(0, 60)), `no copia la descripción de ${o.id}`);
     }
@@ -146,7 +146,7 @@ describe('páginas para buscadores', () => {
     const spa = conMarcas.archivos.find((a) => a.ruta === 'escapadas/rurales/index.html').contenido;
     assert.ok(!spa.includes('</script><b>'));
     assert.ok(!/href="javascript:/i.test(spa));
-    assert.match(spa, /<a href="https:\/\/[^"]+" rel="(sponsored )?nofollow noopener" target="_blank">Ver la oferta<span class="sr"> en [^<]+ \(se abre en otra pestaña\)<\/span><\/a>/, 'se usa la URL de la oferta');
+    assert.match(spa, /<a class="boton boton--primario" href="https:\/\/[^"]+" rel="(sponsored )?nofollow noopener" target="_blank">Ver oferta en [^<]+<span class="sr"> \(se abre en otra pestaña\)<\/span><\/a>/, 'se usa la URL de la oferta, en un botón');
   });
 
   it('bloque de la portada sin JavaScript: qué es la web, lo mejor de ahora y todas las guías', () => {
