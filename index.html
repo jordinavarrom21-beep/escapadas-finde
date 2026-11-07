@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <!-- Defensa en profundidad: aunque se colara HTML en una oferta, no podría ejecutar
+       scripts en línea ni cargar código de otros sitios. Imágenes de cualquier web https
+       (las de las ofertas); conexiones solo al propio sitio y al buscador de lugares. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/ https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/ https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.1/ https://emrldco.com https://*.googletagmanager.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/ https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/ https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.1/ https://emrldco.com; img-src 'self' https: data:; connect-src 'self' https://photon.komoot.io https://router.project-osrm.org https://emrldco.com https://mn-tz.com https://emrld.cc https://www.travelpayouts.com https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta name="escapadas-google-analytics" content="G-D275EQYWYV">
+  <meta name="escapadas-drive" content="https://emrldco.com/NTgyMTQz.js?t=582143">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <!-- La portada conserva este título al pintarse (app.js): es el que enseñan los buscadores. -->
+  <title>Escapadas de fin de semana desde Barcelona · Escapadas Finde</title>
+  <meta name="description" content="Escapadas de fin de semana desde Barcelona: casas rurales, hoteles con spa, planes y chollos de vuelos de 27 webs, con el coste del viaje completo.">
+  <meta name="robots" content="max-image-preview:large">
+  <!-- Vista previa al compartir el enlace (WhatsApp, redes). El despliegue pone la URL
+       absoluta de og.png (las redes no aceptan rutas relativas). -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Escapadas Finde">
+  <meta property="og:title" content="Escapadas Finde: chollos de escapadas para este finde">
+  <meta property="og:description" content="Escapadas, casas rurales, planes y chollos de vuelos de 27 webs de viajes, juntos y revisados varias veces al día.">
+  <meta property="og:image" content="https://escapadasfinde.com/og.png">
+  <meta property="og:url" content="https://escapadasfinde.com/">
+  <link rel="canonical" href="https://escapadasfinde.com/">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:locale" content="es_ES">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#f4efe6">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icono.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-title" content="Escapadas">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <script src="js/tema.js?v=hosting-e96a69a7d213"></script>
+  <link rel="preload" href="fonts/figtree.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/bricolage-grotesque.woff2" as="font" type="font/woff2" crossorigin>
+  <!-- La foto de la cabecera de la portada (vistas-portada.js) se pinta con JavaScript: así llega antes. -->
+  <link rel="preload" as="image" href="img/portada.jpg" imagesrcset="img/portada.jpg 500w, img/portada-960.jpg 960w" imagesizes="(min-width: 1240px) 1180px, 100vw" fetchpriority="high">
+  <link rel="stylesheet" href="css/estilos.css?v=hosting-e96a69a7d213">
+  <!-- Todos los módulos del panel a la vez: si no, el navegador los descubre uno tras otro al
+       leer cada import (en un móvil, cerca de un segundo más). test/arranque.test.js comprueba
+       que no falte ninguno. -->
+  <link rel="modulepreload" href="js/app.js?v=hosting-e96a69a7d213">
+  <link rel="modulepreload" href="js/filtros.js?v=hosting-e96a69a7d213">
+  <link rel="modulepreload" href="js/vistas.js?v=hosting-e96a69a7d213">
+  <link rel="modulepreload" href="js/vistas-comun.js?v=hosting-e96a69a7d213">
+  <link rel="modulepreload" href="js/vistas-portada.js?v=hosting-e96a69a7d213">
+  <link rel="modulepreload" href="js/vistas-info.js?v=hosting-e96a69a7d213">
+  <link rel="modulepreload" href="js/plantillas.js?v=hosting-e96a69a7d213">
+  <link rel="modulepreload" href="js/plantillas-ficha.js?v=hosting-e96a69a7d213">
+  <link rel="modulepreload" href="js/iconos.js?v=hosting-e96a69a7d213">
+  <link rel="modulepreload" href="js/formato.js?v=hosting-e96a69a7d213">
+  <link rel="modulepreload" href="js/fechas.js?v=hosting-e96a69a7d213">
+  <link rel="modulepreload" href="js/fechas-enlaces.js?v=hosting-e96a69a7d213">
+  <link rel="modulepreload" href="js/ficha.js?v=hosting-e96a69a7d213">
+  <link rel="modulepreload" href="js/cdn.js?v=hosting-e96a69a7d213">
+  <link rel="modulepreload" href="js/coste.js?v=hosting-e96a69a7d213">
+  <link rel="modulepreload" href="js/geo.js?v=hosting-e96a69a7d213">
+  <link rel="modulepreload" href="js/rutas.js?v=hosting-e96a69a7d213">
+  <link rel="modulepreload" href="js/nota.js?v=hosting-e96a69a7d213">
+  <link rel="modulepreload" href="js/local.js?v=hosting-e96a69a7d213">
+  <link rel="modulepreload" href="js/viaje.js?v=hosting-e96a69a7d213">
+  <link rel="modulepreload" href="js/mapa.js?v=hosting-e96a69a7d213">
+  <link rel="modulepreload" href="js/ubicacion.js?v=hosting-e96a69a7d213">
+  <link rel="modulepreload" href="js/vigencia.js?v=hosting-e96a69a7d213">
+  <link rel="modulepreload" href="js/selector-fechas.js?v=hosting-e96a69a7d213">
+  <link rel="modulepreload" href="js/fotos-tema.js?v=hosting-e96a69a7d213">
+  <script type="module" src="js/app.js?v=hosting-e96a69a7d213"></script>
+  <!-- Aviso de cookies, Google Analytics, Google Ads y Travelpayouts Drive: solo si el despliegue
+       pone la etiqueta «escapadas-google-analytics», «escapadas-google-ads» o «escapadas-drive» (consentimiento.js). -->
+  <script src="js/consentimiento.js?v=hosting-e96a69a7d213" defer></script>
+  <!-- datos-estructurados: el despliegue (scripts/preparar-web.js) pone aquí el JSON-LD de la web. -->
+  <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"WebSite","@id":"https://escapadasfinde.com/#web","url":"https://escapadasfinde.com/","name":"Escapadas Finde","inLanguage":"es-ES","publisher":{"@id":"https://escapadasfinde.com/#organizacion"}},{"@type":"Organization","@id":"https://escapadasfinde.com/#organizacion","name":"Escapadas Finde","url":"https://escapadasfinde.com/","logo":"https://escapadasfinde.com/icono-512.png"},{"@type":"CollectionPage","@id":"https://escapadasfinde.com/#portada","url":"https://escapadasfinde.com/","name":"Escapadas Finde: escapadas de fin de semana","inLanguage":"es-ES","isPartOf":{"@id":"https://escapadasfinde.com/#web"},"mainEntity":{"@type":"ItemList","numberOfItems":12,"itemListElement":[{"@type":"ListItem","position":1,"name":"Escapada en Platja d’Aro en un equipado apartamento para que disfrutes a tu aire"},{"@type":"ListItem","position":2,"name":"Norat Marina Spa en O Grove"},{"@type":"ListItem","position":3,"name":"Desconecta en la Pineda en un hotel Adults Only con piscina y acceso al spa"},{"@type":"ListItem","position":4,"name":"Escapada Romántica para tu pareja y amigo perruno, con botella de cava, bombones y desayuno."},{"@type":"ListItem","position":5,"name":"Descubre la Costa Brava y alójate en el centro de Begur"},{"@type":"ListItem","position":6,"name":"Casas Rurales El Xalet de Prades"},{"@type":"ListItem","position":7,"name":"¡Escápate al corazón de Santander! La joya de Cantabria"},{"@type":"ListItem","position":8,"name":"Hotel La Pasera en Cangas de Onis"},{"@type":"ListItem","position":9,"name":"Bahia Serena en Roquetas de Mar"},{"@type":"ListItem","position":10,"name":"Hotel 4* junto a las playas de Almería, ¡con fechas de 2027 ya disponibles!"},{"@type":"ListItem","position":11,"name":"¡Escapada urbana en Santiago y su Catedral!"},{"@type":"ListItem","position":12,"name":"Hotel Apartamento Paraiso De Albufeira en Albufeira"}]}}]}</script>
+  <!-- /datos-estructurados -->
+</head>
+<body>
+  <a class="saltar" href="#principal">Saltar al contenido</a>
+
+  <header class="cabecera">
+    <div class="contenedor cabecera__fila">
+      <a class="marca" href="#/finde">
+        <img src="icono.svg" alt="" width="36" height="36">
+        <span>Escapadas Finde</span>
+      </a>
+      <nav class="navegacion" aria-label="Secciones">
+        <ul>
+          <li><a href="#/finde" data-vista="finde"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3.5 11L12 4l8.5 7M5.5 9.5V20h13V9.5M10 20v-5h4v5"/></svg><span>Inicio</span></a></li>
+          <li><a href="#/escapadas" data-vista="escapadas"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 11a7 7 0 1 0 14 0a7 7 0 1 0 -14 0M20 20l-4-4"/></svg><span>Explorar</span></a></li>
+          <li><a href="#/calendario" data-vista="calendario"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 6.5h16V20H4zM4 10.5h16M8.5 4v4M15.5 4v4"/></svg><span>Fechas</span></a></li>
+          <li><a href="#/mis" data-vista="mis"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 20s-7.5-4.6-7.5-10.2A4.2 4.2 0 0 1 12 7.2a4.2 4.2 0 0 1 7.5 2.6C19.5 15.4 12 20 12 20z"/></svg><span>Guardados</span><span id="aviso-mis" class="navegacion__aviso" hidden></span></a></li>
+        </ul>
+      </nav>
+      <div class="cabecera__acciones">
+        <button id="cambiar-tema" class="boton-icono" type="button" aria-label="Cambiar el modo de color"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg></button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Con nombre, para que quien usa un lector de pantalla lo encuentre entre las regiones (axe: «region»). -->
+  <section class="contenedor cabecera-info" aria-label="Tu salida y buscador">
+    <div class="cabecera__info">
+      <button id="boton-viaje" class="pastilla pastilla--viaje" type="button" data-mi-viaje aria-haspopup="dialog"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 21s-6.5-5.8-6.5-11.2a6.5 6.5 0 0 1 13 0C18.5 15.2 12 21 12 21zM9.8 9.8a2.2 2.2 0 1 0 4.4 0a2.2 2.2 0 1 0 -4.4 0"/></svg><span>Tu salida</span></button>
+      <a id="novedades" class="pastilla pastilla--novedades" href="#/buscar?nuevas=1" hidden></a>
+      <p id="actualizado" class="cabecera__actualizado" hidden></p>
+    </div>
+    <form id="buscador" class="buscador" role="search">
+      <label class="sr" for="q">Buscar en todas las ofertas</label>
+      <input id="q" name="q" type="search" placeholder="Buscar en todo: destino, hotel…" autocomplete="off" enterkeyhint="search">
+      <button class="boton boton--tinta" type="submit"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 11a7 7 0 1 0 14 0a7 7 0 1 0 -14 0M20 20l-4-4"/></svg><span class="sr">Buscar</span></button>
+    </form>
+  </section>
+
+  <main id="principal" class="contenedor" tabindex="-1">
+    <!-- Encima de la portada estática: mientras carga el panel, se lee primero que aún carga. -->
+    <p class="cargando" role="status">Cargando ofertas…</p>
+    <!-- portada-estatica: el despliegue (scripts/preparar-web.js) pone aquí, para quien no
+         ejecuta el panel (buscadores, vistas previas) y mientras carga, qué es la web, lo mejor de ahora y las guías. -->
+<div class="portada-estatica" data-generado="2026-11-07T16:31:00.082Z">
+<h1 class="titulo-vista">Escapadas de fin de semana desde <em>Barcelona</em></h1>
+<p>Escapadas, casas rurales, hoteles con spa, planes y chollos de vuelos de 27 webs de viajes, juntos y revisados varias veces al día. Cada oferta con el coste del viaje completo para 2 personas desde Barcelona (la oferta y la gasolina), el tiempo en coche y cuándo se comprobó. Datos del sáb 7 nov.</p>
+<h2>Lo mejor de ahora</h2>
+<ol class="lista-guia"><li class="fila-guia">
+  <figure class="fila-guia__media"><img src="https://static.booking.weekendesk.fr/image_cache/A853000/853442/853442_640_360_FSImage_1_EDIT_Fachada.webp" alt="" width="240" height="150" loading="lazy" decoding="async" referrerpolicy="no-referrer"><figcaption><a class="fila-guia__credito" href="https://www.weekendesk.es/fin-de-semana/21371796/escapadas-fin-de-semana-en-Platja_d_Aro-Cataluna-minivacaciones_verano" rel="noopener" target="_blank">Foto: Weekendesk</a></figcaption></figure>
+  <h3>Escapada en Platja d’Aro en un equipado apartamento para que disfrutes a tu aire</h3>
+  <p><span aria-hidden="true">📍</span> Platja d&#39;Aro, Cataluña · Fechas flexibles · 1 h 24 min en coche · <span aria-hidden="true">⭐</span><span class="sr">Nota</span> 7,7</p>
+  <p class="fila-guia__precio"><strong>Viaje completo: ≈ 34 € por persona</strong> (68 € para 2 personas, 1 noche) · <span class="suave">Precio en Weekendesk: desde 45,36 € en total</span></p>
+  <p class="fila-guia__accion"><a class="boton boton--primario" href="https://www.weekendesk.es/fin-de-semana/21371796/escapadas-fin-de-semana-en-Platja_d_Aro-Cataluna-minivacaciones_verano" rel="sponsored nofollow noopener" target="_blank">Ver oferta en Weekendesk<span class="sr"> (se abre en otra pestaña)</span></a></p>
+  <p class="suave fila-guia__nota">Precio visto en Weekendesk el sáb 7 nov. El precio final lo confirma su web.</p>
+</li><li class="fila-guia">
+  <figure class="fila-guia__media"><img src="https://d2poxrheyfxwbo.cloudfront.net/resize/280x200/filters:max_age(2604800):quality(65)/s3/hotel/be1518f8-8604-479f-b906-a858e25d8187" alt="" width="240" height="150" loading="lazy" decoding="async" referrerpolicy="no-referrer"><figcaption><a class="fila-guia__credito" href="https://www.muchoviaje.com/hotel/norat-marina-spa-en-o-grove-pontevedra-espana?niche=fin-de-semana" rel="noopener" target="_blank">Foto: Muchoviaje</a></figcaption></figure>
+  <h3>Norat Marina Spa en O Grove</h3>
+  <p><span aria-hidden="true">📍</span> O Grove, Pontevedra · Fechas flexibles · 12 h 46 min en coche · <span aria-hidden="true">⭐</span><span class="sr">Nota</span> 8,2</p>
+  <p class="fila-guia__precio"><strong>Viaje completo: ≈ 190 € por persona</strong> (380 € para 2 personas, 2 noches) · <span class="suave">Precio en Muchoviaje: desde 65 € por alojamiento y noche</span></p>
+  <p class="fila-guia__accion"><a class="boton boton--primario" href="https://www.muchoviaje.com/hotel/norat-marina-spa-en-o-grove-pontevedra-espana?niche=fin-de-semana" rel="sponsored nofollow noopener" target="_blank">Ver oferta en Muchoviaje<span class="sr"> (se abre en otra pestaña)</span></a></p>
+  <p class="suave fila-guia__nota">Precio visto en Muchoviaje el sáb 7 nov. El precio final lo confirma su web.</p>
+</li><li class="fila-guia">
+  <figure class="fila-guia__media"><img src="https://static.booking.weekendesk.fr/image_cache/A1999000/1999777/1999777_640_360_FSImage_1_EDIT_POOL_01.webp" alt="" width="240" height="150" loading="lazy" decoding="async" referrerpolicy="no-referrer"><figcaption><a class="fila-guia__credito" href="https://www.weekendesk.es/fin-de-semana/21842438/escapadas-fin-de-semana-en-Platja_de_la_Pineda-Cataluna-spa" rel="noopener" target="_blank">Foto: Weekendesk</a></figcaption></figure>
+  <h3>Desconecta en la Pineda en un hotel Adults Only con piscina y acceso al spa</h3>
+  <p><span aria-hidden="true">📍</span> La Pineda, Cataluña · Fechas flexibles · 1 h 26 min en coche · <span aria-hidden="true">⭐</span><span class="sr">Nota</span> 9,5</p>
+  <p class="fila-guia__precio"><strong>Viaje completo: ≈ 47 € por persona</strong> (94 € para 2 personas, 1 noche) · <span class="suave">Precio en Weekendesk: desde 71,60 € en total</span></p>
+  <p class="fila-guia__accion"><a class="boton boton--primario" href="https://www.weekendesk.es/fin-de-semana/21842438/escapadas-fin-de-semana-en-Platja_de_la_Pineda-Cataluna-spa" rel="sponsored nofollow noopener" target="_blank">Ver oferta en Weekendesk<span class="sr"> (se abre en otra pestaña)</span></a></p>
+  <p class="suave fila-guia__nota">Precio visto en Weekendesk el sáb 7 nov. El precio final lo confirma su web.</p>
+</li><li class="fila-guia">
+  <figure class="fila-guia__media"><img src="https://static.booking.weekendesk.fr/image_cache/A2122000/2122520/2122520_640_360_FSImage_1_38_TTF7733.webp" alt="" width="240" height="150" loading="lazy" decoding="async" referrerpolicy="no-referrer"><figcaption><a class="fila-guia__credito" href="https://www.weekendesk.es/fin-de-semana/21985546/escapadas-fin-de-semana-en-Parets_d_0Emporda-Cataluna-escapadas_fin_de_ano" rel="noopener" target="_blank">Foto: Weekendesk</a></figcaption></figure>
+  <h3>Escapada Romántica para tu pareja y amigo perruno, con botella de cava, bombones y desayuno.</h3>
+  <p><span aria-hidden="true">📍</span> Parets d&#39;Empordà, Cataluña · Fechas flexibles · 1 h 32 min en coche · <span aria-hidden="true">⭐</span><span class="sr">Nota</span> 9,6</p>
+  <p class="fila-guia__precio"><strong>Viaje completo: ≈ 59 € por persona</strong> (118 € para 2 personas, 1 noche) · <span class="suave">Precio en Weekendesk: desde 90,77 € en total</span></p>
+  <p class="fila-guia__accion"><a class="boton boton--primario" href="https://www.weekendesk.es/fin-de-semana/21985546/escapadas-fin-de-semana-en-Parets_d_0Emporda-Cataluna-escapadas_fin_de_ano" rel="sponsored nofollow noopener" target="_blank">Ver oferta en Weekendesk<span class="sr"> (se abre en otra pestaña)</span></a></p>
+  <p class="suave fila-guia__nota">Precio visto en Weekendesk el sáb 7 nov. El precio final lo confirma su web.</p>
+</li><li class="fila-guia">
+  <figure class="fila-guia__media"><img src="https://static.booking.weekendesk.fr/image_cache/A1186000/1186611/1186611_640_360_FSImage_1_EDIT_hab.economica.webp" alt="" width="240" height="150" loading="lazy" decoding="async" referrerpolicy="no-referrer"><figcaption><a class="fila-guia__credito" href="https://www.weekendesk.es/fin-de-semana/21356394/escapadas-fin-de-semana-en-Begur-Cataluna-Playa" rel="noopener" target="_blank">Foto: Weekendesk</a></figcaption></figure>
+  <h3>Descubre la Costa Brava y alójate en el centro de Begur</h3>
+  <p><span aria-hidden="true">📍</span> Begur, Cataluña · Fechas flexibles · 1 h 47 min en coche · <span aria-hidden="true">⭐</span><span class="sr">Nota</span> 8,4</p>
+  <p class="fila-guia__precio"><strong>Viaje completo: ≈ 77 € por persona</strong> (154 € para 2 personas, 1 noche) · <span class="suave">Precio en Weekendesk: desde 125,41 € en total</span></p>
+  <p class="fila-guia__accion"><a class="boton boton--primario" href="https://www.weekendesk.es/fin-de-semana/21356394/escapadas-fin-de-semana-en-Begur-Cataluna-Playa" rel="sponsored nofollow noopener" target="_blank">Ver oferta en Weekendesk<span class="sr"> (se abre en otra pestaña)</span></a></p>
+  <p class="suave fila-guia__nota">Precio visto en Weekendesk el vie 6 nov. El precio final lo confirma su web.</p>
+</li><li class="fila-guia">
+  <figure class="fila-guia__media"><img src="https://webp.er2.co/es/tarragona/0000000005794/375/62bed68d9f394.webp" alt="" width="240" height="150" loading="lazy" decoding="async" referrerpolicy="no-referrer"><figcaption><a class="fila-guia__credito" href="https://www.escapadarural.com/casa-rural/tarragona/el-xalet-de-prades" rel="noopener" target="_blank">Foto: Escapada Rural</a></figcaption></figure>
+  <h3>Casas Rurales El Xalet de Prades</h3>
+  <p><span aria-hidden="true">📍</span> Prades, Tarragona · Fechas flexibles · 1 h 58 min en coche · <span aria-hidden="true">⭐</span><span class="sr">Nota</span> 9</p>
+  <p class="fila-guia__precio"><strong>Viaje completo: ≈ 98 € por persona</strong> (195 € para 2 personas, 2 noches) · <span class="suave">Precio en Escapada Rural: desde 41 € por persona y noche</span></p>
+  <p class="fila-guia__accion"><a class="boton boton--primario" href="https://www.escapadarural.com/casa-rural/tarragona/el-xalet-de-prades" rel="sponsored nofollow noopener" target="_blank">Ver oferta en Escapada Rural<span class="sr"> (se abre en otra pestaña)</span></a></p>
+  <p class="suave fila-guia__nota">Precio visto en Escapada Rural el sáb 7 nov. El precio final lo confirma su web.</p>
+</li><li class="fila-guia">
+  <figure class="fila-guia__media"><img src="https://content.buscounchollo.com/img/groups/40073/cover.jpg?v=1787674928" alt="" width="240" height="150" loading="lazy" decoding="async" referrerpolicy="no-referrer"><figcaption><a class="fila-guia__credito" href="https://www.buscounchollo.com/reserva-chollo/40073/escapate-al-corazon-de-santander-la-joya-de-cantabria" rel="noopener" target="_blank">Foto: BuscoUnChollo</a></figcaption></figure>
+  <h3>¡Escápate al corazón de Santander! La joya de Cantabria</h3>
+  <p><span aria-hidden="true">📍</span> Santander, Cantabria · Fechas flexibles · 7 h 43 min en coche</p>
+  <p class="fila-guia__precio"><strong>Viaje completo: ≈ 101 € por persona</strong> (201 € para 2 personas, 1 noche) · <span class="suave">Precio en BuscoUnChollo: desde 25 € por persona</span></p>
+  <p class="fila-guia__accion"><a class="boton boton--primario" href="https://www.buscounchollo.com/reserva-chollo/40073/escapate-al-corazon-de-santander-la-joya-de-cantabria" rel="sponsored nofollow noopener" target="_blank">Ver oferta en BuscoUnChollo<span class="sr"> (se abre en otra pestaña)</span></a></p>
+  <p class="suave fila-guia__nota">Precio visto en BuscoUnChollo el sáb 7 nov. El precio final lo confirma su web.</p>
+</li><li class="fila-guia">
+  <figure class="fila-guia__media"><img src="https://d2poxrheyfxwbo.cloudfront.net/resize/280x200/filters:max_age(2604800):quality(65)/s3/hotel/4b06fdc2-bfdf-49a1-8359-c5dd6b5a3abb" alt="" width="240" height="150" loading="lazy" decoding="async" referrerpolicy="no-referrer"><figcaption><a class="fila-guia__credito" href="https://www.muchoviaje.com/hotel/hotel-la-pasera-cangas-de-onis?niche=fin-de-semana" rel="noopener" target="_blank">Foto: Muchoviaje</a></figcaption></figure>
+  <h3>Hotel La Pasera en Cangas de Onis</h3>
+  <p><span aria-hidden="true">📍</span> Cangas de Onis, Asturias · Fechas flexibles · 9 h 11 min en coche · <span aria-hidden="true">⭐</span><span class="sr">Nota</span> 7,4</p>
+  <p class="fila-guia__precio"><strong>Viaje completo: ≈ 158 € por persona</strong> (317 € para 2 personas, 2 noches) · <span class="suave">Precio en Muchoviaje: desde 69 € por alojamiento y noche</span></p>
+  <p class="fila-guia__accion"><a class="boton boton--primario" href="https://www.muchoviaje.com/hotel/hotel-la-pasera-cangas-de-onis?niche=fin-de-semana" rel="sponsored nofollow noopener" target="_blank">Ver oferta en Muchoviaje<span class="sr"> (se abre en otra pestaña)</span></a></p>
+  <p class="suave fila-guia__nota">Precio visto en Muchoviaje el sáb 7 nov. El precio final lo confirma su web.</p>
+</li><li class="fila-guia">
+  <figure class="fila-guia__media"><img src="https://d2poxrheyfxwbo.cloudfront.net/resize/280x200/filters:max_age(2604800):quality(65)/s3/hotel/7198d0ae-318b-466c-9032-57a0faa1c3cc" alt="" width="240" height="150" loading="lazy" decoding="async" referrerpolicy="no-referrer"><figcaption><a class="fila-guia__credito" href="https://www.muchoviaje.com/hotel/bahia-serena-roquetas-de-mar?niche=ultima-hora-playas" rel="noopener" target="_blank">Foto: Muchoviaje</a></figcaption></figure>
+  <h3>Bahia Serena en Roquetas de Mar</h3>
+  <p><span aria-hidden="true">📍</span> Roquetas de Mar, Almería · Fechas flexibles · 8 h 52 min en coche · <span aria-hidden="true">⭐</span><span class="sr">Nota</span> 8,2</p>
+  <p class="fila-guia__precio"><strong>Viaje completo: ≈ 164 € por persona</strong> (329 € para 2 personas, 2 noches) · <span class="suave">Precio en Muchoviaje: desde 78 € por alojamiento y noche</span></p>
+  <p class="fila-guia__accion"><a class="boton boton--primario" href="https://www.muchoviaje.com/hotel/bahia-serena-roquetas-de-mar?niche=ultima-hora-playas" rel="sponsored nofollow noopener" target="_blank">Ver oferta en Muchoviaje<span class="sr"> (se abre en otra pestaña)</span></a></p>
+  <p class="suave fila-guia__nota">Precio visto en Muchoviaje el sáb 7 nov. El precio final lo confirma su web.</p>
+</li><li class="fila-guia">
+  <figure class="fila-guia__media"><img src="https://content.buscounchollo.com/img/groups/38568/cover.jpg?v=1793261465" alt="" width="240" height="150" loading="lazy" decoding="async" referrerpolicy="no-referrer"><figcaption><a class="fila-guia__credito" href="https://www.buscounchollo.com/reserva-chollo/38568/hotel-4-junto-a-las-playas-de-almeria-con-fechas-de-2027-ya-disponibles" rel="noopener" target="_blank">Foto: BuscoUnChollo</a></figcaption></figure>
+  <h3>Hotel 4* junto a las playas de Almería, ¡con fechas de 2027 ya disponibles!</h3>
+  <p><span aria-hidden="true">📍</span> Vera, Almería · Fechas flexibles · 7 h 50 min en coche</p>
+  <p class="fila-guia__precio"><strong>Viaje completo: ≈ 104 € por persona</strong> (209 € para 2 personas, 1 noche) · <span class="suave">Precio en BuscoUnChollo: desde 29 € por persona</span></p>
+  <p class="fila-guia__accion"><a class="boton boton--primario" href="https://www.buscounchollo.com/reserva-chollo/38568/hotel-4-junto-a-las-playas-de-almeria-con-fechas-de-2027-ya-disponibles" rel="sponsored nofollow noopener" target="_blank">Ver oferta en BuscoUnChollo<span class="sr"> (se abre en otra pestaña)</span></a></p>
+  <p class="suave fila-guia__nota">Precio visto en BuscoUnChollo el sáb 7 nov. El precio final lo confirma su web.</p>
+</li><li class="fila-guia">
+  <figure class="fila-guia__media"><img src="img/temas/ciudad.jpg" alt="" width="240" height="150" loading="lazy" decoding="async" referrerpolicy="no-referrer"><figcaption><a class="fila-guia__credito" href="https://commons.wikimedia.org/wiki/File:Girona_des_de_l_aire_edited.jpg" rel="noopener" target="_blank">Foto de ejemplo (Girona): Patronat de Turisme Costa Brava Pirineu de Girona · CC BY-SA 3.0</a></figcaption></figure>
+  <h3>¡Escapada urbana en Santiago y su Catedral!</h3>
+  <p><span aria-hidden="true">📍</span> Santiago · jue 26 nov – dom 29 nov · 11 h 53 min en coche</p>
+  <p class="fila-guia__precio"><strong>Viaje completo: ≈ 181 € por persona</strong> (362 € para 2 personas, 3 noches) · <span class="suave">Precio en Escapada Barata: 130 € en total</span></p>
+  <p class="fila-guia__accion"><a class="boton boton--primario" href="https://t.me/escapadabarata/6784" rel="sponsored nofollow noopener" target="_blank">Ver oferta en Escapada Barata<span class="sr"> (se abre en otra pestaña)</span></a></p>
+  <p class="suave fila-guia__nota">Precio visto en Escapada Barata el sáb 7 nov. El precio final lo confirma su web.</p>
+</li><li class="fila-guia">
+  <figure class="fila-guia__media"><img src="https://d2poxrheyfxwbo.cloudfront.net/resize/280x200/filters:max_age(2604800):quality(65)/s3/hotel/1c1e60cf-7fff-419f-90ff-8c82c795ecc8" alt="" width="240" height="150" loading="lazy" decoding="async" referrerpolicy="no-referrer"><figcaption><a class="fila-guia__credito" href="https://www.muchoviaje.com/hotel/paraiso-de-albufeira-albufeira?niche=fin-de-semana" rel="noopener" target="_blank">Foto: Muchoviaje</a></figcaption></figure>
+  <h3>Hotel Apartamento Paraiso De Albufeira en Albufeira</h3>
+  <p><span aria-hidden="true">📍</span> Albufeira, Portugal · Fechas flexibles · 13 h 28 min en coche</p>
+  <p class="fila-guia__precio"><strong>Viaje completo: ≈ 193 € por persona</strong> (385 € para 2 personas, 2 noches) · <span class="suave">Precio en Muchoviaje: desde 61 € por alojamiento y noche</span></p>
+  <p class="fila-guia__accion"><a class="boton boton--primario" href="https://www.muchoviaje.com/hotel/paraiso-de-albufeira-albufeira?niche=fin-de-semana" rel="sponsored nofollow noopener" target="_blank">Ver oferta en Muchoviaje<span class="sr"> (se abre en otra pestaña)</span></a></p>
+  <p class="suave fila-guia__nota">Precio visto en Muchoviaje el sáb 7 nov. El precio final lo confirma su web.</p>
+</li></ol>
+<nav class="guias" aria-label="Guías"><div class="guias__grupo"><h2>Escapadas</h2><ul><li><a href="escapadas/">Todas las escapadas</a></li><li><a href="escapadas/menos-de-100-euros/">Por menos de 100 € por persona</a></li><li><a href="escapadas/puente/">Para el puente de diciembre</a></li><li><a href="escapadas/a-menos-de-1-hora/">A menos de 1 hora en coche</a></li><li><a href="escapadas/a-menos-de-2-horas/">A menos de 2 horas en coche</a></li><li><a href="escapadas/a-menos-de-3-horas/">A menos de 3 horas en coche</a></li><li><a href="escapadas/una-noche/">De una noche</a></li><li><a href="escapadas/sin-coche/">Sin coche</a></li></ul></div><div class="guias__grupo"><h2>Por temática y alojamiento</h2><ul><li><a href="escapadas/spa/">Escapadas con spa</a></li><li><a href="escapadas/con-ninos/">Escapadas con niños</a></li><li><a href="escapadas/rurales/">Escapadas rurales</a></li><li><a href="escapadas/romanticas/">Escapadas románticas</a></li><li><a href="escapadas/playa/">Escapadas a la playa</a></li><li><a href="escapadas/gastronomicas/">Escapadas gastronómicas y de vino</a></li><li><a href="escapadas/con-perro/">Escapadas con perro</a></li><li><a href="escapadas/aventura-y-nieve/">Escapadas de aventura y nieve</a></li><li><a href="escapadas/ciudades/">Escapadas a ciudades</a></li><li><a href="escapadas/alojamientos-singulares/">Alojamientos singulares</a></li><li><a href="escapadas/parques-tematicos/">Escapadas a parques temáticos</a></li><li><a href="escapadas/casas-rurales/">Casas rurales</a></li><li><a href="escapadas/campings/">Campings y glamping</a></li></ul></div><div class="guias__grupo"><h2>Por zona</h2><ul><li><a href="escapadas/costa-brava/">Escapadas en la Costa Brava</a></li><li><a href="escapadas/pirineo/">Escapadas en el Pirineo</a></li><li><a href="escapadas/cataluna/">Escapadas en Cataluña</a></li><li><a href="escapadas/barcelona/">Escapadas en Barcelona</a></li><li><a href="escapadas/girona/">Escapadas en Girona</a></li><li><a href="escapadas/tarragona/">Escapadas en Tarragona</a></li><li><a href="escapadas/lleida/">Escapadas en Lleida</a></li></ul></div><div class="guias__grupo"><h2>Vuelos y planes</h2><ul><li><a href="vuelos/">Vuelos baratos</a></li><li><a href="actividades/gratis/">Actividades gratis</a></li></ul></div></nav>
+</div>
+    <!-- /portada-estatica -->
+    <noscript>
+      <section class="sin-js" aria-labelledby="sin-js-titulo">
+        <h2 id="sin-js-titulo">El panel necesita JavaScript</h2>
+        <p>Para filtrar, ver el mapa y guardar ofertas hay que activarlo. Mientras, tienes las guías, que se leen sin él:</p>
+        <!-- guias-sin-js: el despliegue (scripts/preparar-web.js) pone aquí las guías que se indexan hoy. -->
+        <ul>
+          <li><a href="escapadas/">Todas las escapadas</a></li>
+          <li><a href="escapadas/menos-de-100-euros/">Por menos de 100 € por persona</a></li>
+          <li><a href="escapadas/spa/">Escapadas con spa</a></li>
+          <li><a href="escapadas/con-ninos/">Escapadas con niños</a></li>
+          <li><a href="vuelos/">Vuelos baratos</a></li>
+          <li><a href="actividades/gratis/">Actividades gratis</a></li>
+        </ul>
+        <!-- /guias-sin-js -->
+      </section>
+    </noscript>
+  </main>
+
+  <footer class="pie contenedor">
+    <p class="pie__marca"><img src="icono.svg" alt="" width="28" height="28"> Escapadas Finde</p>
+    <p>Reunimos ofertas publicadas por webs de viajes y las revisamos varias veces al día. No vendemos nada: el precio y
+      las condiciones los confirma siempre la web de la oferta al reservar.</p>
+    <p><a href="#/ayuda">Cómo funciona</a> · <a href="sobre-nosotros/">Quiénes somos</a> · <a href="contacto/">Contacto</a> · <a href="aviso-legal/">Aviso legal</a> · <a href="privacidad/">Privacidad</a> · <a href="cookies/">Política de cookies</a> · <a href="creditos-fotos/">Créditos de las fotos</a> · <span data-sin-cookies>Sin cookies ni seguimiento</span> ·
+      Mapa © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> ·
+      Lugares con <a href="https://photon.komoot.io" target="_blank" rel="noopener noreferrer">Photon</a></p>
+    <p><a id="estado-fuentes" class="estado-fuentes" href="#/fuentes" hidden><span class="punto" aria-hidden="true"></span><span class="estado-fuentes__texto">Estado de las webs</span></a></p>
+    <p id="aviso-comercial"></p>
+    <!-- guias-pie: el despliegue (scripts/preparar-web.js) pone aquí las guías que se indexan hoy. -->
+    <p>Guías: <a href="escapadas/">escapadas</a> · <a href="escapadas/menos-de-100-euros/">por menos de 100 €</a> · <a href="escapadas/spa/">con spa</a> · <a href="escapadas/con-ninos/">con niños</a> · <a href="vuelos/">chollos de vuelos</a> · <a href="actividades/gratis/">actividades gratis</a></p>
+    <!-- /guias-pie -->
+  </footer>
+
+  <dialog id="ficha" class="ficha" aria-labelledby="ficha-titulo">
+    <div class="ficha__caja">
+      <div class="ficha__barra">
+        <button type="button" class="boton-icono" data-cerrar-ficha aria-label="Cerrar la ficha"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div>
+      <div class="ficha__contenido"></div>
+    </div>
+  </dialog>
+
+  <dialog id="mi-viaje" class="ficha ficha--viaje" aria-labelledby="viaje-titulo">
+    <form class="ficha__caja" id="form-viaje"></form>
+  </dialog>
+
+  <section id="barra-comparar" class="barra-comparar" aria-label="Acciones de la lista" hidden></section>
+
+  <div id="datos-nuevos" class="aviso-flotante aviso-flotante--datos" role="status" hidden></div>
+  <div id="aviso" class="aviso-flotante" role="status" aria-live="polite"></div>
+</body>
+</html>
