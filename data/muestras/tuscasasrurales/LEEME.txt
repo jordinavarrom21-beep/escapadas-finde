@@ -1,0 +1,7 @@
+Fuente: tuscasasrurales
+Cuándo: 2026-11-07T15:40:40.996Z
+Motivo: Los precios han cambiado mucho de golpe (lo normal, unos 31 €; ahora, 420 €). Puede que se esté leyendo otro número de la página. ¿Ha cambiado la web?
+
+pagina-1.html: https://www.tuscasasrurales.com/casas-rurales-barcelona.htm
+pagina-2.html: https://www.tuscasasrurales.com/casas-rurales-girona.htm
+pagina-3.html: https://www.tuscasasrurales.com/casas-rurales-lleida.htm
