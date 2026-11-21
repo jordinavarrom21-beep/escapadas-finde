@@ -1,0 +1,5 @@
+Fuente: volotea
+Cuándo: 2026-11-06T10:14:49.447Z
+Motivo: No se ha podido leer ninguna página de Volotea (último error: Volotea ha devuelto un desafío anti-bot)
+
+pagina-1.html: https://www.volotea.com/es/ofertas-vuelos/
